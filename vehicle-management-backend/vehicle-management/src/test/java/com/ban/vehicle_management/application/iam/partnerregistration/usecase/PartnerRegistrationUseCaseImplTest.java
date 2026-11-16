@@ -410,7 +410,7 @@ class PartnerRegistrationUseCaseImplTest {
                 eq(applicantId), eq(AccountStatus.ACTIVE), any(), eq(null), eq(null), eq(systemAccountId), any()
         );
         verify(organizationPortOut).createActiveMembership(organization.getOrganizationId(), applicantId);
-        verify(partnerCatalogSeedPortOut).copyInternalCatalog(organization.getOrganizationId());
+        verify(partnerCatalogSeedPortOut).copySharedCatalog(organization.getOrganizationId());
         verify(currentAccountPortIn, never()).getCurrentAccountIdOrThrow();
     }
 

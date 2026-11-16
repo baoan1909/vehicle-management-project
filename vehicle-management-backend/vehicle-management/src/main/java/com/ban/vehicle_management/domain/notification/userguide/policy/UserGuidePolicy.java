@@ -4,20 +4,24 @@ import com.ban.vehicle_management.domain.notification.userguide.model.UserGuide;
 import com.ban.vehicle_management.domain.notification.userguide.model.UserGuideAudience;
 import com.ban.vehicle_management.domain.notification.userguide.model.UserGuideFeature;
 import com.ban.vehicle_management.domain.notification.userguide.model.UserGuideStep;
+import com.ban.vehicle_management.domain.notification.userguide.model.UserGuideJourneyStateContent;
+import com.ban.vehicle_management.domain.notification.userguide.model.UserGuideJourneyStepConfig;
 import com.ban.vehicle_management.domain.notification.userguide.model.UserGuideUserState;
 import com.ban.vehicle_management.domain.notification.userguide.model.UserGuideVersion;
 import com.ban.vehicle_management.shared.enumeration.notification.UserGuideAudienceMode;
 import com.ban.vehicle_management.shared.enumeration.notification.UserGuideAudienceTargetType;
 import com.ban.vehicle_management.shared.enumeration.notification.UserGuideStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.UserGuideDisplayType;
+import com.ban.vehicle_management.shared.enumeration.notification.UserGuideReplayPolicy;
 import com.ban.vehicle_management.shared.enumeration.notification.UserGuideStepPlacement;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
-import java.net.URI;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -61,6 +65,10 @@ public class UserGuidePolicy {
         if (guide.getReplayPolicy() == null) {
             throw new BadRequestException("replayPolicy must not be null");
         }
+        if (guide.getDisplayType() == UserGuideDisplayType.JOURNEY
+                && guide.getReplayPolicy() != UserGuideReplayPolicy.MANUAL_ONLY) {
+            throw new BadRequestException("JOURNEY guides must use MANUAL_ONLY replay policy");
+        }
         guide.setPriority(normalizeNonNegative(guide.getPriority(), "priority", DEFAULT_ORDER));
         guide.setDisplayOrder(normalizeNonNegative(guide.getDisplayOrder(), "displayOrder", DEFAULT_ORDER));
         if (guide.getCurrentVersion() == null) {
@@ -86,6 +94,18 @@ public class UserGuidePolicy {
         }
         normalizeSteps(version.getSteps());
         validateAudience(version.getAudienceMode(), version.getAudiences());
+    }
+
+    public void normalizeVersion(UserGuideVersion version, UserGuideDisplayType displayType) {
+        normalizeVersion(version);
+        Set<String> stepKeys = new HashSet<>();
+        for (UserGuideStep step : version.getSteps()) {
+            if (displayType == UserGuideDisplayType.JOURNEY) {
+                normalizeJourneyConfig(step.getJourneyConfig(), stepKeys);
+            } else if (step.getJourneyConfig() != null) {
+                throw new BadRequestException("journeyConfig is only supported for JOURNEY guides");
+            }
+        }
     }
 
     public void validateSchedule(Instant startAt, Instant endAt) {
@@ -206,6 +226,38 @@ public class UserGuidePolicy {
         validateVersionTimestampPair(state.getDismissedVersion(), state.getDismissedAt(), "dismissed");
     }
 
+    private void normalizeJourneyConfig(UserGuideJourneyStepConfig config, Set<String> stepKeys) {
+        if (config == null) {
+            throw new BadRequestException("JOURNEY steps require journeyConfig");
+        }
+        config.setStepKey(TextValidationUtils.normalizeCode(config.getStepKey(), "step.journeyConfig.stepKey", 120));
+        if (!stepKeys.add(config.getStepKey())) {
+            throw new BadRequestException("journey stepKey must be unique within a version");
+        }
+        config.setReadinessKey(TextValidationUtils.normalizeCode(
+                config.getReadinessKey(), "step.journeyConfig.readinessKey", 120));
+        if (!UserGuideJourneyReadinessKeys.SUPPORTED.contains(config.getReadinessKey())) {
+            throw new BadRequestException("Unsupported journey readinessKey: " + config.getReadinessKey());
+        }
+        config.setRouteTemplate(InternalRouteTemplateValidator.normalize(
+                config.getRouteTemplate(), "step.journeyConfig.routeTemplate"));
+        config.setActionLabel(TextValidationUtils.normalizeNullableText(
+                config.getActionLabel(), "step.journeyConfig.actionLabel", 100));
+        for (Map.Entry<com.ban.vehicle_management.shared.enumeration.notification.UserGuideJourneyStepState,
+                UserGuideJourneyStateContent> entry : config.getStateContent().entrySet()) {
+            if (entry.getKey() == null || entry.getValue() == null) {
+                throw new BadRequestException("journey stateContent must contain valid states and content");
+            }
+            UserGuideJourneyStateContent content = entry.getValue();
+            content.setDescription(TextValidationUtils.normalizeNullableText(
+                    content.getDescription(), "journey.stateContent.description", MAX_STEP_BODY_LENGTH));
+            content.setOwnerHint(TextValidationUtils.normalizeNullableText(
+                    content.getOwnerHint(), "journey.stateContent.ownerHint", 500));
+            content.setActionLabel(TextValidationUtils.normalizeNullableText(
+                    content.getActionLabel(), "journey.stateContent.actionLabel", 100));
+        }
+    }
+
     private void validateVersionTimestampPair(Integer version, Instant timestamp, String fieldPrefix) {
         if ((version == null) != (timestamp == null)) {
             throw new BadRequestException(fieldPrefix + "Version and " + fieldPrefix
@@ -217,20 +269,7 @@ public class UserGuidePolicy {
     }
 
     private String normalizeDeepLink(String value) {
-        String normalized = TextValidationUtils.normalizeNullableText(value, "deepLink", 1000);
-        if (normalized == null) {
-            return null;
-        }
-        try {
-            URI uri = URI.create(normalized);
-            if (!normalized.startsWith("/") || normalized.startsWith("//")
-                    || uri.isAbsolute() || uri.getHost() != null || normalized.contains("\\")) {
-                throw new BadRequestException("deepLink must be an internal path starting with a single slash");
-            }
-            return normalized;
-        } catch (IllegalArgumentException exception) {
-            throw new BadRequestException("deepLink must be a valid internal path");
-        }
+        return InternalRouteTemplateValidator.normalize(value, "deepLink");
     }
 
     private String normalizeMediaObjectKey(String value) {

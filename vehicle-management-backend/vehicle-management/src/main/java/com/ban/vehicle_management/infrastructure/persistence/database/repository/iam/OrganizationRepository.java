@@ -21,6 +21,10 @@ public interface OrganizationRepository extends JpaRepository<OrganizationEntity
             UUID organizationId, OrganizationStatus status);
     boolean existsByCode(String code);
 
+    @org.springframework.data.jpa.repository.Modifying
+    @Query(value = "update iam.organizations set catalog_seeded_at = now() where organization_id = :organizationId and catalog_seeded_at is null", nativeQuery = true)
+    int claimCatalogSeed(@Param("organizationId") UUID organizationId);
+
     Optional<OrganizationEntity> findByCode(String code);
 
     List<OrganizationEntity> findAllByOrganizationIdIn(Collection<UUID> organizationIds);

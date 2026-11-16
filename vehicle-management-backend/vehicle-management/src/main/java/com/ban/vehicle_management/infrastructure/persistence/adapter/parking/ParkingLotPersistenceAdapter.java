@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.infrastructure.persistence.adapter.parking;
 
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
+import com.ban.vehicle_management.application.parking.parkinglot.model.result.ParkingLotActivationReadiness;
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.infrastructure.mapper.parking.ParkingLotPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingLotEntity;
@@ -97,16 +98,24 @@ public class ParkingLotPersistenceAdapter implements ParkingLotPortOut {
     }
 
     @Override
-    public boolean isReadyForActivation(UUID parkingLotId) {
-        return hasActiveZones(parkingLotId)
-                && gateRepository.existsActiveGateByParkingLotId(parkingLotId)
-                && laneRepository.existsActiveByParkingLotIdAndDirection(parkingLotId, LaneDirection.IN)
-                && laneRepository.existsActiveByParkingLotIdAndDirection(parkingLotId, LaneDirection.OUT)
-                && !zoneRepository.existsByParkingLotIdAndStatusAndTrackingModeAndLayoutStatusNot(
+    public ParkingLotActivationReadiness getActivationReadiness(UUID parkingLotId) {
+        return new ParkingLotActivationReadiness(
+                parkingLotRepository.hasPublishedCatalogForActivation(parkingLotId),
+                hasActiveZones(parkingLotId),
+                gateRepository.existsActiveGateByParkingLotId(parkingLotId),
+                laneRepository.existsActiveByParkingLotIdAndDirection(parkingLotId, LaneDirection.IN),
+                laneRepository.existsActiveByParkingLotIdAndDirection(parkingLotId, LaneDirection.OUT),
+                !zoneRepository.existsByParkingLotIdAndStatusAndTrackingModeAndLayoutStatusNot(
                         parkingLotId,
                         ZoneStatus.ACTIVE,
                         TrackingMode.SPACE,
                         LayoutStatus.PUBLISHED
-                );
+                )
+        );
+    }
+
+    @Override
+    public boolean isReadyForActivation(UUID parkingLotId) {
+        return getActivationReadiness(parkingLotId).ready();
     }
 }

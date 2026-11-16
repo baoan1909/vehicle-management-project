@@ -21,6 +21,7 @@ import com.ban.vehicle_management.shared.enumeration.notification.UserGuideAudie
 import com.ban.vehicle_management.shared.enumeration.notification.UserGuideAudienceTargetType;
 import com.ban.vehicle_management.shared.enumeration.notification.UserGuideErrorCode;
 import com.ban.vehicle_management.shared.enumeration.notification.UserGuideEventType;
+import com.ban.vehicle_management.shared.enumeration.notification.UserGuideDisplayType;
 import com.ban.vehicle_management.shared.enumeration.notification.UserGuideReplayPolicy;
 import com.ban.vehicle_management.shared.enumeration.notification.UserGuideStatus;
 import com.ban.vehicle_management.shared.exception.UserGuideException;
@@ -73,6 +74,22 @@ public class UserGuideRuntimeUseCaseImpl implements UserGuideRuntimePortIn {
     @Override
     @Transactional(readOnly = true)
     public List<ResolvedUserGuide> resolveGuides(String featureCode, String contextKey) {
+        return resolveGuidesInternal(featureCode, contextKey, null, false);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ResolvedUserGuide> resolveManualGuides(
+            String featureCode, String contextKey, UserGuideDisplayType displayType) {
+        return resolveGuidesInternal(featureCode, contextKey, displayType, true);
+    }
+
+    private List<ResolvedUserGuide> resolveGuidesInternal(
+            String featureCode,
+            String contextKey,
+            UserGuideDisplayType displayType,
+            boolean manualRequest
+    ) {
         CurrentAccountAccess account = currentAccountPortIn.getCurrentAccount().orElse(null);
         if (featureCode == null || featureCode.isBlank()) {
             return List.of();
@@ -89,13 +106,16 @@ public class UserGuideRuntimeUseCaseImpl implements UserGuideRuntimePortIn {
         Instant now = Instant.now();
         List<ResolvedUserGuide> resolved = new ArrayList<>();
         for (UserGuide guide : guidePortOut.findByFeatureIdAndStatus(feature.getFeatureId(), UserGuideStatus.PUBLISHED)) {
+            if (displayType != null && guide.getDisplayType() != displayType) {
+                continue;
+            }
             if (!isScheduled(guide, now)) {
                 continue;
             }
             if (normalizedContextKey != null && !normalizedContextKey.equals(guide.getContextKey())) {
                 continue;
             }
-            if (guide.getReplayPolicy() == UserGuideReplayPolicy.MANUAL_ONLY) {
+            if (!manualRequest && guide.getReplayPolicy() == UserGuideReplayPolicy.MANUAL_ONLY) {
                 continue;
             }
             UserGuideVersion version = loadCurrentVersion(guide);
@@ -105,7 +125,7 @@ public class UserGuideRuntimeUseCaseImpl implements UserGuideRuntimePortIn {
             UserGuideUserState state = account == null
                     ? null
                     : statePortOut.findByAccountIdAndGuideId(account.accountId(), guide.getGuideId()).orElse(null);
-            if (!isReplayEligible(guide.getReplayPolicy(), version.getVersionNumber(), state)) {
+            if (!manualRequest && !isReplayEligible(guide.getReplayPolicy(), version.getVersionNumber(), state)) {
                 continue;
             }
             resolved.add(new ResolvedUserGuide(guide, version, state, resolveMediaUrls(version)));
@@ -129,6 +149,11 @@ public class UserGuideRuntimeUseCaseImpl implements UserGuideRuntimePortIn {
         UserGuide guide = guidePortOut.findByCode(guideCode.trim().toUpperCase(java.util.Locale.ROOT))
                 .orElseThrow(() -> new UserGuideException(
                         UserGuideErrorCode.USER_GUIDE_NOT_FOUND, "User guide not found: " + guideCode));
+        UserGuideFeature feature = featurePortOut.findById(guide.getFeatureId()).orElse(null);
+        if (feature == null || !Boolean.TRUE.equals(feature.getEnabled())) {
+            throw new UserGuideException(
+                    UserGuideErrorCode.USER_GUIDE_NOT_FOUND, "User guide feature is not available: " + guideCode);
+        }
         if (guide.getStatus() != UserGuideStatus.PUBLISHED || !isScheduled(guide, Instant.now())) {
             throw new UserGuideException(
                     UserGuideErrorCode.USER_GUIDE_NOT_FOUND, "User guide is not available: " + guideCode);

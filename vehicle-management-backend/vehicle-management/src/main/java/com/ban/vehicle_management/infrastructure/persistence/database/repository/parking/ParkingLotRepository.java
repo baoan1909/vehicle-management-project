@@ -20,6 +20,51 @@ import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotManagemen
 
 public interface ParkingLotRepository extends JpaRepository<ParkingLotEntity, UUID>, JpaSpecificationExecutor<ParkingLotEntity> {
 
+    @Query(value = """
+        select exists (
+            select 1 from parking.parking_lots lot where lot.parking_lot_id = :parkingLotId
+            and (not lot.catalog_explicit_services or (
+                exists (select 1 from catalog.parking_lot_vehicle_type_enrollments enrollment
+                    join catalog.vehicle_types item using (vehicle_type_id)
+                    where enrollment.parking_lot_id = lot.parking_lot_id and item.is_active)
+                and exists (select 1 from catalog.parking_lot_ticket_type_enrollments enrollment
+                    join catalog.ticket_types item using (ticket_type_id)
+                    where enrollment.parking_lot_id = lot.parking_lot_id and item.status = 'ACTIVE')
+                and not exists (
+                    select 1 from catalog.parking_lot_vehicle_type_enrollments vehicles
+                    join catalog.vehicle_types vehicle using (vehicle_type_id)
+                    join catalog.parking_lot_ticket_type_enrollments tickets
+                        on tickets.parking_lot_id = vehicles.parking_lot_id
+                    join catalog.ticket_types ticket using (ticket_type_id)
+                    where vehicles.parking_lot_id = lot.parking_lot_id
+                      and vehicle.is_active and ticket.status = 'ACTIVE'
+                      and not exists (
+                          select 1 from catalog.price_rules rule
+                          join catalog.price_plans plan using (price_plan_id)
+                          where rule.organization_id = lot.organization_id
+                            and rule.parking_lot_id = lot.parking_lot_id
+                            and rule.vehicle_type_id = vehicle.vehicle_type_id
+                            and rule.ticket_type_id = ticket.ticket_type_id
+                            and rule.is_active and plan.is_active
+                            and plan.effective_from <= (now() at time zone 'Asia/Ho_Chi_Minh')::date
+                            and (plan.effective_to is null or plan.effective_to >= (now() at time zone 'Asia/Ho_Chi_Minh')::date)
+                            and ((ticket.code <> 'DAILY' and plan.applies_to = 'CUSTOMER'
+                                  and rule.time_from is null and rule.time_to is null)
+                              or (ticket.code = 'DAILY' and plan.applies_to = 'VISITOR'
+                                  and rule.time_from is not null and rule.time_to is not null))
+                          group by rule.price_plan_id
+                          having ticket.code <> 'DAILY' or sum(
+                              case when rule.time_from < rule.time_to
+                                  then extract(epoch from (rule.time_to - rule.time_from)) + 1
+                                  else 86400 - extract(epoch from (rule.time_from - rule.time_to)) + 1 end
+                          ) >= 86400
+                      )
+                )
+            ))
+        )
+        """, nativeQuery = true)
+    boolean hasPublishedCatalogForActivation(@Param("parkingLotId") UUID parkingLotId);
+
     @Query(value = "select extversion from pg_extension where extname='postgis'", nativeQuery = true)
     String findPostGisExtensionVersion();
 

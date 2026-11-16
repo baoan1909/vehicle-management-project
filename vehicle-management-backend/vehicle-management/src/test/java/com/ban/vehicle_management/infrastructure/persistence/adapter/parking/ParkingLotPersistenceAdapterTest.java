@@ -142,7 +142,6 @@ class ParkingLotPersistenceAdapterTest {
     @Test
     void shouldCheckActiveZones() {
         UUID parkingLotId = UUID.randomUUID();
-
         when(zoneRepository.existsByParkingLotIdAndStatus(parkingLotId, ZoneStatus.ACTIVE)).thenReturn(true);
 
         boolean hasActiveZones = parkingLotPersistenceAdapter.hasActiveZones(parkingLotId);
@@ -154,6 +153,7 @@ class ParkingLotPersistenceAdapterTest {
     @Test
     void shouldAllowActivationWhenTopologyIsActiveAndNoSpaceZoneNeedsPublishedLayout() {
         UUID parkingLotId = UUID.randomUUID();
+        when(parkingLotRepository.hasPublishedCatalogForActivation(parkingLotId)).thenReturn(true);
         when(zoneRepository.existsByParkingLotIdAndStatus(parkingLotId, ZoneStatus.ACTIVE)).thenReturn(true);
         when(gateRepository.existsActiveGateByParkingLotId(parkingLotId)).thenReturn(true);
         when(laneRepository.existsActiveByParkingLotIdAndDirection(parkingLotId, LaneDirection.IN)).thenReturn(true);
@@ -171,6 +171,7 @@ class ParkingLotPersistenceAdapterTest {
     @Test
     void shouldRejectActivationWhenActiveSpaceZoneHasNoPublishedLayout() {
         UUID parkingLotId = UUID.randomUUID();
+        when(parkingLotRepository.hasPublishedCatalogForActivation(parkingLotId)).thenReturn(true);
         when(zoneRepository.existsByParkingLotIdAndStatus(parkingLotId, ZoneStatus.ACTIVE)).thenReturn(true);
         when(gateRepository.existsActiveGateByParkingLotId(parkingLotId)).thenReturn(true);
         when(laneRepository.existsActiveByParkingLotIdAndDirection(parkingLotId, LaneDirection.IN)).thenReturn(true);

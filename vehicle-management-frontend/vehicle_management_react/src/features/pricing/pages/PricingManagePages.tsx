@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button, DatePicker, SearchInput, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
 import { UserGuideHelpButton, userGuideAnchorProps, useUserGuide, useUserGuideActivation } from "@/features/user-guide";
@@ -17,6 +18,7 @@ import {
   activatePricePlan,
   activatePriceRule,
   createPricePlan,
+  updatePricePlan,
   createPriceRule,
   deactivatePricePlan,
   deactivatePriceRule,
@@ -24,6 +26,7 @@ import {
   getPriceRules,
   getPricingTicketTypes,
   getPricingVehicleTypes,
+  initializePriceRuleDrafts,
   updatePriceRule,
   type CreatePricePlanRequest,
   type CreatePriceRuleRequest,
@@ -65,6 +68,7 @@ type PricingRuleExportOptions = {
 const statusOptions: SelectMenuOption[] = [
   { label: "Tất cả trạng thái", value: "all" },
   { label: "Đang áp dụng", value: "active" },
+  { label: "Nháp", value: "draft" },
   { label: "Sắp hiệu lực", value: "upcoming" },
   { label: "Hết hiệu lực", value: "expired" },
   { label: "Ngưng sử dụng", value: "inactive" }
@@ -347,7 +351,7 @@ function mapPricePlan(row: PricePlanApiResponse): PricePlanRecord {
     effectiveTo: row.effectiveTo ? formatIsoDate(row.effectiveTo) : null,
     isActive: Boolean(row.isActive),
     name: row.name,
-    status: getPricingStatus(row.isActive, row.effectiveFrom, row.effectiveTo),
+    status: row.lifecycleStatus === "DRAFT" ? "draft" : getPricingStatus(row.isActive, row.effectiveFrom, row.effectiveTo),
     updatedDate: updated.date,
     updatedTime: updated.time
   };
@@ -377,11 +381,11 @@ function mapPriceRule(
     pricePlanId: row.pricePlanId ?? "",
     priority: row.priority ?? 0,
     ruleName: row.ruleName,
-    status: getPricingStatus(row.isActive, plan ? toIsoDate(plan.effectiveFrom) : null, plan ? toIsoDate(plan.effectiveTo) : null),
+    status: row.lifecycleStatus === "DRAFT" ? "draft" : getPricingStatus(row.isActive && plan?.isActive, plan ? toIsoDate(plan.effectiveFrom) : null, plan ? toIsoDate(plan.effectiveTo) : null),
     ticketTypeCode: ticketType?.code ?? row.ticketTypeId ?? "-",
     ticketTypeId: row.ticketTypeId ?? "",
-    timeFrom: row.timeFrom ? row.timeFrom.slice(0, 5) : null,
-    timeTo: row.timeTo ? row.timeTo.slice(0, 5) : null,
+    timeFrom: row.timeFrom ? row.timeFrom.slice(0, 8) : null,
+    timeTo: row.timeTo ? row.timeTo.slice(0, 8) : null,
     unit: row.unit ?? "-",
     vehicleTypeId: row.vehicleTypeId ?? "",
     vehicleTypeName: vehicleType?.name ?? row.vehicleTypeId ?? "-"
@@ -630,12 +634,14 @@ function MetricGrid({ items }: { items: PricingMetric[] }) {
 function StatusBadge({ status }: { status: PricingStatus }) {
   const label: Record<PricingStatus, string> = {
     active: "Đang áp dụng",
+    draft: "Nháp",
     upcoming: "Sắp hiệu lực",
     expired: "Hết hiệu lực",
     inactive: "Ngưng sử dụng"
   };
   const className: Record<PricingStatus, string> = {
     active: "tw-bg-[rgba(22,163,74,0.12)] tw-text-vm-success",
+    draft: "tw-bg-amber-50 tw-text-amber-700",
     upcoming: "tw-bg-[rgba(245,158,11,0.13)] tw-text-[#f59e0b]",
     expired: "tw-bg-slate-100 tw-text-slate-500",
     inactive: "tw-bg-red-50 tw-text-vm-danger"
@@ -762,9 +768,9 @@ function PageHeader({
   );
 }
 
-function PricingPageShell({ children }: { children: ReactNode }) {
+function PricingPageShell({ children, guideAnchor }: { children: ReactNode; guideAnchor?: string }) {
   return (
-    <div className="content-header tw-px-0 tw-pb-4 tw-pt-3">
+    <div data-user-guide-anchor={guideAnchor} className="content-header tw-px-0 tw-pb-4 tw-pt-3">
       <section className="content tw-pb-8">
         <div className="container-fluid tw-max-w-[1480px]">
           <div className="tw-grid tw-gap-4 tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-4 tw-shadow-[0_16px_34px_rgba(15,23,42,0.04)]">
@@ -1228,6 +1234,8 @@ function PriceRuleToolbar({
 }
 
 type PricingStatusActionTarget = {
+  effectiveFrom?: string;
+  effectiveTo?: string | null;
   id: string;
   isActive: boolean;
   kind: "plan" | "rule";
@@ -1245,6 +1253,9 @@ function PricingStatusConfirmModal({
   saving: boolean;
   target: PricingStatusActionTarget | null;
 }) {
+  const [datesConfirmed, setDatesConfirmed] = useState(false);
+  useEffect(() => setDatesConfirmed(false), [target?.id]);
+  const requiresDateConfirmation = target?.kind === "plan" && !target.isActive;
   const entityLabel = target?.kind === "plan" ? "kế hoạch giá" : "quy tắc giá";
   const isDeactivating = Boolean(target?.isActive);
 
@@ -1253,7 +1264,7 @@ function PricingStatusConfirmModal({
       actions={
         <div className="tw-flex tw-justify-end tw-gap-2" {...userGuideAnchorProps(target?.kind === "plan" ? "PRICING.PLAN.STATUS" : "PRICING.RULE.STATUS")}>
           <Button variant="secondary" disabled={saving} onClick={onClose}>Hủy</Button>
-          <Button variant={isDeactivating ? "danger" : "primary"} loading={saving} onClick={() => void onConfirm()}>
+          <Button variant={isDeactivating ? "danger" : "primary"} disabled={requiresDateConfirmation && !datesConfirmed} loading={saving} onClick={() => void onConfirm()}>
             {isDeactivating ? "Ngưng sử dụng" : "Kích hoạt lại"}
           </Button>
         </div>
@@ -1269,6 +1280,10 @@ function PricingStatusConfirmModal({
       width="sm"
     >
       <div>
+        {requiresDateConfirmation ? <label className="tw-mb-4 tw-flex tw-items-start tw-gap-2 tw-text-sm">
+          <input type="checkbox" checked={datesConfirmed} onChange={(event) => setDatesConfirmed(event.target.checked)} />
+          <span>Tôi xác nhận ngày hiệu lực từ {target?.effectiveFrom ?? "-"} đến {target?.effectiveTo || "không giới hạn"}. Ngày từ bộ mẫu cần được kiểm tra trước khi công bố.</span>
+        </label> : null}
         <div className={cn(
           "tw-flex tw-items-start tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-p-3 tw-text-[0.84rem] tw-font-semibold tw-leading-6",
           isDeactivating
@@ -1404,13 +1419,15 @@ function PricePlanDetailPanel({
   onClose,
   onCreate,
   onSave,
+  onDiscard,
   row
 }: {
   canSave: boolean;
   isOpen: boolean;
   onClose: () => void;
   onCreate?: (payload: CreatePricePlanRequest) => Promise<void>;
-  onSave: (row: PricePlanRecord) => void;
+  onSave: (row: PricePlanRecord) => Promise<void>;
+  onDiscard?: () => Promise<void>;
   row: PricePlanRecord | null;
 }) {
   const isCreateMode = !row;
@@ -1423,7 +1440,7 @@ function PricePlanDetailPanel({
     effectiveFrom: "",
     effectiveTo: "",
     name: "",
-    status: "active"
+    status: "draft"
   });
 
   useEffect(() => {
@@ -1440,7 +1457,7 @@ function PricePlanDetailPanel({
         effectiveFrom: "",
         effectiveTo: "",
         name: "",
-        status: "active"
+        status: "draft"
       });
       return;
     }
@@ -1522,34 +1539,22 @@ function PricePlanDetailPanel({
       return;
     }
 
-    const now = new Date();
-    const updatedDate = new Intl.DateTimeFormat("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      timeZone: getApplicationTimeZone()
-    }).format(now);
-    const updatedTime = new Intl.DateTimeFormat("vi-VN", {
-      hour: "2-digit",
-      hour12: false,
-      minute: "2-digit",
-      timeZone: getApplicationTimeZone()
-    }).format(now);
-
-    onSave({
-      ...row,
-      appliesTo: form.appliesTo as PricePlanAppliesTo,
-      code: form.code.trim(),
-      description: form.description.trim(),
-      effectiveFrom: formatIsoDate(form.effectiveFrom),
-      effectiveTo: form.effectiveTo ? formatIsoDate(form.effectiveTo) : null,
-      isActive: form.status === "active",
-      name: form.name.trim(),
-      status: form.status as PricingStatus,
-      updatedDate,
-      updatedTime
-    });
-    onClose();
+    setIsSubmitting(true);
+    try {
+      await onSave({
+        ...row,
+        code: form.code.trim(),
+        description: form.description.trim(),
+        effectiveFrom: formatIsoDate(form.effectiveFrom),
+        effectiveTo: form.effectiveTo ? formatIsoDate(form.effectiveTo) : null,
+        name: form.name.trim(),
+      });
+      onClose();
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "Không thể lưu kế hoạch giá.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -1592,13 +1597,13 @@ function PricePlanDetailPanel({
           <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-[520px]:tw-grid-cols-1">
             <label className="tw-grid tw-gap-2" {...userGuideAnchorProps("PRICING.PLAN.APPLIES_TO")}>
               <span className="tw-text-[0.82rem] tw-font-extrabold tw-text-vm-slate-600">Áp dụng cho</span>
-              <SelectMenu ariaLabel="Áp dụng cho" options={appliesToOptions.filter((option) => option.value !== "all")} value={form.appliesTo} onChange={(value) => updateField("appliesTo", value)} />
+              <SelectMenu ariaLabel="Áp dụng cho" disabled={!isCreateMode} options={appliesToOptions.filter((option) => option.value !== "all")} value={form.appliesTo} onChange={(value) => updateField("appliesTo", value)} />
             </label>
 
             {!isCreateMode ? (
               <label className="tw-grid tw-gap-2">
                 <span className="tw-text-[0.82rem] tw-font-extrabold tw-text-vm-slate-600">Trạng thái</span>
-                <SelectMenu ariaLabel="Trạng thái" options={statusOptions.filter((option) => option.value !== "all")} value={form.status} onChange={(value) => updateField("status", value)} />
+                <span className="tw-font-bold">{isCreateMode ? "Nháp — chưa áp dụng" : statusOptions.find((option) => option.value === row?.status)?.label}</span>
               </label>
             ) : (
               <div className="tw-grid tw-gap-2">
@@ -1631,10 +1636,11 @@ function PricePlanDetailPanel({
           <button className="tw-min-h-11 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-text-[0.92rem] tw-font-bold tw-text-vm-slate-700 hover:tw-bg-vm-slate-25" type="button" onClick={onClose}>
             Hủy
           </button>
+          {row?.status === "draft" && onDiscard ? <button className="tw-min-h-11 tw-rounded-vm-md tw-border tw-border-red-100 tw-bg-red-50 tw-px-4 tw-font-bold tw-text-red-700" type="button" disabled={isSubmitting} onClick={() => void onDiscard?.()}>Bỏ bản nháp</button> : null}
           {canSave ? (
             <button className="tw-inline-flex tw-min-h-11 tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-primary tw-bg-vm-primary tw-px-4 tw-text-[0.92rem] tw-font-extrabold tw-text-white hover:tw-bg-brand-700 disabled:tw-cursor-not-allowed disabled:tw-opacity-60" type="button" disabled={isSubmitting} onClick={handleSave} {...userGuideAnchorProps("PRICING.PLAN.SUBMIT")}>
               {isSubmitting ? <i className="fas fa-spinner fa-spin" /> : null}
-              {isSubmitting ? "Đang xử lý..." : isCreateMode ? "Tạo kế hoạch" : "Lưu thay đổi"}
+              {isSubmitting ? "Đang xử lý..." : isCreateMode ? "Lưu nháp" : "Lưu thay đổi"}
             </button>
           ) : (
             <span
@@ -1656,6 +1662,7 @@ function PriceRuleCreatePanel({
   onClose,
   onCreate,
   onUpdate,
+  onDiscard,
   parkingLotId,
   parkingLotName,
   plans,
@@ -1668,6 +1675,7 @@ function PriceRuleCreatePanel({
   onClose: () => void;
   onCreate: (payload: CreatePriceRuleRequest) => Promise<void>;
   onUpdate?: (priceRuleId: string, payload: UpdatePriceRuleRequest) => Promise<void>;
+  onDiscard?: () => Promise<void>;
   parkingLotId: string;
   parkingLotName: string;
   plans: PricePlanRecord[];
@@ -1693,7 +1701,7 @@ function PriceRuleCreatePanel({
 
   const availablePlans = isEditMode && row
     ? plans.filter((plan) => plan.id === row.pricePlanId)
-    : plans.filter((plan) => plan.isActive && plan.appliesTo !== "ALL");
+    : plans.filter((plan) => (plan.isActive || plan.status === "draft") && plan.appliesTo !== "ALL");
   const selectedPlan = availablePlans.find((plan) => plan.id === form.pricePlanId) ?? null;
   const isVisitorPlan = selectedPlan?.appliesTo === "VISITOR";
   const isCustomerPlan = selectedPlan?.appliesTo === "CUSTOMER";
@@ -1813,7 +1821,7 @@ function PriceRuleCreatePanel({
     return "";
   };
 
-  const toApiTime = (value: string) => (value ? `${value}:00` : null);
+  const toApiTime = (value: string) => (value.length > 5 ? value : value ? `${value}:00` : null);
 
   const handleSubmit = async () => {
     if (!canSubmit || (isEditMode && !onUpdate)) return;
@@ -1926,7 +1934,7 @@ function PriceRuleCreatePanel({
             <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-[520px]:tw-grid-cols-1" {...userGuideAnchorProps("PRICING.RULE.TIME_RANGE")}>
               <label className="tw-grid tw-gap-2">
                 <span className="tw-text-[0.82rem] tw-font-extrabold tw-text-vm-slate-600">Giờ bắt đầu</span>
-                <input className="tw-min-h-11 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.94rem] tw-font-bold tw-text-slate-900 tw-outline-none focus:tw-border-vm-primary focus:tw-shadow-vm-focus" type="time" value={form.timeFrom} onChange={(event) => updateField("timeFrom", event.target.value)} />
+                <input className="tw-min-h-11 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.94rem] tw-font-bold tw-text-slate-900 tw-outline-none focus:tw-border-vm-primary focus:tw-shadow-vm-focus" type="time" step={1} value={form.timeFrom} onChange={(event) => updateField("timeFrom", event.target.value)} />
               </label>
               <label className="tw-grid tw-gap-2">
                 <span className="tw-text-[0.82rem] tw-font-extrabold tw-text-vm-slate-600">Giờ kết thúc</span>
@@ -1967,6 +1975,7 @@ function PriceRuleCreatePanel({
           <button className="tw-min-h-11 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-text-[0.92rem] tw-font-bold tw-text-vm-slate-700 hover:tw-bg-vm-slate-25" type="button" onClick={onClose}>
             Hủy
           </button>
+          {row?.status === "draft" && onDiscard ? <button className="tw-min-h-11 tw-rounded-vm-md tw-border tw-border-red-100 tw-bg-red-50 tw-px-4 tw-font-bold tw-text-red-700" type="button" disabled={isSubmitting} onClick={() => void onDiscard?.()}>Bỏ bản nháp</button> : null}
           {canSubmit ? (
             <button className="tw-inline-flex tw-min-h-11 tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-primary tw-bg-vm-primary tw-px-4 tw-text-[0.92rem] tw-font-extrabold tw-text-white hover:tw-bg-brand-700 disabled:tw-cursor-not-allowed disabled:tw-opacity-60" type="button" disabled={isSubmitting} onClick={handleSubmit} {...userGuideAnchorProps("PRICING.RULE.SUBMIT")}>
               {isSubmitting ? <i className="fas fa-spinner fa-spin" /> : null}
@@ -2104,7 +2113,7 @@ export function PricePlanListPage() {
   const [records, setRecords] = useState<PricePlanRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchValue, setSearchValue] = useState("");
-  const [statusValue, setStatusValue] = useState("all");
+  const [statusValue, setStatusValue] = useState("active");
   const [appliesToValue, setAppliesToValue] = useState("all");
   const [effectiveDate, setEffectiveDate] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -2116,9 +2125,9 @@ export function PricePlanListPage() {
   const [statusTarget, setStatusTarget] = useState<PricePlanRecord | null>(null);
   const [statusChangingId, setStatusChangingId] = useState<string | null>(null);
   const toast = useToast();
-  const canCreate = hasAnyPermission(user, ["PRICE_PLAN_CREATE_ALL"]);
-  const canUpdate = hasAnyPermission(user, ["PRICE_PLAN_UPDATE_ALL"]);
-  const canDelete = hasAnyPermission(user, ["PRICE_PLAN_DELETE_ALL"]);
+  const canCreate = hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"]) && hasAnyPermission(user, ["PRICE_PLAN_CREATE_ALL"]);
+  const canUpdate = hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"]) && hasAnyPermission(user, ["PRICE_PLAN_UPDATE_ALL"]);
+  const canDelete = hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"]) && hasAnyPermission(user, ["PRICE_PLAN_DELETE_ALL"]);
 
   const pricePlanGuideEnabled = !isLoading && (canCreate || canUpdate || canDelete);
   useUserGuideActivation("PRICE_PLAN_SETUP", pricePlanGuideEnabled);
@@ -2198,14 +2207,23 @@ export function PricePlanListPage() {
 
   const resetFilters = () => {
     setSearchValue("");
-    setStatusValue("all");
+    setStatusValue("active");
     setAppliesToValue("all");
     setEffectiveDate("");
     setCurrentPage(1);
   };
 
-  const handleSavePlan = (updatedRecord: PricePlanRecord) => {
-    setRecords((currentRecords) => currentRecords.map((record) => (record.id === updatedRecord.id ? updatedRecord : record)));
+  const handleSavePlan = async (updatedRecord: PricePlanRecord) => {
+    const response = await updatePricePlan(updatedRecord.id, {
+      code: updatedRecord.code, name: updatedRecord.name,
+      description: updatedRecord.description || null,
+      effectiveFrom: toIsoDate(updatedRecord.effectiveFrom),
+      effectiveTo: toIsoDate(updatedRecord.effectiveTo) || null,
+    });
+    const saved = mapPricePlan(response.data);
+    setRecords((currentRecords) => currentRecords.map((record) => record.id === saved.id ? saved : record));
+    setStatusValue(saved.status);
+    toast.success(response.message || "Đã lưu kế hoạch giá.");
   };
 
   const handleCreatePlan = async (payload: CreatePricePlanRequest) => {
@@ -2214,7 +2232,8 @@ export function PricePlanListPage() {
 
     setRecords((currentRecords) => [createdRecord, ...currentRecords]);
     setSelectedId(createdRecord.id);
-    toast.success(response.message || "Tạo kế hoạch giá thành công.", "Tạo thành công");
+    setStatusValue("draft");
+    toast.success(response.message || "Đã lưu kế hoạch giá nháp.", "Tạo thành công");
     setCurrentPage(1);
   };
 
@@ -2266,7 +2285,7 @@ export function PricePlanListPage() {
   };
 
   return (
-    <PricingPageShell>
+    <PricingPageShell guideAnchor="WORKFLOW.PRICING.PLANS">
       <PageHeader
         createLabel="Tạo kế hoạch"
         guideCode="PRICE_PLAN_SETUP"
@@ -2275,6 +2294,7 @@ export function PricePlanListPage() {
         onCreateClick={canCreate ? () => setIsCreatePanelOpen(true) : undefined}
         onExportClick={() => setIsExportDrawerOpen(true)}
       />
+      {records.some((row) => row.status === "draft") ? <div role="status" className="tw-rounded-vm-md tw-bg-amber-50 tw-p-3 tw-text-amber-900">Có {records.filter((row) => row.status === "draft").length} kế hoạch giá nháp chưa áp dụng. <button type="button" onClick={() => { setStatusValue("draft"); setCurrentPage(1); }}>Xem nháp</button></div> : null}
       <MetricGrid items={buildPricePlanMetrics(records)} />
       <main className="tw-min-w-0 tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
         <PricePlanToolbar
@@ -2338,10 +2358,18 @@ export function PricePlanListPage() {
           </div>
         ) : null}
       <PricePlanDetailPanel canSave={canCreate} isOpen={isCreatePanelOpen} row={null} onClose={() => setIsCreatePanelOpen(false)} onCreate={handleCreatePlan} onSave={handleSavePlan} />
-      <PricePlanDetailPanel canSave={canUpdate} isOpen={isDetailPanelOpen && Boolean(selectedRecord)} row={selectedRecord} onClose={() => setIsDetailPanelOpen(false)} onSave={handleSavePlan} />
+      <PricePlanDetailPanel canSave={canUpdate} isOpen={isDetailPanelOpen && Boolean(selectedRecord)} row={selectedRecord} onClose={() => setIsDetailPanelOpen(false)} onSave={handleSavePlan} onDiscard={canDelete && selectedRecord?.status === "draft" ? async () => {
+        if (!window.confirm("Bỏ bản nháp kế hoạch giá này?")) return;
+        try {
+          await deactivatePricePlan(selectedRecord.id);
+          setRecords((items) => items.map((item) => item.id === selectedRecord.id ? { ...item, status: "inactive", isActive: false } : item));
+          setIsDetailPanelOpen(false);
+          toast.success("Đã bỏ bản nháp kế hoạch giá.");
+        } catch (error) { toast.error(error instanceof Error ? error.message : "Không thể bỏ bản nháp."); }
+      } : undefined} />
       <PricingStatusConfirmModal
         saving={Boolean(statusChangingId)}
-        target={statusTarget ? { id: statusTarget.id, isActive: statusTarget.isActive, kind: "plan", name: statusTarget.name } : null}
+        target={statusTarget ? { id: statusTarget.id, isActive: statusTarget.isActive, kind: "plan", name: statusTarget.name, effectiveFrom: statusTarget.effectiveFrom, effectiveTo: statusTarget.effectiveTo } : null}
         onClose={() => {
           if (statusChangingId) return;
           setStatusTarget(null);
@@ -2356,6 +2384,7 @@ export function PricePlanListPage() {
 export function PriceRuleListPage() {
   const { user } = useAuth();
   const userGuide = useUserGuide();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [records, setRecords] = useState<PriceRuleRecord[]>([]);
   const [plans, setPlans] = useState<PricePlanRecord[]>([]);
   const [parkingLots, setParkingLots] = useState<ParkingLotApiResponse[]>([]);
@@ -2370,7 +2399,7 @@ export function PriceRuleListPage() {
   const [planValue, setPlanValue] = useState("all");
   const [vehicleTypeValue, setVehicleTypeValue] = useState("all");
   const [ticketTypeValue, setTicketTypeValue] = useState("all");
-  const [statusValue, setStatusValue] = useState("all");
+  const [statusValue, setStatusValue] = useState("active");
   const [activeGroup, setActiveGroup] = useState<PriceRuleGroup>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isDetailPanelOpen, setIsDetailPanelOpen] = useState(false);
@@ -2378,6 +2407,8 @@ export function PriceRuleListPage() {
   const [pageSize, setPageSize] = useState(5);
   const [statusTarget, setStatusTarget] = useState<PriceRuleRecord | null>(null);
   const [statusChangingId, setStatusChangingId] = useState<string | null>(null);
+  const [isInitializingDrafts, setIsInitializingDrafts] = useState(false);
+  const [priceRuleRefreshRevision, setPriceRuleRefreshRevision] = useState(0);
   const toast = useToast();
   const canCreate = hasAnyPermission(user, ["PRICE_RULE_CREATE_ALL"]);
   const canUpdate = hasAnyPermission(user, ["PRICE_RULE_UPDATE_ALL"]);
@@ -2390,14 +2421,15 @@ export function PriceRuleListPage() {
   useEffect(() => {
     if (userGuide.activeGuide?.code !== "PRICE_RULE_SETUP") return;
 
-    // Every PRICE_RULE_SETUP anchor lives inside the create drawer. Open that
-    // surface before the host resolves the current step so the spotlight can
-    // bind to the real form control instead of falling back to a plain modal.
     setIsExportDrawerOpen(false);
     setIsDetailPanelOpen(false);
     setStatusTarget(null);
-    setIsCreatePanelOpen(true);
-  }, [userGuide.activeGuide?.code]);
+    const anchorKey = userGuide.currentStep?.anchorKey;
+    const staysOnLotSetup = !selectedParkingLotId
+      || anchorKey === "PRICING.RULE.PARKING_LOT"
+      || anchorKey === "PRICING.RULE.INITIALIZE_DRAFTS";
+    setIsCreatePanelOpen(!staysOnLotSetup);
+  }, [selectedParkingLotId, userGuide.activeGuide?.code, userGuide.currentStep?.anchorKey]);
 
   useEffect(() => {
     let isMounted = true;
@@ -2419,6 +2451,10 @@ export function PriceRuleListPage() {
         setParkingLots(scopedParkingLots);
         setSelectedParkingLotId((current) => {
           if (scopedParkingLots.some((parkingLot) => parkingLot.parkingLotId === current)) return current;
+          const requestedParkingLotId = searchParams.get("parkingLotId") ?? searchParams.get("lot");
+          if (requestedParkingLotId && scopedParkingLots.some((parkingLot) => parkingLot.parkingLotId === requestedParkingLotId)) {
+            return requestedParkingLotId;
+          }
           return scopedParkingLots.length === 1 ? scopedParkingLots[0].parkingLotId : "";
         });
         setVehicleTypes(vehicleTypeResponse.data);
@@ -2442,11 +2478,11 @@ export function PriceRuleListPage() {
     return () => {
       isMounted = false;
     };
-  }, [toast]);
+  }, [searchParams, toast]);
 
   useEffect(() => {
     if (!referencesReady) return undefined;
-    if (hasAssignedParkingScope && parkingLots.length > 1 && !selectedParkingLotId) {
+    if (!selectedParkingLotId) {
       setRecords([]);
       setIsLoading(false);
       return undefined;
@@ -2483,6 +2519,7 @@ export function PriceRuleListPage() {
     hasAssignedParkingScope,
     parkingLots,
     plans,
+    priceRuleRefreshRevision,
     referencesReady,
     selectedParkingLotId,
     ticketTypes,
@@ -2495,7 +2532,7 @@ export function PriceRuleListPage() {
   const dynamicTicketTypeOptions = useMemo(() => buildTicketTypeOptions(ticketTypes), [ticketTypes]);
   const parkingLotOptions = useMemo<SelectMenuOption[]>(() => [
     {
-      label: hasAssignedParkingScope && parkingLots.length > 1 ? "Chọn bãi xe" : "Tất cả bãi xe",
+      label: "Chọn bãi xe",
       value: "",
     },
     ...parkingLots.map((parkingLot) => ({
@@ -2564,7 +2601,7 @@ export function PriceRuleListPage() {
     setPlanValue("all");
     setVehicleTypeValue("all");
     setTicketTypeValue("all");
-    setStatusValue("all");
+    setStatusValue("active");
     setActiveGroup("all");
     setCurrentPage(1);
   };
@@ -2580,8 +2617,34 @@ export function PriceRuleListPage() {
     );
 
     setRecords((currentRecords) => [createdRecord, ...currentRecords]);
-    toast.success(response.message || "Tạo quy tắc giá thành công.", "Tạo thành công");
+    setStatusValue("draft");
+    toast.success(response.message || "Đã lưu quy tắc giá nháp.", "Tạo thành công");
     setCurrentPage(1);
+  };
+
+  const handleInitializeDrafts = async () => {
+    if (!selectedParkingLotId) return;
+    setIsInitializingDrafts(true);
+    try {
+      const response = await initializePriceRuleDrafts(selectedParkingLotId);
+      setStatusValue("draft");
+      setPriceRuleRefreshRevision((revision) => revision + 1);
+      if (response.data.createdCount > 0) {
+        toast.success(
+          `Đã tạo ${response.data.createdCount} quy tắc giá nháp cho bãi ${selectedParkingLot?.name ?? "đã chọn"}.`,
+          "Khởi tạo thành công",
+        );
+      } else {
+        toast.success("Bãi đã được khởi tạo đầy đủ từ các mẫu hiện có.", "Không có bản nháp mới");
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Không thể khởi tạo bảng giá nháp.",
+        "Khởi tạo thất bại",
+      );
+    } finally {
+      setIsInitializingDrafts(false);
+    }
   };
 
   const handleUpdateRule = async (priceRuleId: string, payload: UpdatePriceRuleRequest) => {
@@ -2653,7 +2716,7 @@ export function PriceRuleListPage() {
   };
 
   return (
-    <PricingPageShell>
+    <PricingPageShell guideAnchor="WORKFLOW.PRICING.RULES">
       <PageHeader
         createLabel="Tạo quy tắc"
         guideCode="PRICE_RULE_SETUP"
@@ -2665,28 +2728,49 @@ export function PriceRuleListPage() {
         onExportClick={() => setIsExportDrawerOpen(true)}
       />
       <section className="tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-4 tw-shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-        <label className="tw-grid tw-max-w-xl tw-gap-2">
-          <span className="tw-text-[0.82rem] tw-font-extrabold tw-text-vm-slate-600">Bãi xe áp dụng quy tắc giá</span>
-          <SelectMenu
-            ariaLabel="Bãi xe áp dụng quy tắc giá"
-            disabled={hasAssignedParkingScope && parkingLots.length === 1}
-            options={parkingLotOptions}
-            value={selectedParkingLotId}
-            onChange={(value) => {
-              setSelectedParkingLotId(value);
-              setSelectedId(null);
-              setIsCreatePanelOpen(false);
-              setIsDetailPanelOpen(false);
-              setCurrentPage(1);
-            }}
-          />
-        </label>
+        <div className="tw-grid tw-grid-cols-1 tw-gap-2 min-[900px]:tw-grid-cols-[minmax(0,1fr)_auto] min-[900px]:tw-gap-x-3">
+          <span className="tw-text-[0.82rem] tw-font-extrabold tw-text-vm-slate-600 min-[900px]:tw-col-start-1 min-[900px]:tw-row-start-1">
+            Bãi xe áp dụng quy tắc giá
+          </span>
+          <div className="tw-min-w-0 min-[900px]:tw-col-start-1 min-[900px]:tw-row-start-2" {...userGuideAnchorProps("PRICING.RULE.PARKING_LOT")}>
+            <SelectMenu
+              ariaLabel="Bãi xe áp dụng quy tắc giá"
+              disabled={hasAssignedParkingScope && parkingLots.length === 1}
+              options={parkingLotOptions}
+              value={selectedParkingLotId}
+              onChange={(value) => {
+                setSelectedParkingLotId(value);
+                const nextSearchParams = new URLSearchParams(searchParams);
+                if (value) nextSearchParams.set("parkingLotId", value);
+                else nextSearchParams.delete("parkingLotId");
+                nextSearchParams.delete("lot");
+                setSearchParams(nextSearchParams, { replace: true });
+                setSelectedId(null);
+                setIsCreatePanelOpen(false);
+                setIsDetailPanelOpen(false);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
+          <div className="min-[900px]:tw-col-start-2 min-[900px]:tw-row-start-2" {...userGuideAnchorProps("PRICING.RULE.INITIALIZE_DRAFTS")}>
+            <Button
+              className="tw-h-[42px] max-[899px]:tw-w-full"
+              disabled={!canCreate || !selectedParkingLotId}
+              loading={isInitializingDrafts}
+              variant="secondary"
+              onClick={() => void handleInitializeDrafts()}
+            >
+              Khởi tạo bảng giá nháp từ mẫu
+            </Button>
+          </div>
+        </div>
         {!selectedParkingLotId && canCreate ? (
           <p className="tw-m-0 tw-mt-2 tw-text-sm tw-font-semibold tw-text-amber-700">
             Vui lòng chọn một bãi xe trước khi tạo quy tắc giá.
           </p>
         ) : null}
       </section>
+      {records.some((row) => row.status === "draft") ? <div role="status" className="tw-rounded-vm-md tw-bg-amber-50 tw-p-3 tw-text-amber-900">Có {records.filter((row) => row.status === "draft").length} quy tắc giá nháp chưa áp dụng. <button type="button" onClick={() => { setStatusValue("draft"); setCurrentPage(1); }}>Xem nháp</button></div> : null}
       <MetricGrid items={buildPriceRuleMetrics(records)} />
       <main className="tw-min-w-0 tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
         <PriceRuleToolbar
@@ -2765,6 +2849,15 @@ export function PriceRuleListPage() {
         onCreate={handleCreateRule}
       />
       <PriceRuleCreatePanel
+        onDiscard={canDelete && selectedRecord?.status === "draft" ? async () => {
+          if (!window.confirm("Bỏ bản nháp quy tắc giá này?")) return;
+          try {
+            await deactivatePriceRule(selectedRecord.id);
+            setRecords((items) => items.map((item) => item.id === selectedRecord.id ? { ...item, status: "inactive", isActive: false } : item));
+            setIsDetailPanelOpen(false);
+            toast.success("Đã bỏ bản nháp quy tắc giá.");
+          } catch (error) { toast.error(error instanceof Error ? error.message : "Không thể bỏ bản nháp."); }
+        } : undefined}
         canSubmit={canUpdate}
         isOpen={isDetailPanelOpen && Boolean(selectedRecord)}
         parkingLotId={selectedRecord?.parkingLotId ?? selectedParkingLotId}

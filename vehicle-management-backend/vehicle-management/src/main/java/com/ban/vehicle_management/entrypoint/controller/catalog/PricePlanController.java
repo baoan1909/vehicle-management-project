@@ -66,12 +66,19 @@ public class PricePlanController {
     public ResponseEntity<ApiResponse<List<PricePlanAdminResponse>>> getPricePlans(
             @ModelAttribute PricePlanFilterRequest request
     ) {
-        List<PricePlan> pricePlans = pricePlanPortIn.getPricePlans(
+        List<PricePlan> pricePlans = (request.lifecycleStatus() == null
+                ? pricePlanPortIn.getPricePlans(
                 request.isActive(),
                 request.appliesTo(),
                 request.effectiveDate(),
                 request.keyword()
-        );
+        )
+                : pricePlanPortIn.getPricePlans(
+                request.isActive(),
+                request.appliesTo(),
+                request.effectiveDate(),
+                request.keyword()
+        , request.lifecycleStatus()));
 
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched price plans successfully",

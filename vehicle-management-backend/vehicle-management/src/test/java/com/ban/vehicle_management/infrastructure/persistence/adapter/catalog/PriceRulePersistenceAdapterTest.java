@@ -58,6 +58,16 @@ class PriceRulePersistenceAdapterTest {
     private PriceRulePersistenceAdapter priceRulePersistenceAdapter;
 
     @Test
+    void shouldInitializeParkingLotDraftsFromInternalCatalog() {
+        UUID organizationId = UUID.randomUUID();
+        when(priceRuleRepository.initializeDraftsFromInternalCatalog(organizationId, PARKING_LOT_ID))
+                .thenReturn(3);
+
+        assertEquals(3, priceRulePersistenceAdapter.initializeDraftsFromInternalCatalog(
+                organizationId, PARKING_LOT_ID));
+    }
+
+    @Test
     void shouldUseSaveAndFlushWhenSavingPriceRule() {
         PriceRule priceRule = new PriceRule();
         priceRule.setPriceRuleId(UUID.randomUUID());
@@ -102,11 +112,13 @@ class PriceRulePersistenceAdapterTest {
         when(priceRulePersistenceMapper.toDomain(secondEntity)).thenReturn(secondPriceRule);
 
         List<PriceRule> result = priceRulePersistenceAdapter.findAll(
+                PARKING_LOT_ID,
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 Boolean.TRUE,
-                "ban ngay"
+                "ban ngay",
+                java.util.Set.of(PARKING_LOT_ID)
         );
 
         assertEquals(2, result.size());

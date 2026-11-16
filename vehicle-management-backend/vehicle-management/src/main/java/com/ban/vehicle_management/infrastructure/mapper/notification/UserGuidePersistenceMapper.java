@@ -35,6 +35,7 @@ public interface UserGuidePersistenceMapper {
 
     UserGuideStepEntity toEntity(UserGuideStep domain);
 
+    @Mapping(target = "journeyConfig", ignore = true)
     UserGuideStep toDomain(UserGuideStepEntity entity);
 
     List<UserGuideStepEntity> toStepEntities(List<UserGuideStep> domains);

@@ -207,6 +207,23 @@ class UserGuideRuntimeUseCaseImplTest {
     }
 
     @Test
+    void shouldRejectPublishedGuideWhenItsFeatureIsDisabled() {
+        mockAccount(Set.of());
+        UserGuide guide = publishedGuide(UserGuideReplayPolicy.MANUAL_ONLY);
+        when(guidePortOut.findByCode("GUIDE_ONE")).thenReturn(Optional.of(guide));
+        UserGuideFeature disabledFeature = enabledFeature();
+        disabledFeature.setFeatureId(guide.getFeatureId());
+        disabledFeature.setEnabled(false);
+        when(featurePortOut.findById(guide.getFeatureId())).thenReturn(Optional.of(disabledFeature));
+
+        UserGuideException exception = assertThrows(
+                UserGuideException.class,
+                () -> useCase.getPublishedGuide("guide_one"));
+
+        assertEquals(UserGuideErrorCode.USER_GUIDE_NOT_FOUND, exception.getErrorCode());
+    }
+
+    @Test
     void shouldCompleteGuideIdempotently() {
         mockAccount(Set.of());
         UserGuide guide = publishedGuide(UserGuideReplayPolicy.ONCE_PER_VERSION);

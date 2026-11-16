@@ -60,6 +60,7 @@ export type PricePlanApiResponse = {
   effectiveFrom: string | null;
   effectiveTo: string | null;
   isActive: boolean | null;
+  lifecycleStatus?: "DRAFT" | "ACTIVE" | "INACTIVE";
   name: string;
   pricePlanId: string;
   updatedAt: string | null;
@@ -71,6 +72,7 @@ export type PriceRuleApiResponse = {
   createdAt: string | null;
   createdBy: string | null;
   isActive: boolean | null;
+  lifecycleStatus?: "DRAFT" | "ACTIVE" | "INACTIVE";
   lostCardFee: number | null;
   parkingLotId: string | null;
   pricePlanId: string | null;
@@ -86,11 +88,17 @@ export type PriceRuleApiResponse = {
   vehicleTypeId: string | null;
 };
 
+export type InitializePriceRuleDraftsResponse = {
+  alreadyInitialized: boolean;
+  createdCount: number;
+};
+
 export type VehicleTypeApiResponse = {
   canonicalVehicleTypeId?: string | null;
   code: string;
   description: string | null;
   isActive: boolean | null;
+  lifecycleStatus?: "DRAFT" | "ACTIVE" | "INACTIVE";
   name: string;
   vehicleTypeId: string;
 };
@@ -143,6 +151,13 @@ export function deactivatePricePlan(pricePlanId: string) {
   });
 }
 
+export function updatePricePlan(pricePlanId: string, payload: Omit<CreatePricePlanRequest, "appliesTo">) {
+  return apiClient<ApiResponse<PricePlanApiResponse>>(`${apiEndpoints.catalog.pricePlans}/${pricePlanId}`, {
+    method: "PUT",
+    body: payload,
+  });
+}
+
 export function activatePricePlan(pricePlanId: string) {
   return apiClient<ApiResponse<PricePlanApiResponse>>(`${apiEndpoints.catalog.pricePlans}/${pricePlanId}/activate`, {
     method: "PATCH",
@@ -169,6 +184,13 @@ export function createPriceRule(payload: CreatePriceRuleRequest) {
   });
 }
 
+export function initializePriceRuleDrafts(parkingLotId: string) {
+  return apiClient<ApiResponse<InitializePriceRuleDraftsResponse>>(
+    `${apiEndpoints.catalog.priceRules}/parking-lots/${parkingLotId}/initialize-drafts`,
+    { method: "POST" },
+  );
+}
+
 export function updatePriceRule(priceRuleId: string, payload: UpdatePriceRuleRequest) {
   return apiClient<ApiResponse<PriceRuleApiResponse>>(`${apiEndpoints.catalog.priceRules}/${priceRuleId}`, {
     method: "PUT",
@@ -190,13 +212,13 @@ export function activatePriceRule(priceRuleId: string) {
 
 export function getPricingVehicleTypes() {
   return apiClient<ApiResponse<VehicleTypeApiResponse[]>>(
-    `${apiEndpoints.catalog.vehicleTypes}${buildQuery({ isActive: true })}`,
+    apiEndpoints.catalog.vehicleTypes,
   );
 }
 
 export function getPricingTicketTypes() {
   return apiClient<ApiResponse<TicketTypeApiResponse[]>>(
-    `${apiEndpoints.catalog.ticketTypes}${buildQuery({ status: "ACTIVE" })}`,
+    apiEndpoints.catalog.ticketTypes,
   );
 }
 

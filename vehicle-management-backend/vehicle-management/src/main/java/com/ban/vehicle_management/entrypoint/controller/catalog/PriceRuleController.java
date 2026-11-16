@@ -7,6 +7,7 @@ import com.ban.vehicle_management.entrypoint.dto.catalog.pricerule.request.Creat
 import com.ban.vehicle_management.entrypoint.dto.catalog.pricerule.request.PriceRuleFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.catalog.pricerule.request.UpdatePriceRuleRequest;
 import com.ban.vehicle_management.entrypoint.dto.catalog.pricerule.response.PriceRuleAdminResponse;
+import com.ban.vehicle_management.entrypoint.dto.catalog.pricerule.response.InitializePriceRuleDraftsResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.util.List;
 import java.util.UUID;
@@ -36,6 +37,17 @@ public class PriceRuleController {
     ) {
         this.priceRulePortIn = priceRulePortIn;
         this.priceRuleApiMapper = priceRuleApiMapper;
+    }
+
+    @PostMapping("/parking-lots/{parkingLotId}/initialize-drafts")
+    public ResponseEntity<ApiResponse<InitializePriceRuleDraftsResponse>> initializePriceRuleDrafts(
+            @PathVariable UUID parkingLotId
+    ) {
+        int createdCount = priceRulePortIn.initializePriceRuleDrafts(parkingLotId);
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Price rule drafts initialized successfully",
+                priceRuleApiMapper.toInitializeDraftsResponse(createdCount)
+        ));
     }
 
     @PostMapping
@@ -74,7 +86,8 @@ public class PriceRuleController {
                 request.vehicleTypeId(),
                 request.ticketTypeId(),
                 request.isActive(),
-                request.keyword()
+                request.keyword(),
+                request.lifecycleStatus()
         );
 
         return ResponseEntity.ok(ApiResponse.ok(

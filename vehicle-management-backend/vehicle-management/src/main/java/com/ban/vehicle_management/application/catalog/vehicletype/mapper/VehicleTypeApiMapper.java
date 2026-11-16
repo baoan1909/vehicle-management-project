@@ -9,6 +9,7 @@ import com.ban.vehicle_management.application.catalog.vehicletype.model.VehicleT
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.Instant;
 import java.util.List;
+import com.ban.vehicle_management.entrypoint.dto.catalog.vehicletype.response.VehicleTypeUserResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -30,6 +31,8 @@ public interface VehicleTypeApiMapper {
     VehicleType toDomain(UpdateVehicleTypeRequest request);
 
     VehicleTypeAdminResponse toAdminResponse(VehicleType vehicleType);
+
+    List<VehicleTypeUserResponse> toUserResponses(List<VehicleType> items);
 
     List<VehicleTypeAdminResponse> toAdminResponses(List<VehicleType> vehicleTypes);
 

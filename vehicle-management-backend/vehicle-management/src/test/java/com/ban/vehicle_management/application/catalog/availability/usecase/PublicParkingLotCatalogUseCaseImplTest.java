@@ -68,17 +68,18 @@ class PublicParkingLotCatalogUseCaseImplTest {
     }
 
     @Test
-    void setupParkingLotCatalogCanBeViewedPublicly() {
-        UUID allowedId = UUID.randomUUID();
+    void setupParkingLotCatalogIsNotPublic() {
         ParkingLot lot = activeLot();
         lot.setStatus(ParkingLotStatus.SETUP);
         when(parkingLotPortOut.findById(LOT_ID)).thenReturn(Optional.of(lot));
-        when(availabilityPortOut.findExcludedVehicleTypeIds(LOT_ID)).thenReturn(Set.of());
-        when(vehicleTypePortOut.findAll(true, Set.of(ORGANIZATION_ID)))
-                .thenReturn(List.of(vehicleType(allowedId)));
+        assertThrows(NotFoundException.class, () -> useCase.getVehicleTypes(LOT_ID));
+    }
 
-        assertEquals(List.of(allowedId), useCase.getVehicleTypes(LOT_ID).stream()
-                .map(VehicleType::getVehicleTypeId).toList());
+    @Test
+    void publicPricingWithoutLotNeverFallsBackToInternalPrices() {
+        assertEquals(List.of(), useCase.getPricePlans(null, null, null, null));
+        assertEquals(List.of(), useCase.getPriceRules(null, null, null, null, null));
+        org.mockito.Mockito.verifyNoInteractions(pricePlanPortOut, priceRulePortOut, organizationPortOut);
     }
 
     @Test

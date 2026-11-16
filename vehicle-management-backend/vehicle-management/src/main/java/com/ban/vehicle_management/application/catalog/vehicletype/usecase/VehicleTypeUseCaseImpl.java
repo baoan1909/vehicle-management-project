@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.application.catalog.vehicletype.usecase;
 
+import com.ban.vehicle_management.shared.enumeration.catalog.CatalogLifecycleStatus;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.catalog.authorization.CatalogAccessGuard;
 import com.ban.vehicle_management.application.catalog.vehicletype.model.VehicleTypeDeactivationImpact;
@@ -18,6 +19,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class VehicleTypeUseCaseImpl implements VehicleTypePortIn {
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<VehicleType> getVehicleTypes(Boolean isActive, CatalogLifecycleStatus lifecycleStatus) {
+        return getVehicleTypes(isActive).stream()
+                .filter(item -> lifecycleStatus == null || item.getLifecycleStatus() == lifecycleStatus)
+                .toList();
+    }
 
     private static final String VEHICLE_TYPE_CREATE_ALL = "VEHICLE_TYPE_CREATE_ALL";
     private static final String VEHICLE_TYPE_READ_ALL = "VEHICLE_TYPE_READ_ALL";
@@ -48,6 +57,7 @@ public class VehicleTypeUseCaseImpl implements VehicleTypePortIn {
     @Transactional
     public VehicleType createVehicleType(VehicleType vehicleType, UUID parkingLotId) {
         currentAccountPortIn.requirePermission(VEHICLE_TYPE_CREATE_ALL);
+        vehicleType.setLifecycleStatus(CatalogLifecycleStatus.DRAFT);
         vehicleTypePolicy.initialize(vehicleType);
         vehicleType.setOrganizationId(catalogAccessGuard.writableOrganizationId(parkingLotId));
 
@@ -55,6 +65,7 @@ public class VehicleTypeUseCaseImpl implements VehicleTypePortIn {
             throw new ConflictException("Vehicle type code already exists");
         }
 
+        vehicleType.setCanonicalVehicleTypeId(resolveCanonicalVehicleTypeId(vehicleType));
         vehicleType.setVehicleTypeId(UUID.randomUUID());
         return vehicleTypePort.save(vehicleType);
     }
@@ -120,7 +131,7 @@ public class VehicleTypeUseCaseImpl implements VehicleTypePortIn {
         currentAccountPortIn.requirePermission(VEHICLE_TYPE_DELETE_ALL);
         VehicleType existingVehicleType = findExistingVehicleType(vehicleTypeId);
         catalogAccessGuard.ensureWritable(existingVehicleType.getOrganizationId());
-        if (Boolean.FALSE.equals(existingVehicleType.getIsActive())) {
+        if (existingVehicleType.getLifecycleStatus() == CatalogLifecycleStatus.INACTIVE) {
             return;
         }
 
@@ -157,12 +168,24 @@ public class VehicleTypeUseCaseImpl implements VehicleTypePortIn {
         }
 
         vehicleTypePolicy.activate(existingVehicleType);
+        existingVehicleType.setCanonicalVehicleTypeId(resolveCanonicalVehicleTypeId(existingVehicleType));
         if (vehicleTypePort.existsByCodeInOrganizationExcludingId(existingVehicleType.getCode(),
                 existingVehicleType.getOrganizationId(), vehicleTypeId)) {
             throw new ConflictException("Vehicle type code already exists");
         }
 
         return vehicleTypePort.save(existingVehicleType);
+    }
+
+    private UUID resolveCanonicalVehicleTypeId(VehicleType vehicleType) {
+        VehicleType canonical = (vehicleType.getCanonicalVehicleTypeId() == null
+                ? vehicleTypePort.findCanonicalByCode(vehicleType.getCode())
+                : vehicleTypePort.findById(vehicleType.getCanonicalVehicleTypeId()))
+                .orElseThrow(() -> new BadRequestException("Select a supported canonical vehicle type"));
+        VehicleType reference = vehicleTypePort.findCanonicalByCode(canonical.getCode())
+                .filter(item -> item.getVehicleTypeId().equals(canonical.getVehicleTypeId()))
+                .orElseThrow(() -> new BadRequestException("Canonical vehicle type must be an active system reference"));
+        return reference.getVehicleTypeId();
     }
 
     private VehicleType findExistingVehicleType(UUID vehicleTypeId) {

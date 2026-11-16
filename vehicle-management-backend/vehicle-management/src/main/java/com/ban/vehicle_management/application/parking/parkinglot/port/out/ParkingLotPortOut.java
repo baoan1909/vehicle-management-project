@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.parking.parkinglot.port.out;
 
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
+import com.ban.vehicle_management.application.parking.parkinglot.model.result.ParkingLotActivationReadiness;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +29,11 @@ public interface ParkingLotPortOut {
     );
 
     boolean hasActiveZones(UUID parkingLotId);
+
+    default ParkingLotActivationReadiness getActivationReadiness(UUID parkingLotId) {
+        boolean ready = isReadyForActivation(parkingLotId);
+        return new ParkingLotActivationReadiness(ready, ready, ready, ready, ready, ready);
+    }
 
     boolean isReadyForActivation(UUID parkingLotId);
 }

@@ -28,7 +28,8 @@ export type UserGuideDisplayType =
   | "POPOVER"
   | "BANNER"
   | "INLINE_CARD"
-  | "CALLOUT";
+  | "CALLOUT"
+  | "JOURNEY";
 
 export type UserGuideReplayPolicy =
   | "ONCE_PER_VERSION"
@@ -48,6 +49,29 @@ export type UserGuideAudienceTargetType = "ROLE" | "PERMISSION";
 export type UserGuideStepPlacement = "TOP" | "RIGHT" | "BOTTOM" | "LEFT" | "CENTER";
 
 export type UserGuideEventType = "STARTED" | "STEP_VIEWED" | "COMPLETED" | "DISMISSED" | "REPLAYED";
+
+export type UserGuideJourneyStepState =
+  | "ACTIONABLE"
+  | "DEPENDENCY_REQUIRED"
+  | "WAITING_FOR_PERMISSION"
+  | "NOT_APPLICABLE"
+  | "COMPLETED"
+  | "BLOCKED";
+
+export type UserGuideJourneyStateContent = {
+  description?: string | null;
+  ownerHint?: string | null;
+  actionLabel?: string | null;
+};
+
+export type UserGuideJourneyStepConfig = {
+  stepKey: string;
+  readinessKey: string;
+  routeTemplate?: string | null;
+  actionLabel?: string | null;
+  linkedGuideId?: string | null;
+  stateContent?: Partial<Record<UserGuideJourneyStepState, UserGuideJourneyStateContent>> | null;
+};
 
 export type UserGuideFeatureResponse = {
   featureId: string;
@@ -69,6 +93,7 @@ export type UserGuideStepPayload = {
   anchorKey?: string | null;
   placement?: UserGuideStepPlacement | null;
   collapseMs?: number | null;
+  journeyConfig?: UserGuideJourneyStepConfig | null;
 };
 
 export type UserGuideAudiencePayload = {
@@ -152,6 +177,7 @@ export type UserGuideStepResponse = {
   anchorKey: string | null;
   placement: UserGuideStepPlacement | null;
   collapseMs: number | null;
+  journeyConfig: UserGuideJourneyStepConfig | null;
 };
 
 export type UserGuideAudienceResponse = {
@@ -243,6 +269,59 @@ export type UserGuideUserResponse = {
   userState: UserGuideUserStateResponse | null;
   startAt: string | null;
   endAt: string | null;
+};
+
+export type PostOnboardingJourneyStepState = UserGuideJourneyStepState;
+
+export type PostOnboardingParkingLotReadiness = {
+  parkingLotId: string;
+  name: string;
+  status: string | null;
+  managementState: string | null;
+  evaluated: boolean;
+  locationReady: boolean;
+  catalogAndPricingReady: boolean;
+  topologyReady: boolean;
+  activationReady: boolean;
+  operableNow: boolean;
+  canCheckIn: boolean;
+  canFindSessions: boolean;
+  canPrepareCheckOut: boolean;
+  canCollectPayment: boolean;
+  canCompleteCheckOut: boolean;
+  canHandleExceptions: boolean;
+};
+
+export type PostOnboardingJourneyStep = {
+  displayOrder: number;
+  stepKey: string;
+  title: string;
+  state: PostOnboardingJourneyStepState;
+  description: string;
+  ownerHint: string | null;
+  route: string | null;
+  actionLabel: string | null;
+  linkedGuideCode: string | null;
+};
+
+export type PostOnboardingReadinessResponse = {
+  accessRevision: string;
+  guideCode: string | null;
+  versionNumber: number | null;
+  title: string;
+  summary: string | null;
+  selectedParkingLotId: string | null;
+  parkingLots: PostOnboardingParkingLotReadiness[];
+  steps: PostOnboardingJourneyStep[];
+};
+
+export type UserGuideJourneyMetadataResponse = {
+  readinessKeys: string[];
+  linkedCoachMarks: Array<{
+    guideId: string;
+    code: string;
+    status: UserGuideStatus;
+  }>;
 };
 
 export type UserGuideFilter = {
@@ -379,6 +458,31 @@ export function resolveUserGuides(featureCode: string, contextKey?: string | nul
 export function getPublishedUserGuide(guideCode: string) {
   return apiClient<ApiResponse<UserGuideUserResponse>>(
     apiEndpoints.userGuides.published(guideCode),
+  );
+}
+
+export function getPostOnboardingReadiness(parkingLotId?: string | null, signal?: AbortSignal) {
+  return apiClient<ApiResponse<PostOnboardingReadinessResponse>>(
+    `${apiEndpoints.userGuides.postOnboardingReadiness}${buildQuery({ parkingLotId })}`,
+    { signal },
+  );
+}
+
+export function resolveUserGuideJourney(
+  featureCode: string,
+  contextKey: string,
+  parkingLotId?: string | null,
+  signal?: AbortSignal,
+) {
+  return apiClient<ApiResponse<PostOnboardingReadinessResponse>>(
+    `${apiEndpoints.userGuides.journeyResolve}${buildQuery({ featureCode, contextKey, parkingLotId })}`,
+    { signal },
+  );
+}
+
+export function getUserGuideJourneyMetadata() {
+  return apiClient<ApiResponse<UserGuideJourneyMetadataResponse>>(
+    apiEndpoints.userGuides.journeyMetadata,
   );
 }
 

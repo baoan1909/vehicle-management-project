@@ -31,6 +31,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -42,12 +43,13 @@ class PartnerRegistrationTransactionIT extends PostgresIntegrationTestSupport {
             UUID.fromString("00000000-0000-0000-0000-000000000006");
 
     @Autowired PartnerRegistrationPortIn partnerRegistration;
+    @Autowired com.ban.vehicle_management.application.iam.organization.port.in.OrganizationPortIn organizations;
     @Autowired AccountAuthorizationPersistenceAdapter authorizationAdapter;
     @Autowired JdbcTemplate jdbcTemplate;
 
     @MockitoBean CurrentAccountPortIn currentAccount;
     @MockitoBean IdentityProviderAdminPortOut identityProvider;
-    @MockitoBean PartnerCatalogSeedPortOut partnerCatalogSeed;
+    @MockitoSpyBean PartnerCatalogSeedPortOut partnerCatalogSeed;
     @MockitoBean VehicleMailService vehicleMailService;
     @MockitoBean RequiresNewNotificationSender notificationSender;
 
@@ -70,8 +72,12 @@ class PartnerRegistrationTransactionIT extends PostgresIntegrationTestSupport {
             jdbcTemplate.update("delete from operations.approval_requests where requested_by = ?", accountId);
             jdbcTemplate.update("delete from iam.organization_memberships where account_id = ?", accountId);
         });
-        createdOrganizationCodes.forEach(code ->
-                jdbcTemplate.update("delete from iam.organizations where code = ?", code));
+        createdOrganizationCodes.forEach(code -> {
+            for (String table : new String[]{"price_rules", "price_plans", "ticket_types", "vehicle_types"}) {
+                jdbcTemplate.update("delete from catalog." + table + " where organization_id in (select organization_id from iam.organizations where code=?)", code);
+            }
+            jdbcTemplate.update("delete from iam.organizations where code = ?", code);
+        });
         createdAccountIds.forEach(accountId ->
                 jdbcTemplate.update("delete from iam.accounts where account_id = ?", accountId));
         createdProfileIds.forEach(profileId ->
@@ -96,6 +102,7 @@ class PartnerRegistrationTransactionIT extends PostgresIntegrationTestSupport {
                 + "where organization_id = ? and account_id = ? and status = 'ACTIVE'",
                 organizationId, fixture.accountId()));
 
+        assertDraftCatalog(organizationId);
         CurrentAccountAccess access = authorizationAdapter.findByAccountId(fixture.accountId()).orElseThrow();
         assertTrue(access.hasActivePartnerOrganizationMembership());
         assertTrue(access.activeOrganizationIds().contains(organizationId));
@@ -106,7 +113,7 @@ class PartnerRegistrationTransactionIT extends PostgresIntegrationTestSupport {
     void failureAfterMembershipCreationRollsBackTheWholeApprovalTransaction() {
         Fixture fixture = createPendingRegistration();
         doThrow(new IllegalStateException("catalog seed failed"))
-                .when(partnerCatalogSeed).copyInternalCatalog(any());
+                .when(partnerCatalogSeed).copySharedCatalog(any());
 
         assertThrows(IllegalStateException.class, () -> partnerRegistration.approveRegistration(
                 fixture.approvalRequestId(), new ReviewPartnerRegistrationCommand("Approved")));
@@ -165,6 +172,28 @@ class PartnerRegistrationTransactionIT extends PostgresIntegrationTestSupport {
                 fixture.accountId()));
         assertFalse(authorizationAdapter.findByAccountId(fixture.accountId()).orElseThrow()
                 .canUseBusinessPermissions());
+    }
+
+    @Test
+    void directOrganizationCreationAlsoCopiesOnlyDrafts() {
+        Fixture fixture = createPendingRegistration();
+        jdbcTemplate.update("update iam.accounts set status='ACTIVE' where account_id=?", fixture.accountId());
+        var organization = new com.ban.vehicle_management.domain.iam.organization.model.Organization();
+        organization.setCode(fixture.organizationCode());
+        organization.setName("Direct partner organization");
+        var saved = organizations.createOrganization(organization, fixture.accountId());
+        assertDraftCatalog(saved.getOrganizationId());
+    }
+
+    private void assertDraftCatalog(UUID organizationId) {
+        for (String table : new String[]{"vehicle_types", "ticket_types", "price_plans"}) {
+            String state = table.equals("ticket_types") ? "status" : "lifecycle_status";
+            assertTrue(count("select count(*) from catalog." + table + " where organization_id=?", organizationId) > 0);
+            assertEquals(0L, count("select count(*) from catalog." + table + " where organization_id=? and " + state + "<>'DRAFT'", organizationId));
+        }
+        assertEquals(0L, count(
+                "select count(*) from catalog.price_rules where organization_id=?",
+                organizationId));
     }
 
     private Fixture createPendingRegistration() {

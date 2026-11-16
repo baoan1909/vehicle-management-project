@@ -51,6 +51,7 @@ class ParkingLotCatalogAvailabilityUseCaseImplTest {
         ParkingLot lot = lot();
         when(parkingLotPortOut.findById(LOT_ID)).thenReturn(Optional.of(lot));
         when(availabilityPortOut.findExcludedVehicleTypeIds(LOT_ID)).thenReturn(Set.of(VEHICLE_TYPE_ID));
+        when(availabilityPortOut.findExplicitlyDisabledVehicleTypeIds(LOT_ID)).thenReturn(Set.of(VEHICLE_TYPE_ID));
         when(availabilityPortOut.findExcludedTicketTypeIds(LOT_ID)).thenReturn(Set.of(TICKET_TYPE_ID));
 
         var result = useCase.getAvailability(LOT_ID);
@@ -81,6 +82,7 @@ class ParkingLotCatalogAvailabilityUseCaseImplTest {
     void keepsZoneAssignmentsWhilePaidSubscriptionOrOpenSessionStillNeedsService() {
         when(parkingLotPortOut.findById(LOT_ID)).thenReturn(Optional.of(lot()));
         when(availabilityPortOut.findExcludedVehicleTypeIds(LOT_ID)).thenReturn(Set.of(VEHICLE_TYPE_ID));
+        when(availabilityPortOut.findExplicitlyDisabledVehicleTypeIds(LOT_ID)).thenReturn(Set.of(VEHICLE_TYPE_ID));
         when(availabilityPortOut.findExcludedTicketTypeIds(LOT_ID)).thenReturn(Set.of());
         when(vehicleTypePortOut.countServiceObligationSubscriptions(
                 org.mockito.ArgumentMatchers.eq(LOT_ID),

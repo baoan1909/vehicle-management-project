@@ -121,6 +121,10 @@ const MESSAGE_TRANSLATIONS: Record<string, string> = {
     "Đã hết hạn mức tìm tọa độ miễn phí trong ngày. Bạn vẫn có thể chọn điểm trực tiếp trên bản đồ.",
   "Parking location search service is unavailable":
     "Không thể tìm địa điểm vào lúc này. Bạn vẫn có thể đặt ghim trực tiếp trên bản đồ.",
+  "Parking lot needs at least one active zone, gate, IN lane, OUT lane, a published layout for every active SPACE zone, and complete published pricing for the services explicitly enabled at a new lot before activation":
+    "Bãi cần khu vực, cổng, làn vào/ra đang hoạt động, sơ đồ đã công bố cho các khu vực đỗ và đủ giá có hiệu lực cho các dịch vụ đã bật tại bãi mới.",
+  "Parking lot needs at least one active zone, gate, IN lane, OUT lane, a published layout for every active SPACE zone, and complete published pricing for the services explicitly enabled at a new lot before requesting activation":
+    "Cần hoàn tất khu vực, cổng, làn vào/ra, sơ đồ và giá cho các dịch vụ đã bật trước khi gửi yêu cầu kích hoạt bãi.",
   "Parking lot needs at least one active zone, gate, IN lane, and OUT lane before activation":
     "Bãi xe cần có tối thiểu một khu vực, một cổng, một làn vào và một làn ra đang hoạt động trước khi kích hoạt.",
   "Parking lot needs at least one active zone, gate, IN lane, and OUT lane before requesting activation":

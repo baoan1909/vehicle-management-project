@@ -12,6 +12,7 @@ import com.ban.vehicle_management.shared.enumeration.notification.UserGuideEvent
 import com.ban.vehicle_management.shared.exception.UserGuideException;
 import java.util.List;
 import java.util.UUID;
+import com.ban.vehicle_management.shared.enumeration.notification.UserGuideDisplayType;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
@@ -45,6 +46,12 @@ public class ValidatedUserGuideRuntimeUseCase implements UserGuideRuntimePortIn 
     @Override
     public List<ResolvedUserGuide> resolveGuides(String featureCode, String contextKey) {
         return delegate.resolveGuides(featureCode, contextKey);
+    }
+
+    @Override
+    public List<ResolvedUserGuide> resolveManualGuides(
+            String featureCode, String contextKey, UserGuideDisplayType displayType) {
+        return delegate.resolveManualGuides(featureCode, contextKey, displayType);
     }
 
     @Override

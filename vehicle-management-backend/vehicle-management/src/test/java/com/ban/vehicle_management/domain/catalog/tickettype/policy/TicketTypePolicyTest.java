@@ -22,7 +22,7 @@ class TicketTypePolicyTest {
         assertEquals("MONTHLY", ticketType.getCode());
         assertEquals("Ve thang", ticketType.getName());
         assertEquals(30, ticketType.getDurationDays());
-        assertEquals(TicketTypeStatus.ACTIVE, ticketType.getStatus());
+        assertEquals(TicketTypeStatus.DRAFT, ticketType.getStatus());
     }
 
     @Test

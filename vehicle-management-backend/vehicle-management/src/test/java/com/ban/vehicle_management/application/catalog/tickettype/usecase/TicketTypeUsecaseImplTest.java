@@ -65,7 +65,7 @@ class TicketTypeUsecaseImplTest {
         assertEquals("MONTHLY", createdTicketType.getCode());
         assertEquals("Monthly ticket", createdTicketType.getName());
         assertEquals(30, createdTicketType.getDurationDays());
-        assertEquals(TicketTypeStatus.ACTIVE, createdTicketType.getStatus());
+        assertEquals(TicketTypeStatus.DRAFT, createdTicketType.getStatus());
         assertEquals(ORGANIZATION_ID, createdTicketType.getOrganizationId());
     }
 

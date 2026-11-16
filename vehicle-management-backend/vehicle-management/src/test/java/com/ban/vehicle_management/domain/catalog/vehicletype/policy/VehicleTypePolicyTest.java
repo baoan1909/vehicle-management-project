@@ -24,7 +24,8 @@ class VehicleTypePolicyTest {
         assertEquals("CAR", vehicleType.getCode());
         assertEquals("O to", vehicleType.getName());
         assertEquals("Mo ta", vehicleType.getDescription());
-        assertEquals(Boolean.TRUE, vehicleType.getIsActive());
+        assertEquals(Boolean.FALSE, vehicleType.getIsActive());
+        assertEquals(com.ban.vehicle_management.shared.enumeration.catalog.CatalogLifecycleStatus.DRAFT, vehicleType.getLifecycleStatus());
     }
 
     @Test

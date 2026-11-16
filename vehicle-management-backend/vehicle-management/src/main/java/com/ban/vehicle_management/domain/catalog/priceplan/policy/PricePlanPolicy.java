@@ -2,6 +2,7 @@ package com.ban.vehicle_management.domain.catalog.priceplan.policy;
 
 import com.ban.vehicle_management.domain.catalog.priceplan.model.PricePlan;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.enumeration.catalog.CatalogLifecycleStatus;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 
 public class PricePlanPolicy {
@@ -17,13 +18,13 @@ public class PricePlanPolicy {
             throw new BadRequestException("effectiveTo must not be before effectiveFrom");
         }
         if (pricePlan.getIsActive() == null) {
-            pricePlan.setIsActive(Boolean.TRUE);
+            pricePlan.setLifecycleStatus(CatalogLifecycleStatus.DRAFT);
         }
     }
 
     public void deactivate(PricePlan pricePlan) {
         requirePricePlan(pricePlan);
-        pricePlan.setIsActive(Boolean.FALSE);
+        pricePlan.setLifecycleStatus(CatalogLifecycleStatus.INACTIVE);
     }
 
     private void requirePricePlan(PricePlan pricePlan) {
@@ -40,8 +41,12 @@ public class PricePlanPolicy {
 
     public void activate(PricePlan pricePlan) {
         requirePricePlan(pricePlan);
-        pricePlan.setIsActive(Boolean.TRUE);
         initialize(pricePlan);
+        java.time.LocalDate today = com.ban.vehicle_management.shared.utils.DateTimeUtils.toVietnamLocalDate(java.time.Instant.now());
+        if (pricePlan.getEffectiveTo() != null && pricePlan.getEffectiveTo().isBefore(today)) {
+            throw new BadRequestException("Cannot activate an expired price plan; review effective dates first");
+        }
+        pricePlan.setLifecycleStatus(CatalogLifecycleStatus.ACTIVE);
     }
 }
 

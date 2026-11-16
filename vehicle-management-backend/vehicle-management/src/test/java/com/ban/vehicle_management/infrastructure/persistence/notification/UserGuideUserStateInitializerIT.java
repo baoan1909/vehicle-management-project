@@ -29,6 +29,8 @@ class UserGuideUserStateInitializerIT extends PostgresIntegrationTestSupport {
     private final JdbcTemplate jdbcTemplate;
     private final PlatformTransactionManager transactionManager;
     private final UserGuideUserStateInitializerPortOut initializer;
+    private UUID createdFeatureId;
+    private UUID createdGuideId;
 
     @Autowired
     UserGuideUserStateInitializerIT(
@@ -43,33 +45,45 @@ class UserGuideUserStateInitializerIT extends PostgresIntegrationTestSupport {
 
     @AfterEach
     void cleanUp() {
-        jdbcTemplate.update("DELETE FROM notification.user_guide_user_states");
-        jdbcTemplate.update("DELETE FROM notification.user_guides");
-        jdbcTemplate.update("DELETE FROM notification.user_guide_features");
+        if (createdGuideId != null) {
+            jdbcTemplate.update(
+                    "DELETE FROM notification.user_guide_user_states WHERE guide_id = ?",
+                    createdGuideId);
+            jdbcTemplate.update(
+                    "DELETE FROM notification.user_guides WHERE guide_id = ?",
+                    createdGuideId);
+        }
+        if (createdFeatureId != null) {
+            jdbcTemplate.update(
+                    "DELETE FROM notification.user_guide_features WHERE feature_id = ?",
+                    createdFeatureId);
+        }
+        createdGuideId = null;
+        createdFeatureId = null;
     }
 
     @Test
     void concurrentInitializationShouldCreateExactlyOneStateRow() throws Exception {
-        UUID featureId = UUID.randomUUID();
-        UUID guideId = UUID.randomUUID();
+        createdFeatureId = UUID.randomUUID();
+        createdGuideId = UUID.randomUUID();
         jdbcTemplate.update("""
                 INSERT INTO notification.user_guide_features
                     (feature_id, code, name, enabled, created_at)
                 VALUES (?, ?, ?, true, now())
-                """, featureId, "CONCURRENT_STATE", "Concurrent state");
+                """, createdFeatureId, "CONCURRENT_STATE", "Concurrent state");
         jdbcTemplate.update("""
                 INSERT INTO notification.user_guides
                     (guide_id, feature_id, code, status, display_type, replay_policy,
                      context_key, priority, display_order, start_at, current_version, created_at)
                 VALUES (?, ?, ?, 'PUBLISHED', 'MODAL', 'ONCE_PER_VERSION',
                         ?, 1, 1, now() - interval '1 minute', 1, now())
-                """, guideId, featureId, "CONCURRENT_STATE_GUIDE", "CONCURRENT_STATE");
+                """, createdGuideId, createdFeatureId, "CONCURRENT_STATE_GUIDE", "CONCURRENT_STATE");
 
         CountDownLatch start = new CountDownLatch(1);
         ExecutorService executor = Executors.newFixedThreadPool(2);
         try {
-            Future<?> first = executor.submit(() -> initializeInTransaction(start, guideId));
-            Future<?> second = executor.submit(() -> initializeInTransaction(start, guideId));
+            Future<?> first = executor.submit(() -> initializeInTransaction(start, createdGuideId));
+            Future<?> second = executor.submit(() -> initializeInTransaction(start, createdGuideId));
             start.countDown();
             first.get();
             second.get();
@@ -82,7 +96,7 @@ class UserGuideUserStateInitializerIT extends PostgresIntegrationTestSupport {
                         + " WHERE account_id = ? AND guide_id = ?",
                 Integer.class,
                 SYSTEM_ACCOUNT_ID,
-                guideId);
+                createdGuideId);
         assertEquals(1, count);
     }
 

@@ -10,13 +10,13 @@ import com.ban.vehicle_management.domain.catalog.pricerule.model.PriceRule;
 import com.ban.vehicle_management.domain.catalog.tickettype.model.TicketType;
 import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
 import com.ban.vehicle_management.entrypoint.dto.catalog.priceplan.request.PricePlanFilterRequest;
-import com.ban.vehicle_management.entrypoint.dto.catalog.priceplan.response.PricePlanAdminResponse;
+import com.ban.vehicle_management.entrypoint.dto.catalog.priceplan.response.PricePlanUserResponse;
 import com.ban.vehicle_management.entrypoint.dto.catalog.pricerule.request.PriceRuleFilterRequest;
-import com.ban.vehicle_management.entrypoint.dto.catalog.pricerule.response.PriceRuleAdminResponse;
+import com.ban.vehicle_management.entrypoint.dto.catalog.pricerule.response.PriceRuleUserResponse;
 import com.ban.vehicle_management.entrypoint.dto.catalog.tickettype.request.TicketTypeFilterRequest;
-import com.ban.vehicle_management.entrypoint.dto.catalog.tickettype.response.TicketTypeAdminResponse;
+import com.ban.vehicle_management.entrypoint.dto.catalog.tickettype.response.TicketTypeUserResponse;
 import com.ban.vehicle_management.entrypoint.dto.catalog.vehicletype.request.VehicleTypeFilterRequest;
-import com.ban.vehicle_management.entrypoint.dto.catalog.vehicletype.response.VehicleTypeAdminResponse;
+import com.ban.vehicle_management.entrypoint.dto.catalog.vehicletype.response.VehicleTypeUserResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.util.List;
 import java.util.UUID;
@@ -52,7 +52,7 @@ public class PublicPricingController {
     }
 
     @GetMapping("/price-plans")
-    public ResponseEntity<ApiResponse<List<PricePlanAdminResponse>>> getPricePlans(
+    public ResponseEntity<ApiResponse<List<PricePlanUserResponse>>> getPricePlans(
             @ModelAttribute PricePlanFilterRequest request,
             @RequestParam(required = false) UUID parkingLotId
     ) {
@@ -65,12 +65,12 @@ public class PublicPricingController {
 
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched public price plans successfully",
-                pricePlanApiMapper.toAdminResponses(pricePlans)
+                pricePlanApiMapper.toUserResponses(pricePlans)
         ));
     }
 
     @GetMapping("/price-rules")
-    public ResponseEntity<ApiResponse<List<PriceRuleAdminResponse>>> getPriceRules(
+    public ResponseEntity<ApiResponse<List<PriceRuleUserResponse>>> getPriceRules(
             @ModelAttribute PriceRuleFilterRequest request,
             @RequestParam(required = false) UUID parkingLotId
     ) {
@@ -84,12 +84,12 @@ public class PublicPricingController {
 
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched public price rules successfully",
-                priceRuleApiMapper.toAdminResponses(priceRules)
+                priceRuleApiMapper.toUserResponses(priceRules)
         ));
     }
 
     @GetMapping("/vehicle-types")
-    public ResponseEntity<ApiResponse<List<VehicleTypeAdminResponse>>> getVehicleTypes(
+    public ResponseEntity<ApiResponse<List<VehicleTypeUserResponse>>> getVehicleTypes(
             @ModelAttribute VehicleTypeFilterRequest request,
             @RequestParam(required = false) UUID parkingLotId
     ) {
@@ -97,12 +97,12 @@ public class PublicPricingController {
 
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched public vehicle types successfully",
-                vehicleTypeApiMapper.toAdminResponses(vehicleTypes)
+                vehicleTypeApiMapper.toUserResponses(vehicleTypes)
         ));
     }
 
     @GetMapping("/ticket-types")
-    public ResponseEntity<ApiResponse<List<TicketTypeAdminResponse>>> getTicketTypes(
+    public ResponseEntity<ApiResponse<List<TicketTypeUserResponse>>> getTicketTypes(
             @ModelAttribute TicketTypeFilterRequest request,
             @RequestParam(required = false) UUID parkingLotId
     ) {
@@ -110,7 +110,7 @@ public class PublicPricingController {
 
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched public ticket types successfully",
-                ticketTypeApiMapper.toAdminResponses(ticketTypes)
+                ticketTypeApiMapper.toUserResponses(ticketTypes)
         ));
     }
 }

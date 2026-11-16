@@ -25,6 +25,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class PriceRulePersistenceAdapter implements PriceRulePortOut {
 
+    @Override
+    public int initializeDraftsFromInternalCatalog(UUID organizationId, UUID parkingLotId) {
+        return priceRuleRepository.initializeDraftsFromInternalCatalog(organizationId, parkingLotId);
+    }
+
     private final PriceRuleRepository priceRuleRepository;
     private final VehicleTypeRepository vehicleTypeRepository;
     private final TicketTypeRepository ticketTypeRepository;
@@ -60,29 +65,6 @@ public class PriceRulePersistenceAdapter implements PriceRulePortOut {
     public Optional<PriceRule> findById(UUID priceRuleId) {
         return priceRuleRepository.findById(priceRuleId)
                 .map(priceRulePersistenceMapper::toDomain);
-    }
-
-    @Override
-    public List<PriceRule> findAll(
-            UUID pricePlanId,
-            UUID vehicleTypeId,
-            UUID ticketTypeId,
-            Boolean isActive,
-            String keyword
-    ) {
-        return findAll(pricePlanId, vehicleTypeId, ticketTypeId, isActive, keyword, null);
-    }
-
-    @Override
-    public List<PriceRule> findAll(UUID pricePlanId, UUID vehicleTypeId, UUID ticketTypeId,
-            Boolean isActive, String keyword, Set<UUID> organizationIds) {
-        return priceRuleRepository.findAll(
-                        PriceRuleSpecifications.withFilters(pricePlanId, vehicleTypeId, ticketTypeId,
-                                isActive, keyword, organizationIds)
-                )
-                .stream()
-                .map(priceRulePersistenceMapper::toDomain)
-                .toList();
     }
 
     @Override
@@ -198,39 +180,11 @@ public class PriceRulePersistenceAdapter implements PriceRulePortOut {
     }
 
     @Override
-    public Optional<PriceRule> findActiveSubscriptionRule(
-            UUID vehicleTypeId,
-            UUID ticketTypeId,
-            LocalDate effectiveDate
-    ) {
-        return priceRuleRepository.findActiveSubscriptionRule(vehicleTypeId, ticketTypeId, effectiveDate)
-                .map(priceRulePersistenceMapper::toDomain);
-    }
-
-    @Override
-    public Optional<PriceRule> findActiveSubscriptionRuleInOrganization(
-            UUID canonicalVehicleTypeId, UUID ticketTypeId, UUID organizationId, LocalDate effectiveDate) {
-        return priceRuleRepository.findActiveSubscriptionRuleInOrganization(
-                canonicalVehicleTypeId, ticketTypeId, organizationId, effectiveDate)
-                .map(priceRulePersistenceMapper::toDomain);
-    }
-
-    @Override
     public Optional<PriceRule> findActiveSubscriptionRuleInParkingLot(
             UUID canonicalVehicleTypeId, UUID ticketTypeId, UUID organizationId,
             UUID parkingLotId, LocalDate effectiveDate) {
         return priceRuleRepository.findActiveSubscriptionRuleInParkingLot(
                         canonicalVehicleTypeId, ticketTypeId, organizationId, parkingLotId, effectiveDate)
-                .map(priceRulePersistenceMapper::toDomain);
-    }
-
-    @Override
-    public Optional<PriceRule> findActiveVisitorRuleByTime(
-            UUID vehicleTypeId,
-            LocalDate effectiveDate,
-            LocalTime localTime
-    ) {
-        return priceRuleRepository.findActiveVisitorRuleByTime(vehicleTypeId, effectiveDate, localTime)
                 .map(priceRulePersistenceMapper::toDomain);
     }
 

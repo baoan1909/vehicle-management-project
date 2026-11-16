@@ -55,12 +55,29 @@ class VehicleTypeUseCaseImplTest {
     }
 
     @Test
-    void shouldCreateVehicleTypeWithDefaultActiveFlag() {
+    void lifecycleFilterSeparatesDraftFromInactiveWithinAuthorizedOrganization() {
+        VehicleType draft = new VehicleType();
+        draft.setLifecycleStatus(com.ban.vehicle_management.shared.enumeration.catalog.CatalogLifecycleStatus.DRAFT);
+        VehicleType inactive = new VehicleType();
+        inactive.setLifecycleStatus(com.ban.vehicle_management.shared.enumeration.catalog.CatalogLifecycleStatus.INACTIVE);
+        when(vehicleTypePort.findAll(false, Set.of(ORGANIZATION_ID))).thenReturn(List.of(draft, inactive));
+        assertEquals(List.of(draft), vehicleTypeUseCase.getVehicleTypes(false,
+                com.ban.vehicle_management.shared.enumeration.catalog.CatalogLifecycleStatus.DRAFT));
+    }
+
+    @Test
+    void shouldCreateVehicleTypeAsDraftWithCanonicalMapping() {
         VehicleType requestVehicleType = new VehicleType();
+        requestVehicleType.setIsActive(true); // Must still be stored as a draft.
         requestVehicleType.setCode(" MOTORBIKE ");
         requestVehicleType.setName(" Motorbike ");
         requestVehicleType.setDescription(" Two-wheel vehicle ");
 
+        VehicleType canonical = new VehicleType();
+        canonical.setVehicleTypeId(UUID.randomUUID());
+        canonical.setCode("MOTORBIKE");
+        canonical.setIsActive(true);
+        when(vehicleTypePort.findCanonicalByCode("MOTORBIKE")).thenReturn(Optional.of(canonical));
         when(vehicleTypePort.save(any(VehicleType.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         VehicleType createdVehicleType = vehicleTypeUseCase.createVehicleType(requestVehicleType);
@@ -70,7 +87,9 @@ class VehicleTypeUseCaseImplTest {
         assertEquals("Motorbike", createdVehicleType.getName());
         assertEquals("Two-wheel vehicle", createdVehicleType.getDescription());
         assertEquals(ORGANIZATION_ID, createdVehicleType.getOrganizationId());
-        assertTrue(createdVehicleType.getIsActive());
+        assertFalse(createdVehicleType.getIsActive());
+        assertEquals(com.ban.vehicle_management.shared.enumeration.catalog.CatalogLifecycleStatus.DRAFT, createdVehicleType.getLifecycleStatus());
+        assertEquals(canonical.getVehicleTypeId(), createdVehicleType.getCanonicalVehicleTypeId());
         verify(vehicleTypePort).save(any(VehicleType.class));
     }
 
@@ -326,6 +345,19 @@ class VehicleTypeUseCaseImplTest {
     }
 
     @Test
+    void shouldRejectPublishingVehicleWithoutValidCanonicalReference() {
+        UUID id = UUID.randomUUID();
+        VehicleType draft = new VehicleType();
+        draft.setVehicleTypeId(id);
+        draft.setCode("UNSUPPORTED");
+        draft.setName("Unsupported");
+        draft.setLifecycleStatus(com.ban.vehicle_management.shared.enumeration.catalog.CatalogLifecycleStatus.DRAFT);
+        when(vehicleTypePort.findById(id)).thenReturn(Optional.of(draft));
+        assertThrows(BadRequestException.class, () -> vehicleTypeUseCase.activateVehicleType(id));
+        verify(vehicleTypePort, never()).save(any(VehicleType.class));
+    }
+
+    @Test
     void shouldActivateInactiveVehicleType() {
         UUID vehicleTypeId = UUID.randomUUID();
         VehicleType existingVehicleType = new VehicleType();
@@ -334,6 +366,11 @@ class VehicleTypeUseCaseImplTest {
         existingVehicleType.setName(" Car ");
         existingVehicleType.setIsActive(false);
 
+        VehicleType canonical = new VehicleType();
+        canonical.setVehicleTypeId(UUID.randomUUID());
+        canonical.setCode("CAR");
+        canonical.setIsActive(true);
+        when(vehicleTypePort.findCanonicalByCode("CAR")).thenReturn(Optional.of(canonical));
         when(vehicleTypePort.findById(vehicleTypeId)).thenReturn(Optional.of(existingVehicleType));
         when(vehicleTypePort.save(any(VehicleType.class))).thenAnswer(invocation -> invocation.getArgument(0));
 

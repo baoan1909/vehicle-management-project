@@ -71,7 +71,7 @@ public class OrganizationUseCaseImpl implements OrganizationPortIn {
         organization.setOrganizationId(UUID.randomUUID());
         Organization savedOrganization = organizationPortOut.save(organization);
         organizationPortOut.createActiveMembership(savedOrganization.getOrganizationId(), partnerAdminAccountId);
-        partnerCatalogSeedPortOut.copyInternalCatalog(savedOrganization.getOrganizationId());
+        partnerCatalogSeedPortOut.copySharedCatalog(savedOrganization.getOrganizationId());
         invalidateOrganizationAccess(partnerAdminAccountId, savedOrganization.getOrganizationId());
         return savedOrganization;
     }

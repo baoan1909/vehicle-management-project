@@ -885,8 +885,8 @@ export function DeviceManagementPage() {
 
   return (
     <div className="tw-px-4 tw-py-4 lg:tw-px-5">
-      <section className="tw-mx-auto tw-min-h-[calc(100vh-104px)] tw-w-[min(100%,1560px)] tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-5 tw-shadow-vm-card">
-        <header className="tw-flex tw-items-start tw-justify-between tw-gap-4 max-[720px]:tw-flex-col">
+      <section data-user-guide-anchor="WORKFLOW.DEVICES.WORKSPACE" className="tw-mx-auto tw-min-h-[calc(100vh-104px)] tw-w-[min(100%,1560px)] tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-5 tw-shadow-vm-card">
+        <header data-user-guide-anchor="WORKFLOW.DEVICES.HEADER" className="tw-flex tw-items-start tw-justify-between tw-gap-4 max-[720px]:tw-flex-col">
           <div>
             <h1 className="tw-m-0 tw-text-vm-page-title tw-text-vm-slate-900">
               Quản lý thiết bị

@@ -1530,7 +1530,7 @@ export function ShiftSchedulePage() {
   if (ownShiftView) {
     return (
       <main className="tw-px-4 tw-py-4 lg:tw-px-5">
-        <section className="tw-mx-auto tw-w-[min(100%,980px)] tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-5 tw-shadow-vm-card">
+        <section data-user-guide-anchor="WORKFLOW.SHIFTS.OWN" className="tw-mx-auto tw-w-[min(100%,980px)] tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-5 tw-shadow-vm-card">
           <div className="tw-flex tw-items-center tw-justify-between tw-gap-3">
             <div>
               <h1 className="tw-m-0 tw-text-vm-page-title tw-text-vm-slate-900">Ca trực của tôi</h1>
@@ -1561,7 +1561,7 @@ export function ShiftSchedulePage() {
   return (
     <>
       <div className="tw-px-4 tw-py-4 lg:tw-px-5">
-        <section className="tw-mx-auto tw-min-h-[calc(100vh-104px)] tw-w-[min(100%,1560px)] tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-5 tw-shadow-vm-card">
+        <section data-user-guide-anchor="WORKFLOW.SHIFTS.WORKSPACE" className="tw-mx-auto tw-min-h-[calc(100vh-104px)] tw-w-[min(100%,1560px)] tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-5 tw-shadow-vm-card">
           <div className="tw-mb-5 tw-flex tw-items-center tw-justify-between tw-gap-4 max-[1024px]:tw-flex-col max-[1024px]:tw-items-stretch">
             <div className="tw-flex tw-min-w-0 tw-items-center tw-gap-4">
               <h1 className="tw-m-0 tw-text-vm-page-title tw-tracking-normal tw-text-vm-slate-900">Ca trực & Phân công</h1>

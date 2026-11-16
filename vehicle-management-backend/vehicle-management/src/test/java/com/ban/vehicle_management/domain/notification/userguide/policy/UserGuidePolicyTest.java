@@ -8,18 +8,22 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.ban.vehicle_management.domain.notification.userguide.model.UserGuide;
 import com.ban.vehicle_management.domain.notification.userguide.model.UserGuideAudience;
 import com.ban.vehicle_management.domain.notification.userguide.model.UserGuideFeature;
+import com.ban.vehicle_management.domain.notification.userguide.model.UserGuideJourneyStateContent;
+import com.ban.vehicle_management.domain.notification.userguide.model.UserGuideJourneyStepConfig;
 import com.ban.vehicle_management.domain.notification.userguide.model.UserGuideStep;
 import com.ban.vehicle_management.domain.notification.userguide.model.UserGuideVersion;
 import com.ban.vehicle_management.shared.enumeration.notification.UserGuideAudienceMode;
 import com.ban.vehicle_management.shared.enumeration.notification.UserGuideAudienceTargetType;
 import com.ban.vehicle_management.shared.enumeration.notification.UserGuideDisplayType;
 import com.ban.vehicle_management.shared.enumeration.notification.UserGuideReplayPolicy;
+import com.ban.vehicle_management.shared.enumeration.notification.UserGuideJourneyStepState;
 import com.ban.vehicle_management.shared.enumeration.notification.UserGuideStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -224,12 +228,63 @@ class UserGuidePolicyTest {
                 "data:text/plain,hello",
                 "https://example.com/guide",
                 "//example.com/guide",
+                "/parking/%2e%2e/admin",
                 "/parking\\admin"
         )) {
             UserGuideVersion unsafeVersion = validVersion();
             unsafeVersion.setDeepLink(unsafe);
             assertThrows(BadRequestException.class, () -> policy.normalizeVersion(unsafeVersion));
         }
+    }
+
+    @Test
+    void journeyRequiresManualOnlyReplayPolicy() {
+        UserGuide guide = validGuide();
+        guide.setDisplayType(UserGuideDisplayType.JOURNEY);
+        assertThrows(BadRequestException.class, () -> policy.normalizeGuide(guide));
+
+        guide.setReplayPolicy(UserGuideReplayPolicy.MANUAL_ONLY);
+        assertDoesNotThrow(() -> policy.normalizeGuide(guide));
+    }
+
+    @Test
+    void journeyRejectsMissingDuplicateAndUnknownConfiguration() {
+        UserGuideVersion missing = validVersion();
+        assertThrows(BadRequestException.class,
+                () -> policy.normalizeVersion(missing, UserGuideDisplayType.JOURNEY));
+
+        UserGuideStep first = validJourneyStep(0, "PARKING_SCOPE", "PARKING_SCOPE");
+        UserGuideStep duplicate = validJourneyStep(1, "PARKING_SCOPE", "CHECK_IN");
+        UserGuideVersion duplicateVersion = validVersion();
+        duplicateVersion.setSteps(List.of(first, duplicate));
+        assertThrows(BadRequestException.class,
+                () -> policy.normalizeVersion(duplicateVersion, UserGuideDisplayType.JOURNEY));
+
+        UserGuideVersion unknown = validVersion();
+        unknown.setSteps(List.of(validJourneyStep(0, "UNKNOWN", "UNKNOWN")));
+        assertThrows(BadRequestException.class,
+                () -> policy.normalizeVersion(unknown, UserGuideDisplayType.JOURNEY));
+    }
+
+    @Test
+    void journeyValidatesRouteStateContentAndRejectsConfigOnCoachMark() {
+        UserGuideStep valid = validJourneyStep(0, "CHECK_IN", "CHECK_IN");
+        valid.getJourneyConfig().setRouteTemplate("/admin/swipe?lot={PARKING_LOT_ID}");
+        valid.getJourneyConfig().setStateContent(Map.of(
+                UserGuideJourneyStepState.ACTIONABLE,
+                new UserGuideJourneyStateContent("Có thể vận hành.", null, "Mở xe vào")));
+        UserGuideVersion version = validVersion();
+        version.setSteps(List.of(valid));
+        assertDoesNotThrow(() -> policy.normalizeVersion(version, UserGuideDisplayType.JOURNEY));
+
+        valid.getJourneyConfig().setRouteTemplate("/admin/{UNSUPPORTED}");
+        assertThrows(BadRequestException.class,
+                () -> policy.normalizeVersion(version, UserGuideDisplayType.JOURNEY));
+
+        UserGuideVersion coachMark = validVersion();
+        coachMark.setSteps(List.of(validJourneyStep(0, "CHECK_IN", "CHECK_IN")));
+        assertThrows(BadRequestException.class,
+                () -> policy.normalizeVersion(coachMark, UserGuideDisplayType.COACH_MARK));
     }
 
     @Test
@@ -272,6 +327,16 @@ class UserGuidePolicyTest {
         step.setTitle("Step " + order);
         step.setBody("Body " + order);
         step.setCollapseMs(0);
+        return step;
+    }
+
+    private UserGuideStep validJourneyStep(int order, String stepKey, String readinessKey) {
+        UserGuideStep step = validStep(order);
+        UserGuideJourneyStepConfig config = new UserGuideJourneyStepConfig();
+        config.setStepKey(stepKey);
+        config.setReadinessKey(readinessKey);
+        config.setStateContent(Map.of());
+        step.setJourneyConfig(config);
         return step;
     }
 

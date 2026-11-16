@@ -486,7 +486,7 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
                 createdOrganization.getOrganizationId(),
                 applicant.account().accountId()
         );
-        partnerCatalogSeedPortOut.copyInternalCatalog(createdOrganization.getOrganizationId());
+        partnerCatalogSeedPortOut.copySharedCatalog(createdOrganization.getOrganizationId());
 
         Map<String, String> decisionData = new HashMap<>(decisionMetadata);
         decisionData.put("organizationId", createdOrganization.getOrganizationId().toString());

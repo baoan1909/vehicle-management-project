@@ -5,6 +5,7 @@ import com.ban.vehicle_management.entrypoint.dto.catalog.tickettype.request.Crea
 import com.ban.vehicle_management.entrypoint.dto.catalog.tickettype.request.UpdateTicketTypeRequest;
 import com.ban.vehicle_management.entrypoint.dto.catalog.tickettype.response.TicketTypeAdminResponse;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
+import com.ban.vehicle_management.entrypoint.dto.catalog.tickettype.response.TicketTypeUserResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -32,6 +33,8 @@ public interface TicketTypeApiMapper {
     TicketType toDomain (UpdateTicketTypeRequest request);
 
     TicketTypeAdminResponse toAdminResponse(TicketType ticketType);
+
+    List<TicketTypeUserResponse> toUserResponses(List<TicketType> items);
 
     List<TicketTypeAdminResponse> toAdminResponses(List<TicketType> ticketTypes);
 

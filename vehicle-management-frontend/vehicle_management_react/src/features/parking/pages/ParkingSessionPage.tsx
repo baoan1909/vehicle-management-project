@@ -517,7 +517,7 @@ export function ParkingSessionPage() {
   };
 
   return (
-    <div className="content-header tw-px-0 tw-pb-4 tw-pt-3">
+    <div data-user-guide-anchor="WORKFLOW.SESSIONS.WORKSPACE" className="content-header tw-px-0 tw-pb-4 tw-pt-3">
       <section className="content tw-pb-8">
         <div className="container-fluid tw-max-w-[1480px]">
           <div className="tw-grid tw-gap-6 tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-4 tw-shadow-[0_16px_34px_rgba(15,23,42,0.04)]">

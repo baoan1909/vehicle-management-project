@@ -78,7 +78,7 @@ class UserGuidePersistenceMapperTest {
 
         UserGuideStep step = new UserGuideStep(
                 UUID.randomUUID(), versionId, 0, "Open dashboard", "Choose parking lot",
-                "user-guides/dashboard.png", "PARKING_LOT_CARD", UserGuideStepPlacement.BOTTOM, 500);
+                "user-guides/dashboard.png", "PARKING_LOT_CARD", UserGuideStepPlacement.BOTTOM, 500, null);
         UserGuideAudience audience = new UserGuideAudience(
                 UUID.randomUUID(), versionId, UserGuideAudienceTargetType.ROLE,
                 roleId, null, Instant.parse("2026-10-16T00:00:00Z"), UUID.randomUUID());

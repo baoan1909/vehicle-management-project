@@ -1,4 +1,4 @@
-export type CatalogStatus = "active" | "inactive";
+export type CatalogStatus = "draft" | "active" | "inactive";
 export type CatalogStatusTabValue = "all" | CatalogStatus;
 
 export type TicketCatalogRecord = {
@@ -19,6 +19,7 @@ export type TicketCatalogRecord = {
 };
 
 export type VehicleCatalogRecord = {
+  canonicalVehicleTypeId?: string | null;
   id: string;
   organizationId?: string;
   code: string;
@@ -39,6 +40,7 @@ export type VehicleCatalogRecord = {
 export const catalogStatusTabs = [
   { value: "all" as const, label: "Tất cả" },
   { value: "active" as const, label: "Đang hoạt động" },
+  { value: "draft" as const, label: "Nháp" },
   { value: "inactive" as const, label: "Ngừng dùng" }
 ];
 

@@ -3,6 +3,7 @@ package com.ban.vehicle_management.domain.catalog.pricerule.policy;
 import com.ban.vehicle_management.domain.catalog.pricerule.model.PriceRule;
 import com.ban.vehicle_management.shared.enumeration.catalog.PriceRuleUnit;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.enumeration.catalog.CatalogLifecycleStatus;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.math.BigDecimal;
 
@@ -45,7 +46,7 @@ public class PriceRulePolicy {
         }
 
         if (priceRule.getIsActive() == null) {
-            priceRule.setIsActive(Boolean.TRUE);
+            priceRule.setLifecycleStatus(CatalogLifecycleStatus.DRAFT);
         }
     }
 
@@ -63,13 +64,13 @@ public class PriceRulePolicy {
 
     public void activate(PriceRule priceRule) {
         requirePriceRule(priceRule);
-        priceRule.setIsActive(Boolean.TRUE);
+        priceRule.setLifecycleStatus(CatalogLifecycleStatus.ACTIVE);
         initialize(priceRule);
     }
 
     public void deactivate(PriceRule priceRule) {
         requirePriceRule(priceRule);
-        priceRule.setIsActive(Boolean.FALSE);
+        priceRule.setLifecycleStatus(CatalogLifecycleStatus.INACTIVE);
     }
 }
 
