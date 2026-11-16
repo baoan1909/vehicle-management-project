@@ -46,7 +46,7 @@ public class PriceRuleController {
         int createdCount = priceRulePortIn.initializePriceRuleDrafts(parkingLotId);
         return ResponseEntity.ok(ApiResponse.ok(
                 "Price rule drafts initialized successfully",
-                new InitializePriceRuleDraftsResponse(createdCount, createdCount == 0)
+                priceRuleApiMapper.toInitializeDraftsResponse(createdCount)
         ));
     }
 

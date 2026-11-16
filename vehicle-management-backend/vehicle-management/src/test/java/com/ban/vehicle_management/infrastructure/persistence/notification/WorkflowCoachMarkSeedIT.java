@@ -23,21 +23,25 @@ class WorkflowCoachMarkSeedIT extends com.ban.vehicle_management.testsupport.Pos
     @Test
     void seedPublishesCompleteManualGuidesWithValidAudiencesAndOrderedSteps() {
         assertEquals(19, jdbc.queryForObject("""
-                select count(*) from notification.user_guides
-                where guide_id = md5('workflow-coverage-guide:' || code)::uuid
-                and status='PUBLISHED' and display_type='COACH_MARK'
-                and replay_policy='MANUAL_ONLY' and current_version=1
+                select count(*) from notification.user_guides g
+                join notification.user_guide_versions v
+                  on v.guide_id=g.guide_id and v.version_number=g.current_version
+                where g.guide_id = md5('workflow-coverage-guide:' || g.code)::uuid
+                  and g.status='PUBLISHED' and g.display_type='COACH_MARK'
+                  and g.replay_policy='MANUAL_ONLY' and v.published_at is not null
                 """, Integer.class));
         assertEquals(79, jdbc.queryForObject("""
                 select count(*) from notification.user_guide_steps s
                 join notification.user_guide_versions v using(guide_version_id)
                 join notification.user_guides g using(guide_id)
                 where g.guide_id=md5('workflow-coverage-guide:' || g.code)::uuid
+                  and v.version_number=g.current_version
                 """, Integer.class));
         assertEquals(0, jdbc.queryForObject("""
                 select count(*) from notification.user_guide_versions v
                 join notification.user_guides g using(guide_id)
                 where g.guide_id=md5('workflow-coverage-guide:' || g.code)::uuid
+                  and v.version_number=g.current_version
                   and (v.published_at is null or not exists (
                     select 1 from notification.user_guide_audiences a where a.guide_version_id=v.guide_version_id))
                 """, Integer.class));
@@ -47,6 +51,7 @@ class WorkflowCoachMarkSeedIT extends com.ban.vehicle_management.testsupport.Pos
                   join notification.user_guide_versions v using(guide_version_id)
                   join notification.user_guides g using(guide_id)
                   where g.guide_id=md5('workflow-coverage-guide:' || g.code)::uuid
+                    and v.version_number=g.current_version
                   group by s.guide_version_id having min(s.display_order)<>0 or max(s.display_order)<>count(*)-1
                 ) invalid
                 """, Integer.class));

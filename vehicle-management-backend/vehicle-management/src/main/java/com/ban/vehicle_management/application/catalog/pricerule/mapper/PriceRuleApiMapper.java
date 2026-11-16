@@ -3,6 +3,7 @@ package com.ban.vehicle_management.application.catalog.pricerule.mapper;
 import com.ban.vehicle_management.domain.catalog.pricerule.model.PriceRule;
 import com.ban.vehicle_management.entrypoint.dto.catalog.pricerule.request.CreatePriceRuleRequest;
 import com.ban.vehicle_management.entrypoint.dto.catalog.pricerule.request.UpdatePriceRuleRequest;
+import com.ban.vehicle_management.entrypoint.dto.catalog.pricerule.response.InitializePriceRuleDraftsResponse;
 import com.ban.vehicle_management.entrypoint.dto.catalog.pricerule.response.PriceRuleAdminResponse;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.Instant;
@@ -39,5 +40,9 @@ public interface PriceRuleApiMapper {
     List<PriceRuleUserResponse> toUserResponses(List<PriceRule> items);
 
     List<PriceRuleAdminResponse> toAdminResponses(List<PriceRule> priceRules);
+
+    default InitializePriceRuleDraftsResponse toInitializeDraftsResponse(int createdCount) {
+        return new InitializePriceRuleDraftsResponse(createdCount, createdCount == 0);
+    }
 
 }

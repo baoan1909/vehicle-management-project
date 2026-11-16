@@ -186,11 +186,14 @@ class PartnerRegistrationTransactionIT extends PostgresIntegrationTestSupport {
     }
 
     private void assertDraftCatalog(UUID organizationId) {
-        for (String table : new String[]{"vehicle_types", "ticket_types", "price_plans", "price_rules"}) {
+        for (String table : new String[]{"vehicle_types", "ticket_types", "price_plans"}) {
             String state = table.equals("ticket_types") ? "status" : "lifecycle_status";
             assertTrue(count("select count(*) from catalog." + table + " where organization_id=?", organizationId) > 0);
             assertEquals(0L, count("select count(*) from catalog." + table + " where organization_id=? and " + state + "<>'DRAFT'", organizationId));
         }
+        assertEquals(0L, count(
+                "select count(*) from catalog.price_rules where organization_id=?",
+                organizationId));
     }
 
     private Fixture createPendingRegistration() {
