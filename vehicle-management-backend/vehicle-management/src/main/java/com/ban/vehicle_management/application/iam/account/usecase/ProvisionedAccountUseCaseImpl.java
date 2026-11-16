@@ -337,10 +337,7 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
                     AdminProvisionableAccountRoleCode.EMPLOYEE
             );
         } else if (permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED)) {
-            managedRoleCodes = Set.of(
-                    AdminProvisionableAccountRoleCode.EMPLOYEE,
-                    AdminProvisionableAccountRoleCode.CUSTOMER
-            );
+            managedRoleCodes = Set.of(AdminProvisionableAccountRoleCode.EMPLOYEE);
         } else {
             managedRoleCodes = Set.of();
         }

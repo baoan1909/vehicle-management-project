@@ -195,7 +195,8 @@ for (const status of ["idle", "loading", "error", "legacy-ready"]) assert.equal(
   assert.deepEqual(provisionedAccountPolicy.getManageableProvisionedAccountRoleCodes(partnerRoleWithoutScope), []);
   assert.deepEqual(provisionedAccountPolicy.getManageableProvisionedAccountRoleCodes(customPlatform), ["SYSTEM_ADMIN", "PARTNER_ADMIN"]);
   assert.deepEqual(provisionedAccountPolicy.getManageableProvisionedAccountRoleCodes(customPartner), ["PARKING_MANAGER", "EMPLOYEE"]);
-  assert.deepEqual(provisionedAccountPolicy.getManageableProvisionedAccountRoleCodes(customAssigned), ["EMPLOYEE", "CUSTOMER"]);
+  assert.deepEqual(provisionedAccountPolicy.getManageableProvisionedAccountRoleCodes(customAssigned), ["EMPLOYEE"]);
+  assert.deepEqual(provisionedAccountPolicy.getScopedProvisionedAccountRoleCodes(customAssigned), ["EMPLOYEE"]);
 }
 
 console.log("Current-access sole-source, permission-first, landing, and scope-policy checks passed.");

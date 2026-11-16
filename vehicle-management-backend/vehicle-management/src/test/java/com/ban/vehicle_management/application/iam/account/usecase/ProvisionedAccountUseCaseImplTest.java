@@ -226,9 +226,7 @@ class ProvisionedAccountUseCaseImplTest {
     }
 
     @Test
-    void shouldAllowParkingManagerProvisioningCustomerAccount() {
-        UUID roleId = UUID.randomUUID();
-        String keycloakUserId = "kc-customer-id";
+    void shouldRejectParkingManagerProvisioningCustomerAccount() {
         Account account = new Account();
         account.setUsername("customer.01");
         account.setEmail("customer01@example.com");
@@ -240,25 +238,12 @@ class ProvisionedAccountUseCaseImplTest {
         );
 
         when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentAccount("PARKING_MANAGER"));
-        when(provisionedAccountPortOut.existsByUsername("customer.01")).thenReturn(false);
-        when(provisionedAccountPortOut.existsByEmail("customer01@example.com")).thenReturn(false);
-        when(provisionedAccountPortOut.findActiveRoleIdByCode(AdminProvisionableAccountRoleCode.CUSTOMER))
-                .thenReturn(roleId);
-        when(identityProviderAdminPortOut.createProvisionedAccountUser(any(CreateProvisionedAccountCommand.class)))
-                .thenReturn(keycloakUserId);
-        when(provisionedAccountPortOut.findProvisionedAccountById(any(UUID.class)))
-                .thenAnswer(invocation -> Optional.of(buildResult(
-                        invocation.getArgument(0),
-                        roleId,
-                        AdminProvisionableAccountRoleCode.CUSTOMER,
-                        "customer.01",
-                        "customer01@example.com"
-                )));
 
-        ProvisionedAccountResult result = provisionedAccountUseCase.createProvisionedAccount(command);
-
-        assertEquals(AdminProvisionableAccountRoleCode.CUSTOMER.name(), result.role().roleCode());
-        verify(identityProviderAdminPortOut).sendUpdatePasswordEmail(keycloakUserId);
+        assertThrows(
+                org.springframework.security.access.AccessDeniedException.class,
+                () -> provisionedAccountUseCase.createProvisionedAccount(command)
+        );
+        verify(identityProviderAdminPortOut, never()).createProvisionedAccountUser(any());
     }
 
     @Test
@@ -371,11 +356,28 @@ class ProvisionedAccountUseCaseImplTest {
         verify(provisionedAccountPortOut).findProvisionedAccounts(commandCaptor.capture());
         assertEquals(AdminProvisionableAccountRoleCode.EMPLOYEE, commandCaptor.getValue().roleCode());
         assertEquals(
-                Set.of(
-                        AdminProvisionableAccountRoleCode.EMPLOYEE,
-                        AdminProvisionableAccountRoleCode.CUSTOMER
-                ),
+                Set.of(AdminProvisionableAccountRoleCode.EMPLOYEE),
                 commandCaptor.getValue().managedRoleCodes()
+        );
+    }
+
+    @Test
+    void shouldRejectParkingManagerReadingCustomerProvisionedAccount() {
+        UUID accountId = UUID.randomUUID();
+        ProvisionedAccountResult existingAccount = buildResult(
+                accountId,
+                UUID.randomUUID(),
+                AdminProvisionableAccountRoleCode.CUSTOMER,
+                "customer.01",
+                "customer01@example.com"
+        );
+
+        when(provisionedAccountPortOut.findProvisionedAccountById(accountId)).thenReturn(Optional.of(existingAccount));
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentAccount("PARKING_MANAGER"));
+
+        assertThrows(
+                org.springframework.security.access.AccessDeniedException.class,
+                () -> provisionedAccountUseCase.getProvisionedAccountById(accountId)
         );
     }
 
