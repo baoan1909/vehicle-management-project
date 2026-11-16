@@ -22,4 +22,5 @@ public class UserGuideStep {
     private String anchorKey;
     private UserGuideStepPlacement placement;
     private Integer collapseMs;
+    private UserGuideJourneyStepConfig journeyConfig;
 }

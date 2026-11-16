@@ -8,5 +8,6 @@ public enum UserGuideDisplayType {
     POPOVER,
     BANNER,
     INLINE_CARD,
-    CALLOUT
+    CALLOUT,
+    JOURNEY
 }

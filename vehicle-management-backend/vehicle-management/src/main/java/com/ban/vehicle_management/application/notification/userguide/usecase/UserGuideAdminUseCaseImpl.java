@@ -11,6 +11,8 @@ import com.ban.vehicle_management.domain.notification.userguide.model.UserGuide;
 import com.ban.vehicle_management.domain.notification.userguide.model.UserGuideAudience;
 import com.ban.vehicle_management.domain.notification.userguide.model.UserGuideFeature;
 import com.ban.vehicle_management.domain.notification.userguide.model.UserGuideStep;
+import com.ban.vehicle_management.domain.notification.userguide.model.UserGuideJourneyStateContent;
+import com.ban.vehicle_management.domain.notification.userguide.model.UserGuideJourneyStepConfig;
 import com.ban.vehicle_management.domain.notification.userguide.model.UserGuideVersion;
 import com.ban.vehicle_management.domain.notification.userguide.policy.UserGuidePolicy;
 import com.ban.vehicle_management.shared.enumeration.notification.UserGuideDisplayType;
@@ -84,7 +86,8 @@ public class UserGuideAdminUseCaseImpl implements UserGuideAdminPortIn {
         initialVersion.setGuideId(savedGuide.getGuideId());
         initialVersion.setVersionNumber(1);
         validateAudienceTargets(initialVersion.getAudiences());
-        policy.normalizeVersion(initialVersion);
+        policy.normalizeVersion(initialVersion, savedGuide.getDisplayType());
+        validateJourneyLinks(savedGuide, initialVersion);
 
         UserGuideVersion savedVersion = versionPortOut.save(initialVersion);
         auditWriter.record(
@@ -203,7 +206,8 @@ public class UserGuideAdminUseCaseImpl implements UserGuideAdminPortIn {
             draft.setAudiences(version.getAudiences() == null ? List.of() : new ArrayList<>(version.getAudiences()));
         }
         validateAudienceTargets(draft.getAudiences());
-        policy.normalizeVersion(draft);
+        policy.normalizeVersion(draft, guide.getDisplayType());
+        validateJourneyLinks(guide, draft);
         UserGuideVersion saved = versionPortOut.save(draft);
         auditWriter.record(
                 "USER_GUIDE_VERSION_CREATED",
@@ -241,7 +245,8 @@ public class UserGuideAdminUseCaseImpl implements UserGuideAdminPortIn {
             existing.setAudiences(new ArrayList<>(version.getAudiences()));
         }
         validateAudienceTargets(existing.getAudiences());
-        policy.normalizeVersion(existing);
+        policy.normalizeVersion(existing, guide.getDisplayType());
+        validateJourneyLinks(guide, existing);
         UserGuideVersion saved = versionPortOut.save(existing);
         auditWriter.record(
                 "USER_GUIDE_VERSION_UPDATED",
@@ -290,7 +295,8 @@ public class UserGuideAdminUseCaseImpl implements UserGuideAdminPortIn {
         }
         policy.normalizeGuide(guide);
         validateAudienceTargets(draft.getAudiences());
-        policy.normalizeVersion(draft);
+        policy.normalizeVersion(draft, guide.getDisplayType());
+        validateJourneyLinks(guide, draft);
 
         UUID publisherId = currentAccountPortIn.getCurrentAccountIdOrThrow();
         Instant now = Instant.now();
@@ -436,8 +442,50 @@ public class UserGuideAdminUseCaseImpl implements UserGuideAdminPortIn {
             clone.setAnchorKey(step.getAnchorKey());
             clone.setPlacement(step.getPlacement());
             clone.setCollapseMs(step.getCollapseMs());
+            clone.setJourneyConfig(cloneJourneyConfig(step.getJourneyConfig()));
             return clone;
         }).toList();
+    }
+
+    private UserGuideJourneyStepConfig cloneJourneyConfig(UserGuideJourneyStepConfig source) {
+        if (source == null) return null;
+        UserGuideJourneyStepConfig clone = new UserGuideJourneyStepConfig();
+        clone.setStepKey(source.getStepKey());
+        clone.setReadinessKey(source.getReadinessKey());
+        clone.setRouteTemplate(source.getRouteTemplate());
+        clone.setActionLabel(source.getActionLabel());
+        clone.setLinkedGuideId(source.getLinkedGuideId());
+        java.util.EnumMap<com.ban.vehicle_management.shared.enumeration.notification.UserGuideJourneyStepState,
+                UserGuideJourneyStateContent> stateContent = new java.util.EnumMap<>(
+                com.ban.vehicle_management.shared.enumeration.notification.UserGuideJourneyStepState.class);
+        source.getStateContent().forEach((state, content) -> stateContent.put(state,
+                new UserGuideJourneyStateContent(
+                        content.getDescription(), content.getOwnerHint(), content.getActionLabel())));
+        clone.setStateContent(stateContent);
+        return clone;
+    }
+
+    private void validateJourneyLinks(UserGuide guide, UserGuideVersion version) {
+        if (guide.getDisplayType() != UserGuideDisplayType.JOURNEY) return;
+        for (UserGuideStep step : version.getSteps()) {
+            UserGuideJourneyStepConfig config = step.getJourneyConfig();
+            if (config == null || config.getLinkedGuideId() == null) continue;
+            if (config.getLinkedGuideId().equals(guide.getGuideId())) {
+                throw new com.ban.vehicle_management.shared.exception.BadRequestException(
+                        "Journey step cannot link to its own guide");
+            }
+            UserGuide linked = guidePortOut.findById(config.getLinkedGuideId())
+                    .orElseThrow(() -> new com.ban.vehicle_management.shared.exception.BadRequestException(
+                            "Linked coach mark guide does not exist: " + config.getLinkedGuideId()));
+            if (linked.getDisplayType() != UserGuideDisplayType.COACH_MARK) {
+                throw new com.ban.vehicle_management.shared.exception.BadRequestException(
+                        "Journey linked guide must use COACH_MARK display type");
+            }
+            if (linked.getStatus() == UserGuideStatus.ARCHIVED) {
+                throw new com.ban.vehicle_management.shared.exception.BadRequestException(
+                        "Journey cannot link to an archived guide");
+            }
+        }
     }
 
     private List<UserGuideAudience> cloneAudiences(List<UserGuideAudience> audiences) {

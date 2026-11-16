@@ -65,9 +65,10 @@ public class VehicleTypeController {
     public ResponseEntity<ApiResponse<List<VehicleTypeAdminResponse>>> getVehicleTypes(
             @ModelAttribute VehicleTypeFilterRequest request
     ) {
-        List<VehicleType> vehicleTypes = (request.lifecycleStatus() == null
-                ? vehicleTypePortIn.getVehicleTypes(request.isActive())
-                : vehicleTypePortIn.getVehicleTypes(request.isActive(), request.lifecycleStatus()));
+        List<VehicleType> vehicleTypes = vehicleTypePortIn.getVehicleTypes(
+                request.isActive(),
+                request.lifecycleStatus()
+        );
         List<VehicleTypeAdminResponse> response = vehicleTypeApiMapper.toAdminResponses(vehicleTypes);
         return ResponseEntity.ok(ApiResponse.ok("Fetched vehicle types successfully", response));
     }

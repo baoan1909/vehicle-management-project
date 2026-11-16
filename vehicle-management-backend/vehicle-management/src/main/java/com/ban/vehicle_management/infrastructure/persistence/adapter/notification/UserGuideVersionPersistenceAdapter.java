@@ -5,14 +5,17 @@ import com.ban.vehicle_management.domain.notification.userguide.model.UserGuideA
 import com.ban.vehicle_management.domain.notification.userguide.model.UserGuideStep;
 import com.ban.vehicle_management.domain.notification.userguide.model.UserGuideVersion;
 import com.ban.vehicle_management.infrastructure.mapper.notification.UserGuidePersistenceMapper;
+import com.ban.vehicle_management.infrastructure.mapper.notification.UserGuideJourneyConfigPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.notification.UserGuideAudienceEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.notification.UserGuideStepEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.notification.UserGuideVersionEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.notification.UserGuideAudienceRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.notification.UserGuideJourneyStepConfigRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.notification.UserGuideStepRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.notification.UserGuideVersionRepository;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
@@ -24,18 +27,24 @@ public class UserGuideVersionPersistenceAdapter implements UserGuideVersionPortO
     private final UserGuideVersionRepository versionRepository;
     private final UserGuideStepRepository stepRepository;
     private final UserGuideAudienceRepository audienceRepository;
+    private final UserGuideJourneyStepConfigRepository journeyConfigRepository;
     private final UserGuidePersistenceMapper mapper;
+    private final UserGuideJourneyConfigPersistenceMapper journeyConfigMapper;
 
     public UserGuideVersionPersistenceAdapter(
             UserGuideVersionRepository versionRepository,
             UserGuideStepRepository stepRepository,
             UserGuideAudienceRepository audienceRepository,
-            UserGuidePersistenceMapper mapper
+            UserGuideJourneyStepConfigRepository journeyConfigRepository,
+            UserGuidePersistenceMapper mapper,
+            UserGuideJourneyConfigPersistenceMapper journeyConfigMapper
     ) {
         this.versionRepository = versionRepository;
         this.stepRepository = stepRepository;
         this.audienceRepository = audienceRepository;
+        this.journeyConfigRepository = journeyConfigRepository;
         this.mapper = mapper;
+        this.journeyConfigMapper = journeyConfigMapper;
     }
 
     @Override
@@ -58,6 +67,12 @@ public class UserGuideVersionPersistenceAdapter implements UserGuideVersionPortO
         audienceRepository.saveAll(audienceEntities);
         stepRepository.flush();
         audienceRepository.flush();
+        journeyConfigRepository.saveAll(version.getSteps().stream()
+                .map(UserGuideStep::getJourneyConfig)
+                .filter(java.util.Objects::nonNull)
+                .map(journeyConfigMapper::toEntity)
+                .toList());
+        journeyConfigRepository.flush();
         return loadAggregate(savedVersion);
     }
 
@@ -88,6 +103,10 @@ public class UserGuideVersionPersistenceAdapter implements UserGuideVersionPortO
                 step.setStepId(UUID.randomUUID());
             }
             step.setGuideVersionId(versionId);
+            if (step.getJourneyConfig() != null) {
+                step.getJourneyConfig().setStepId(step.getStepId());
+                step.getJourneyConfig().setGuideVersionId(versionId);
+            }
         }
         for (UserGuideAudience audience : version.getAudiences()) {
             if (audience.getAudienceId() == null) {
@@ -102,8 +121,17 @@ public class UserGuideVersionPersistenceAdapter implements UserGuideVersionPortO
 
     private UserGuideVersion loadAggregate(UserGuideVersionEntity entity) {
         UserGuideVersion domain = mapper.toDomain(entity);
-        domain.setSteps(mapper.toStepDomains(
-                stepRepository.findByGuideVersionIdOrderByDisplayOrderAsc(entity.getGuideVersionId())));
+        List<UserGuideStep> steps = mapper.toStepDomains(
+                stepRepository.findByGuideVersionIdOrderByDisplayOrderAsc(entity.getGuideVersionId()));
+        Map<UUID, com.ban.vehicle_management.domain.notification.userguide.model.UserGuideJourneyStepConfig> configs =
+                journeyConfigRepository.findAllByStepIdIn(steps.stream().map(UserGuideStep::getStepId).toList())
+                        .stream()
+                        .map(journeyConfigMapper::toDomain)
+                        .collect(java.util.stream.Collectors.toMap(
+                                com.ban.vehicle_management.domain.notification.userguide.model.UserGuideJourneyStepConfig::getStepId,
+                                java.util.function.Function.identity()));
+        steps.forEach(step -> step.setJourneyConfig(configs.get(step.getStepId())));
+        domain.setSteps(steps);
         domain.setAudiences(mapper.toAudienceDomains(
                 audienceRepository.findByGuideVersionIdOrderByCreatedAtAscAudienceIdAsc(
                         entity.getGuideVersionId())));

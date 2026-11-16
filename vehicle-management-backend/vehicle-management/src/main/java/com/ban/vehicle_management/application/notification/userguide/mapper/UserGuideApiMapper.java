@@ -16,6 +16,8 @@ import com.ban.vehicle_management.entrypoint.dto.notification.userguide.request.
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.request.UserGuideVersionPayload;
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.request.UserGuideAudiencePayload;
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.request.UserGuideStepPayload;
+import com.ban.vehicle_management.domain.notification.userguide.model.UserGuideJourneyStateContent;
+import com.ban.vehicle_management.domain.notification.userguide.model.UserGuideJourneyStepConfig;
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.response.UserGuideAdminResponse;
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.response.UserGuideAudienceResponse;
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.response.UserGuideFeatureAdminResponse;
@@ -96,6 +98,27 @@ public interface UserGuideApiMapper {
         step.setAnchorKey(payload.anchorKey());
         step.setPlacement(toPlacement(payload.placement()));
         step.setCollapseMs(payload.collapseMs());
+        if (payload.journeyConfig() != null) {
+            UserGuideJourneyStepConfig config = new UserGuideJourneyStepConfig();
+            config.setStepKey(payload.journeyConfig().stepKey());
+            config.setReadinessKey(payload.journeyConfig().readinessKey());
+            config.setRouteTemplate(payload.journeyConfig().routeTemplate());
+            config.setActionLabel(payload.journeyConfig().actionLabel());
+            config.setLinkedGuideId(payload.journeyConfig().linkedGuideId());
+            if (payload.journeyConfig().stateContent() != null) {
+                java.util.EnumMap<com.ban.vehicle_management.shared.enumeration.notification.UserGuideJourneyStepState,
+                        UserGuideJourneyStateContent> stateContent = new java.util.EnumMap<>(
+                        com.ban.vehicle_management.shared.enumeration.notification.UserGuideJourneyStepState.class);
+                payload.journeyConfig().stateContent().forEach((state, content) -> {
+                    if (content != null) {
+                        stateContent.put(state, new UserGuideJourneyStateContent(
+                                content.description(), content.ownerHint(), content.actionLabel()));
+                    }
+                });
+                config.setStateContent(stateContent);
+            }
+            step.setJourneyConfig(config);
+        }
         return step;
     }
 

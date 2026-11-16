@@ -19,4 +19,5 @@ public class UserGuideStepResponse {
     private String anchorKey;
     private UserGuideStepPlacement placement;
     private Integer collapseMs;
+    private UserGuideJourneyStepConfigResponse journeyConfig;
 }
