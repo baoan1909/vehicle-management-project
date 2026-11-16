@@ -42,6 +42,7 @@ public interface ParkingLotRepository extends JpaRepository<ParkingLotEntity, UU
                           select 1 from catalog.price_rules rule
                           join catalog.price_plans plan using (price_plan_id)
                           where rule.organization_id = lot.organization_id
+                            and rule.parking_lot_id = lot.parking_lot_id
                             and rule.vehicle_type_id = vehicle.vehicle_type_id
                             and rule.ticket_type_id = ticket.ticket_type_id
                             and rule.is_active and plan.is_active

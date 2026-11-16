@@ -113,7 +113,7 @@ class PartnerRegistrationTransactionIT extends PostgresIntegrationTestSupport {
     void failureAfterMembershipCreationRollsBackTheWholeApprovalTransaction() {
         Fixture fixture = createPendingRegistration();
         doThrow(new IllegalStateException("catalog seed failed"))
-                .when(partnerCatalogSeed).copyInternalCatalog(any());
+                .when(partnerCatalogSeed).copySharedCatalog(any());
 
         assertThrows(IllegalStateException.class, () -> partnerRegistration.approveRegistration(
                 fixture.approvalRequestId(), new ReviewPartnerRegistrationCommand("Approved")));

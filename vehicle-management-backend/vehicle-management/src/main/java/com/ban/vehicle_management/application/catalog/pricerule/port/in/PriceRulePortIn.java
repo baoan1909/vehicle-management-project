@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.UUID;
 
 public interface PriceRulePortIn {
+    int initializePriceRuleDrafts(UUID parkingLotId);
+
     List<PriceRule> getPriceRules(
             UUID parkingLotId,
             UUID pricePlanId,

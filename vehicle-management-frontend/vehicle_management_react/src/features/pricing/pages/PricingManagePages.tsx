@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button, DatePicker, SearchInput, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
 import { UserGuideHelpButton, userGuideAnchorProps, useUserGuide, useUserGuideActivation } from "@/features/user-guide";
@@ -25,6 +26,7 @@ import {
   getPriceRules,
   getPricingTicketTypes,
   getPricingVehicleTypes,
+  initializePriceRuleDrafts,
   updatePriceRule,
   type CreatePricePlanRequest,
   type CreatePriceRuleRequest,
@@ -2382,6 +2384,7 @@ export function PricePlanListPage() {
 export function PriceRuleListPage() {
   const { user } = useAuth();
   const userGuide = useUserGuide();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [records, setRecords] = useState<PriceRuleRecord[]>([]);
   const [plans, setPlans] = useState<PricePlanRecord[]>([]);
   const [parkingLots, setParkingLots] = useState<ParkingLotApiResponse[]>([]);
@@ -2404,6 +2407,8 @@ export function PriceRuleListPage() {
   const [pageSize, setPageSize] = useState(5);
   const [statusTarget, setStatusTarget] = useState<PriceRuleRecord | null>(null);
   const [statusChangingId, setStatusChangingId] = useState<string | null>(null);
+  const [isInitializingDrafts, setIsInitializingDrafts] = useState(false);
+  const [priceRuleRefreshRevision, setPriceRuleRefreshRevision] = useState(0);
   const toast = useToast();
   const canCreate = hasAnyPermission(user, ["PRICE_RULE_CREATE_ALL"]);
   const canUpdate = hasAnyPermission(user, ["PRICE_RULE_UPDATE_ALL"]);
@@ -2416,14 +2421,15 @@ export function PriceRuleListPage() {
   useEffect(() => {
     if (userGuide.activeGuide?.code !== "PRICE_RULE_SETUP") return;
 
-    // Every PRICE_RULE_SETUP anchor lives inside the create drawer. Open that
-    // surface before the host resolves the current step so the spotlight can
-    // bind to the real form control instead of falling back to a plain modal.
     setIsExportDrawerOpen(false);
     setIsDetailPanelOpen(false);
     setStatusTarget(null);
-    setIsCreatePanelOpen(true);
-  }, [userGuide.activeGuide?.code]);
+    const anchorKey = userGuide.currentStep?.anchorKey;
+    const staysOnLotSetup = !selectedParkingLotId
+      || anchorKey === "PRICING.RULE.PARKING_LOT"
+      || anchorKey === "PRICING.RULE.INITIALIZE_DRAFTS";
+    setIsCreatePanelOpen(!staysOnLotSetup);
+  }, [selectedParkingLotId, userGuide.activeGuide?.code, userGuide.currentStep?.anchorKey]);
 
   useEffect(() => {
     let isMounted = true;
@@ -2445,6 +2451,10 @@ export function PriceRuleListPage() {
         setParkingLots(scopedParkingLots);
         setSelectedParkingLotId((current) => {
           if (scopedParkingLots.some((parkingLot) => parkingLot.parkingLotId === current)) return current;
+          const requestedParkingLotId = searchParams.get("parkingLotId") ?? searchParams.get("lot");
+          if (requestedParkingLotId && scopedParkingLots.some((parkingLot) => parkingLot.parkingLotId === requestedParkingLotId)) {
+            return requestedParkingLotId;
+          }
           return scopedParkingLots.length === 1 ? scopedParkingLots[0].parkingLotId : "";
         });
         setVehicleTypes(vehicleTypeResponse.data);
@@ -2468,11 +2478,11 @@ export function PriceRuleListPage() {
     return () => {
       isMounted = false;
     };
-  }, [toast]);
+  }, [searchParams, toast]);
 
   useEffect(() => {
     if (!referencesReady) return undefined;
-    if (hasAssignedParkingScope && parkingLots.length > 1 && !selectedParkingLotId) {
+    if (!selectedParkingLotId) {
       setRecords([]);
       setIsLoading(false);
       return undefined;
@@ -2509,6 +2519,7 @@ export function PriceRuleListPage() {
     hasAssignedParkingScope,
     parkingLots,
     plans,
+    priceRuleRefreshRevision,
     referencesReady,
     selectedParkingLotId,
     ticketTypes,
@@ -2521,7 +2532,7 @@ export function PriceRuleListPage() {
   const dynamicTicketTypeOptions = useMemo(() => buildTicketTypeOptions(ticketTypes), [ticketTypes]);
   const parkingLotOptions = useMemo<SelectMenuOption[]>(() => [
     {
-      label: hasAssignedParkingScope && parkingLots.length > 1 ? "Chọn bãi xe" : "Tất cả bãi xe",
+      label: "Chọn bãi xe",
       value: "",
     },
     ...parkingLots.map((parkingLot) => ({
@@ -2611,6 +2622,31 @@ export function PriceRuleListPage() {
     setCurrentPage(1);
   };
 
+  const handleInitializeDrafts = async () => {
+    if (!selectedParkingLotId) return;
+    setIsInitializingDrafts(true);
+    try {
+      const response = await initializePriceRuleDrafts(selectedParkingLotId);
+      setStatusValue("draft");
+      setPriceRuleRefreshRevision((revision) => revision + 1);
+      if (response.data.createdCount > 0) {
+        toast.success(
+          `Đã tạo ${response.data.createdCount} quy tắc giá nháp cho bãi ${selectedParkingLot?.name ?? "đã chọn"}.`,
+          "Khởi tạo thành công",
+        );
+      } else {
+        toast.success("Bãi đã được khởi tạo đầy đủ từ các mẫu hiện có.", "Không có bản nháp mới");
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Không thể khởi tạo bảng giá nháp.",
+        "Khởi tạo thất bại",
+      );
+    } finally {
+      setIsInitializingDrafts(false);
+    }
+  };
+
   const handleUpdateRule = async (priceRuleId: string, payload: UpdatePriceRuleRequest) => {
     const response = await updatePriceRule(priceRuleId, payload);
     const planLookup = new Map(plans.map((plan) => [plan.id, plan]));
@@ -2692,22 +2728,42 @@ export function PriceRuleListPage() {
         onExportClick={() => setIsExportDrawerOpen(true)}
       />
       <section className="tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-4 tw-shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-        <label className="tw-grid tw-max-w-xl tw-gap-2">
-          <span className="tw-text-[0.82rem] tw-font-extrabold tw-text-vm-slate-600">Bãi xe áp dụng quy tắc giá</span>
-          <SelectMenu
-            ariaLabel="Bãi xe áp dụng quy tắc giá"
-            disabled={hasAssignedParkingScope && parkingLots.length === 1}
-            options={parkingLotOptions}
-            value={selectedParkingLotId}
-            onChange={(value) => {
-              setSelectedParkingLotId(value);
-              setSelectedId(null);
-              setIsCreatePanelOpen(false);
-              setIsDetailPanelOpen(false);
-              setCurrentPage(1);
-            }}
-          />
-        </label>
+        <div className="tw-grid tw-grid-cols-1 tw-gap-2 min-[900px]:tw-grid-cols-[minmax(0,1fr)_auto] min-[900px]:tw-gap-x-3">
+          <span className="tw-text-[0.82rem] tw-font-extrabold tw-text-vm-slate-600 min-[900px]:tw-col-start-1 min-[900px]:tw-row-start-1">
+            Bãi xe áp dụng quy tắc giá
+          </span>
+          <div className="tw-min-w-0 min-[900px]:tw-col-start-1 min-[900px]:tw-row-start-2" {...userGuideAnchorProps("PRICING.RULE.PARKING_LOT")}>
+            <SelectMenu
+              ariaLabel="Bãi xe áp dụng quy tắc giá"
+              disabled={hasAssignedParkingScope && parkingLots.length === 1}
+              options={parkingLotOptions}
+              value={selectedParkingLotId}
+              onChange={(value) => {
+                setSelectedParkingLotId(value);
+                const nextSearchParams = new URLSearchParams(searchParams);
+                if (value) nextSearchParams.set("parkingLotId", value);
+                else nextSearchParams.delete("parkingLotId");
+                nextSearchParams.delete("lot");
+                setSearchParams(nextSearchParams, { replace: true });
+                setSelectedId(null);
+                setIsCreatePanelOpen(false);
+                setIsDetailPanelOpen(false);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
+          <div className="min-[900px]:tw-col-start-2 min-[900px]:tw-row-start-2" {...userGuideAnchorProps("PRICING.RULE.INITIALIZE_DRAFTS")}>
+            <Button
+              className="tw-h-[42px] max-[899px]:tw-w-full"
+              disabled={!canCreate || !selectedParkingLotId}
+              loading={isInitializingDrafts}
+              variant="secondary"
+              onClick={() => void handleInitializeDrafts()}
+            >
+              Khởi tạo bảng giá nháp từ mẫu
+            </Button>
+          </div>
+        </div>
         {!selectedParkingLotId && canCreate ? (
           <p className="tw-m-0 tw-mt-2 tw-text-sm tw-font-semibold tw-text-amber-700">
             Vui lòng chọn một bãi xe trước khi tạo quy tắc giá.

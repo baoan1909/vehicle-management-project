@@ -34,10 +34,10 @@ class PartnerCatalogDraftPersistenceIT extends PostgresIntegrationTestSupport {
     @Autowired PlatformTransactionManager transactionManager;
 
     @Test
-    void copiesEverySourceAsDraftWithExactDependencyLineageAndDoesNotReseed() {
+    void copiesOnlySharedCatalogAsDraftAndDoesNotReseed() {
         UUID organization = organization();
-        seed.copyInternalCatalog(organization);
-        for (String table : new String[]{"vehicle_types", "ticket_types", "price_plans", "price_rules"}) {
+        seed.copySharedCatalog(organization);
+        for (String table : new String[]{"vehicle_types", "ticket_types", "price_plans"}) {
             long sourceCount = jdbc.queryForObject("select count(*) from catalog." + table
                     + " item join iam.organizations org using (organization_id) where org.code='COPARKING_INTERNAL'", Long.class);
             assertTrue(sourceCount > 0);
@@ -46,21 +46,12 @@ class PartnerCatalogDraftPersistenceIT extends PostgresIntegrationTestSupport {
             assertEquals(0L, jdbc.queryForObject("select count(*) from catalog." + table
                     + " where organization_id=? and " + state + " <> 'DRAFT'", Long.class, organization));
         }
-        assertEquals(0L, jdbc.queryForObject("""
-                select count(*) from catalog.price_rules copy
-                join catalog.price_rules source on source.price_rule_id=copy.source_catalog_id
-                join catalog.price_plans plan on plan.price_plan_id=copy.price_plan_id
-                join catalog.vehicle_types vehicle on vehicle.vehicle_type_id=copy.vehicle_type_id
-                left join catalog.ticket_types ticket on ticket.ticket_type_id=copy.ticket_type_id
-                where copy.organization_id=? and (plan.source_catalog_id <> source.price_plan_id
-                    or vehicle.source_catalog_id <> source.vehicle_type_id
-                    or ticket.source_catalog_id is distinct from source.ticket_type_id)
-                """, Long.class, organization));
-        long before = count("price_rules", organization);
+        assertEquals(0L, count("price_rules", organization));
+        long before = count("price_plans", organization);
         UUID ticket = id("ticket_types", "ticket_type_id", organization, "MONTHLY");
         jdbc.update("update catalog.ticket_types set name='Partner edited draft' where ticket_type_id=?", ticket);
-        seed.copyInternalCatalog(organization);
-        assertEquals(before, count("price_rules", organization));
+        seed.copySharedCatalog(organization);
+        assertEquals(before, count("price_plans", organization));
         assertEquals("Partner edited draft", jdbc.queryForObject("select name from catalog.ticket_types where ticket_type_id=?", String.class, ticket));
         assertTrue(jdbc.queryForObject("select count(*) from audit.audit_logs where new_data ->> 'organization_id' = ?", Long.class, organization.toString()) > 0);
     }
@@ -78,7 +69,9 @@ class PartnerCatalogDraftPersistenceIT extends PostgresIntegrationTestSupport {
                 from catalog.price_rules where organization_id=? and time_from is null limit 1
                 """, rule, duplicate, internal);
         UUID organization = organization();
-        seed.copyInternalCatalog(organization);
+        seed.copySharedCatalog(organization);
+        UUID lot = createLot(organization, "Duplicate lineage lot");
+        assertTrue(rules.initializeDraftsFromInternalCatalog(organization, lot) > 0);
         assertEquals(1L, jdbc.queryForObject("""
                 select count(*) from catalog.price_rules rule join catalog.ticket_types ticket using(ticket_type_id)
                 where rule.organization_id=? and rule.source_catalog_id=? and ticket.source_catalog_id=?
@@ -86,29 +79,36 @@ class PartnerCatalogDraftPersistenceIT extends PostgresIntegrationTestSupport {
     }
 
     @Test
-    void draftCannotBePricedAndNewLotRequiresExplicitServicesAndCompleteVisitorPricing() {
+    void priceRulesAndReadinessAreIsolatedBetweenTwoLots() {
         UUID organization = organization();
-        seed.copyInternalCatalog(organization);
+        seed.copySharedCatalog(organization);
         UUID vehicle = id("vehicle_types", "vehicle_type_id", organization, "MOTORBIKE");
         UUID ticket = id("ticket_types", "ticket_type_id", organization, "DAILY");
-        UUID lot = UUID.randomUUID();
-        jdbc.update("insert into parking.parking_lots(parking_lot_id,organization_id,code,name,total_capacity,status) values (?,?,?, 'Draft test lot',10,'SETUP')", lot, organization, "DRAFT_" + lot.toString().substring(0, 8));
+        UUID lot = createLot(organization, "Draft test lot A");
+        UUID secondLot = createLot(organization, "Draft test lot B");
         assertTrue(availability.findExcludedVehicleTypeIds(lot).contains(vehicle));
         assertFalse(availability.isVehicleTypeEnabled(lot, vehicle));
         assertFalse(lots.hasPublishedCatalogForActivation(lot));
-        assertTrue(rules.findActiveVisitorRuleByTime(vehicle, LocalDate.now(), LocalTime.NOON).isEmpty());
+        assertTrue(rules.findActiveVisitorRuleByTimeInParkingLot(lot, vehicle, LocalDate.now(), LocalTime.NOON).isEmpty());
         jdbc.update("update catalog.vehicle_types set lifecycle_status='ACTIVE' where vehicle_type_id=?", vehicle);
         jdbc.update("update catalog.ticket_types set status='ACTIVE' where ticket_type_id=?", ticket);
         jdbc.update("update catalog.price_plans set lifecycle_status='ACTIVE', effective_from=current_date-1, effective_to=current_date+1 where organization_id=?", organization);
         availability.setVehicleTypeEnabled(organization, lot, vehicle, true);
         availability.setTicketTypeEnabled(organization, lot, ticket, true);
+        availability.setVehicleTypeEnabled(organization, secondLot, vehicle, true);
+        availability.setTicketTypeEnabled(organization, secondLot, ticket, true);
+        assertTrue(rules.initializeDraftsFromInternalCatalog(organization, lot) > 0);
+        assertTrue(rules.initializeDraftsFromInternalCatalog(organization, secondLot) > 0);
+        assertEquals(0, rules.initializeDraftsFromInternalCatalog(organization, lot));
         UUID canonical = jdbc.queryForObject("select canonical_vehicle_type_id from catalog.vehicle_types where vehicle_type_id=?", UUID.class, vehicle);
         assertTrue(availability.isVehicleTypeEnabled(lot, canonical));
         assertFalse(lots.hasPublishedCatalogForActivation(lot));
-        jdbc.update("update catalog.price_rules set lifecycle_status='ACTIVE' where organization_id=? and vehicle_type_id=? and ticket_type_id=?", organization, vehicle, ticket);
+        jdbc.update("update catalog.price_rules set lifecycle_status='ACTIVE' where organization_id=? and parking_lot_id=? and vehicle_type_id=? and ticket_type_id=?", organization, lot, vehicle, ticket);
         assertTrue(lots.hasPublishedCatalogForActivation(lot));
-        assertTrue(rules.findActiveVisitorRuleByTime(vehicle, LocalDate.now(), LocalTime.NOON).isPresent());
-        jdbc.update("update catalog.price_rules set lifecycle_status='INACTIVE' where organization_id=? and vehicle_type_id=? and time_from='20:00:00'", organization, vehicle);
+        assertFalse(lots.hasPublishedCatalogForActivation(secondLot));
+        assertTrue(rules.findActiveVisitorRuleByTimeInParkingLot(lot, vehicle, LocalDate.now(), LocalTime.NOON).isPresent());
+        assertTrue(rules.findActiveVisitorRuleByTimeInParkingLot(secondLot, vehicle, LocalDate.now(), LocalTime.NOON).isEmpty());
+        jdbc.update("update catalog.price_rules set lifecycle_status='INACTIVE' where organization_id=? and parking_lot_id=? and vehicle_type_id=? and time_from='20:00:00'", organization, lot, vehicle);
         assertFalse(lots.hasPublishedCatalogForActivation(lot));
     }
 
@@ -132,7 +132,7 @@ class PartnerCatalogDraftPersistenceIT extends PostgresIntegrationTestSupport {
             CountDownLatch start = new CountDownLatch(1);
             java.util.concurrent.Callable<Void> copy = () -> {
                 start.await();
-                new TransactionTemplate(transactionManager).executeWithoutResult(status -> seed.copyInternalCatalog(organization));
+                new TransactionTemplate(transactionManager).executeWithoutResult(status -> seed.copySharedCatalog(organization));
                 return null;
             };
             var first = workers.submit(copy);
@@ -140,8 +140,8 @@ class PartnerCatalogDraftPersistenceIT extends PostgresIntegrationTestSupport {
             start.countDown();
             first.get(30, java.util.concurrent.TimeUnit.SECONDS);
             second.get(30, java.util.concurrent.TimeUnit.SECONDS);
-            assertEquals(0L, jdbc.queryForObject("select count(*) from (select source_catalog_id from catalog.price_rules where organization_id=? group by source_catalog_id having count(*)>1) duplicates", Long.class, organization));
-            assertTrue(count("price_rules", organization) > 0);
+            assertEquals(0L, count("price_rules", organization));
+            assertTrue(count("price_plans", organization) > 0);
         } finally {
             for (String table : new String[]{"price_rules", "price_plans", "ticket_types", "vehicle_types"}) {
                 jdbc.update("delete from catalog." + table + " where organization_id=?", organization);
@@ -163,10 +163,11 @@ class PartnerCatalogDraftPersistenceIT extends PostgresIntegrationTestSupport {
         for (String query : sql.split(";")) {
             if (!query.isBlank()) jdbc.queryForList(query);
         }
-        for (String table : new String[]{"vehicle_types", "ticket_types", "price_plans", "price_rules"}) {
+        for (String table : new String[]{"vehicle_types", "ticket_types", "price_plans"}) {
             String state = table.equals("ticket_types") ? "status" : "lifecycle_status";
             assertTrue(jdbc.queryForObject("select count(*) from catalog." + table + " where organization_id=? and " + state + "=\'ACTIVE\'", Long.class, internal) > 0);
         }
+        assertTrue(count("price_rules", internal) > 0);
     }
 
     @Test
@@ -175,7 +176,7 @@ class PartnerCatalogDraftPersistenceIT extends PostgresIntegrationTestSupport {
         UUID organization = organization();
         try {
             assertThrows(IllegalStateException.class, () -> new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
-                seed.copyInternalCatalog(organization);
+                seed.copySharedCatalog(organization);
                 throw new IllegalStateException("Simulated failure after copying");
             }));
             for (String table : new String[]{"price_rules", "price_plans", "ticket_types", "vehicle_types"}) {
@@ -191,6 +192,13 @@ class PartnerCatalogDraftPersistenceIT extends PostgresIntegrationTestSupport {
         UUID id = UUID.randomUUID();
         jdbc.update("insert into iam.organizations(organization_id,code,name,status) values (?,?, 'Draft integration test','ACTIVE')", id, "DRAFT_" + id);
         return id;
+    }
+
+    private UUID createLot(UUID organizationId, String name) {
+        UUID lotId = UUID.randomUUID();
+        jdbc.update("insert into parking.parking_lots(parking_lot_id,organization_id,code,name,total_capacity,status) values (?,?,?,?,10,'SETUP')",
+                lotId, organizationId, "DRAFT_" + lotId.toString().substring(0, 8), name);
+        return lotId;
     }
 
     private long count(String table, UUID organization) {

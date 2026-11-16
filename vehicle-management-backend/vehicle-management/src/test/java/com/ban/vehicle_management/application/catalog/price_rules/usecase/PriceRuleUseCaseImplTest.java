@@ -77,6 +77,24 @@ class PriceRuleUseCaseImplTest {
     private PriceRuleUseCaseImpl priceRuleUseCase;
 
     @Test
+    void shouldInitializeDraftsOnlyForWritableParkingLot() {
+        when(priceRulePortOut.initializeDraftsFromInternalCatalog(ORGANIZATION_ID, PARKING_LOT_ID))
+                .thenReturn(4);
+
+        assertEquals(4, priceRuleUseCase.initializePriceRuleDrafts(PARKING_LOT_ID));
+
+        verify(currentAccountPortIn).requirePermission("PRICE_RULE_CREATE_ALL");
+        verify(catalogAccessGuard).writableOrganizationId(PARKING_LOT_ID);
+        verify(priceRulePortOut).initializeDraftsFromInternalCatalog(ORGANIZATION_ID, PARKING_LOT_ID);
+    }
+
+    @Test
+    void shouldRejectDraftInitializationWithoutParkingLot() {
+        assertThrows(BadRequestException.class, () -> priceRuleUseCase.initializePriceRuleDrafts(null));
+        verify(priceRulePortOut, never()).initializeDraftsFromInternalCatalog(any(), any());
+    }
+
+    @Test
     void shouldSaveDraftDependenciesButRejectPublishingThem() {
         PriceRule request = validVisitorPriceRule();
         request.setIsActive(true); // A create payload cannot publish.

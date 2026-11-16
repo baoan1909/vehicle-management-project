@@ -88,6 +88,11 @@ export type PriceRuleApiResponse = {
   vehicleTypeId: string | null;
 };
 
+export type InitializePriceRuleDraftsResponse = {
+  alreadyInitialized: boolean;
+  createdCount: number;
+};
+
 export type VehicleTypeApiResponse = {
   canonicalVehicleTypeId?: string | null;
   code: string;
@@ -177,6 +182,13 @@ export function createPriceRule(payload: CreatePriceRuleRequest) {
     method: "POST",
     body: payload,
   });
+}
+
+export function initializePriceRuleDrafts(parkingLotId: string) {
+  return apiClient<ApiResponse<InitializePriceRuleDraftsResponse>>(
+    `${apiEndpoints.catalog.priceRules}/parking-lots/${parkingLotId}/initialize-drafts`,
+    { method: "POST" },
+  );
 }
 
 export function updatePriceRule(priceRuleId: string, payload: UpdatePriceRuleRequest) {

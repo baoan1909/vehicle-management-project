@@ -31,6 +31,17 @@ import org.springframework.transaction.annotation.Transactional;
 public class PriceRuleUseCaseImpl implements PriceRulePortIn {
 
     @Override
+    @Transactional
+    public int initializePriceRuleDrafts(UUID parkingLotId) {
+        currentAccountPortIn.requirePermission(CREATE);
+        if (parkingLotId == null) {
+            throw new BadRequestException("parkingLotId is required to initialize price rule drafts");
+        }
+        UUID organizationId = catalogAccessGuard.writableOrganizationId(parkingLotId);
+        return priceRulePortOut.initializeDraftsFromInternalCatalog(organizationId, parkingLotId);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<PriceRule> getPriceRules(
             UUID parkingLotId,

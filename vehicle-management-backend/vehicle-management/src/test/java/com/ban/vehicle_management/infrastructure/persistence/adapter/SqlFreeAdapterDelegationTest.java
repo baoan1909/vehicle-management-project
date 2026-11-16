@@ -17,7 +17,6 @@ import com.ban.vehicle_management.infrastructure.persistence.adapter.parking.Pos
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.ai.KnowledgeIndexVersionRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.billing.WalletTopupOrderRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.PricePlanRepository;
-import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.PriceRuleRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.TicketTypeRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.VehicleTypeRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.accesscontrol.CardRepository;
@@ -81,16 +80,14 @@ class SqlFreeAdapterDelegationTest {
         var vehicleTypeRepository = mock(VehicleTypeRepository.class);
         var ticketTypeRepository = mock(TicketTypeRepository.class);
         var pricePlanRepository = mock(PricePlanRepository.class);
-        var priceRuleRepository = mock(PriceRuleRepository.class);
         var organizationRepository = mock(com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.OrganizationRepository.class);
         when(organizationRepository.claimCatalogSeed(organizationId)).thenReturn(1);
         new PartnerCatalogSeedPersistenceAdapter(
-                vehicleTypeRepository, ticketTypeRepository, pricePlanRepository, priceRuleRepository, organizationRepository)
-                .copyInternalCatalog(organizationId);
+                vehicleTypeRepository, ticketTypeRepository, pricePlanRepository, organizationRepository)
+                .copySharedCatalog(organizationId);
         verify(vehicleTypeRepository).copyInternalCatalog(organizationId);
         verify(ticketTypeRepository).copyInternalCatalog(organizationId);
         verify(pricePlanRepository).copyInternalCatalog(organizationId);
-        verify(priceRuleRepository).copyInternalCatalog(organizationId);
 
         var availabilityAdapter = new ParkingLotCatalogAvailabilityPersistenceAdapter(
                 vehicleTypeRepository, ticketTypeRepository);
