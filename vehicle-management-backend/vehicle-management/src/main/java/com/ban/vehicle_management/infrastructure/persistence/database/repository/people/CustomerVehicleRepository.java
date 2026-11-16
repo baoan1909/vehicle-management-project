@@ -56,14 +56,9 @@ public interface CustomerVehicleRepository
               and account.status not in (
                   com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION,
                   com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED)
-              and (
-                  exists (select subscription.subscriptionId from SubscriptionEntity subscription
+              and exists (select subscription.subscriptionId from SubscriptionEntity subscription
                           where subscription.customerVehicleId = vehicle.customerVehicleId
                             and subscription.parkingLotId in :parkingLotIds)
-                  or exists (select parkingSession.parkingSessionId from ParkingSessionEntity parkingSession
-                             where parkingSession.customerVehicleId = vehicle.customerVehicleId
-                               and parkingSession.parkingLotId in :parkingLotIds)
-              )
             """)
     boolean existsBusinessVisibleInParkingLots(
             @Param("customerVehicleId") UUID customerVehicleId,

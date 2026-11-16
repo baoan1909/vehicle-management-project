@@ -14,6 +14,7 @@ import com.ban.vehicle_management.application.iam.organization.port.out.Organiza
 import com.ban.vehicle_management.application.iam.account.port.out.IdentityProviderAdminPortOut;
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
+import com.ban.vehicle_management.application.people.employee.authorization.EmployeeAccessGuard;
 import com.ban.vehicle_management.domain.iam.account.model.Account;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.iam.account.policy.ProvisionedAccountPolicy;
@@ -52,6 +53,7 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
     private ParkingLotAssignmentPortIn parkingLotAssignmentPortIn;
     private final OrganizationPortOut organizationPortOut;
     private final AccountAccessInvalidationPortIn accountAccessInvalidationPortIn;
+    private final EmployeeAccessGuard employeeAccessGuard;
     private final UserProfilePolicy userProfilePolicy = new UserProfilePolicy();
 
     @Autowired(required = false)
@@ -66,7 +68,8 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
             ProvisionedAccountPolicy provisionedAccountPolicy,
             NotificationPortIn notificationPortIn,
             OrganizationPortOut organizationPortOut,
-            AccountAccessInvalidationPortIn accountAccessInvalidationPortIn
+            AccountAccessInvalidationPortIn accountAccessInvalidationPortIn,
+            EmployeeAccessGuard employeeAccessGuard
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.provisionedAccountPortOut = provisionedAccountPortOut;
@@ -75,6 +78,7 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
         this.notificationPortIn = notificationPortIn;
         this.organizationPortOut = organizationPortOut;
         this.accountAccessInvalidationPortIn = accountAccessInvalidationPortIn;
+        this.employeeAccessGuard = employeeAccessGuard;
     }
 
     @Override
@@ -123,9 +127,7 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
         List<ProvisionedAccountResult> accounts = provisionedAccountPortOut.findProvisionedAccounts(
                 normalizeFilterCommand(command, managedTargetRolesForCurrentAccount())
         );
-        return isPartnerAdmin()
-                ? accounts.stream().filter(this::isWithinCurrentPartnerScope).toList()
-                : accounts;
+        return accounts.stream().filter(this::isWithinCurrentAccountScope).toList();
     }
 
     @Override
@@ -313,8 +315,8 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
             throw new NotFoundException("Provisioned account not found");
         }
         ensureCanManageTargetRole(result.role().roleCode());
-        if (isPartnerAdmin() && !isWithinCurrentPartnerScope(result)) {
-            throw new AccessDeniedException("Current partner administrator cannot manage this account");
+        if (!isWithinCurrentAccountScope(result)) {
+            throw new AccessDeniedException("Current account cannot manage this account outside its scope");
         }
     }
 
@@ -329,7 +331,8 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
         if (permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_PLATFORM)) {
             managedRoleCodes = Set.of(
                     AdminProvisionableAccountRoleCode.SYSTEM_ADMIN,
-                    AdminProvisionableAccountRoleCode.PARTNER_ADMIN
+                    AdminProvisionableAccountRoleCode.PARTNER_ADMIN,
+                    AdminProvisionableAccountRoleCode.CUSTOMER
             );
         } else if (permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_PARTNER)) {
             managedRoleCodes = Set.of(
@@ -337,10 +340,7 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
                     AdminProvisionableAccountRoleCode.EMPLOYEE
             );
         } else if (permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED)) {
-            managedRoleCodes = Set.of(
-                    AdminProvisionableAccountRoleCode.EMPLOYEE,
-                    AdminProvisionableAccountRoleCode.CUSTOMER
-            );
+            managedRoleCodes = Set.of(AdminProvisionableAccountRoleCode.EMPLOYEE);
         } else {
             managedRoleCodes = Set.of();
         }
@@ -363,6 +363,19 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
     private boolean isPartnerAdmin() {
         return currentAccountPortIn.getCurrentAccountOrThrow().getEffectivePermissionCodes()
                 .contains(OrganizationAccessGuard.PARKING_SCOPE_PARTNER);
+    }
+
+    private boolean isWithinCurrentAccountScope(ProvisionedAccountResult account) {
+        Set<String> permissions = currentAccountPortIn.getCurrentAccountOrThrow().getEffectivePermissionCodes();
+        if (permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_PLATFORM)) {
+            return true;
+        }
+        if (permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_PARTNER)) {
+            return isWithinCurrentPartnerScope(account);
+        }
+        return permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED)
+                && AdminProvisionableAccountRoleCode.EMPLOYEE.name().equals(account.role().roleCode())
+                && employeeAccessGuard.canReadAccount(account.account().accountId());
     }
 
     /**

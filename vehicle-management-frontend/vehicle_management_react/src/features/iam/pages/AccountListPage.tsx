@@ -22,6 +22,7 @@ import {
   type ProvisionedAccountRoleCode,
   type ProvisionedAccountStatus,
 } from "@/features/iam/api/provisionedAccountApi";
+import { getScopedProvisionedAccountRoleCodes } from "@/features/iam/policies/provisionedAccountPolicy";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 import { formatApplicationDateTime } from "@/shared/time/applicationTime";
 
@@ -75,7 +76,7 @@ const emptyOnboardingPendingSummary: OnboardingApprovalSummaryResponse = {
   customerPending: 0,
 };
 
-const roleOptions: Array<{ label: string; value: ProvisionableRoleCode | "all" }> = [
+const allRoleOptions: Array<{ label: string; value: ProvisionableRoleCode | "all" }> = [
   { label: "Tất cả vai trò", value: "all" },
   { label: "SYSTEM_ADMIN", value: "SYSTEM_ADMIN" },
   { label: "PARTNER_ADMIN", value: "PARTNER_ADMIN" },
@@ -104,15 +105,6 @@ const editableStatusOptions: AccountStatus[] = ["ACTIVE", "LOCKED", "DISABLED"];
 
 function isInternalRole(roleCode: RoleCode) {
   return roleCode !== "CUSTOMER";
-}
-
-function isAdminProvisionableRole(roleCode: RoleCode): roleCode is ProvisionableRoleCode {
-  return roleCode === "SYSTEM_ADMIN" || roleCode === "PARTNER_ADMIN" || roleCode === "PARKING_MANAGER" || roleCode === "EMPLOYEE" || roleCode === "CUSTOMER";
-}
-
-function getProvisionableRoleFallback(roleCode: RoleCode): ProvisionableRoleCode {
-  if (isAdminProvisionableRole(roleCode)) return roleCode;
-  return isInternalRole(roleCode) ? "EMPLOYEE" : "CUSTOMER";
 }
 
 function canTransitionRole(currentRole: RoleCode, nextRole: ProvisionableRoleCode) {
@@ -310,6 +302,7 @@ function mapProvisionedAccount(response: ProvisionedAccountResponse): Provisione
 }
 
 function AccountRoleChangeModal({
+  availableRoleCodes,
   canUpdateAccount,
   errorMessage,
   isSaving,
@@ -318,6 +311,7 @@ function AccountRoleChangeModal({
   onRoleChange,
   onSubmit,
 }: {
+  availableRoleCodes: readonly ProvisionableRoleCode[];
   canUpdateAccount: boolean;
   errorMessage: string;
   isSaving: boolean;
@@ -328,8 +322,9 @@ function AccountRoleChangeModal({
 }) {
   if (!modal) return null;
 
-  const availableOptions = roleOptions
-    .filter((option): option is { label: string; value: ProvisionableRoleCode } => option.value !== "all")
+  const availableOptions = allRoleOptions
+    .filter((option): option is { label: string; value: ProvisionableRoleCode } =>
+      option.value !== "all" && availableRoleCodes.includes(option.value))
     .map((option) => ({
       ...option,
       disabled: !canTransitionRole(modal.account.roleCode, option.value),
@@ -597,6 +592,15 @@ export function AccountListPage() {
   ]);
   const canCreateProvisionedAccount = hasAnyPermission(user, ["ACCOUNT_CREATE_ALL"]);
   const canUpdateProvisionedAccount = hasAnyPermission(user, ["ACCOUNT_UPDATE_ALL"]);
+  const scopedProvisionedAccountRoleCodes = useMemo(
+    () => getScopedProvisionedAccountRoleCodes(user),
+    [user],
+  );
+  const scopedRoleOptions = useMemo(
+    () => allRoleOptions.filter((option) =>
+      option.value === "all" || scopedProvisionedAccountRoleCodes.includes(option.value)),
+    [scopedProvisionedAccountRoleCodes],
+  );
   const canOpenSupportCenter = hasAnyPermission(user, ["CHAT_CONVERSATION_READ_OWN", "CHAT_CONVERSATION_READ_ALL"]);
   const canCreateChatConversation = hasAnyPermission(user, ["CHAT_CONVERSATION_CREATE_OWN", "CHAT_CONVERSATION_CREATE_ALL"]);
   const requestedWorkspaceTab = searchParams.get("tab") === "onboarding" ? "onboarding" : "accounts";
@@ -637,6 +641,12 @@ export function AccountListPage() {
       void loadOnboardingPendingCounts();
     }
   }), [canReadOnboardingSummary, canReadPartnerOnboarding, user?.id]);
+
+  useEffect(() => {
+    if (selectedRole !== "all" && !scopedProvisionedAccountRoleCodes.includes(selectedRole as ProvisionableRoleCode)) {
+      setSelectedRole("all");
+    }
+  }, [scopedProvisionedAccountRoleCodes, selectedRole]);
 
   async function loadAccounts() {
     if (!canReadProvisionedAccount) return;
@@ -714,11 +724,16 @@ export function AccountListPage() {
   };
   const activeAccount = selectedAccount ?? emptyAccount;
   const canManageActiveAccount = canUpdateProvisionedAccount && activeAccount.accountId !== "-";
+  const availableActiveAccountRoleCodes = scopedProvisionedAccountRoleCodes.filter((roleCode) =>
+    roleCode !== activeAccount.roleCode && canTransitionRole(activeAccount.roleCode, roleCode));
+  const canChangeActiveAccountRole = canManageActiveAccount && availableActiveAccountRoleCodes.length > 0;
 
   function openRoleModal(account: ProvisionedAccount) {
-    if (!canUpdateProvisionedAccount) return;
+    const targetRoleCode = scopedProvisionedAccountRoleCodes.find((roleCode) =>
+      roleCode !== account.roleCode && canTransitionRole(account.roleCode, roleCode));
+    if (!canUpdateProvisionedAccount || !targetRoleCode) return;
     setActionErrorMessage("");
-    setRoleModal({ account, roleCode: getProvisionableRoleFallback(account.roleCode) });
+    setRoleModal({ account, roleCode: targetRoleCode });
   }
 
   function openStatusModal(account: ProvisionedAccount) {
@@ -884,7 +899,7 @@ export function AccountListPage() {
                   placeholder="Tìm username, email..."
                   value={keyword}
                 />
-                <SelectMenu ariaLabel="Vai trò tài khoản" value={selectedRole} options={roleOptions} onChange={setSelectedRole} />
+                <SelectMenu ariaLabel="Vai trò tài khoản" value={selectedRole} options={scopedRoleOptions} onChange={setSelectedRole} />
                 <SelectMenu ariaLabel="Trạng thái tài khoản" value={selectedStatus} options={statusOptions} onChange={(value) => setSelectedStatus(value as AccountStatus | "all")} />
                 <Button
                   className="tw-h-[42px]"
@@ -1027,10 +1042,10 @@ export function AccountListPage() {
               </div>
 
               <div className="tw-mt-auto tw-grid tw-grid-cols-1 tw-gap-3 tw-pt-5">
-                <Button variant="secondary" disabled={!canManageActiveAccount} onClick={() => openRoleModal(activeAccount)}>
+                {canChangeActiveAccountRole ? <Button variant="secondary" onClick={() => openRoleModal(activeAccount)}>
                   <i className="fas fa-user-shield" />
                   Đổi vai trò
-                </Button>
+                </Button> : null}
                 <Button variant="secondary" disabled={!canManageActiveAccount} onClick={() => openStatusModal(activeAccount)}>
                   <i className="fas fa-toggle-on" />
                   Đổi trạng thái
@@ -1072,6 +1087,7 @@ export function AccountListPage() {
         }}
       />
       <AccountRoleChangeModal
+        availableRoleCodes={scopedProvisionedAccountRoleCodes}
         canUpdateAccount={canUpdateProvisionedAccount}
         errorMessage={actionErrorMessage}
         isSaving={isActionSaving}

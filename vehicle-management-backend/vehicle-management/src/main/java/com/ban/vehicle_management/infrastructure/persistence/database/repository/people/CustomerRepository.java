@@ -64,14 +64,9 @@ public interface CustomerRepository extends JpaRepository<CustomerEntity, UUID>,
               and account.status not in (
                   com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION,
                   com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED)
-              and (
-                  exists (select subscription.subscriptionId from SubscriptionEntity subscription
+              and exists (select subscription.subscriptionId from SubscriptionEntity subscription
                           where subscription.customerId = customer.customerId
                             and subscription.parkingLotId in :parkingLotIds)
-                  or exists (select parkingSession.parkingSessionId from ParkingSessionEntity parkingSession
-                             where parkingSession.customerId = customer.customerId
-                               and parkingSession.parkingLotId in :parkingLotIds)
-              )
             """)
     boolean existsBusinessVisibleInParkingLots(
             @Param("customerId") UUID customerId,

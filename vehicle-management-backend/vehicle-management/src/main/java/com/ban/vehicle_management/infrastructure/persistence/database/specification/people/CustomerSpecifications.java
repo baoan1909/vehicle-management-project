@@ -4,7 +4,6 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.accesscontrol.SubscriptionEntity;
-import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingSessionEntity;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerType;
@@ -39,12 +38,7 @@ public final class CustomerSpecifications {
             subscriptions.select(subscription.get("customerId"))
                     .where(cb.equal(subscription.get("customerId"), root.get("customerId")),
                             subscription.get("parkingLotId").in(parkingLotIds));
-            Subquery<UUID> sessions = query.subquery(UUID.class);
-            var session = sessions.from(ParkingSessionEntity.class);
-            sessions.select(session.get("customerId"))
-                    .where(cb.equal(session.get("customerId"), root.get("customerId")),
-                            session.get("parkingLotId").in(parkingLotIds));
-            return cb.or(cb.exists(subscriptions), cb.exists(sessions));
+            return cb.exists(subscriptions);
         };
     }
 
