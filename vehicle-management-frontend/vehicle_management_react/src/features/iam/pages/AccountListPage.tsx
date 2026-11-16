@@ -82,6 +82,7 @@ const allRoleOptions: Array<{ label: string; value: ProvisionableRoleCode | "all
   { label: "PARTNER_ADMIN", value: "PARTNER_ADMIN" },
   { label: "PARKING_MANAGER", value: "PARKING_MANAGER" },
   { label: "EMPLOYEE", value: "EMPLOYEE" },
+  { label: "CUSTOMER", value: "CUSTOMER" },
 ];
 
 const statusOptions = [

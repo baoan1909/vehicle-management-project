@@ -2,7 +2,7 @@ import { hasAnyPermission } from "@/shared/auth/permissions";
 import type { CurrentUser } from "@/shared/types/common";
 import type { AdminProvisionableAccountRoleCode } from "@/features/iam/api/provisionedAccountApi";
 
-const platformTargetRoles: readonly AdminProvisionableAccountRoleCode[] = ["SYSTEM_ADMIN", "PARTNER_ADMIN"];
+const platformTargetRoles: readonly AdminProvisionableAccountRoleCode[] = ["SYSTEM_ADMIN", "PARTNER_ADMIN", "CUSTOMER"];
 const partnerTargetRoles: readonly AdminProvisionableAccountRoleCode[] = ["PARKING_MANAGER", "EMPLOYEE"];
 const assignedTargetRoles: readonly AdminProvisionableAccountRoleCode[] = ["EMPLOYEE"];
 

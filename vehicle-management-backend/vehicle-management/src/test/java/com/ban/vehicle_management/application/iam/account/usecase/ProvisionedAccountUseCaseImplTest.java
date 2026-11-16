@@ -21,6 +21,7 @@ import com.ban.vehicle_management.application.iam.account.port.out.ProvisionedAc
 import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
 import com.ban.vehicle_management.application.iam.organization.port.out.OrganizationPortOut;
 import com.ban.vehicle_management.application.iam.organization.port.in.ParkingLotAssignmentPortIn;
+import com.ban.vehicle_management.application.people.employee.authorization.EmployeeAccessGuard;
 import com.ban.vehicle_management.domain.iam.account.model.Account;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.iam.account.policy.ProvisionedAccountPolicy;
@@ -63,6 +64,9 @@ class ProvisionedAccountUseCaseImplTest {
 
     @Mock
     private ParkingLotAssignmentPortIn parkingLotAssignmentPortIn;
+
+    @Mock
+    private EmployeeAccessGuard employeeAccessGuard;
 
     @Spy
     private ProvisionedAccountPolicy provisionedAccountPolicy = new ProvisionedAccountPolicy();
@@ -247,7 +251,9 @@ class ProvisionedAccountUseCaseImplTest {
     }
 
     @Test
-    void shouldRejectSystemAdminProvisioningCustomerAccount() {
+    void shouldAllowSystemAdminProvisioningCustomerAccount() {
+        UUID roleId = UUID.randomUUID();
+        String keycloakUserId = "kc-customer-id";
         Account account = new Account();
         account.setUsername("customer.01");
         account.setEmail("customer01@example.com");
@@ -259,12 +265,25 @@ class ProvisionedAccountUseCaseImplTest {
         );
 
         when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentAccount("SYSTEM_ADMIN"));
+        when(provisionedAccountPortOut.existsByUsername("customer.01")).thenReturn(false);
+        when(provisionedAccountPortOut.existsByEmail("customer01@example.com")).thenReturn(false);
+        when(provisionedAccountPortOut.findActiveRoleIdByCode(AdminProvisionableAccountRoleCode.CUSTOMER))
+                .thenReturn(roleId);
+        when(identityProviderAdminPortOut.createProvisionedAccountUser(any(CreateProvisionedAccountCommand.class)))
+                .thenReturn(keycloakUserId);
+        when(provisionedAccountPortOut.findProvisionedAccountById(any(UUID.class)))
+                .thenAnswer(invocation -> Optional.of(buildResult(
+                        invocation.getArgument(0),
+                        roleId,
+                        AdminProvisionableAccountRoleCode.CUSTOMER,
+                        "customer.01",
+                        "customer01@example.com"
+                )));
 
-        assertThrows(
-                org.springframework.security.access.AccessDeniedException.class,
-                () -> provisionedAccountUseCase.createProvisionedAccount(command)
-        );
-        verify(identityProviderAdminPortOut, never()).createProvisionedAccountUser(any());
+        ProvisionedAccountResult result = provisionedAccountUseCase.createProvisionedAccount(command);
+
+        assertEquals(AdminProvisionableAccountRoleCode.CUSTOMER.name(), result.role().roleCode());
+        verify(identityProviderAdminPortOut).sendUpdatePasswordEmail(keycloakUserId);
     }
 
     @Test
@@ -331,7 +350,8 @@ class ProvisionedAccountUseCaseImplTest {
         assertEquals(
                 Set.of(
                         AdminProvisionableAccountRoleCode.SYSTEM_ADMIN,
-                        AdminProvisionableAccountRoleCode.PARTNER_ADMIN
+                        AdminProvisionableAccountRoleCode.PARTNER_ADMIN,
+                        AdminProvisionableAccountRoleCode.CUSTOMER
                 ),
                 commandCaptor.getValue().managedRoleCodes()
         );
@@ -379,6 +399,27 @@ class ProvisionedAccountUseCaseImplTest {
                 org.springframework.security.access.AccessDeniedException.class,
                 () -> provisionedAccountUseCase.getProvisionedAccountById(accountId)
         );
+    }
+
+    @Test
+    void shouldOnlyListEmployeesAssignedToParkingManagersLots() {
+        UUID visibleAccountId = UUID.randomUUID();
+        UUID hiddenAccountId = UUID.randomUUID();
+        ProvisionedAccountResult visible = buildResult(visibleAccountId, UUID.randomUUID());
+        ProvisionedAccountResult hidden = buildResult(hiddenAccountId, UUID.randomUUID());
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentAccount("PARKING_MANAGER"));
+        when(provisionedAccountPortOut.findProvisionedAccounts(any(ProvisionedAccountFilterCommand.class)))
+                .thenReturn(List.of(visible, hidden));
+        when(employeeAccessGuard.canReadAccount(visibleAccountId)).thenReturn(true);
+        when(employeeAccessGuard.canReadAccount(hiddenAccountId)).thenReturn(false);
+
+        List<ProvisionedAccountResult> accounts = provisionedAccountUseCase.getProvisionedAccounts(
+                new ProvisionedAccountFilterCommand(null, null, null, null)
+        );
+
+        assertEquals(List.of(visibleAccountId), accounts.stream()
+                .map(account -> account.account().accountId())
+                .toList());
     }
 
     @Test
@@ -595,6 +636,7 @@ class ProvisionedAccountUseCaseImplTest {
         when(provisionedAccountPortOut.findProvisionedAccountById(accountId)).thenReturn(Optional.of(existingAccount));
         when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentAccount("PARKING_MANAGER"));
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(changedBy);
+        when(employeeAccessGuard.canReadAccount(accountId)).thenReturn(true);
 
         provisionedAccountUseCase.updateProvisionedAccountStatus(accountId, command);
 

@@ -51,6 +51,13 @@ public class EmployeeAccessGuard {
         }
     }
 
+    public boolean canReadAccount(UUID accountId) {
+        return accountId != null
+                && employeePortOut.findByAccountId(accountId)
+                .map(employee -> canRead(currentAccountPortIn.getCurrentAccountOrThrow(), employee))
+                .orElse(false);
+    }
+
     public void ensureCanManage(Employee employee) {
         CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
         String targetRole = resolveTargetRole(employee);

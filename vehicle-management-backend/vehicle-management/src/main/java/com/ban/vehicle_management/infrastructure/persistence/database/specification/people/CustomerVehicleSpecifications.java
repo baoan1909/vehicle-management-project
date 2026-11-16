@@ -8,7 +8,6 @@ import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.accesscontrol.SubscriptionEntity;
-import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingSessionEntity;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatus;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
@@ -25,7 +24,7 @@ public final class CustomerVehicleSpecifications {
     private CustomerVehicleSpecifications() {
     }
 
-    /** Only vehicles actually used at an accessible lot are visible to its operator. */
+    /** Only vehicles registered for a subscription at an accessible lot are visible to its operator. */
     public static Specification<CustomerVehicleEntity> inParkingLots(Set<UUID> parkingLotIds) {
         return (root, query, cb) -> {
             if (parkingLotIds == null) {
@@ -39,12 +38,7 @@ public final class CustomerVehicleSpecifications {
             subscriptions.select(subscription.get("customerVehicleId"))
                     .where(cb.equal(subscription.get("customerVehicleId"), root.get("customerVehicleId")),
                             subscription.get("parkingLotId").in(parkingLotIds));
-            Subquery<UUID> sessions = query.subquery(UUID.class);
-            var session = sessions.from(ParkingSessionEntity.class);
-            sessions.select(session.get("customerVehicleId"))
-                    .where(cb.equal(session.get("customerVehicleId"), root.get("customerVehicleId")),
-                            session.get("parkingLotId").in(parkingLotIds));
-            return cb.or(cb.exists(subscriptions), cb.exists(sessions));
+            return cb.exists(subscriptions);
         };
     }
 
