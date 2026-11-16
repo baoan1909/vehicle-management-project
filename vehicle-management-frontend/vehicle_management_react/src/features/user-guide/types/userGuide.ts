@@ -8,7 +8,8 @@ export type UserGuideDisplayType =
   | "POPOVER"
   | "BANNER"
   | "INLINE_CARD"
-  | "CALLOUT";
+  | "CALLOUT"
+  | "JOURNEY";
 
 export type UserGuideReplayPolicy =
   | "ONCE_PER_VERSION"

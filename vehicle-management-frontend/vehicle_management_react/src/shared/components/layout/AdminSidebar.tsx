@@ -12,6 +12,14 @@ import { usePlatformMonitoringScope } from "@/shared/monitoring/PlatformMonitori
 
 const scopedMonitoringPaths = new Set(["/admin/parking-lots", "/admin/parking-structure", "/admin/parking-layouts", "/admin/parking-live", "/admin/swipe/sessions", "/admin/card"]);
 
+const postOnboardingGroupAnchors: Record<string, string> = {
+  "Bãi xe & thiết bị": "ADMIN.NAV.PARKING",
+  "Bảng giá": "ADMIN.NAV.PRICING",
+  "Nhân sự": "ADMIN.NAV.WORKFORCE",
+  "Quản lý vào ra": "ADMIN.NAV.OPERATIONS",
+  "Vé và phương tiện": "ADMIN.NAV.CATALOG",
+};
+
 function isPathMatch(pathname: string, matches: string[]) {
   return matches.some((match) => pathname === match || pathname.startsWith(`${match}/`));
 }
@@ -123,6 +131,7 @@ function SidebarGroup({
     <div className="tw-grid tw-gap-1">
       <button
         type="button"
+        data-user-guide-anchor={postOnboardingGroupAnchors[entry.label]}
         title={collapsed ? entry.label : undefined}
         onClick={() => onToggle(entry.label)}
         className={cn(

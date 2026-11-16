@@ -10,6 +10,7 @@ import type {
   UpdateUserGuideVersionRequest,
   UserGuideAudienceMode,
   UserGuideAudiencePayload,
+  UserGuideDisplayType,
   UserGuideStepPayload,
   UserGuideVersionAdminResponse,
 } from "@/features/user-guide/api/userGuideApi";
@@ -29,6 +30,7 @@ type UserGuideVersionPanelProps = {
   canPublish: boolean;
   canUpdate: boolean;
   currentVersion: number;
+  displayType: UserGuideDisplayType;
   lockVersion: number;
   onClone: (versionNumber: number) => void;
   onPublish: (versionNumber: number) => void;
@@ -47,6 +49,7 @@ function toStepPayloads(version: UserGuideVersionAdminResponse): UserGuideStepPa
       displayOrder: step.displayOrder,
       mediaObjectKey: step.mediaObjectKey,
       placement: step.placement,
+      journeyConfig: step.journeyConfig,
       title: step.title,
     }));
 }
@@ -63,6 +66,7 @@ export function UserGuideVersionPanel({
   canPublish,
   canUpdate,
   currentVersion,
+  displayType,
   lockVersion,
   onClone,
   onPublish,
@@ -195,7 +199,7 @@ export function UserGuideVersionPanel({
 
       {isDraft && canUpdate ? (
         <>
-          <UserGuideStepBuilder onChange={setSteps} steps={steps} />
+          <UserGuideStepBuilder displayType={displayType} onChange={setSteps} steps={steps} />
           <UserGuideAudienceEditor
             audiences={audiences}
             mode={mode}

@@ -48,6 +48,12 @@ const customerNearbyPath = new URL("../src/features/parking/pages/NearbyParkingL
 const customerPricingPath = new URL("../src/features/customer-portal/pages/PricingPage.tsx", import.meta.url);
 const customerHistoryPath = new URL("../src/features/customer-portal/pages/CustomerHistoryPage.tsx", import.meta.url);
 const customerChatPath = new URL("../src/features/support/pages/OperationsSupportCenterPage.tsx", import.meta.url);
+const adminHelpMenuPath = new URL("../src/shared/components/layout/AdminHelpMenu.tsx", import.meta.url);
+const adminHeaderPath = new URL("../src/shared/components/layout/AdminHeader.tsx", import.meta.url);
+const adminSidebarPath = new URL("../src/shared/components/layout/AdminSidebar.tsx", import.meta.url);
+const postOnboardingJourneyPath = new URL("../src/features/user-guide/utils/postOnboardingJourney.ts", import.meta.url);
+const postOnboardingReadinessPath = new URL("../src/features/user-guide/components/PostOnboardingReadinessDrawer.tsx", import.meta.url);
+const postOnboardingSeedPath = new URL("../../../vehicle-management-backend/vehicle-management/src/main/resources/db/migration/V20261115110000__seed_post_onboarding_operations_journeys.sql", import.meta.url);
 
 const [
   api, host, card, backendHost, runtime, admin, panel, publicPage, context, endpoints, routes, router,
@@ -57,6 +63,7 @@ const [
   parkingInfoForm, parkingOperationForm, parkingSessionSummary, parkingLayout, parkingOverview, parkingStructure,
   businessGuideSeed, customerGuideSeed, customerProfile, customerVehicle, customerSubscription,
   customerNearby, customerPricing, customerHistory, customerChat,
+  adminHelpMenu, adminHeader, adminSidebar, postOnboardingJourney, postOnboardingReadiness, postOnboardingSeed,
 ] = await Promise.all(
   [
     apiPath, hostPath, cardPath, backendHostPath, runtimePath, adminPath, panelPath, publicPath, contextPath,
@@ -67,6 +74,8 @@ const [
     parkingInfoFormPath, parkingOperationFormPath, parkingSessionSummaryPath, parkingLayoutPath, parkingOverviewPath,
     parkingStructurePath, businessGuideSeedPath, customerGuideSeedPath, customerProfilePath, customerVehiclePath,
     customerSubscriptionPath, customerNearbyPath, customerPricingPath, customerHistoryPath, customerChatPath,
+    adminHelpMenuPath, adminHeaderPath, adminSidebarPath, postOnboardingJourneyPath,
+    postOnboardingReadinessPath, postOnboardingSeedPath,
   ].map((url) => readFile(url, "utf8")),
 );
 
@@ -191,7 +200,62 @@ assert.match(adminLayout, /UserGuideBackendHost/);
 assert.match(clientLayout, /UserGuideBackendHost/);
 assert.match(adminLayout, /key=\{location\.pathname\}/);
 assert.match(clientLayout, /key=\{location\.pathname\}/);
+assert.match(adminLayout, /<UserGuideBackendHost[\s\S]*<AdminHeader \/>/);
 assert.match(router, /function FullscreenShell\(\)[\s\S]*deriveGuideContext\(location\.pathname\)[\s\S]*<UserGuideBackendHost[\s\S]*\{routeContent\}/);
+
+// The global header launcher reuses the same backend guide host and chooses a
+// post-onboarding journey from effective permissions, never from a role label.
+assert.match(adminHeader, /<AdminHelpMenu \/>/);
+assert.match(adminHelpMenu, /ADMIN\.HELP\.LAUNCHER/);
+assert.match(adminHelpMenu, /const guideCode = resolvePostOnboardingJourneyGuide\(user\)/);
+assert.doesNotMatch(adminHelpMenu, /getWorkflowCoachMarks|activation\?\.code/);
+assert.match(adminHelpMenu, /event\.key !== "Escape"/);
+assert.match(adminHelpMenu, /document\.addEventListener\("mousedown"/);
+assert.match(adminHelpMenu, /aria-haspopup="menu"/);
+assert.match(adminHelpMenu, /Hướng dẫn/);
+assert.match(adminHelpMenu, /useUserGuideManualLauncher/);
+assert.match(adminHelpMenu, /launchGuide\(guideCode\)/);
+assert.match(adminHelpMenu, /PostOnboardingReadinessDrawer/);
+assert.match(adminHelpMenu, /Trợ giúp/);
+assert.doesNotMatch(adminHelpMenu, /Xem lộ trình từ thiết lập đến vận hành/);
+assert.doesNotMatch(adminHelpMenu, /Sắp có/);
+assert.doesNotMatch(adminHelpMenu, /href=/);
+assert.match(postOnboardingJourney, /getUserPermissionSet/);
+assert.match(postOnboardingJourney, /PARKING_LOT_CREATE_ALL/);
+assert.match(postOnboardingJourney, /PARKING_SPACE_CONFIGURE_ALL/);
+assert.match(postOnboardingJourney, /PARKING_SESSION_CHECK_IN_ALL/);
+assert.doesNotMatch(postOnboardingJourney, /user\.role/);
+assert.match(endpoints, /post-onboarding-readiness/);
+assert.match(endpoints, /user-guides\/journeys\/resolve/);
+assert.match(api, /resolveUserGuideJourney/);
+assert.match(postOnboardingReadiness, /resolveUserGuideJourney/);
+assert.match(postOnboardingReadiness, /user\?\.accessRevision/);
+assert.match(postOnboardingReadiness, /<Drawer/);
+assert.match(postOnboardingReadiness, /ACTIONABLE/);
+assert.match(postOnboardingReadiness, /DEPENDENCY_REQUIRED/);
+assert.match(postOnboardingReadiness, /WAITING_FOR_PERMISSION/);
+assert.match(postOnboardingReadiness, /COMPLETED/);
+assert.match(postOnboardingReadiness, /BLOCKED/);
+assert.match(postOnboardingReadiness, /Đến màn hình phù hợp/);
+assert.match(postOnboardingReadiness, /linkedGuideCode/);
+assert.match(postOnboardingReadiness, /launchGuide/);
+assert.doesNotMatch(postOnboardingReadiness, /Hướng dẫn bằng coach mark|Xem coach mark tổng quan|Hướng dẫn màn hình này|openCoachMark/);
+assert.match(postOnboardingSeed, /'MANUAL_ONLY'/);
+assert.match(postOnboardingSeed, /'PUBLISHED'/);
+assert.match(postOnboardingSeed, /POST_ONBOARDING_PARTNER_SETUP/);
+assert.match(postOnboardingSeed, /POST_ONBOARDING_PARKING_MANAGER/);
+assert.match(postOnboardingSeed, /POST_ONBOARDING_EMPLOYEE_OPERATIONS/);
+
+const postOnboardingFrontend = [adminHelpMenu, adminSidebar].join("\n");
+const postOnboardingAnchors = [...postOnboardingSeed.matchAll(/"anchor":"([^"]+)"/g)]
+  .map((match) => match[1]);
+assert.ok(postOnboardingAnchors.length > 0, "Post-onboarding seed must define anchors.");
+for (const anchorKey of new Set(postOnboardingAnchors)) {
+  assert.ok(
+    postOnboardingFrontend.includes(anchorKey),
+    `Post-onboarding anchor is missing from the admin shell: ${anchorKey}`,
+  );
+}
 
 // State-aware pages register one eligible guide instead of blindly opening the first result.
 assert.match(backendContext, /registerActivation/);

@@ -4,6 +4,7 @@ import { cn } from "@/lib/cn";
 import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { ChatInboxButton } from "@/features/support/components/ChatInboxButton";
 import { AdminAccountMenu } from "./AdminAccountMenu";
+import { AdminHelpMenu } from "./AdminHelpMenu";
 
 const searchSuggestions = ["Tìm thẻ xe", "Tra cứu khách hàng", "Kiểm tra xe đang trong bãi"];
 
@@ -88,6 +89,7 @@ export function AdminHeader() {
         <div className="tw-flex tw-items-center tw-justify-end tw-gap-[1.1rem]">
           <ChatInboxButton />
           <NotificationBell variant="admin" />
+          <AdminHelpMenu />
 
           <AdminAccountMenu />
         </div>

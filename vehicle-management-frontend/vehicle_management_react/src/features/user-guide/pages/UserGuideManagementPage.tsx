@@ -77,6 +77,7 @@ const displayTypeOptions = [
   { label: "Banner", value: "BANNER" },
   { label: "Inline card", value: "INLINE_CARD" },
   { label: "Callout", value: "CALLOUT" },
+  { label: "Lộ trình vận hành", value: "JOURNEY" },
 ];
 
 const replayPolicyOptions: Array<{ label: string; value: UserGuideReplayPolicy }> = [
@@ -287,7 +288,11 @@ export function UserGuideManagementPage() {
   }, [loadGuideCounts, tab]);
 
   const patchForm = (patch: Partial<GuideFormState>) => {
-    setGuideForm((previous) => ({ ...previous, ...patch }));
+    setGuideForm((previous) => {
+      const next = { ...previous, ...patch };
+      if (patch.displayType === "JOURNEY") next.replayPolicy = "MANUAL_ONLY";
+      return next;
+    });
     setFormDirty(true);
   };
 
@@ -335,6 +340,12 @@ export function UserGuideManagementPage() {
       guideForm.steps.forEach((step, index) => {
         if (!step.title.trim()) errors[`steps.${index}.title`] = "Nhập tiêu đề bước.";
         if (!step.body.trim()) errors[`steps.${index}.body`] = "Nhập nội dung bước.";
+        if (guideForm.displayType === "JOURNEY" && !step.journeyConfig?.stepKey.trim()) {
+          errors[`steps.${index}.stepKey`] = "Nhập step key.";
+        }
+        if (guideForm.displayType === "JOURNEY" && !step.journeyConfig?.readinessKey) {
+          errors[`steps.${index}.readinessKey`] = "Chọn readiness key.";
+        }
       });
     }
     if (!guideForm.startAt) errors.startAt = "Chọn thời gian bắt đầu.";
@@ -730,6 +741,7 @@ export function UserGuideManagementPage() {
                 ariaLabel="Chính sách hiển thị lại"
                 onChange={(value) => patchForm({ replayPolicy: value as UserGuideReplayPolicy })}
                 options={replayPolicyOptions}
+                disabled={guideForm.displayType === "JOURNEY"}
                 value={guideForm.replayPolicy}
               />
             </div>
@@ -767,7 +779,7 @@ export function UserGuideManagementPage() {
                   value={guideForm.summary}
                 />
               </div>
-              <UserGuideStepBuilder onChange={(steps) => patchForm({ steps })} steps={guideForm.steps} />
+              <UserGuideStepBuilder displayType={guideForm.displayType} fieldErrors={formErrors} onChange={(steps) => patchForm({ steps })} steps={guideForm.steps} />
               {formErrors.steps ? <p className={errorClassName}>{formErrors.steps}</p> : null}
               <UserGuideAudienceEditor
                 audiences={guideForm.audiences}
@@ -802,6 +814,7 @@ export function UserGuideManagementPage() {
             canPublish={canPublish}
             canUpdate={canUpdate}
             currentVersion={versionsGuide.currentVersion}
+            displayType={versionsGuide.displayType}
             lockVersion={versionsGuide.lockVersion}
             onClone={(versionNumber) => setPendingAction({ guide: versionsGuide, kind: "clone", versionNumber })}
             onPublish={(versionNumber) => setPendingAction({ guideId: versionsGuide.guideId, kind: "publish", versionNumber })}

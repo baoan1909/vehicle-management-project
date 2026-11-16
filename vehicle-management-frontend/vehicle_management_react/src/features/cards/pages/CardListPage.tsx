@@ -975,11 +975,11 @@ export function CardListPage() {
       <section className="content tw-pb-8">
         <div className="container-fluid tw-max-w-[1480px]">
           <div className="tw-flex tw-flex-col tw-gap-[1.1rem] tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200/90 tw-bg-white tw-p-4 tw-pt-[0.85rem] tw-shadow-[0_16px_34px_rgba(15,23,42,0.04)]">
-            <CardManageHeader
+            <div data-user-guide-anchor="WORKFLOW.CARDS.HEADER"><CardManageHeader
               canCreate={canCreateCards}
               onCreate={() => setIsCreateModalOpen(true)}
               onCreateBatch={() => setIsBatchCreateOpen(true)}
-            />
+            /></div>
             <CardSummaryGrid items={summaryMetrics} />
             <div className="tw-flex tw-items-center tw-gap-[0.7rem] max-[900px]:tw-flex-col max-[900px]:tw-items-stretch">
               <CardStatusTabs activeValue={activeStatus} counts={statusCounts} onChange={setActiveStatus} tabs={cardStatusTabs} />
@@ -994,9 +994,9 @@ export function CardListPage() {
               </button>
             </div>
 
-            <section className="tw-min-w-0">
+            <section data-user-guide-anchor="WORKFLOW.CARDS.LIST" className="tw-min-w-0">
               <div className="tw-min-w-0 tw-overflow-visible tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200/95 tw-bg-white tw-shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
-                <CardToolbar
+                <div data-user-guide-anchor="WORKFLOW.CARDS.FILTERS"><CardToolbar
                   cardTypeOptions={cardTypeOptions}
                   cardTypeValue={cardTypeValue}
                   lostStatusValue={lostStatusValue}
@@ -1011,7 +1011,7 @@ export function CardListPage() {
                   onSubscriptionStatusChange={setSubscriptionStatusValue}
                   searchValue={searchValue}
                   subscriptionStatusValue={subscriptionStatusValue}
-                />
+                /></div>
 
                 {filterLoadError ? (
                   <div className="tw-mx-4 tw-mt-4 tw-rounded-vm-md tw-border tw-border-solid tw-border-amber-200 tw-bg-amber-50 tw-px-4 tw-py-3 tw-text-[0.86rem] tw-font-bold tw-text-amber-800">{filterLoadError}</div>

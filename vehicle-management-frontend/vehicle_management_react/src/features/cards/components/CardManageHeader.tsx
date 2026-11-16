@@ -1,3 +1,7 @@
+import { useAuth } from "@/core/auth/useAuth";
+import { UserGuideHelpButton } from "@/features/user-guide/components/UserGuideHelpButton";
+import { hasAnyPermission } from "@/shared/auth/permissions";
+
 interface CardManageHeaderProps {
   canCreate: boolean;
   onCreate: () => void;
@@ -5,14 +9,15 @@ interface CardManageHeaderProps {
 }
 
 export function CardManageHeader({ canCreate, onCreate, onCreateBatch }: CardManageHeaderProps) {
+  const { user } = useAuth();
   return (
     <div className="tw-flex tw-items-center tw-justify-between tw-gap-4 tw-pb-[0.1rem] max-[760px]:tw-flex-col max-[760px]:tw-items-stretch">
       <div className="tw-flex tw-items-center tw-gap-[1.05rem] max-[760px]:tw-flex-col max-[760px]:tw-items-start">
         <h2 className="tw-m-0 tw-text-[25px] tw-font-extrabold tw-leading-none tw-text-slate-900">Quản lý thẻ</h2>
-        <button className="tw-inline-flex tw-min-h-0 tw-items-center tw-gap-[0.65rem] tw-border-0 tw-bg-transparent tw-p-0 tw-text-[0.93rem] tw-font-bold tw-leading-[1.1] tw-text-vm-primary" type="button">
-          <i className="far fa-question-circle tw-text-base" />
-          <span>Hướng dẫn &amp; Trợ giúp</span>
-        </button>
+        <UserGuideHelpButton
+          guideCode="WORKFLOW_CARD_STOCK"
+          enabled={hasAnyPermission(user, ["CARD_READ_ALL"])}
+        />
       </div>
 
       <div className="tw-flex tw-flex-wrap tw-justify-end tw-gap-[0.65rem] max-[760px]:tw-justify-start">

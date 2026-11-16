@@ -736,7 +736,7 @@ export function TicketListPage() {
       }} />
 
       <div className="tw-grid tw-grid-cols-[minmax(0,1fr)_minmax(290px,0.34fr)] tw-items-start tw-gap-[0.9rem] max-[1360px]:tw-grid-cols-1">
-        <main className="tw-min-w-0 tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
+        <main data-user-guide-anchor="CATALOG_TICKET.LIST" className="tw-min-w-0 tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
           <CatalogToolbar
             variant="ticket"
             searchPlaceholder="Tìm mã, tên loại vé..."

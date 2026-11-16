@@ -1131,7 +1131,7 @@ export function EmployeeListPage() {
 
   return (
     <div className="tw-px-4 tw-py-4 lg:tw-px-5">
-      <section className="tw-mx-auto tw-min-h-[calc(100vh-104px)] tw-w-[min(100%,1500px)] tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-5 tw-shadow-vm-card">
+      <section data-user-guide-anchor="WORKFLOW.EMPLOYEES.WORKSPACE" className="tw-mx-auto tw-min-h-[calc(100vh-104px)] tw-w-[min(100%,1500px)] tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-5 tw-shadow-vm-card">
         <div className="tw-mb-5 tw-flex tw-items-center tw-justify-between tw-gap-4">
           <div className="tw-flex tw-min-w-0 tw-items-center tw-gap-4">
             <h1 className="tw-m-0 tw-text-vm-page-title tw-tracking-[-0.03em] tw-text-vm-slate-900">Nhân viên</h1>
