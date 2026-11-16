@@ -124,7 +124,10 @@ for (const [name, source] of Object.entries(guardedActorAuthorizationFiles)) {
     `${name} contains current-actor role authorization`);
 }
 assert.match(files.accountCreate, /getManageableProvisionedAccountRoleCodes\(user\)/);
-assert.match(files.provisionedPolicy, /ACCOUNT_CREATE_ALL[\s\S]*?PARKING_SCOPE_PLATFORM[\s\S]*?PARKING_SCOPE_PARTNER[\s\S]*?PARKING_SCOPE_ASSIGNED/);
+assert.match(files.provisionedPolicy,
+  /getScopedProvisionedAccountRoleCodes[\s\S]*?PARKING_SCOPE_PLATFORM[\s\S]*?PARKING_SCOPE_PARTNER[\s\S]*?PARKING_SCOPE_ASSIGNED/);
+assert.match(files.provisionedPolicy,
+  /getManageableProvisionedAccountRoleCodes[\s\S]*?ACCOUNT_CREATE_ALL[\s\S]*?getScopedProvisionedAccountRoleCodes\(user\)/);
 assert.match(files.notificationBell, /canOpenNotificationTarget\(user, redirectUrl\)/);
 assert.doesNotMatch(files.supportCenter, /user\?\.role === "CUSTOMER"/);
 assert.match(files.supportCenter, /if \(!hasResolvedChatPermissions\) \{[\s\S]*?setInboxError\(""\)[\s\S]*?return;/,
