@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.operations.supportticket.response;
 
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCategoryPriority;
+import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCloseReason;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketSource;
 import java.util.UUID;
@@ -13,7 +14,14 @@ import lombok.Setter;
 @NoArgsConstructor
 public class SupportTicketAdminResponse {
     private UUID supportTicketId;
-    private UUID customerId;
+    private UUID requesterAccountId;
+    private String requesterRoleCode;
+    private String requesterNameSnapshot;
+    private String requesterEmailSnapshot;
+    private UUID organizationId;
+    private UUID parkingLotId;
+    private String featureCode;
+    private String contextKey;
     private UUID categoryId;
     private String categoryCode;
     private String categoryName;
@@ -24,8 +32,11 @@ public class SupportTicketAdminResponse {
     private UUID assignedTo;
     private java.time.Instant resolvedAt;
     private String resolutionNote;
+    private java.time.Instant lastContextActivityAt;
+    private java.time.Instant autoCloseAt;
     private java.time.Instant closedAt;
     private UUID closedBy;
+    private SupportTicketCloseReason closeReason;
     private Integer reopenCount;
     private java.time.Instant lastReopenedAt;
     private java.time.Instant createdAt;

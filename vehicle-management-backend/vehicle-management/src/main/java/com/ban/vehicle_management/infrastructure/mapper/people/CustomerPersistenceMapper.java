@@ -15,7 +15,6 @@ public interface CustomerPersistenceMapper {
     @Mapping(target = "lostCardReports", ignore = true)
     @Mapping(target = "parkingSessions", ignore = true)
     @Mapping(target = "invoices", ignore = true)
-    @Mapping(target = "supportTickets", ignore = true)
     CustomerEntity toEntity(Customer domain);
 
     @Mapping(target = "accountEmail", expression = "java(resolveAccountEmail(entity))")

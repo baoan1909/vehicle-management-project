@@ -80,8 +80,25 @@ public interface ChatConversationRepository extends JpaRepository<ChatConversati
             ChatConversationType conversationType
     );
 
+    Optional<ChatConversationEntity> findFirstByOwnerAccountIdAndConversationTypeAndStatus(
+            UUID ownerAccountId,
+            ChatConversationType conversationType,
+            ChatConversationStatus status
+    );
+
+    Optional<ChatConversationEntity> findFirstByOwnerAccountIdAndConversationType(
+            UUID ownerAccountId,
+            ChatConversationType conversationType
+    );
+
     @Query(value = "SELECT 1::bigint FROM pg_advisory_xact_lock(hashtextextended(CAST(:customerId AS text), 0))", nativeQuery = true)
     Long lockCustomerSupport(@Param("customerId") UUID customerId);
+
+    @Query(value = "SELECT 1::bigint FROM pg_advisory_xact_lock(hashtextextended(CAST(:requesterAccountId AS text), 0))", nativeQuery = true)
+    Long lockRequesterSupport(@Param("requesterAccountId") UUID requesterAccountId);
+
+    @Query(value = "SELECT 1::bigint FROM pg_advisory_xact_lock(hashtextextended(CAST(:conversationId AS text), 0))", nativeQuery = true)
+    Long lockConversation(@Param("conversationId") UUID conversationId);
 
     Optional<ChatConversationEntity> findFirstBySupportTicketIdAndConversationTypeAndStatus(
             UUID supportTicketId,

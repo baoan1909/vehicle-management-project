@@ -2,7 +2,7 @@ package com.ban.vehicle_management.shared.enumeration.operations;
 
 public enum SupportTicketSource {
     ASSISTANT_CHAT,
-    CUSTOMER_PORTAL,
-    EMPLOYEE_CHAT,
-    OTHER
+    SELF_SERVICE_PORTAL,
+    SUPPORT_CONVERSATION,
+    SYSTEM_CREATED
 }

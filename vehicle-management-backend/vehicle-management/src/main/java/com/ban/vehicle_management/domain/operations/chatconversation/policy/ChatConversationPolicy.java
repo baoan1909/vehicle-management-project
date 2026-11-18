@@ -47,6 +47,22 @@ public class ChatConversationPolicy {
         conversation.setCustomerId(customerId);
     }
 
+    public void initializeRequesterAssistant(ChatConversation conversation, UUID requesterAccountId) {
+        if (requesterAccountId == null) {
+            throw new BadRequestException("requesterAccountId must not be null");
+        }
+        initialize(conversation, ChatConversationType.ASSISTANT_SUPPORT, requesterAccountId);
+        conversation.setCustomerId(null);
+    }
+
+    public void initializeRequesterSupport(ChatConversation conversation, UUID requesterAccountId) {
+        if (requesterAccountId == null) {
+            throw new BadRequestException("requesterAccountId must not be null");
+        }
+        initialize(conversation, ChatConversationType.SUPPORT_REQUESTER_DIRECT, requesterAccountId);
+        conversation.setCustomerId(null);
+    }
+
     public void initializeSupportTicket(ChatConversation conversation, UUID ownerAccountId, UUID customerId, UUID supportTicketId) {
         if (customerId == null || supportTicketId == null) {
             throw new BadRequestException("customerId and supportTicketId must not be null");

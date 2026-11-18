@@ -220,14 +220,16 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
         UUID currentAccountId = requireCurrentAccountId();
         requireSendAccess(conversationId);
         ChatConversation conversation = getConversationOrThrow(conversationId);
-        ticketMessageContextService.ensureCanSend(conversation, contextTicketId, currentAccountId);
+        UUID resolvedContextTicketId = ticketMessageContextService.resolveContextForSend(
+                conversation, contextTicketId, currentAccountId
+        );
 
         ChatMessage message = new ChatMessage();
         message.setConversationId(conversationId);
         message.setSenderAccountId(currentAccountId);
         message.setContent(content);
         message.setReplyToMessageId(resolveReplyMessageId(conversationId, replyToMessageId));
-        message.setContextTicketId(contextTicketId);
+        message.setContextTicketId(resolvedContextTicketId);
         messagePolicy.initializeText(message);
 
         ChatMessage savedMessage = saveMessageAndPublish(message);
@@ -242,14 +244,16 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
         currentAccountPortIn.requirePermission("CHAT_ATTACHMENT_CREATE_OWN");
         requireSendAccess(conversationId);
         ChatConversation conversation = getConversationOrThrow(conversationId);
-        ticketMessageContextService.ensureCanSend(conversation, contextTicketId, currentAccountId);
+        UUID resolvedContextTicketId = ticketMessageContextService.resolveContextForSend(
+                conversation, contextTicketId, currentAccountId
+        );
         attachmentPolicy.validateImageFiles(files);
 
         ChatMessage message = new ChatMessage();
         message.setConversationId(conversationId);
         message.setSenderAccountId(currentAccountId);
         message.setContent(content);
-        message.setContextTicketId(contextTicketId);
+        message.setContextTicketId(resolvedContextTicketId);
         messagePolicy.initializeImage(message);
         ChatMessage savedMessage = saveMessageWithoutRealtime(message);
 

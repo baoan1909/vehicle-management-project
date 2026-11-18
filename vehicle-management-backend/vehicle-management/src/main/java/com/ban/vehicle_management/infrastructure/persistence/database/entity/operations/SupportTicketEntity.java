@@ -2,8 +2,8 @@ package com.ban.vehicle_management.infrastructure.persistence.database.entity.op
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.common.AuditableEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
-import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
+import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCloseReason;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketSource;
 import jakarta.persistence.*;
 import java.time.Instant;
@@ -25,12 +25,33 @@ public class SupportTicketEntity extends AuditableEntity {
     @Column(name = "support_ticket_id", nullable = false)
     private UUID supportTicketId;
 
-    @Column(name = "customer_id", nullable = false)
-    private UUID customerId;
+    @Column(name = "requester_account_id", nullable = false)
+    private UUID requesterAccountId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "customer_id", referencedColumnName = "customer_id", insertable = false, updatable = false)
-    private CustomerEntity customer;
+    @JoinColumn(name = "requester_account_id", referencedColumnName = "account_id", insertable = false, updatable = false)
+    private AccountEntity requesterAccount;
+
+    @Column(name = "requester_role_code", nullable = false, length = 50)
+    private String requesterRoleCode;
+
+    @Column(name = "requester_name_snapshot", length = 150)
+    private String requesterNameSnapshot;
+
+    @Column(name = "requester_email_snapshot", length = 255)
+    private String requesterEmailSnapshot;
+
+    @Column(name = "organization_id")
+    private UUID organizationId;
+
+    @Column(name = "parking_lot_id")
+    private UUID parkingLotId;
+
+    @Column(name = "feature_code", length = 100)
+    private String featureCode;
+
+    @Column(name = "context_key", length = 255)
+    private String contextKey;
 
     @Column(name = "category_id", nullable = false)
     private UUID categoryId;
@@ -62,6 +83,12 @@ public class SupportTicketEntity extends AuditableEntity {
     @Column(name = "resolution_note")
     private String resolutionNote;
 
+    @Column(name = "last_context_activity_at")
+    private Instant lastContextActivityAt;
+
+    @Column(name = "auto_close_at")
+    private Instant autoCloseAt;
+
     @Column(name = "closed_at")
     private Instant closedAt;
 
@@ -71,6 +98,10 @@ public class SupportTicketEntity extends AuditableEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "closed_by", referencedColumnName = "account_id", insertable = false, updatable = false)
     private AccountEntity closedByAccount;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "close_reason", length = 30)
+    private SupportTicketCloseReason closeReason;
 
     @Column(name = "reopen_count", nullable = false)
     private Integer reopenCount;

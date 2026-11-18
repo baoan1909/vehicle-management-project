@@ -1,13 +1,17 @@
 package com.ban.vehicle_management.domain.operations.supportticket.policy;
 
 import com.ban.vehicle_management.domain.operations.supportticket.model.SupportTicket;
+import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCloseReason;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
 public class SupportTicketPolicy {
+
+    public static final Duration AUTO_CLOSE_INACTIVITY = Duration.ofHours(24);
 
     public void initialize(SupportTicket ticket) {
         requireTicket(ticket);
@@ -23,8 +27,11 @@ public class SupportTicketPolicy {
         ticket.setAssignedTo(null);
         ticket.setResolvedAt(null);
         ticket.setResolutionNote(null);
+        ticket.setLastContextActivityAt(null);
+        ticket.setAutoCloseAt(null);
         ticket.setClosedAt(null);
         ticket.setClosedBy(null);
+        ticket.setCloseReason(null);
         ticket.setLastReopenedAt(null);
 
         validateState(ticket);
@@ -74,8 +81,11 @@ public class SupportTicketPolicy {
         }
 
         ticket.setStatus(SupportTicketStatus.RESOLVED);
-        ticket.setResolvedAt(requireInstant(resolvedAt, "resolvedAt"));
-        ticket.setResolutionNote(TextValidationUtils.normalizeRequiredText(resolutionNote, "resolutionNote", 0));
+        Instant normalizedResolvedAt = requireInstant(resolvedAt, "resolvedAt");
+        ticket.setResolvedAt(normalizedResolvedAt);
+        ticket.setAutoCloseAt(normalizedResolvedAt.plus(AUTO_CLOSE_INACTIVITY));
+        // RESOLVED is a workflow flag. A separate result note is intentionally optional.
+        ticket.setResolutionNote(null);
 
         validateState(ticket);
     }
@@ -94,6 +104,7 @@ public class SupportTicketPolicy {
         }
         ticket.setResolvedAt(null);
         ticket.setResolutionNote(null);
+        ticket.setAutoCloseAt(null);
         ticket.setReopenCount(ticket.getReopenCount() == null ? 1 : ticket.getReopenCount() + 1);
         ticket.setLastReopenedAt(requireInstant(reopenedAt, "lastReopenedAt"));
 
@@ -112,6 +123,51 @@ public class SupportTicketPolicy {
         ticket.setStatus(SupportTicketStatus.CLOSED);
         ticket.setClosedBy(closedBy);
         ticket.setClosedAt(requireInstant(closedAt, "closedAt"));
+        ticket.setCloseReason(SupportTicketCloseReason.MANUAL);
+        ticket.setAutoCloseAt(null);
+
+        validateState(ticket);
+    }
+
+    public void autoCloseForInactivity(SupportTicket ticket, Instant closedAt) {
+        requireTicket(ticket);
+        Instant normalizedClosedAt = requireInstant(closedAt, "closedAt");
+        if (ticket.getStatus() != SupportTicketStatus.RESOLVED) {
+            throw new BadRequestException("Only resolved support ticket can be closed automatically");
+        }
+        if (ticket.getAutoCloseAt() == null || ticket.getAutoCloseAt().isAfter(normalizedClosedAt)) {
+            throw new BadRequestException("Support ticket inactivity deadline has not elapsed");
+        }
+
+        ticket.setStatus(SupportTicketStatus.CLOSED);
+        ticket.setClosedBy(null);
+        ticket.setClosedAt(normalizedClosedAt);
+        ticket.setCloseReason(SupportTicketCloseReason.INACTIVITY);
+        ticket.setAutoCloseAt(null);
+
+        validateState(ticket);
+    }
+
+    public void recordContextActivity(SupportTicket ticket, Instant activityAt) {
+        requireTicket(ticket);
+        Instant normalizedActivityAt = requireInstant(activityAt, "activityAt");
+        if (ticket.getStatus() == SupportTicketStatus.CLOSED) {
+            throw new BadRequestException("Closed support ticket cannot receive contextual activity");
+        }
+
+        Instant currentActivityAt = ticket.getLastContextActivityAt();
+        if (currentActivityAt == null || normalizedActivityAt.isAfter(currentActivityAt)) {
+            ticket.setLastContextActivityAt(normalizedActivityAt);
+        }
+        if (ticket.getStatus() == SupportTicketStatus.RESOLVED) {
+            Instant baseline = normalizedActivityAt.isAfter(ticket.getResolvedAt())
+                    ? normalizedActivityAt
+                    : ticket.getResolvedAt();
+            Instant deadline = baseline.plus(AUTO_CLOSE_INACTIVITY);
+            if (ticket.getAutoCloseAt() == null || deadline.isAfter(ticket.getAutoCloseAt())) {
+                ticket.setAutoCloseAt(deadline);
+            }
+        }
 
         validateState(ticket);
     }
@@ -119,7 +175,8 @@ public class SupportTicketPolicy {
     public void validateState(SupportTicket ticket) {
         requireTicket(ticket);
 
-        requireField(ticket.getCustomerId(), "customerId");
+        requireField(ticket.getRequesterAccountId(), "requesterAccountId");
+        requireField(ticket.getRequesterRoleCode(), "requesterRoleCode");
         requireField(ticket.getCategoryId(), "categoryId");
 
         ticket.setTitle(TextValidationUtils.normalizeRequiredText(ticket.getTitle(), "title", 150));
@@ -137,12 +194,15 @@ public class SupportTicketPolicy {
 
         if (ticket.getStatus() == SupportTicketStatus.RESOLVED) {
             requireField(ticket.getResolvedAt(), "resolvedAt");
-            ticket.setResolutionNote(TextValidationUtils.normalizeRequiredText(ticket.getResolutionNote(), "resolutionNote", 0));
+            requireField(ticket.getAutoCloseAt(), "autoCloseAt");
         }
 
         if (ticket.getStatus() == SupportTicketStatus.CLOSED) {
             requireField(ticket.getClosedAt(), "closedAt");
-            requireField(ticket.getClosedBy(), "closedBy");
+            requireField(ticket.getCloseReason(), "closeReason");
+            if (ticket.getCloseReason() == SupportTicketCloseReason.MANUAL) {
+                requireField(ticket.getClosedBy(), "closedBy");
+            }
         }
 
         if ((ticket.getStatus() == SupportTicketStatus.OPEN || ticket.getStatus() == SupportTicketStatus.IN_PROGRESS)
@@ -156,6 +216,14 @@ public class SupportTicketPolicy {
 
         if (ticket.getStatus() != SupportTicketStatus.CLOSED && ticket.getClosedBy() != null) {
             throw new BadRequestException("Unclosed ticket must not keep closedBy");
+        }
+
+        if (ticket.getStatus() != SupportTicketStatus.CLOSED && ticket.getCloseReason() != null) {
+            throw new BadRequestException("Unclosed ticket must not keep closeReason");
+        }
+
+        if (ticket.getStatus() != SupportTicketStatus.RESOLVED && ticket.getAutoCloseAt() != null) {
+            throw new BadRequestException("Only resolved ticket can keep autoCloseAt");
         }
     }
 

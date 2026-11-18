@@ -4,6 +4,7 @@ import com.ban.vehicle_management.domain.operations.supportticketcategory.model.
 import com.ban.vehicle_management.entrypoint.dto.operations.supportticketcategory.request.CreateSupportTicketCategoryRequest;
 import com.ban.vehicle_management.entrypoint.dto.operations.supportticketcategory.request.UpdateSupportTicketCategoryRequest;
 import com.ban.vehicle_management.entrypoint.dto.operations.supportticketcategory.response.SupportTicketCategoryAdminResponse;
+import com.ban.vehicle_management.entrypoint.dto.operations.supportticketcategory.response.SupportTicketCategoryUserResponse;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.Instant;
 import java.util.List;
@@ -32,5 +33,9 @@ public interface SupportTicketCategoryApiMapper {
     SupportTicketCategoryAdminResponse toAdminResponse(SupportTicketCategory category);
 
     List<SupportTicketCategoryAdminResponse> toAdminResponses(List<SupportTicketCategory> categories);
+
+    SupportTicketCategoryUserResponse toUserResponse(SupportTicketCategory category);
+
+    List<SupportTicketCategoryUserResponse> toUserResponses(List<SupportTicketCategory> categories);
 
 }

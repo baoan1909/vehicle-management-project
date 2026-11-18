@@ -9,8 +9,8 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.specification.operations.SupportTicketCategorySpecifications;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCategoryStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCategoryPriority;
-import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
 import java.util.List;
+import java.util.Set;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
@@ -35,12 +35,20 @@ public class SupportTicketCategoryPersistenceAdapter implements SupportTicketCat
     @Override
     public SupportTicketCategory save(SupportTicketCategory category) {
         SupportTicketCategoryEntity savedEntity = categoryRepository.saveAndFlush(categoryPersistenceMapper.toEntity(category));
-        return categoryPersistenceMapper.toDomain(savedEntity);
+        categoryRepository.deleteRequiredPermissionMappings(savedEntity.getCategoryId());
+        Set<String> requiredPermissionCodes = category.getRequiredPermissionCodes() == null
+                ? Set.of() : category.getRequiredPermissionCodes();
+        if (!requiredPermissionCodes.isEmpty()) {
+            categoryRepository.insertRequiredPermissionMappings(savedEntity.getCategoryId(), requiredPermissionCodes);
+        }
+        return enrich(categoryPersistenceMapper.toDomain(savedEntity));
     }
 
     @Override
     public Optional<SupportTicketCategory> findById(UUID categoryId) {
-        return categoryRepository.findById(categoryId).map(categoryPersistenceMapper::toDomain);
+        return categoryRepository.findById(categoryId)
+                .map(categoryPersistenceMapper::toDomain)
+                .map(this::enrich);
     }
 
     @Override
@@ -52,21 +60,18 @@ public class SupportTicketCategoryPersistenceAdapter implements SupportTicketCat
         return categoryRepository.findAll(SupportTicketCategorySpecifications.withFilters(status, priority, keyword))
                 .stream()
                 .map(categoryPersistenceMapper::toDomain)
+                .map(this::enrich)
                 .toList();
     }
 
     @Override
     public boolean existsActiveByCode(String code) {
-        return categoryRepository.existsByCodeAndStatus(code, SupportTicketCategoryStatus.ACTIVE);
+        return categoryRepository.existsByCode(code);
     }
 
     @Override
     public boolean existsActiveByCodeAndCategoryIdNot(String code, UUID categoryId) {
-        return categoryRepository.existsByCodeAndStatusAndCategoryIdNot(
-                code,
-                SupportTicketCategoryStatus.ACTIVE,
-                categoryId
-        );
+        return categoryRepository.existsByCodeAndCategoryIdNot(code, categoryId);
     }
 
     @Override
@@ -74,10 +79,22 @@ public class SupportTicketCategoryPersistenceAdapter implements SupportTicketCat
         return supportTicketRepository.existsByCategoryIdAndStatusIn(
                 categoryId,
                 List.of(
-                        SupportTicketStatus.OPEN,
-                        SupportTicketStatus.IN_PROGRESS,
-                        SupportTicketStatus.RESOLVED
+                        com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus.OPEN,
+                        com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus.IN_PROGRESS,
+                        com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus.RESOLVED
                 )
         );
+    }
+
+    @Override
+    public boolean hasTickets(UUID categoryId) {
+        return supportTicketRepository.existsByCategoryId(categoryId);
+    }
+
+    private SupportTicketCategory enrich(SupportTicketCategory category) {
+        category.setRequiredPermissionCodes(Set.copyOf(
+                categoryRepository.findRequiredPermissionCodes(category.getCategoryId())
+        ));
+        return category;
     }
 }

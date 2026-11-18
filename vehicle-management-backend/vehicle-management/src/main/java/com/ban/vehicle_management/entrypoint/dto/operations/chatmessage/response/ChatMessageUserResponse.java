@@ -22,6 +22,8 @@ public class ChatMessageUserResponse {
     private String relatedTable;
     private UUID relatedId;
     private UUID contextTicketId;
+    private UUID supportTicketEventId;
+    private String metadata;
     private boolean deleted;
     private java.time.Instant deletedAt;
     private java.time.Instant editedAt;

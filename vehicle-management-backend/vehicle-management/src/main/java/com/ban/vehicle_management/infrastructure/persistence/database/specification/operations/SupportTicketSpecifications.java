@@ -1,8 +1,6 @@
 package com.ban.vehicle_management.infrastructure.persistence.database.specification.operations;
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.operations.SupportTicketEntity;
-import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
-import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import jakarta.persistence.criteria.JoinType;
@@ -18,18 +16,26 @@ public final class SupportTicketSpecifications {
     }
 
     public static Specification<SupportTicketEntity> withFilters(
-            UUID customerId,
+            UUID requesterAccountId,
+            String requesterRoleCode,
             UUID categoryId,
             UUID assignedTo,
+            UUID organizationId,
+            UUID parkingLotId,
+            String featureCode,
             SupportTicketStatus status,
             SupportTicketCategoryPriority priority,
             String keyword
     ) {
         return Specification
                 .where(businessVisible())
-                .and(hasCustomerId(customerId))
+                .and(hasRequesterAccountId(requesterAccountId))
+                .and(hasRequesterRoleCode(requesterRoleCode))
                 .and(hasCategoryId(categoryId))
                 .and(hasAssignedTo(assignedTo))
+                .and(hasOrganizationId(organizationId))
+                .and(hasParkingLotId(parkingLotId))
+                .and(hasFeatureCode(featureCode))
                 .and(hasStatus(status))
                 .and(hasPriority(priority))
                 .and(containsKeyword(keyword));
@@ -37,16 +43,20 @@ public final class SupportTicketSpecifications {
 
     public static Specification<SupportTicketEntity> businessVisible() {
         return (root, query, cb) -> {
-            Join<SupportTicketEntity, CustomerEntity> customer = root.join("customer", JoinType.LEFT);
-            Join<CustomerEntity, UserProfileEntity> profile = customer.join("userProfile", JoinType.LEFT);
-            Join<UserProfileEntity, AccountEntity> account = profile.join("account", JoinType.LEFT);
-            return cb.or(cb.isNull(root.get("customerId")), cb.not(account.get("status").in(
-                    AccountStatus.PENDING_DELETION, AccountStatus.DELETED)));
+            Join<SupportTicketEntity, AccountEntity> account = root.join("requesterAccount", JoinType.INNER);
+            return cb.not(account.get("status").in(
+                    AccountStatus.PENDING_DELETION, AccountStatus.DELETED));
         };
     }
 
-    private static Specification<SupportTicketEntity> hasCustomerId(UUID customerId) {
-        return (root, query, cb) -> customerId == null ? null : cb.equal(root.get("customerId"), customerId);
+    private static Specification<SupportTicketEntity> hasRequesterAccountId(UUID requesterAccountId) {
+        return (root, query, cb) -> requesterAccountId == null
+                ? null : cb.equal(root.get("requesterAccountId"), requesterAccountId);
+    }
+
+    private static Specification<SupportTicketEntity> hasRequesterRoleCode(String requesterRoleCode) {
+        return (root, query, cb) -> requesterRoleCode == null || requesterRoleCode.isBlank()
+                ? null : cb.equal(root.get("requesterRoleCode"), requesterRoleCode.trim());
     }
 
     private static Specification<SupportTicketEntity> hasCategoryId(UUID categoryId) {
@@ -55,6 +65,19 @@ public final class SupportTicketSpecifications {
 
     private static Specification<SupportTicketEntity> hasAssignedTo(UUID assignedTo) {
         return (root, query, cb) -> assignedTo == null ? null : cb.equal(root.get("assignedTo"), assignedTo);
+    }
+
+    private static Specification<SupportTicketEntity> hasOrganizationId(UUID organizationId) {
+        return (root, query, cb) -> organizationId == null ? null : cb.equal(root.get("organizationId"), organizationId);
+    }
+
+    private static Specification<SupportTicketEntity> hasParkingLotId(UUID parkingLotId) {
+        return (root, query, cb) -> parkingLotId == null ? null : cb.equal(root.get("parkingLotId"), parkingLotId);
+    }
+
+    private static Specification<SupportTicketEntity> hasFeatureCode(String featureCode) {
+        return (root, query, cb) -> featureCode == null || featureCode.isBlank()
+                ? null : cb.equal(root.get("featureCode"), featureCode.trim());
     }
 
     private static Specification<SupportTicketEntity> hasStatus(SupportTicketStatus status) {

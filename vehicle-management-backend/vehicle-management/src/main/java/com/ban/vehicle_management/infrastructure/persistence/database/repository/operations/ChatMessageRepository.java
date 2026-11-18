@@ -11,6 +11,8 @@ import org.springframework.data.repository.query.Param;
 
 public interface ChatMessageRepository extends JpaRepository<ChatMessageEntity, UUID> {
 
+    java.util.Optional<ChatMessageEntity> findBySupportTicketEventId(UUID supportTicketEventId);
+
     boolean existsByConversationIdAndRelatedSchemaAndRelatedTableAndRelatedIdAndMessageTypeAndDeletedFalse(
             UUID conversationId,
             String relatedSchema,

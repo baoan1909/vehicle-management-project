@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.operations.supportticket.response;
 
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCategoryPriority;
+import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCloseReason;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
 import java.time.Instant;
 import java.util.UUID;
@@ -29,7 +30,10 @@ public class SupportTicketUserResponse {
     private UUID assignedTo;
     private Instant resolvedAt;
     private String resolutionNote;
+    private Instant lastContextActivityAt;
+    private Instant autoCloseAt;
     private Instant closedAt;
+    private SupportTicketCloseReason closeReason;
     private Instant createdAt;
     private Instant updatedAt;
 }

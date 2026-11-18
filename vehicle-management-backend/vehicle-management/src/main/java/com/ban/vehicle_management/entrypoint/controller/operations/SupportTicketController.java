@@ -108,8 +108,51 @@ public class SupportTicketController {
             @RequestParam(required = false) Integer limit
     ) {
         return ResponseEntity.ok(ApiResponse.ok(
-                "Fetched current customer support tickets successfully",
+                "Fetched current requester support tickets successfully",
                 supportTicketApiMapper.toUserResponses(supportTicketPortIn.getMyTickets(status, keyword, limit))
+        ));
+    }
+
+    @GetMapping("/mine/{supportTicketId}")
+    public ResponseEntity<ApiResponse<SupportTicketUserResponse>> getMyTicketById(
+            @PathVariable UUID supportTicketId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Fetched current requester support ticket successfully",
+                supportTicketApiMapper.toUserResponse(supportTicketPortIn.getTicketById(supportTicketId))
+        ));
+    }
+
+    @PatchMapping("/mine/{supportTicketId}")
+    public ResponseEntity<ApiResponse<SupportTicketUserResponse>> updateMyTicket(
+            @PathVariable UUID supportTicketId,
+            @RequestBody UpdateSupportTicketRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Current requester support ticket updated successfully",
+                supportTicketApiMapper.toUserResponse(supportTicketPortIn.updateTicket(
+                        supportTicketId, supportTicketApiMapper.toDomain(request)
+                ))
+        ));
+    }
+
+    @PostMapping("/mine/{supportTicketId}/close")
+    public ResponseEntity<ApiResponse<SupportTicketUserResponse>> closeMyTicket(
+            @PathVariable UUID supportTicketId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Current requester support ticket closed successfully",
+                supportTicketApiMapper.toUserResponse(supportTicketPortIn.closeTicket(supportTicketId))
+        ));
+    }
+
+    @PostMapping("/mine/{supportTicketId}/reopen")
+    public ResponseEntity<ApiResponse<SupportTicketUserResponse>> reopenMyTicket(
+            @PathVariable UUID supportTicketId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Current requester support ticket reopened successfully",
+                supportTicketApiMapper.toUserResponse(supportTicketPortIn.reopenTicket(supportTicketId))
         ));
     }
 
@@ -129,11 +172,32 @@ public class SupportTicketController {
 
     @PostMapping("/assistant-conversation/tickets/{supportTicketId}")
     public ResponseEntity<ApiResponse<SupportTicketAdminResponse>> shareTicketWithAssistant(
-            @PathVariable UUID supportTicketId
+            @PathVariable UUID supportTicketId,
+            @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey
     ) {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Support ticket attached to assistant conversation successfully",
-                supportTicketApiMapper.toAdminResponse(supportTicketPortIn.shareTicketWithAssistant(supportTicketId))
+                supportTicketApiMapper.toAdminResponse(
+                        supportTicketPortIn.shareTicketWithAssistant(supportTicketId, idempotencyKey)
+                )
+        ));
+    }
+
+    @PostMapping("/conversations/{conversationId}/tickets/{supportTicketId}")
+    public ResponseEntity<ApiResponse<SupportTicketAdminResponse>> shareTicketWithConversation(
+            @PathVariable UUID conversationId,
+            @PathVariable UUID supportTicketId,
+            @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Support ticket shared with conversation successfully",
+                supportTicketApiMapper.toAdminResponse(
+                        supportTicketPortIn.shareTicketWithConversation(
+                                supportTicketId,
+                                conversationId,
+                                idempotencyKey
+                        )
+                )
         ));
     }
 
@@ -154,9 +218,13 @@ public class SupportTicketController {
             @ModelAttribute SupportTicketFilterRequest request
     ) {
         List<SupportTicket> supportTickets = supportTicketPortIn.getTickets(
-                request.customerId(),
+                request.requesterAccountId(),
+                request.requesterRoleCode(),
                 request.categoryId(),
                 request.assignedTo(),
+                request.organizationId(),
+                request.parkingLotId(),
+                request.featureCode(),
                 request.status(),
                 request.priority(),
                 request.keyword()
@@ -257,26 +325,27 @@ public class SupportTicketController {
         ));
     }
 
-    @PostMapping("/{supportTicketId}/customer-conversation")
-    public ResponseEntity<ApiResponse<ChatConversationUserResponse>> openCustomerConversationForReply(
-            @PathVariable UUID supportTicketId
+    @PostMapping({"/{supportTicketId}/requester-conversation", "/{supportTicketId}/customer-conversation"})
+    public ResponseEntity<ApiResponse<ChatConversationUserResponse>> openRequesterConversationForReply(
+            @PathVariable UUID supportTicketId,
+            @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey
     ) {
         return ResponseEntity.ok(ApiResponse.ok(
-                "Customer conversation opened successfully",
+                "Requester conversation opened successfully",
                 chatConversationApiMapper.toConversationUserResponse(
-                        supportTicketPortIn.openCustomerConversationForReply(supportTicketId)
+                        supportTicketPortIn.openRequesterConversationForReply(supportTicketId, idempotencyKey)
                 )
         ));
     }
 
-    @GetMapping("/{supportTicketId}/customer-conversation")
-    public ResponseEntity<ApiResponse<ChatConversationUserResponse>> getActiveCustomerConversation(
+    @GetMapping({"/{supportTicketId}/requester-conversation", "/{supportTicketId}/customer-conversation"})
+    public ResponseEntity<ApiResponse<ChatConversationUserResponse>> getActiveRequesterConversation(
             @PathVariable UUID supportTicketId
     ) {
         return ResponseEntity.ok(ApiResponse.ok(
-                "Active customer conversation fetched successfully",
+                "Active requester conversation fetched successfully",
                 chatConversationApiMapper.toConversationUserResponse(
-                        supportTicketPortIn.getActiveCustomerConversation(supportTicketId)
+                        supportTicketPortIn.getActiveRequesterConversation(supportTicketId)
                 )
         ));
     }

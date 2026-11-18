@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.application.operations.supportticket.authorization;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
-import com.ban.vehicle_management.application.people.customer.authorization.CustomerIdentityResolver;
+import com.ban.vehicle_management.application.operations.supportticket.model.SupportRequesterContext;
 import com.ban.vehicle_management.domain.operations.supportticket.model.SupportTicket;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
@@ -12,175 +12,120 @@ import org.springframework.stereotype.Component;
 @Component
 public class SupportTicketAccessGuard {
 
-    private static final String CREATE_OWN_PERMISSION = "SUPPORT_TICKET_CREATE_OWN";
-    private static final String ASSISTANT_ACCESS_OWN_PERMISSION = "SUPPORT_WIDGET_ACCESS_OWN";
-    private static final String CREATE_FROM_CHAT_OWN_PERMISSION = "SUPPORT_TICKET_CREATE_FROM_CHAT_OWN";
-    private static final String READ_ALL_PERMISSION = "SUPPORT_TICKET_READ_ALL";
-    private static final String READ_OWN_PERMISSION = "SUPPORT_TICKET_READ_OWN";
-    private static final String READ_ASSIGNED_PERMISSION = "SUPPORT_TICKET_READ_ASSIGNED";
-    private static final String UPDATE_ALL_PERMISSION = "SUPPORT_TICKET_UPDATE_ALL";
-    private static final String UPDATE_OWN_PERMISSION = "SUPPORT_TICKET_UPDATE_OWN";
-    private static final String ASSIGN_PERMISSION = "SUPPORT_TICKET_ASSIGN";
-    private static final String CLAIM_OWN_PERMISSION = "SUPPORT_TICKET_CLAIM_OWN";
-    private static final String PROCESS_ALL_PERMISSION = "SUPPORT_TICKET_PROCESS_ALL";
-    private static final String PROCESS_ASSIGNED_PERMISSION = "SUPPORT_TICKET_PROCESS_ASSIGNED";
-    private static final String RESPOND_ASSIGNED_PERMISSION = "SUPPORT_TICKET_RESPOND_ASSIGNED";
-    private static final String REOPEN_ALL_PERMISSION = "SUPPORT_TICKET_REOPEN_ALL";
-    private static final String REOPEN_OWN_PERMISSION = "SUPPORT_TICKET_REOPEN_OWN";
-    private static final String CLOSE_ALL_PERMISSION = "SUPPORT_TICKET_CLOSE_ALL";
-    private static final String CLOSE_OWN_PERMISSION = "SUPPORT_TICKET_CLOSE_OWN";
-    private static final String ESCALATION_CREATE_OWN_PERMISSION = "SUPPORT_TICKET_ESCALATION_CREATE_OWN";
-    private static final String ESCALATION_REVIEW_ALL_PERMISSION = "SUPPORT_TICKET_ESCALATION_REVIEW_ALL";
-
     private final CurrentAccountPortIn currentAccountPortIn;
-    private final CustomerIdentityResolver customerIdentityResolver;
+    private final SupportRequesterContextResolver requesterContextResolver;
 
     public SupportTicketAccessGuard(
             CurrentAccountPortIn currentAccountPortIn,
-            CustomerIdentityResolver customerIdentityResolver
+            SupportRequesterContextResolver requesterContextResolver
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
-        this.customerIdentityResolver = customerIdentityResolver;
+        this.requesterContextResolver = requesterContextResolver;
     }
 
-    public UUID resolveCustomerIdForCreate() {
-        return resolveCurrentSupportCustomerId(CREATE_OWN_PERMISSION);
+    public SupportRequesterContext requesterForCreate() {
+        return requesterContextResolver.resolve("SUPPORT_TICKET_CREATE_OWN");
     }
 
-    public UUID resolveCustomerIdForAssistant() {
-        return resolveCurrentSupportCustomerId(ASSISTANT_ACCESS_OWN_PERMISSION);
+    public SupportRequesterContext requesterForAssistant() {
+        return requesterContextResolver.resolve("SUPPORT_WIDGET_ACCESS_OWN");
     }
 
-    public UUID resolveCustomerIdForCreateFromChat() {
-        return resolveCurrentSupportCustomerId(CREATE_FROM_CHAT_OWN_PERMISSION);
+    public SupportRequesterContext requesterForCreateFromChat() {
+        return requesterContextResolver.resolve("SUPPORT_TICKET_CREATE_FROM_CHAT_OWN");
     }
 
-    public UUID resolveCustomerIdForOwnTickets() {
-        return resolveCurrentSupportCustomerId(READ_OWN_PERMISSION);
+    public SupportRequesterContext requesterForOwnTickets() {
+        return requesterContextResolver.resolve("SUPPORT_TICKET_READ_OWN");
+    }
+
+    public void ensureRequesterScope(SupportRequesterContext requester, UUID organizationId, UUID parkingLotId) {
+        requesterContextResolver.ensureScopeAllowed(requester, organizationId, parkingLotId);
     }
 
     public void ensureCanRead(SupportTicket ticket) {
-        if (currentAccountPortIn.hasPermission(READ_ALL_PERMISSION)) {
-            return;
-        }
-
-        UUID accountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
-
-        if (currentAccountPortIn.hasPermission(READ_ASSIGNED_PERMISSION)
-                && accountId.equals(ticket.getAssignedTo())) {
-            return;
-        }
-
-        UUID customerId = resolveCurrentSupportCustomerId(READ_OWN_PERMISSION);
-        if (!customerId.equals(ticket.getCustomerId())) {
-            throw new AccessDeniedException("Access is denied");
+        if (!currentAccountPortIn.hasPermission("SUPPORT_TICKET_READ_ALL")) {
+            ensureOwner(ticket, "SUPPORT_TICKET_READ_OWN");
         }
     }
 
     public void ensureCanUpdate(SupportTicket ticket) {
-        if (currentAccountPortIn.hasPermission(UPDATE_ALL_PERMISSION)) {
-            return;
-        }
-
-        UUID customerId = resolveCurrentSupportCustomerId(UPDATE_OWN_PERMISSION);
-        if (!customerId.equals(ticket.getCustomerId())) {
-            throw new AccessDeniedException("Access is denied");
+        if (!currentAccountPortIn.hasPermission("SUPPORT_TICKET_UPDATE_ALL")) {
+            ensureOwner(ticket, "SUPPORT_TICKET_UPDATE_OWN");
         }
     }
 
     public void ensureCanAssign() {
-        currentAccountPortIn.requirePermission(ASSIGN_PERMISSION);
+        currentAccountPortIn.requirePermission("SUPPORT_TICKET_ASSIGN");
     }
 
     public UUID ensureCanCreateOrReadOwnEscalation(SupportTicket ticket) {
-        UUID customerId = resolveCurrentSupportCustomerId(ESCALATION_CREATE_OWN_PERMISSION);
-        if (!customerId.equals(ticket.getCustomerId())) {
-            throw new AccessDeniedException("Access is denied");
-        }
-        return currentAccountPortIn.getCurrentAccountIdOrThrow();
+        return ensureOwner(ticket, "SUPPORT_TICKET_ESCALATION_CREATE_OWN");
     }
 
     public UUID ensureCanReviewEscalation() {
-        currentAccountPortIn.requirePermission(ESCALATION_REVIEW_ALL_PERMISSION);
-        currentAccountPortIn.requirePermission(ASSIGN_PERMISSION);
-        currentAccountPortIn.requirePermission(READ_ALL_PERMISSION);
-        return currentAccountPortIn.getCurrentAccountIdOrThrow();
+        currentAccountPortIn.requirePermission("SUPPORT_TICKET_ESCALATION_REVIEW_ALL");
+        currentAccountPortIn.requirePermission("SUPPORT_TICKET_ASSIGN");
+        currentAccountPortIn.requirePermission("SUPPORT_TICKET_READ_ALL");
+        return currentAccountId();
     }
 
-    public UUID ensureCanReadOwnCustomerConversation(SupportTicket ticket) {
-        UUID customerId = resolveCurrentSupportCustomerId(READ_OWN_PERMISSION);
-        if (!customerId.equals(ticket.getCustomerId())) {
-            throw new AccessDeniedException("Access is denied");
-        }
-        return currentAccountPortIn.getCurrentAccountIdOrThrow();
+    public UUID ensureCanReadOwnRequesterConversation(SupportTicket ticket) {
+        return ensureOwner(ticket, "SUPPORT_TICKET_READ_OWN");
     }
 
     public UUID resolveAccountIdForClaim() {
-        currentAccountPortIn.requirePermission(CLAIM_OWN_PERMISSION);
-        return currentAccountPortIn.getCurrentAccountIdOrThrow();
+        currentAccountPortIn.requirePermission("SUPPORT_TICKET_CLAIM_OWN");
+        currentAccountPortIn.requirePermission("SUPPORT_TICKET_PROCESS_ALL");
+        return currentAccountId();
     }
 
     public void ensureCanProcess(SupportTicket ticket) {
-        if (currentAccountPortIn.hasPermission(PROCESS_ALL_PERMISSION)) {
-            return;
-        }
-
-        currentAccountPortIn.requirePermission(PROCESS_ASSIGNED_PERMISSION);
-        UUID accountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
-        if (!accountId.equals(ticket.getAssignedTo())) {
-            throw new AccessDeniedException("Access is denied");
+        currentAccountPortIn.requirePermission("SUPPORT_TICKET_PROCESS_ALL");
+        UUID accountId = currentAccountId();
+        if (ticket.getAssignedTo() == null || !accountId.equals(ticket.getAssignedTo())) {
+            throw new AccessDeniedException("Support ticket must be claimed by the current authorized handler");
         }
     }
 
-    /** A customer-facing reply is issued only by the employee currently assigned to the ticket. */
     public UUID ensureCanReplyAsAssignee(SupportTicket ticket) {
-        if (ticket.getStatus() != SupportTicketStatus.OPEN && ticket.getStatus() != SupportTicketStatus.IN_PROGRESS) {
+        if (ticket.getStatus() != SupportTicketStatus.OPEN
+                && ticket.getStatus() != SupportTicketStatus.IN_PROGRESS) {
             throw new BadRequestException("Only open or in-progress support ticket can be replied to");
         }
-        UUID accountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
-        if (!accountId.equals(ticket.getAssignedTo())) {
-            throw new AccessDeniedException("Access is denied");
-        }
-        currentAccountPortIn.requirePermission(READ_ASSIGNED_PERMISSION);
-        if (!currentAccountPortIn.hasPermission(PROCESS_ALL_PERMISSION)) {
-            currentAccountPortIn.requirePermission(PROCESS_ASSIGNED_PERMISSION);
-        }
-        currentAccountPortIn.requirePermission(RESPOND_ASSIGNED_PERMISSION);
-        currentAccountPortIn.requirePermission("CHAT_CONVERSATION_CREATE_CUSTOMER_DIRECT");
-        return accountId;
+        ensureCanProcess(ticket);
+        currentAccountPortIn.requirePermission("SUPPORT_TICKET_RESPOND_ASSIGNED");
+        return currentAccountId();
+    }
+
+    public UUID ensureCanShareAsAssignee(SupportTicket ticket) {
+        ensureCanProcess(ticket);
+        currentAccountPortIn.requirePermission("SUPPORT_TICKET_RESPOND_ASSIGNED");
+        return currentAccountId();
     }
 
     public void ensureCanReopen(SupportTicket ticket) {
-        if (currentAccountPortIn.hasPermission(REOPEN_ALL_PERMISSION)) {
-            return;
-        }
-
-        UUID customerId = resolveCurrentSupportCustomerId(REOPEN_OWN_PERMISSION);
-        if (!customerId.equals(ticket.getCustomerId())) {
-            throw new AccessDeniedException("Access is denied");
+        if (!currentAccountPortIn.hasPermission("SUPPORT_TICKET_REOPEN_ALL")) {
+            ensureOwner(ticket, "SUPPORT_TICKET_REOPEN_OWN");
         }
     }
 
     public UUID resolveClosedByForClose(SupportTicket ticket) {
-        UUID accountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
-
-        if (currentAccountPortIn.hasPermission(CLOSE_ALL_PERMISSION)) {
-            return accountId;
+        if (currentAccountPortIn.hasPermission("SUPPORT_TICKET_CLOSE_ALL")) {
+            return currentAccountId();
         }
-
-        UUID customerId = resolveCurrentSupportCustomerId(CLOSE_OWN_PERMISSION);
-        if (!customerId.equals(ticket.getCustomerId())) {
-            throw new AccessDeniedException("Access is denied");
-        }
-
-        return accountId;
+        return ensureOwner(ticket, "SUPPORT_TICKET_CLOSE_OWN");
     }
 
     public UUID currentAccountId() {
         return currentAccountPortIn.getCurrentAccountIdOrThrow();
     }
 
-    private UUID resolveCurrentSupportCustomerId(String permissionCode) {
-        return customerIdentityResolver.resolveCurrentCustomerIdForSupport(permissionCode);
+    private UUID ensureOwner(SupportTicket ticket, String permission) {
+        SupportRequesterContext requester = requesterContextResolver.resolve(permission);
+        if (!requester.accountId().equals(ticket.getRequesterAccountId())) {
+            throw new AccessDeniedException("Access is denied");
+        }
+        return requester.accountId();
     }
 }

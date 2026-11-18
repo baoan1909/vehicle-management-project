@@ -16,4 +16,5 @@ public interface SupportTicketCategoryPortOut {
     boolean existsActiveByCode(String code);
     boolean existsActiveByCodeAndCategoryIdNot(String code, UUID categoryId);
     boolean hasUnfinishedTickets(UUID categoryId);
+    boolean hasTickets(UUID categoryId);
 }

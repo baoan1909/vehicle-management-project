@@ -10,6 +10,8 @@ public interface SupportTicketCategoryPortIn {
     SupportTicketCategory createCategory(SupportTicketCategory category);
     SupportTicketCategory getCategoryById(UUID categoryId);
     List<SupportTicketCategory> getCategories(SupportTicketCategoryStatus status, SupportTicketCategoryPriority priority, String keyword);
+    List<SupportTicketCategory> getAvailableCategories();
+    SupportTicketCategory ensureAvailableCategory(UUID categoryId);
     SupportTicketCategory updateCategory(UUID categoryId, SupportTicketCategory category);
     void deleteCategory(UUID categoryId);
     SupportTicketCategory activateCategory(UUID categoryId);

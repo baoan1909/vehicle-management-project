@@ -5,7 +5,6 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.acc
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.billing.InvoiceEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.common.AuditableEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
-import com.ban.vehicle_management.infrastructure.persistence.database.entity.operations.SupportTicketEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingSessionEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerVehicleEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
@@ -90,9 +89,6 @@ public class CustomerEntity extends AuditableEntity {
 
     @OneToMany(mappedBy = "customer")
     private Set<InvoiceEntity> invoices = new HashSet<>();
-
-    @OneToMany(mappedBy = "customer")
-    private Set<SupportTicketEntity> supportTickets = new HashSet<>();
 
 }
 
