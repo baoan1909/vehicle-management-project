@@ -96,33 +96,25 @@ class SupportTicketCategoryPersistenceAdapterTest {
 
     @Test
     void shouldDelegateExistsActiveByCode() {
-        when(categoryRepository.existsByCodeAndStatus("LOST_CARD", SupportTicketCategoryStatus.ACTIVE))
+        when(categoryRepository.existsByCode("LOST_CARD"))
                 .thenReturn(true);
 
         boolean exists = categoryPersistenceAdapter.existsActiveByCode("LOST_CARD");
 
         assertTrue(exists);
-        verify(categoryRepository).existsByCodeAndStatus("LOST_CARD", SupportTicketCategoryStatus.ACTIVE);
+        verify(categoryRepository).existsByCode("LOST_CARD");
     }
 
     @Test
     void shouldDelegateExistsActiveByCodeAndCategoryIdNot() {
         UUID categoryId = UUID.randomUUID();
 
-        when(categoryRepository.existsByCodeAndStatusAndCategoryIdNot(
-                "LOST_CARD",
-                SupportTicketCategoryStatus.ACTIVE,
-                categoryId
-        )).thenReturn(true);
+        when(categoryRepository.existsByCodeAndCategoryIdNot("LOST_CARD", categoryId)).thenReturn(true);
 
         boolean exists = categoryPersistenceAdapter.existsActiveByCodeAndCategoryIdNot("LOST_CARD", categoryId);
 
         assertTrue(exists);
-        verify(categoryRepository).existsByCodeAndStatusAndCategoryIdNot(
-                "LOST_CARD",
-                SupportTicketCategoryStatus.ACTIVE,
-                categoryId
-        );
+        verify(categoryRepository).existsByCodeAndCategoryIdNot("LOST_CARD", categoryId);
     }
 
     @Test

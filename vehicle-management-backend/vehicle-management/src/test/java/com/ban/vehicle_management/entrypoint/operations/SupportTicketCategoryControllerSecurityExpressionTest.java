@@ -15,17 +15,17 @@ class SupportTicketCategoryControllerSecurityExpressionTest {
     @Test
     void adminCategoryEndpointsRequirePermissions() throws Exception {
         assertPermission("createCategory", new Class<?>[]{CreateSupportTicketCategoryRequest.class},
-                "@permissionAuthorizer.hasPermission('SUPPORT_TICKET_UPDATE_ALL')");
+                "@permissionAuthorizer.hasPermission('SUPPORT_TICKET_CATEGORY_CREATE_ALL')");
         assertPermission("getCategoryById", new Class<?>[]{UUID.class},
-                "@permissionAuthorizer.hasPermission('SUPPORT_TICKET_READ_ALL')");
+                "@permissionAuthorizer.hasPermission('SUPPORT_TICKET_CATEGORY_READ_ALL')");
         assertPermission("getCategories", new Class<?>[]{SupportTicketCategoryFilterRequest.class},
-                "@permissionAuthorizer.hasAnyPermission('SUPPORT_TICKET_READ_ALL', 'SUPPORT_TICKET_READ_ASSIGNED')");
+                "@permissionAuthorizer.hasPermission('SUPPORT_TICKET_CATEGORY_READ_ALL')");
         assertPermission("updateCategory", new Class<?>[]{UUID.class, UpdateSupportTicketCategoryRequest.class},
-                "@permissionAuthorizer.hasPermission('SUPPORT_TICKET_UPDATE_ALL')");
+                "@permissionAuthorizer.hasPermission('SUPPORT_TICKET_CATEGORY_UPDATE_ALL')");
         assertPermission("deleteCategory", new Class<?>[]{UUID.class},
-                "@permissionAuthorizer.hasPermission('SUPPORT_TICKET_UPDATE_ALL')");
+                "@permissionAuthorizer.hasPermission('SUPPORT_TICKET_CATEGORY_ACTIVATE_ALL')");
         assertPermission("activateCategory", new Class<?>[]{UUID.class},
-                "@permissionAuthorizer.hasPermission('SUPPORT_TICKET_UPDATE_ALL')");
+                "@permissionAuthorizer.hasPermission('SUPPORT_TICKET_CATEGORY_ACTIVATE_ALL')");
     }
 
     private void assertPermission(String method, Class<?>[] parameterTypes, String expected) throws Exception {

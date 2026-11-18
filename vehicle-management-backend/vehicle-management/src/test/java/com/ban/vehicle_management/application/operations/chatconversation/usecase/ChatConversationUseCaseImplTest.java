@@ -1,9 +1,11 @@
 package com.ban.vehicle_management.application.operations.chatconversation.usecase;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -13,12 +15,15 @@ import com.ban.vehicle_management.application.ai.port.in.AssistantJobPortIn;
 import com.ban.vehicle_management.application.operations.chatconversation.mapper.ChatRealtimeEventMapper;
 import com.ban.vehicle_management.application.operations.chatconversation.port.out.ChatConversationPortOut;
 import com.ban.vehicle_management.application.operations.chatconversation.port.out.ChatRealtimeEventPublisherPortOut;
+import com.ban.vehicle_management.application.operations.supportticket.service.SupportTicketChatMessageContextService;
 import com.ban.vehicle_management.application.storage.port.out.FileAccessPort;
 import com.ban.vehicle_management.application.storage.port.out.FileStoragePort;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatConversation;
 import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatConversationMember;
+import com.ban.vehicle_management.domain.operations.chatmessage.model.ChatMessage;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatMemberRole;
+import com.ban.vehicle_management.shared.enumeration.operations.ChatConversationStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatConversationType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.util.ArrayList;
@@ -54,6 +59,9 @@ class ChatConversationUseCaseImplTest {
     private ChatRealtimeEventMapper realtimeEventMapper;
 
     @Mock
+    private SupportTicketChatMessageContextService ticketMessageContextService;
+
+    @Mock
     private FileStoragePort fileStoragePort;
 
     @Mock
@@ -61,6 +69,32 @@ class ChatConversationUseCaseImplTest {
 
     @InjectMocks
     private ChatConversationUseCaseImpl chatConversationUseCase;
+
+    @Test
+    void staleFinalTicketContextIsPersistedAsGenericPrivateChatMessage() {
+        UUID accountId = UUID.randomUUID();
+        UUID conversationId = UUID.randomUUID();
+        UUID staleTicketId = UUID.randomUUID();
+        ChatConversation conversation = new ChatConversation();
+        conversation.setConversationId(conversationId);
+        conversation.setConversationType(ChatConversationType.SUPPORT_REQUESTER_DIRECT);
+        conversation.setStatus(ChatConversationStatus.ACTIVE);
+
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(accountId);
+        when(chatPortOut.findConversationById(conversationId)).thenReturn(Optional.of(conversation));
+        when(chatPortOut.existsActiveMember(conversationId, accountId)).thenReturn(true);
+        when(ticketMessageContextService.resolveContextForSend(conversation, staleTicketId, accountId)).thenReturn(null);
+        when(chatPortOut.saveMessage(any(ChatMessage.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(chatPortOut.saveConversation(conversation)).thenReturn(conversation);
+
+        ChatMessage result = chatConversationUseCase.sendTextMessage(
+                conversationId, "Trao đổi chăm sóc chung", null, staleTicketId
+        );
+
+        assertNull(result.getContextTicketId());
+        verify(chatPortOut).saveMessage(argThat(message -> message.getContextTicketId() == null));
+        verify(ticketMessageContextService).resolveContextForSend(conversation, staleTicketId, accountId);
+    }
 
     @ParameterizedTest(name = "{0} can create a direct conversation with a selected customer")
     @ValueSource(strings = {"PARTNER_ADMIN", "PARKING_MANAGER", "EMPLOYEE"})

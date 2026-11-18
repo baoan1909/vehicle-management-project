@@ -362,6 +362,145 @@ class SpatialFreshDatabaseContainerTest {
         }
     }
 
+    @Test
+    void shouldAllowMultipleTicketSnapshotsAndKeepOneMessagePerEvent() throws SQLException {
+        UUID conversationId = UUID.randomUUID();
+        UUID ticketId = UUID.randomUUID();
+        UUID firstEventId = UUID.randomUUID();
+        UUID secondEventId = UUID.randomUUID();
+        UUID firstMessageId = UUID.randomUUID();
+        UUID secondMessageId = UUID.randomUUID();
+
+        try (Connection connection = connection(); Statement statement = connection.createStatement()) {
+            statement.execute("SET session_replication_role = replica");
+            try {
+                statement.executeUpdate("""
+                        INSERT INTO operations.support_ticket_events (
+                            event_id, support_ticket_id, conversation_id, event_type,
+                            snapshot_status, snapshot_payload, idempotency_key
+                        ) VALUES
+                            ('%s', '%s', '%s', 'SHARED', 'IN_PROGRESS', '{"snapshotStatus":"IN_PROGRESS"}'::jsonb, 'snapshot-one'),
+                            ('%s', '%s', '%s', 'RESOLVED', 'RESOLVED', '{"snapshotStatus":"RESOLVED"}'::jsonb, 'snapshot-two')
+                        """.formatted(
+                        firstEventId, ticketId, conversationId,
+                        secondEventId, ticketId, conversationId
+                ));
+                statement.executeUpdate("""
+                        INSERT INTO operations.chat_messages (
+                            message_id, conversation_id, message_type, related_schema,
+                            related_table, related_id, support_ticket_event_id
+                        ) VALUES
+                            ('%s', '%s', 'SUPPORT_REQUEST', 'operations', 'support_tickets', '%s', '%s'),
+                            ('%s', '%s', 'SUPPORT_REQUEST', 'operations', 'support_tickets', '%s', '%s')
+                        """.formatted(
+                        firstMessageId, conversationId, ticketId, firstEventId,
+                        secondMessageId, conversationId, ticketId, secondEventId
+                ));
+
+                try (ResultSet result = statement.executeQuery("""
+                        SELECT COUNT(*)
+                        FROM operations.chat_messages
+                        WHERE conversation_id = '%s'
+                          AND related_id = '%s'
+                          AND message_type = 'SUPPORT_REQUEST'
+                        """.formatted(conversationId, ticketId))) {
+                    assertTrue(result.next());
+                    assertEquals(2, result.getInt(1));
+                }
+
+                SQLException duplicate = assertThrows(SQLException.class, () -> statement.executeUpdate("""
+                        INSERT INTO operations.chat_messages (
+                            message_id, conversation_id, message_type, related_schema,
+                            related_table, related_id, support_ticket_event_id
+                        ) VALUES ('%s', '%s', 'SUPPORT_REQUEST', 'operations', 'support_tickets', '%s', '%s')
+                        """.formatted(UUID.randomUUID(), conversationId, ticketId, firstEventId)));
+                assertEquals("23505", duplicate.getSQLState());
+            } finally {
+                statement.executeUpdate("DELETE FROM operations.chat_messages WHERE conversation_id = '" + conversationId + "'");
+                statement.executeUpdate("DELETE FROM operations.support_ticket_events WHERE conversation_id = '" + conversationId + "'");
+                statement.execute("SET session_replication_role = origin");
+            }
+        }
+    }
+
+    @Test
+    void shouldRollbackTicketStatusAndSnapshotWhenMessagePersistenceFails() throws SQLException {
+        UUID ticketId = UUID.randomUUID();
+        UUID conversationId = UUID.randomUUID();
+        UUID eventId = UUID.randomUUID();
+
+        try (Connection connection = connection(); Statement statement = connection.createStatement()) {
+            connection.setAutoCommit(false);
+            statement.execute("SET session_replication_role = replica");
+            try {
+                statement.executeUpdate("""
+                        INSERT INTO operations.support_tickets (
+                            support_ticket_id, category_id, requester_account_id, requester_role_code,
+                            title, content, status
+                        ) VALUES ('%s', '%s', '%s', 'TEST_REQUESTER', 'Rollback test', 'Rollback test', 'IN_PROGRESS')
+                        """.formatted(ticketId, UUID.randomUUID(), UUID.randomUUID()));
+                statement.executeUpdate("""
+                        INSERT INTO operations.chat_conversations (
+                            conversation_id, conversation_type, status, owner_account_id
+                        ) VALUES ('%s', 'SUPPORT_REQUESTER_DIRECT', 'ACTIVE', '%s')
+                        """.formatted(conversationId, UUID.randomUUID()));
+                connection.commit();
+
+                statement.executeUpdate("""
+                        UPDATE operations.support_tickets
+                        SET status = 'RESOLVED', resolved_at = now(), auto_close_at = now() + interval '24 hours'
+                        WHERE support_ticket_id = '%s'
+                        """.formatted(ticketId));
+                statement.executeUpdate("""
+                        INSERT INTO operations.support_ticket_events (
+                            event_id, support_ticket_id, conversation_id, event_type,
+                            from_status, to_status, snapshot_status, snapshot_payload, idempotency_key
+                        ) VALUES (
+                            '%s', '%s', '%s', 'RESOLVED',
+                            'IN_PROGRESS', 'RESOLVED', 'RESOLVED', '{"snapshotStatus":"RESOLVED"}'::jsonb,
+                            'rollback-resolved'
+                        )
+                        """.formatted(eventId, ticketId, conversationId));
+                statement.executeUpdate("""
+                        INSERT INTO operations.chat_messages (
+                            message_id, conversation_id, message_type, related_schema,
+                            related_table, related_id, support_ticket_event_id
+                        ) VALUES (gen_random_uuid(), '%s', 'SUPPORT_REQUEST', 'operations', 'support_tickets', '%s', '%s')
+                        """.formatted(conversationId, ticketId, eventId));
+
+                SQLException duplicate = assertThrows(SQLException.class, () -> statement.executeUpdate("""
+                        INSERT INTO operations.chat_messages (
+                            message_id, conversation_id, message_type, related_schema,
+                            related_table, related_id, support_ticket_event_id
+                        ) VALUES (gen_random_uuid(), '%s', 'SUPPORT_REQUEST', 'operations', 'support_tickets', '%s', '%s')
+                        """.formatted(conversationId, ticketId, eventId)));
+                assertEquals("23505", duplicate.getSQLState());
+                connection.rollback();
+
+                try (ResultSet result = statement.executeQuery("""
+                        SELECT status FROM operations.support_tickets WHERE support_ticket_id = '%s'
+                        """.formatted(ticketId))) {
+                    assertTrue(result.next());
+                    assertEquals("IN_PROGRESS", result.getString(1));
+                }
+                assertEquals(0, scalar(connection, """
+                        SELECT COUNT(*) FROM operations.support_ticket_events WHERE event_id = '%s'
+                        """.formatted(eventId)));
+                assertEquals(0, scalar(connection, """
+                        SELECT COUNT(*) FROM operations.chat_messages WHERE support_ticket_event_id = '%s'
+                        """.formatted(eventId)));
+            } finally {
+                statement.executeUpdate("DELETE FROM operations.chat_messages WHERE conversation_id = '" + conversationId + "'");
+                statement.executeUpdate("DELETE FROM operations.support_ticket_events WHERE conversation_id = '" + conversationId + "'");
+                statement.executeUpdate("DELETE FROM operations.chat_conversations WHERE conversation_id = '" + conversationId + "'");
+                statement.executeUpdate("DELETE FROM operations.support_tickets WHERE support_ticket_id = '" + ticketId + "'");
+                connection.commit();
+                statement.execute("SET session_replication_role = origin");
+                connection.commit();
+            }
+        }
+    }
+
     private static void insertActiveParkingLot(
             Statement statement,
             UUID parkingLotId,

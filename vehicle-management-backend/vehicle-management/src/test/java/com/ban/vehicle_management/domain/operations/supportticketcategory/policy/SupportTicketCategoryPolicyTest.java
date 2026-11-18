@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.ban.vehicle_management.domain.operations.supportticketcategory.model.SupportTicketCategory;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCategoryPriority;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCategoryStatus;
+import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketAudienceType;
+import com.ban.vehicle_management.shared.enumeration.operations.PermissionMatchMode;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import org.junit.jupiter.api.Test;
 
@@ -85,6 +87,14 @@ class SupportTicketCategoryPolicyTest {
     }
 
     @Test
+    void shouldRejectAllAudienceBecauseCategoriesHaveTwoExplicitSets() {
+        SupportTicketCategory category = validCategory();
+        category.setAudienceType(SupportTicketAudienceType.ALL);
+
+        assertThrows(BadRequestException.class, () -> categoryPolicy.initialize(category));
+    }
+
+    @Test
     void shouldActivateCategory() {
         SupportTicketCategory category = validCategory();
         category.setStatus(SupportTicketCategoryStatus.INACTIVE);
@@ -110,6 +120,9 @@ class SupportTicketCategoryPolicyTest {
         category.setDescription("Khach mat the khi ra bai");
         category.setPriority(SupportTicketCategoryPriority.HIGH);
         category.setStatus(SupportTicketCategoryStatus.ACTIVE);
+        category.setAudienceType(SupportTicketAudienceType.CUSTOMER);
+        category.setPermissionMatchMode(PermissionMatchMode.ANY);
+        category.setDisplayOrder(0);
         return category;
     }
 }
