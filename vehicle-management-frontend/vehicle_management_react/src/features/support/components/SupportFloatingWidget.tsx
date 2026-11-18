@@ -30,9 +30,10 @@ import { SupportComposerActions } from "@/features/support/components/SupportCom
 import { SupportSparkleIcon } from "@/features/support/components/SupportSparkleIcon";
 import { OPEN_SUPPORT_WIDGET_EVENT } from "@/features/support/supportWidgetEvents";
 import { SupportTicketCard } from "@/features/support/components/SupportTicketCard";
-import { SupportTicketCustomerActions } from "@/features/support/components/SupportTicketCustomerActions";
+import { SupportTicketRequesterActions } from "@/features/support/components/SupportTicketCustomerActions";
 import { SupportTicketHistoryDialog, type TicketHistoryLoader } from "@/features/support/components/SupportTicketHistoryDialog";
 import { hasAnyPermission } from "@/shared/auth/permissions";
+import { applySnapshotToTicket, parseSupportTicketSnapshot } from "@/features/support/api/supportTicketSnapshot";
 
 type Position = { x: number; y: number };
 type DragOffset = { x: number; y: number };
@@ -459,7 +460,9 @@ export function SupportFloatingWidget() {
             {!messagesLoading && !panelError && messages.length === 0 ? <div className="tw-mx-auto tw-mt-8 tw-max-w-[260px] tw-text-center tw-text-sm tw-text-slate-500"><span className="tw-mx-auto tw-mb-3 tw-flex tw-h-12 tw-w-12 tw-items-center tw-justify-center tw-rounded-full tw-bg-cyan-50 tw-p-3"><SupportSparkleIcon /></span>Xin chào! Bạn cần CoParking hỗ trợ vấn đề gì?</div> : null}
             {messages.filter((message) => !message.deleted).map((message) => {
               const ticket = message.relatedId ? ticketsById[message.relatedId] : undefined;
-              if (message.messageType === "SUPPORT_REQUEST" && ticket) return <SupportTicketCard actions={<SupportTicketCustomerActions ticket={ticket} />} key={message.messageId} ticket={ticket} />;
+              const snapshot = parseSupportTicketSnapshot(message);
+              const displayTicket = ticket ? applySnapshotToTicket(ticket, snapshot) : undefined;
+              if (message.messageType === "SUPPORT_REQUEST" && ticket && displayTicket) return <SupportTicketCard actions={<SupportTicketRequesterActions ticket={ticket} />} key={message.messageId} ticket={displayTicket} />;
               if (message.messageType === "ACTION_CARD") {
                 const payload = parseActionCardPayload(message.content);
                 const toolCallId = payload.toolCallId ?? message.relatedId ?? "";

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { getVisibleAdminNavigation } from "@/app/routePermissions";
@@ -11,6 +11,7 @@ import { PlatformMonitoringScopePicker } from "./PlatformMonitoringScopePicker";
 import { usePlatformMonitoringScope } from "@/shared/monitoring/PlatformMonitoringScope";
 
 const scopedMonitoringPaths = new Set(["/admin/parking-lots", "/admin/parking-structure", "/admin/parking-layouts", "/admin/parking-live", "/admin/swipe/sessions", "/admin/card"]);
+let expandedSidebarScrollTop = 0;
 
 const postOnboardingGroupAnchors: Record<string, string> = {
   "Bãi xe & thiết bị": "ADMIN.NAV.PARKING",
@@ -50,6 +51,7 @@ function SidebarIcon({ icon }: { icon: AdminSidebarIcon }) {
     role: "fas fa-user-shield",
     settings: "fas fa-cog",
     support: "fas fa-headset",
+    guide: "fas fa-book-open",
     notification: "far fa-bell",
   } satisfies Record<AdminSidebarIcon, string>;
 
@@ -183,6 +185,35 @@ export function AdminSidebar({ collapsed, offsetTop = 72, onCollapsedChange }: A
     && hasAnyPermission(user, ["PARKING_LOT_READ_ALL"]);
   const visibleNavigation = useMemo(() => getVisibleAdminNavigation(user), [user]);
   const [expandedGroupLabel, setExpandedGroupLabel] = useState<string | null>(() => getActiveGroupLabel(visibleNavigation, location.pathname));
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+
+  useLayoutEffect(() => {
+    if (!collapsed && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = expandedSidebarScrollTop;
+    }
+  }, [collapsed]);
+
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return undefined;
+
+    const isolateSidebarWheel = (event: WheelEvent) => {
+      if (event.deltaY === 0) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const deltaFactor = event.deltaMode === WheelEvent.DOM_DELTA_LINE
+        ? 16
+        : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
+          ? scrollContainer.clientHeight
+          : 1;
+      scrollContainer.scrollTop += event.deltaY * deltaFactor;
+    };
+
+    scrollContainer.addEventListener("wheel", isolateSidebarWheel, { passive: false });
+    return () => scrollContainer.removeEventListener("wheel", isolateSidebarWheel);
+  }, []);
 
   useEffect(() => {
     setExpandedGroupLabel(getActiveGroupLabel(visibleNavigation, location.pathname));
@@ -202,7 +233,13 @@ export function AdminSidebar({ collapsed, offsetTop = 72, onCollapsedChange }: A
       aria-label="CoParking admin sidebar"
     >
       <div className={cn("tw-flex tw-h-full tw-flex-col", collapsed ? "tw-px-3" : "tw-px-4")}>
-        <div className="tw-min-h-0 tw-flex-1 tw-overflow-y-auto tw-pb-4 tw-pt-7 [scrollbar-width:none] [&::-webkit-scrollbar]:tw-hidden">
+        <div
+          ref={scrollContainerRef}
+          className="tw-min-h-0 tw-flex-1 tw-overflow-y-auto tw-overscroll-contain tw-pb-4 tw-pt-7 [scrollbar-width:none] [&::-webkit-scrollbar]:tw-hidden"
+          onScroll={(event) => {
+            if (!collapsed) expandedSidebarScrollTop = event.currentTarget.scrollTop;
+          }}
+        >
         {!collapsed && canUsePlatformNavigation && !isPermissionLoading ? (
           <div className="tw-mb-5 tw-px-2">
             <p className="tw-m-0 tw-text-[0.68rem] tw-font-black tw-uppercase tw-tracking-[0.12em] tw-text-vm-slate-500">CoParking Platform</p>

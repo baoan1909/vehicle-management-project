@@ -5,13 +5,21 @@ import { NotificationBell } from "@/features/notifications/components/Notificati
 import { ChatInboxButton } from "@/features/support/components/ChatInboxButton";
 import { AdminAccountMenu } from "./AdminAccountMenu";
 import { AdminHelpMenu } from "./AdminHelpMenu";
+import { useAuth } from "@/core/auth/useAuth";
+import { hasAnyPermission } from "@/shared/auth/permissions";
 
 const searchSuggestions = ["Tìm thẻ xe", "Tra cứu khách hàng", "Kiểm tra xe đang trong bãi"];
 
 export function AdminHeader() {
+  const { user } = useAuth();
   const [searchValue, setSearchValue] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement | null>(null);
+  const isGlobalSupportOperator = hasAnyPermission(user, [
+    "SUPPORT_TICKET_READ_ALL",
+    "SUPPORT_TICKET_ASSIGN",
+    "SUPPORT_TICKET_PROCESS_ALL",
+  ]);
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -89,7 +97,7 @@ export function AdminHeader() {
         <div className="tw-flex tw-items-center tw-justify-end tw-gap-[1.1rem]">
           <ChatInboxButton />
           <NotificationBell variant="admin" />
-          <AdminHelpMenu />
+          {!isGlobalSupportOperator ? <AdminHelpMenu /> : null}
 
           <AdminAccountMenu />
         </div>

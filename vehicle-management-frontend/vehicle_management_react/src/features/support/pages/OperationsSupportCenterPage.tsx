@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, ReactNode } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 
 import { Badge, Button, EntityAvatar, Modal, SelectMenu, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
@@ -33,17 +33,20 @@ import {
   createSupportTicketFromConversation,
   getConversationSupportTicketHistory,
   getSupportTicketById,
-  openSupportTicketCustomerConversation,
+  openSupportTicketRequesterConversation,
+  reopenMySupportTicket,
   reopenSupportTicket,
   resolveSupportTicket,
+  shareSupportTicketWithConversation,
   type SupportTicketPriority,
   type SupportTicketResponse,
   type SupportTicketStatus,
 } from "@/features/support/api/supportApi";
+import { parseSupportTicketSnapshot } from "@/features/support/api/supportTicketSnapshot";
 import { CreateSupportTicketDialog } from "@/features/support/components/CreateSupportTicketDialog";
 import { SupportTicketHistoryDialog, type TicketHistoryLoader } from "@/features/support/components/SupportTicketHistoryDialog";
 import { supportTicketCode } from "@/features/support/components/SupportTicketCard";
-import { SupportTicketCustomerActions } from "@/features/support/components/SupportTicketCustomerActions";
+import { SupportTicketRequesterActions } from "@/features/support/components/SupportTicketCustomerActions";
 import { cn } from "@/lib/cn";
 import { hasAnyPermission, hasResolvedPermissions } from "@/shared/auth/permissions";
 import { AdminAccountMenu } from "@/shared/components/layout/AdminAccountMenu";
@@ -288,6 +291,7 @@ const relatedInfo: InfoLine[] = [
 const chatConversationTypeLabel: Partial<Record<ChatConversationType, string>> = {
   BILLING: "Thanh toán",
   CUSTOMER_DIRECT: "Hỗ trợ khách hàng",
+  SUPPORT_REQUESTER_DIRECT: "Hỗ trợ người yêu cầu",
   INTERNAL_DIRECT: "Nội bộ trực tiếp",
   INTERNAL_GROUP: "Nhóm nội bộ",
   LOST_CARD: "Mất thẻ",
@@ -314,6 +318,10 @@ const conversationTones: Conversation["tone"][] = ["blue", "green", "amber", "re
 
 function isUuid(value: string | null | undefined) {
   return Boolean(value && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value));
+}
+
+function isRequesterSupportDirect(type: ChatConversationType | undefined) {
+  return type === "CUSTOMER_DIRECT" || type === "SUPPORT_REQUESTER_DIRECT";
 }
 
 function formatClock(value: string | null | undefined) {
@@ -428,7 +436,7 @@ function getParticipantDisplayName(participant: ChatConversationParticipantRespo
 function resolvePrimaryParticipant(conversation: ChatConversationResponse, currentAccountId?: string | null) {
   const participants = conversation.participants ?? [];
   if (conversation.conversationType === "INTERNAL_DIRECT"
-    || conversation.conversationType === "CUSTOMER_DIRECT"
+    || isRequesterSupportDirect(conversation.conversationType)
     || conversation.conversationType === "SUPPORT_TICKET") {
     // A direct-chat item always represents the other person. Selecting by role made a
     // customer see themselves while the staff member saw the customer.
@@ -556,7 +564,7 @@ function mapChatConversation(
   const isCustomerFlow = Boolean(
     conversation.customerId
       || conversation.supportTicketId
-      || conversation.conversationType === "CUSTOMER_DIRECT"
+      || isRequesterSupportDirect(conversation.conversationType)
       || conversation.conversationType === "ASSISTANT_SUPPORT",
   );
   const participantType = getParticipantType(primaryParticipant);
@@ -608,7 +616,7 @@ function mergeTicketIntoConversation(conversation: Conversation, ticket: Support
   return {
     ...conversation,
     customerLevel: ticket.categoryName ?? conversation.customerLevel,
-    participantId: ticket.customerId,
+    participantId: ticket.requesterAccountId,
     priority,
     priorityLabel: supportPriorityLabel[ticket.priority],
     sla: supportTicketStatusLabel[ticket.status],
@@ -657,32 +665,28 @@ function InfoLineView({ item }: { item: InfoLine }) {
 
 function TopBar({ guideEnabled }: { guideEnabled: boolean }) {
   const location = useLocation();
-  const navigate = useNavigate();
   const isCustomer = location.pathname.startsWith("/customer/");
+  const isRequesterPortal = isCustomer || location.pathname.startsWith("/admin/my-support");
 
   return (
     <header className="vm-chat-topbar tw-flex tw-h-[64px] tw-items-center tw-justify-between tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-6">
-      <h1 className="tw-m-0 tw-text-[1.35rem] tw-font-extrabold tw-text-vm-slate-900">{isCustomer ? "Chat hỗ trợ" : "Trung tâm hỗ trợ vận hành"}</h1>
+      <h1 className="tw-m-0 tw-text-[1.35rem] tw-font-extrabold tw-text-vm-slate-900">{isRequesterPortal ? "Chat hỗ trợ" : "Trung tâm hỗ trợ vận hành"}</h1>
       <div className="vm-chat-topbar-actions tw-flex tw-items-center tw-gap-5">
         <span className="vm-chat-topbar-status tw-flex tw-items-center tw-gap-2 tw-text-[0.82rem] tw-font-semibold tw-text-vm-slate-700">
           <span className="tw-h-2.5 tw-w-2.5 tw-rounded-full tw-bg-green-500" />
           Hệ thống hoạt động bình thường
         </span>
-        {!isCustomer ? <button type="button" className="vm-chat-shift tw-flex tw-h-10 tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-text-[0.82rem] tw-font-bold tw-text-vm-slate-700">
+        {!isRequesterPortal ? <button type="button" className="vm-chat-shift tw-flex tw-h-10 tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-text-[0.82rem] tw-font-bold tw-text-vm-slate-700">
           <i className="far fa-clock" />
           Ca làm việc: 08:00 - 17:00
           <i className="fas fa-chevron-down tw-text-[0.65rem]" />
         </button> : null}
         <NotificationBell variant="admin" />
-        {isCustomer ? <UserGuideHelpButton enabled={guideEnabled} guideCode="CUSTOMER_SUPPORT_CHAT" label="Hướng dẫn" /> : null}
-        {!isCustomer ? <button type="button" className="vm-chat-help tw-inline-flex tw-h-10 tw-w-10 tw-items-center tw-justify-center tw-rounded-full tw-border-0 tw-bg-white tw-text-vm-slate-700 hover:tw-bg-vm-slate-25" aria-label="Trợ giúp">
+        {isCustomer ? <UserGuideHelpButton className="vm-chat-guide" enabled={guideEnabled} guideCode="CUSTOMER_SUPPORT_CHAT" label="Hướng dẫn" /> : null}
+        {!isRequesterPortal ? <button type="button" className="vm-chat-help tw-inline-flex tw-h-10 tw-w-10 tw-items-center tw-justify-center tw-rounded-full tw-border-0 tw-bg-white tw-text-vm-slate-700 hover:tw-bg-vm-slate-25" aria-label="Trợ giúp">
           <i className="far fa-question-circle tw-text-[1.1rem]" />
         </button> : null}
-        {isCustomer ? (
-          <button type="button" className="vm-chat-home tw-inline-flex tw-h-10 tw-w-10 tw-items-center tw-justify-center tw-rounded-full tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-text-vm-primary" aria-label="Về trang khách hàng" onClick={() => navigate("/customer/dashboard")}>
-            <i className="fas fa-home" />
-          </button>
-        ) : <AdminAccountMenu />}
+        <AdminAccountMenu portal={isCustomer ? "customer" : "admin"} />
       </div>
     </header>
   );
@@ -1166,27 +1170,64 @@ function MessageActionsMenu({
 }
 
 function SupportTicketMessageCard({
+  canReopenOwnTicket,
+  canResolveTicket,
   conversationType,
+  currentUserId,
+  isUpdatingTicket,
   message,
+  ticketRefreshSignal,
+  onReopenTicket,
+  onResolveTicket,
   onViewTicket,
 }: {
+  canReopenOwnTicket: boolean;
+  canResolveTicket: boolean;
   conversationType?: ChatConversationType;
+  currentUserId?: string;
+  isUpdatingTicket: boolean;
   message: ChatMessageResponse;
+  ticketRefreshSignal: string;
+  onReopenTicket: (ticket: SupportTicketResponse) => void;
+  onResolveTicket: (ticket: SupportTicketResponse) => void;
   onViewTicket: (ticket: SupportTicketResponse) => void;
 }) {
   const [ticket, setTicket] = useState<SupportTicketResponse | null>(null);
+  const snapshot = useMemo(() => parseSupportTicketSnapshot(message), [message]);
 
   useEffect(() => {
     if (!message.relatedId || message.relatedSchema !== "operations" || message.relatedTable !== "support_tickets") return;
     void getSupportTicketById(message.relatedId)
       .then((response) => setTicket(response.data))
       .catch(() => setTicket(null));
-  }, [message.relatedId, message.relatedSchema, message.relatedTable]);
+  }, [message.relatedId, message.relatedSchema, message.relatedTable, ticketRefreshSignal]);
 
-  const title = ticket?.title ?? "Phiếu yêu cầu hỗ trợ";
-  const content = ticket?.content ?? message.content ?? "Đang tải nội dung yêu cầu...";
-  const status = ticket ? supportTicketStatusLabel[ticket.status] : "Đã ghi nhận";
-  const priority = ticket ? supportPriorityLabel[ticket.priority] : "Hỗ trợ";
+  const title = snapshot?.title ?? ticket?.title ?? "Phiếu yêu cầu hỗ trợ";
+  const content = snapshot?.content ?? ticket?.content ?? message.content ?? "Đang tải nội dung yêu cầu...";
+  const code = snapshot?.ticketCode ?? (message.relatedId ? supportTicketCode(message.relatedId) : "--");
+  const category = snapshot?.categoryName ?? ticket?.categoryName ?? snapshot?.categoryCode ?? ticket?.categoryCode ?? "Hỗ trợ";
+  const occurredAt = formatClock(snapshot?.occurredAt ?? message.createdAt);
+  const snapshotStatus = snapshot?.snapshotStatus ?? ticket?.status;
+  const status = snapshotStatus ? supportTicketStatusLabel[snapshotStatus] : "Đã ghi nhận";
+  const priority = snapshot?.priority
+    ? supportPriorityLabel[snapshot.priority]
+    : ticket
+      ? supportPriorityLabel[ticket.priority]
+      : "Hỗ trợ";
+  const isRequester = Boolean(ticket && currentUserId === ticket.requesterAccountId);
+  const canResolve = Boolean(
+    ticket
+      && snapshotStatus === "IN_PROGRESS"
+      && ticket.assignedTo === currentUserId
+      && canResolveTicket,
+  );
+  const canContinue = Boolean(
+    ticket
+      && ticket.status === "RESOLVED"
+      && snapshotStatus === "RESOLVED"
+      && isRequester
+      && canReopenOwnTicket,
+  );
 
   return (
     <article className="tw-w-[min(100%,420px)] tw-rounded-vm-lg tw-border tw-border-solid tw-border-brand-100 tw-bg-white tw-p-4 tw-shadow-[0_10px_24px_rgba(37,99,235,0.08)]">
@@ -1194,42 +1235,76 @@ function SupportTicketMessageCard({
         <div className="tw-flex tw-items-center tw-gap-2">
           <span className="tw-inline-flex tw-h-9 tw-w-9 tw-items-center tw-justify-center tw-rounded-vm-md tw-bg-brand-50 tw-text-vm-primary"><i className="far fa-life-ring" /></span>
           <div>
-            <p className="tw-m-0 tw-text-[0.72rem] tw-font-extrabold tw-uppercase tw-tracking-wide tw-text-vm-primary">Phiếu hỗ trợ</p>
+            <p className="tw-m-0 tw-text-[0.72rem] tw-font-extrabold tw-uppercase tw-tracking-wide tw-text-vm-primary">Phiếu hỗ trợ · {code}</p>
             <h4 className="tw-m-0 tw-text-sm tw-font-extrabold tw-text-vm-slate-900">{title}</h4>
           </div>
         </div>
-        <Badge tone={ticket?.status === "RESOLVED" || ticket?.status === "CLOSED" ? "success" : "primary"}>{status}</Badge>
+        <Badge tone={snapshotStatus === "RESOLVED" || snapshotStatus === "CLOSED" ? "success" : "primary"}>{status}</Badge>
       </div>
       <p className="tw-mb-3 tw-mt-3 tw-line-clamp-3 tw-text-[0.82rem] tw-font-semibold tw-leading-relaxed tw-text-vm-slate-600">{content}</p>
-      <div className="tw-flex tw-items-center tw-justify-between tw-gap-3">
-        <span className="tw-text-[0.72rem] tw-font-bold tw-text-vm-slate-500"><i className="far fa-flag tw-mr-1" />{priority}</span>
-        <button className="tw-h-8 tw-rounded-vm-md tw-border-0 tw-bg-vm-primary tw-px-3 tw-text-xs tw-font-extrabold tw-text-white hover:tw-bg-vm-primary-hover" type="button" disabled={!ticket} onClick={() => ticket && onViewTicket(ticket)}>
-          Xem chi tiết
-        </button>
+      {snapshot ? <p className="tw-mb-2 tw-mt-0 tw-text-[0.68rem] tw-font-bold tw-text-vm-slate-400">Trạng thái tại thời điểm gửi</p> : null}
+      {ticket?.status === "RESOLVED" && snapshotStatus === "RESOLVED" && ticket.autoCloseAt ? (
+        <p className="tw-mb-2 tw-mt-0 tw-text-[0.72rem] tw-font-bold tw-text-amber-700">
+          <i className="far fa-hourglass tw-mr-1.5" />Tự động đóng lúc {formatDateTime(ticket.autoCloseAt)} nếu phiếu không có trao đổi mới
+        </p>
+      ) : null}
+      <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3">
+        <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-3 tw-text-[0.72rem] tw-font-bold tw-text-vm-slate-500">
+          <span><i className="far fa-folder-open tw-mr-1" />{category}</span>
+          <span><i className="far fa-flag tw-mr-1" />{priority}</span>
+          <time dateTime={snapshot?.occurredAt ?? message.createdAt ?? undefined}><i className="far fa-clock tw-mr-1" />{occurredAt}</time>
+        </div>
+        <div className="tw-flex tw-flex-wrap tw-justify-end tw-gap-2">
+          {canResolve ? (
+            <button className="tw-h-8 tw-rounded-vm-md tw-border-0 tw-bg-vm-primary tw-px-3 tw-text-xs tw-font-extrabold tw-text-white hover:tw-bg-vm-primary-hover disabled:tw-opacity-60" type="button" disabled={isUpdatingTicket} onClick={() => ticket && onResolveTicket(ticket)}>
+              <i className="fas fa-check tw-mr-1.5" />Đã giải quyết
+            </button>
+          ) : null}
+          {canContinue ? (
+            <button className="tw-h-8 tw-rounded-vm-md tw-border-0 tw-bg-vm-primary tw-px-3 tw-text-xs tw-font-extrabold tw-text-white hover:tw-bg-vm-primary-hover disabled:tw-opacity-60" type="button" disabled={isUpdatingTicket} onClick={() => ticket && onReopenTicket(ticket)}>
+              <i className="far fa-comments tw-mr-1.5" />Tiếp tục trao đổi
+            </button>
+          ) : null}
+          <button className="tw-h-8 tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-100 tw-bg-white tw-px-3 tw-text-xs tw-font-extrabold tw-text-vm-primary hover:tw-bg-brand-50" type="button" disabled={!ticket} onClick={() => ticket && onViewTicket(ticket)}>
+            Xem chi tiết
+          </button>
+        </div>
       </div>
-      {conversationType === "ASSISTANT_SUPPORT" && ticket ? <SupportTicketCustomerActions ticket={ticket} /> : null}
+      {conversationType === "ASSISTANT_SUPPORT" && ticket && ticket.status !== "RESOLVED" ? <SupportTicketRequesterActions ticket={ticket} /> : null}
     </article>
   );
 }
 
 function ChatMessageBubble({
+  canReopenOwnTicket,
+  canResolveTicket,
   canDelete,
   conversation,
   currentUserId,
+  isUpdatingTicket,
   message,
+  ticketRefreshSignal,
   onDeleteMessage,
   onDownloadAttachments,
   onOpenAttachment,
+  onReopenTicket,
+  onResolveTicket,
   onViewTicket,
   resolveAttachmentUrl,
 }: {
+  canReopenOwnTicket: boolean;
+  canResolveTicket: boolean;
   canDelete: boolean;
   conversation: Conversation;
   currentUserId?: string;
+  isUpdatingTicket: boolean;
   message: ChatMessageResponse;
+  ticketRefreshSignal: string;
   onDeleteMessage: (message: ChatMessageResponse) => void;
   onDownloadAttachments: (attachments: ChatAttachmentResponse[]) => void;
   onOpenAttachment: (attachment: ChatAttachmentResponse) => void;
+  onReopenTicket: (ticket: SupportTicketResponse) => void;
+  onResolveTicket: (ticket: SupportTicketResponse) => void;
   onViewTicket: (ticket: SupportTicketResponse) => void;
   resolveAttachmentUrl: ResolveAttachmentUrl;
 }) {
@@ -1252,7 +1327,18 @@ function ChatMessageBubble({
     return (
       <div className={cn("tw-flex tw-items-end tw-gap-2", isOwnMessage ? "tw-justify-end tw-self-end" : "") }>
         {!isOwnMessage ? <EntityAvatar initials={senderInitials} src={senderAvatarUrl} tone={conversation.tone} title={senderName} /> : null}
-        <SupportTicketMessageCard conversationType={conversation.conversationType} message={message} onViewTicket={onViewTicket} />
+        <SupportTicketMessageCard
+          canReopenOwnTicket={canReopenOwnTicket}
+          canResolveTicket={canResolveTicket}
+          conversationType={conversation.conversationType}
+          currentUserId={currentUserId}
+          isUpdatingTicket={isUpdatingTicket}
+          message={message}
+          ticketRefreshSignal={ticketRefreshSignal}
+          onReopenTicket={onReopenTicket}
+          onResolveTicket={onResolveTicket}
+          onViewTicket={onViewTicket}
+        />
         {isOwnMessage ? <EntityAvatar initials={senderInitials} src={senderAvatarUrl} tone="blue" title={senderName} /> : null}
       </div>
     );
@@ -1301,30 +1387,40 @@ function ChatMessageBubble({
 }
 
 function ChatMessages({
+  canReopenOwnTicket,
+  canResolveTicket,
   canDeleteOwnMessage,
   canModerateMessages,
   conversation,
   currentUserId,
   errorMessage,
   isLoading,
+  isUpdatingTicket,
   messages,
   onDeleteMessage,
   onDownloadAttachments,
   onOpenAttachment,
+  onReopenTicket,
+  onResolveTicket,
   onViewTicket,
   resolveAttachmentUrl,
   usingMockData,
 }: {
+  canReopenOwnTicket: boolean;
+  canResolveTicket: boolean;
   canDeleteOwnMessage: boolean;
   canModerateMessages: boolean;
   conversation: Conversation;
   currentUserId?: string;
   errorMessage?: string;
   isLoading: boolean;
+  isUpdatingTicket: boolean;
   messages: ChatMessageResponse[];
   onDeleteMessage: (message: ChatMessageResponse) => void;
   onDownloadAttachments: (attachments: ChatAttachmentResponse[]) => void;
   onOpenAttachment: (attachment: ChatAttachmentResponse) => void;
+  onReopenTicket: (ticket: SupportTicketResponse) => void;
+  onResolveTicket: (ticket: SupportTicketResponse) => void;
   onViewTicket: (ticket: SupportTicketResponse) => void;
   resolveAttachmentUrl: ResolveAttachmentUrl;
   usingMockData: boolean;
@@ -1371,17 +1467,23 @@ function ChatMessages({
         ) : null}
         {orderedMessages.map((message) => (
           <ChatMessageBubble
+            canReopenOwnTicket={canReopenOwnTicket}
+            canResolveTicket={canResolveTicket}
             canDelete={
               !message.deleted &&
               (canModerateMessages || Boolean(currentUserId && message.senderAccountId === currentUserId && canDeleteOwnMessage))
             }
             conversation={conversation}
             currentUserId={currentUserId}
+            isUpdatingTicket={isUpdatingTicket}
             key={message.messageId}
             message={message}
+            ticketRefreshSignal={latestMessageKey}
             onDeleteMessage={onDeleteMessage}
             onDownloadAttachments={onDownloadAttachments}
             onOpenAttachment={onOpenAttachment}
+            onReopenTicket={onReopenTicket}
+            onResolveTicket={onResolveTicket}
             onViewTicket={onViewTicket}
             resolveAttachmentUrl={resolveAttachmentUrl}
           />
@@ -1633,24 +1735,30 @@ function ChatWorkspace({
   canAttach,
   canDeleteOwnMessage,
   canModerateMessages,
+  canReopenOwnTicket,
+  canResolveTicket,
   canSend,
   canCreateTicket,
   conversation,
   currentUserId,
   disabledReason,
   isSending,
+  isUpdatingTicket,
   messages,
   messageError,
   messagesLoading,
   onDeleteMessage,
   onDownloadAttachments,
   onOpenAttachment,
+  onReopenTicket,
+  onResolveTicket,
   onViewTicket,
   onSend,
   onRetrySend,
   sendError,
   onBackToList,
   onCreateTicket,
+  onClearTicketContext,
   onOpenHistory,
   contextTicket,
   resolveAttachmentUrl,
@@ -1659,24 +1767,30 @@ function ChatWorkspace({
   canAttach: boolean;
   canDeleteOwnMessage: boolean;
   canModerateMessages: boolean;
+  canReopenOwnTicket: boolean;
+  canResolveTicket: boolean;
   canSend: boolean;
   canCreateTicket: boolean;
   conversation: Conversation;
   currentUserId?: string;
   disabledReason?: string;
   isSending: boolean;
+  isUpdatingTicket: boolean;
   messages: ChatMessageResponse[];
   messageError?: string;
   messagesLoading: boolean;
   onDeleteMessage: (message: ChatMessageResponse) => void;
   onDownloadAttachments: (attachments: ChatAttachmentResponse[]) => void;
   onOpenAttachment: (attachment: ChatAttachmentResponse) => void;
+  onReopenTicket: (ticket: SupportTicketResponse) => void;
+  onResolveTicket: (ticket: SupportTicketResponse) => void;
   onViewTicket: (ticket: SupportTicketResponse) => void;
   onSend: (content: string, files: File[]) => Promise<void>;
   onRetrySend: () => void;
   sendError: string;
   onBackToList: () => void;
   onCreateTicket: () => void;
+  onClearTicketContext: () => void;
   onOpenHistory: () => void;
   contextTicket: SupportTicketResponse | null;
   resolveAttachmentUrl: ResolveAttachmentUrl;
@@ -1691,25 +1805,31 @@ function ChatWorkspace({
         </button>
       </div>
       <ChatHeader conversation={conversation} />
-      <TicketStrip conversation={conversation} />
-      {conversation.conversationType === "CUSTOMER_DIRECT" ? (
+      {!isRequesterSupportDirect(conversation.conversationType) || contextTicket ? <TicketStrip conversation={conversation} /> : null}
+      {isRequesterSupportDirect(conversation.conversationType) ? (
         <div className="tw-border-0 tw-border-b tw-border-solid tw-border-sky-100 tw-bg-sky-50 tw-px-4 tw-py-2 tw-text-xs tw-font-extrabold tw-text-sky-800">
           <i className="far fa-comments tw-mr-2" />
-          {contextTicket ? `Đang trao đổi về ${supportTicketCode(contextTicket.supportTicketId)}` : "Chưa chọn phiếu đang trao đổi"}
-          <button type="button" className="tw-ml-3 tw-border-0 tw-bg-transparent tw-font-extrabold tw-text-sky-700 tw-underline" onClick={onOpenHistory}>Đổi phiếu</button>
+          {contextTicket ? `Đang trao đổi về ${supportTicketCode(contextTicket.supportTicketId)}` : "Đang trao đổi chăm sóc chung"}
+          <button type="button" className="tw-ml-3 tw-border-0 tw-bg-transparent tw-font-extrabold tw-text-sky-700 tw-underline" onClick={onOpenHistory}>{contextTicket ? "Đổi phiếu" : "Gắn phiếu"}</button>
+          {contextTicket ? <button type="button" className="tw-ml-3 tw-border-0 tw-bg-transparent tw-font-extrabold tw-text-slate-600 tw-underline" onClick={onClearTicketContext}>Trao đổi chung</button> : null}
         </div>
       ) : null}
       <ChatMessages
+        canReopenOwnTicket={canReopenOwnTicket}
+        canResolveTicket={canResolveTicket}
         canDeleteOwnMessage={canDeleteOwnMessage}
         canModerateMessages={canModerateMessages}
         conversation={conversation}
         currentUserId={currentUserId}
         errorMessage={messageError}
         isLoading={messagesLoading}
+        isUpdatingTicket={isUpdatingTicket}
         messages={messages}
         onDeleteMessage={onDeleteMessage}
         onDownloadAttachments={onDownloadAttachments}
         onOpenAttachment={onOpenAttachment}
+        onReopenTicket={onReopenTicket}
+        onResolveTicket={onResolveTicket}
         onViewTicket={onViewTicket}
         resolveAttachmentUrl={resolveAttachmentUrl}
         usingMockData={usingMockData}
@@ -1871,6 +1991,7 @@ export function OperationsSupportCenterPage() {
   const [messageError, setMessageError] = useState("");
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicketResponse | null>(null);
+  const [detailTicket, setDetailTicket] = useState<SupportTicketResponse | null>(null);
   const [contextTicketId, setContextTicketId] = useState<string | null>(requestedTicketId);
   const [isTicketDetailModalOpen, setIsTicketDetailModalOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -1901,18 +2022,16 @@ export function OperationsSupportCenterPage() {
   const canReadAttachment = hasAnyPermission(user, ["CHAT_ATTACHMENT_READ_OWN"]);
   const canAssignTicket = hasAnyPermission(user, ["SUPPORT_TICKET_ASSIGN"]);
   const canProcessAllTicket = hasAnyPermission(user, ["SUPPORT_TICKET_PROCESS_ALL"]);
-  const canProcessAssignedTicket = hasAnyPermission(user, ["SUPPORT_TICKET_PROCESS_ASSIGNED"]);
   const canReplyTicket = hasAnyPermission(user, ["SUPPORT_TICKET_RESPOND_ASSIGNED"]);
   const canCloseTicket = hasAnyPermission(user, ["SUPPORT_TICKET_CLOSE_ALL"]);
-  const canReopenTicket = hasAnyPermission(user, ["SUPPORT_TICKET_REOPEN_ALL"]);
+  const canReopenAllTicket = hasAnyPermission(user, ["SUPPORT_TICKET_REOPEN_ALL"]);
+  const canReopenOwnTicket = hasAnyPermission(user, ["SUPPORT_TICKET_REOPEN_OWN"]);
+  const canReopenTicket = canReopenAllTicket || canReopenOwnTicket;
+  const requesterAccountIsEligible = user?.accountStatus === "ACTIVE";
   const canCreateTicketFromAssistant = hasAnyPermission(user, ["SUPPORT_TICKET_CREATE_OWN"])
-    && user?.accountStatus === "ACTIVE"
-    && user?.customerStatus === "ACTIVE"
-    && user?.customerApprovalStatus === "APPROVED";
+    && requesterAccountIsEligible;
   const canCreateTicketFromChat = hasAnyPermission(user, ["SUPPORT_TICKET_CREATE_FROM_CHAT_OWN"])
-    && user?.accountStatus === "ACTIVE"
-    && user?.customerStatus === "ACTIVE"
-    && user?.customerApprovalStatus === "APPROVED";
+    && requesterAccountIsEligible;
   const customerChatGuideEnabled = !isInboxLoading
     && user?.roleCode === "CUSTOMER"
     && canReadChat
@@ -2203,13 +2322,17 @@ export function OperationsSupportCenterPage() {
     ?? sourceConversations[0]
     ?? emptyConversation;
   const effectiveSelectedTicket = selectedTicket && (
-    selectedTicket.supportTicketId === selectedBaseConversation.supportTicketId
-      || (selectedBaseConversation.conversationType === "CUSTOMER_DIRECT"
-        && selectedTicket.supportTicketId === contextTicketId)
+    isRequesterSupportDirect(selectedBaseConversation.conversationType)
+      ? selectedTicket.supportTicketId === contextTicketId
+      : selectedTicket.supportTicketId === selectedBaseConversation.supportTicketId
   ) ? selectedTicket : null;
   const selectedConversation = mergeTicketIntoConversation(selectedBaseConversation, effectiveSelectedTicket);
-  const requiresTicketContext = selectedConversation.conversationType === "CUSTOMER_DIRECT";
-  const activeContextTicketId = requiresTicketContext ? contextTicketId : null;
+  const requiresTicketContext = isRequesterSupportDirect(selectedConversation.conversationType);
+  const activeContextTicket = effectiveSelectedTicket
+    && effectiveSelectedTicket.status !== "CLOSED"
+    ? effectiveSelectedTicket
+    : null;
+  const activeContextTicketId = requiresTicketContext ? activeContextTicket?.supportTicketId ?? null : null;
   selectedConversationIdRef.current = selectedBaseConversation.id;
 
   const loadConversationTickets = useCallback<TicketHistoryLoader>(async (filter) => {
@@ -2591,9 +2714,15 @@ export function OperationsSupportCenterPage() {
   }
 
   function handleViewTicket(ticket: SupportTicketResponse) {
-    setSelectedTicket(ticket);
-    setContextTicketId(ticket.supportTicketId);
+    setDetailTicket(ticket);
     setIsTicketDetailModalOpen(true);
+  }
+
+  function handleClearTicketContext() {
+    setContextTicketId(null);
+    setSelectedTicket(null);
+    setSearchParams({ conversationId: selectedBaseConversation.id }, { replace: true });
+    setSendError("");
   }
 
   async function handleAssignTicket(accountId: string) {
@@ -2615,7 +2744,7 @@ export function OperationsSupportCenterPage() {
     if (!effectiveSelectedTicket) return;
     setIsUpdatingTicket(true);
     try {
-      const response = await openSupportTicketCustomerConversation(effectiveSelectedTicket.supportTicketId);
+      const response = await openSupportTicketRequesterConversation(effectiveSelectedTicket.supportTicketId);
       const mappedConversation = mapApiConversation({ conversation: response.data, lastMessage: null, unreadCount: 0 }, 0, user?.id);
       setApiConversations((current) => {
         const withoutCurrent = current.filter((item) => item.id !== mappedConversation.id);
@@ -2632,32 +2761,62 @@ export function OperationsSupportCenterPage() {
   }
 
   function handleOpenChatTicketModal() {
-    if (selectedConversation.conversationType !== "CUSTOMER_DIRECT" && selectedConversation.conversationType !== "ASSISTANT_SUPPORT") return;
+    if (!isRequesterSupportDirect(selectedConversation.conversationType) && selectedConversation.conversationType !== "ASSISTANT_SUPPORT") return;
     setIsChatTicketModalOpen(true);
   }
 
-  async function handleResolveTicket() {
-    if (!effectiveSelectedTicket) return;
-    const resolutionNote = window.prompt("Nhập kết quả xử lý gửi đến khách hàng:");
-    if (!resolutionNote?.trim()) return;
+  async function resolveTicketAndSync(targetTicket: SupportTicketResponse) {
     setIsUpdatingTicket(true);
     try {
-      const response = await resolveSupportTicket(effectiveSelectedTicket.supportTicketId, resolutionNote.trim());
+      const currentTicketResponse = await getSupportTicketById(targetTicket.supportTicketId);
+      const currentTicket = currentTicketResponse.data;
+      if (currentTicket.status !== "IN_PROGRESS") {
+        applyTicketUpdate(currentTicket);
+        const messageResponse = await getChatMessages(selectedConversation.id, { limit: 30 });
+        setMessages(messageResponse.data ?? []);
+        toast.warning(
+          `Đây là thẻ phiếu cũ. Phiếu hiện ở trạng thái “${supportTicketStatusLabel[currentTicket.status]}” nên không thể đánh dấu giải quyết lại.`,
+          "Phiếu đã được cập nhật",
+        );
+        return currentTicket;
+      }
+
+      const response = await resolveSupportTicket(targetTicket.supportTicketId);
       applyTicketUpdate(response.data);
+      setContextTicketId(response.data.supportTicketId);
+      setSearchParams({ conversationId: selectedBaseConversation.id, ticketId: response.data.supportTicketId }, { replace: true });
+      const messageResponse = await getChatMessages(selectedConversation.id, { limit: 30 });
+      setMessages(messageResponse.data ?? []);
       toast.success("Ticket đã được đánh dấu giải quyết; khách hàng đã nhận thông báo.");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể giải quyết ticket.", "Cập nhật thất bại");
+      return response.data;
     } finally {
       setIsUpdatingTicket(false);
     }
   }
 
-  async function handleReopenTicket() {
-    if (!effectiveSelectedTicket) return;
+  async function handleResolveTicket(ticket?: SupportTicketResponse) {
+    const targetTicket = ticket ?? effectiveSelectedTicket;
+    if (!targetTicket) return;
+    try {
+      await resolveTicketAndSync(targetTicket);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể giải quyết ticket.", "Cập nhật thất bại");
+    }
+  }
+
+  async function handleReopenTicket(ticket?: SupportTicketResponse) {
+    const targetTicket = ticket ?? effectiveSelectedTicket;
+    if (!targetTicket) return;
     setIsUpdatingTicket(true);
     try {
-      const response = await reopenSupportTicket(effectiveSelectedTicket.supportTicketId);
+      const response = canReopenAllTicket
+        ? await reopenSupportTicket(targetTicket.supportTicketId)
+        : await reopenMySupportTicket(targetTicket.supportTicketId);
       applyTicketUpdate(response.data);
+      setContextTicketId(response.data.supportTicketId);
+      setSearchParams({ conversationId: selectedBaseConversation.id, ticketId: response.data.supportTicketId }, { replace: true });
+      void getChatMessages(selectedConversation.id, { limit: 30 })
+        .then((messageResponse) => setMessages(messageResponse.data ?? []));
       toast.success("Ticket đã được mở lại để tiếp tục xử lý.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Không thể mở lại ticket.", "Cập nhật thất bại");
@@ -2685,11 +2844,6 @@ export function OperationsSupportCenterPage() {
     ? "Chọn hoặc tạo một hội thoại để bắt đầu nhắn tin."
     : selectedConversation.conversation.status === "CLOSED"
     ? "Hội thoại đã đóng."
-    : requiresTicketContext && !activeContextTicketId
-      ? "Chọn Xem chi tiết trên phiếu hỗ trợ cần trao đổi để đặt ngữ cảnh gửi tin."
-    : requiresTicketContext && effectiveSelectedTicket
-      && (effectiveSelectedTicket.status === "RESOLVED" || effectiveSelectedTicket.status === "CLOSED")
-      ? "Phiếu đã giải quyết hoặc đóng chỉ được phép xem."
     : !canSendChat
       ? "Bạn chưa có quyền gửi tin nhắn."
       : usingMockData
@@ -2699,10 +2853,7 @@ export function OperationsSupportCenterPage() {
     !usingMockData
       && selectedConversation.conversation
       && canSendChat
-      && selectedConversation.conversation.status !== "CLOSED"
-      && (!requiresTicketContext || activeContextTicketId)
-      && (!requiresTicketContext || !effectiveSelectedTicket
-        || (effectiveSelectedTicket.status !== "RESOLVED" && effectiveSelectedTicket.status !== "CLOSED")),
+      && selectedConversation.conversation.status !== "CLOSED",
   );
 
   return (
@@ -2733,6 +2884,7 @@ export function OperationsSupportCenterPage() {
               setSelectedId(conversationId);
               setContextTicketId(null);
               setSelectedTicket(null);
+              setSearchParams({ conversationId }, { replace: true });
               setSendError("");
               setMobileChatView("chat");
             }}
@@ -2741,28 +2893,34 @@ export function OperationsSupportCenterPage() {
             canAttach={canUseComposer && canAttachChat}
             canDeleteOwnMessage={canDeleteOwnMessage}
             canModerateMessages={canModerateMessages}
+            canReopenOwnTicket={canReopenOwnTicket}
+            canResolveTicket={canProcessAllTicket}
             canSend={canUseComposer}
             canCreateTicket={Boolean(
               (selectedConversation.conversationType === "ASSISTANT_SUPPORT" && canCreateTicketFromAssistant)
-                || (selectedConversation.conversationType === "CUSTOMER_DIRECT" && canCreateTicketFromChat),
+                || (isRequesterSupportDirect(selectedConversation.conversationType) && canCreateTicketFromChat),
             )}
-            contextTicket={effectiveSelectedTicket}
+            contextTicket={activeContextTicket}
             conversation={selectedConversation}
             currentUserId={user?.id}
             disabledReason={composerDisabledReason}
             isSending={isSending}
+            isUpdatingTicket={isUpdatingTicket}
             messageError={messageError}
             messages={messages}
             messagesLoading={messagesLoading}
             onDeleteMessage={handleDeleteMessage}
             onDownloadAttachments={handleDownloadAttachments}
             onOpenAttachment={handleOpenAttachment}
+            onReopenTicket={(ticket) => void handleReopenTicket(ticket)}
+            onResolveTicket={(ticket) => void handleResolveTicket(ticket)}
             onViewTicket={handleViewTicket}
             onSend={handleSendMessage}
             onRetrySend={handleRetrySendMessage}
             sendError={sendError}
             onBackToList={() => setMobileChatView("list")}
             onCreateTicket={handleOpenChatTicketModal}
+            onClearTicketContext={handleClearTicketContext}
             onOpenHistory={() => setIsTicketHistoryOpen(true)}
             resolveAttachmentUrl={resolveAttachmentUrl}
             usingMockData={usingMockData}
@@ -2770,45 +2928,58 @@ export function OperationsSupportCenterPage() {
         </div>
       </div>
       <SupportTicketHistoryDialog
+        canResolve={(ticket) => Boolean(
+          canProcessAllTicket
+          && ticket.status === "IN_PROGRESS"
+          && ticket.assignedTo === user?.id
+        )}
         loadTickets={loadConversationTickets}
         onClose={() => setIsTicketHistoryOpen(false)}
-        onSelect={(ticket) => {
-          setSelectedTicket(ticket);
-          setContextTicketId(ticket.supportTicketId);
+        onSelect={async (ticket) => {
+          const response = await shareSupportTicketWithConversation(selectedConversation.id, ticket.supportTicketId);
+          setSelectedTicket(response.data);
+          const ticketIsActive = response.data.status === "OPEN" || response.data.status === "IN_PROGRESS";
+          setContextTicketId(ticketIsActive ? response.data.supportTicketId : null);
+          setSearchParams(ticketIsActive
+            ? { conversationId: selectedBaseConversation.id, ticketId: response.data.supportTicketId }
+            : { conversationId: selectedBaseConversation.id }, { replace: true });
           setIsTicketHistoryOpen(false);
-          toast.success(`Đang trao đổi về ${supportTicketCode(ticket.supportTicketId)}.`);
+          const messageResponse = await getChatMessages(selectedConversation.id, { limit: 30 });
+          setMessages(messageResponse.data ?? []);
+          toast.success(`Đã gửi lại ${supportTicketCode(response.data.supportTicketId)} vào hội thoại.`);
         }}
+        onResolve={(ticket) => resolveTicketAndSync(ticket)}
         open={isTicketHistoryOpen}
         title="Lịch sử yêu cầu"
       />
       <Modal
         open={isTicketDetailModalOpen}
-        onClose={() => setIsTicketDetailModalOpen(false)}
+        onClose={() => { setIsTicketDetailModalOpen(false); setDetailTicket(null); }}
         title={"Chi ti\u1ebft phi\u1ebfu h\u1ed7 tr\u1ee3"}
         description={"Theo d\u00f5i n\u1ed9i dung, tr\u1ea1ng th\u00e1i v\u00e0 ng\u01b0\u1eddi \u0111\u01b0\u1ee3c ph\u00e2n c\u00f4ng c\u1ee7a phi\u1ebfu trong h\u1ed9i tho\u1ea1i."}
         width="lg"
-        actions={<Button variant="secondary" onClick={() => setIsTicketDetailModalOpen(false)}>{"\u0110\u00f3ng"}</Button>}
+        actions={<Button variant="secondary" onClick={() => { setIsTicketDetailModalOpen(false); setDetailTicket(null); }}>{"\u0110\u00f3ng"}</Button>}
       >
-        {selectedTicket ? (
+        {detailTicket ? (
           <div className="tw-grid tw-gap-4">
             <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-2 tw-rounded-vm-md tw-bg-vm-slate-50 tw-p-3">
-              <span className="tw-text-sm tw-font-extrabold tw-text-vm-slate-900">{shortCode("TK", selectedTicket.supportTicketId)}</span>
+              <span className="tw-text-sm tw-font-extrabold tw-text-vm-slate-900">{shortCode("TK", detailTicket.supportTicketId)}</span>
               <div className="tw-flex tw-gap-2">
-                <Badge tone={selectedTicket.status === "RESOLVED" || selectedTicket.status === "CLOSED" ? "success" : "primary"}>{supportTicketStatusLabel[selectedTicket.status]}</Badge>
-                <Badge tone={selectedTicket.priority === "URGENT" || selectedTicket.priority === "HIGH" ? "danger" : "neutral"}>{supportPriorityLabel[selectedTicket.priority]}</Badge>
+                <Badge tone={detailTicket.status === "RESOLVED" || detailTicket.status === "CLOSED" ? "success" : "primary"}>{supportTicketStatusLabel[detailTicket.status]}</Badge>
+                <Badge tone={detailTicket.priority === "URGENT" || detailTicket.priority === "HIGH" ? "danger" : "neutral"}>{supportPriorityLabel[detailTicket.priority]}</Badge>
               </div>
             </div>
             <section className="tw-grid tw-gap-2">
               <p className="tw-m-0 tw-text-xs tw-font-extrabold tw-uppercase tw-tracking-wide tw-text-vm-slate-500">{"Ti\u00eau \u0111\u1ec1"}</p>
-              <h3 className="tw-m-0 tw-text-base tw-font-extrabold tw-text-vm-slate-900">{selectedTicket.title}</h3>
+              <h3 className="tw-m-0 tw-text-base tw-font-extrabold tw-text-vm-slate-900">{detailTicket.title}</h3>
             </section>
             <section className="tw-grid tw-gap-2">
               <p className="tw-m-0 tw-text-xs tw-font-extrabold tw-uppercase tw-tracking-wide tw-text-vm-slate-500">{"N\u1ed9i dung y\u00eau c\u1ea7u"}</p>
-              <p className="tw-m-0 tw-whitespace-pre-wrap tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3 tw-text-sm tw-leading-6 tw-text-vm-slate-700">{selectedTicket.content}</p>
+              <p className="tw-m-0 tw-whitespace-pre-wrap tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3 tw-text-sm tw-leading-6 tw-text-vm-slate-700">{detailTicket.content}</p>
             </section>
             <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-sm:tw-grid-cols-1">
-              <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-p-3"><p className="tw-m-0 tw-text-xs tw-font-bold tw-text-vm-slate-500">{"Ng\u01b0\u1eddi \u0111\u01b0\u1ee3c ph\u00e2n c\u00f4ng"}</p><p className="tw-mb-0 tw-mt-1 tw-text-sm tw-font-extrabold tw-text-vm-slate-900">{selectedTicket.assignedTo ? shortCode("ACC", selectedTicket.assignedTo) : "--"}</p></div>
-              <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-p-3"><p className="tw-m-0 tw-text-xs tw-font-bold tw-text-vm-slate-500">{"C\u1eadp nh\u1eadt l\u1ea7n cu\u1ed1i"}</p><p className="tw-mb-0 tw-mt-1 tw-text-sm tw-font-extrabold tw-text-vm-slate-900">{formatDateTime(selectedTicket.updatedAt)}</p></div>
+              <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-p-3"><p className="tw-m-0 tw-text-xs tw-font-bold tw-text-vm-slate-500">{"Ng\u01b0\u1eddi \u0111\u01b0\u1ee3c ph\u00e2n c\u00f4ng"}</p><p className="tw-mb-0 tw-mt-1 tw-text-sm tw-font-extrabold tw-text-vm-slate-900">{detailTicket.assignedTo ? shortCode("ACC", detailTicket.assignedTo) : "--"}</p></div>
+              <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-p-3"><p className="tw-m-0 tw-text-xs tw-font-bold tw-text-vm-slate-500">{"C\u1eadp nh\u1eadt l\u1ea7n cu\u1ed1i"}</p><p className="tw-mb-0 tw-mt-1 tw-text-sm tw-font-extrabold tw-text-vm-slate-900">{formatDateTime(detailTicket.updatedAt)}</p></div>
             </div>
           </div>
         ) : null}
@@ -2827,6 +2998,7 @@ export function OperationsSupportCenterPage() {
         onCreated={(ticket) => {
           setSelectedTicket(ticket);
           setContextTicketId(ticket.supportTicketId);
+          setSearchParams({ conversationId: selectedBaseConversation.id, ticketId: ticket.supportTicketId }, { replace: true });
           void getChatMessages(selectedConversation.id, { limit: 30 })
             .then((response) => setMessages(response.data ?? []));
           toast.success("Đã gửi phiếu hỗ trợ trong hội thoại.");

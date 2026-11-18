@@ -30,12 +30,15 @@ function formatDate(value: string | null) {
 export function SupportTicketCard({
   onSelect,
   actions,
+  actionsPlacement = "footer",
   ticket,
 }: {
   onSelect?: (ticket: SupportTicketResponse) => void;
   actions?: ReactNode;
+  actionsPlacement?: "details" | "footer";
   ticket: SupportTicketResponse;
 }) {
+  const actionsInDetails = Boolean(actions) && actionsPlacement === "details";
   const content = (
     <>
       <div className="tw-flex tw-items-start tw-justify-between tw-gap-3">
@@ -49,25 +52,33 @@ export function SupportTicketCard({
           {statusLabels[ticket.status]}
         </span>
       </div>
-      <dl className="tw-mb-0 tw-mt-3 tw-grid tw-grid-cols-[auto_1fr] tw-gap-x-3 tw-gap-y-1 tw-text-xs">
+      <dl className={`tw-mb-0 tw-mt-3 tw-grid tw-grid-cols-[auto_1fr] tw-gap-x-3 tw-gap-y-1 tw-text-xs ${actionsInDetails ? "sm:tw-pr-44" : ""}`}>
         <dt className="tw-text-slate-500">Danh mục</dt><dd className="tw-m-0 tw-font-bold tw-text-slate-700">{ticket.categoryName ?? ticket.categoryCode ?? "--"}</dd>
         <dt className="tw-text-slate-500">Ưu tiên</dt><dd className="tw-m-0 tw-font-bold tw-text-slate-700">{priorityLabels[ticket.priority]}</dd>
         <dt className="tw-text-slate-500">Phụ trách</dt><dd className="tw-m-0 tw-truncate tw-font-bold tw-text-slate-700">{ticket.assignedTo ?? "Chưa phân công"}</dd>
         <dt className="tw-text-slate-500">Ngày tạo</dt><dd className="tw-m-0 tw-font-bold tw-text-slate-700">{formatDate(ticket.createdAt)}</dd>
+        {ticket.status === "RESOLVED" ? <><dt className="tw-text-slate-500">Tự động đóng</dt><dd className="tw-m-0 tw-font-bold tw-text-amber-700">{formatDate(ticket.autoCloseAt)}</dd></> : null}
+        {ticket.status === "CLOSED" ? <><dt className="tw-text-slate-500">Ngày đóng</dt><dd className="tw-m-0 tw-font-bold tw-text-slate-700">{formatDate(ticket.closedAt)}</dd></> : null}
       </dl>
-      {actions}
     </>
   );
 
-  return onSelect ? (
-    <button
-      type="button"
-      className="tw-w-full tw-rounded-xl tw-border tw-border-solid tw-border-sky-100 tw-bg-white tw-p-3 tw-text-left tw-shadow-sm hover:tw-border-sky-300 hover:tw-bg-sky-50/40 focus-visible:tw-outline-none focus-visible:tw-ring-2 focus-visible:tw-ring-sky-300"
-      onClick={() => onSelect(ticket)}
-    >
-      {content}
-    </button>
-  ) : (
-    <article className="tw-rounded-xl tw-border tw-border-solid tw-border-sky-100 tw-bg-white tw-p-3 tw-shadow-sm">{content}</article>
+  return (
+    <article className="tw-relative tw-rounded-xl tw-border tw-border-solid tw-border-sky-100 tw-bg-white tw-p-3 tw-shadow-sm">
+      {onSelect ? (
+        <button
+          type="button"
+          className="tw-w-full tw-rounded-lg tw-border-0 tw-bg-transparent tw-p-0 tw-text-left hover:tw-bg-sky-50/40 focus-visible:tw-outline-none focus-visible:tw-ring-2 focus-visible:tw-ring-sky-300"
+          onClick={() => onSelect(ticket)}
+        >
+          {content}
+        </button>
+      ) : content}
+      {actionsInDetails ? (
+        <div className="tw-mt-3 tw-flex tw-justify-end sm:tw-absolute sm:tw-bottom-3 sm:tw-right-3 sm:tw-z-10 sm:tw-mt-0">
+          {actions}
+        </div>
+      ) : actions}
+    </article>
   );
 }

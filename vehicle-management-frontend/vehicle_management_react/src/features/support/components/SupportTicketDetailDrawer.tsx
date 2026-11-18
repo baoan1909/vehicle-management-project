@@ -1,22 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { Badge, Button, Drawer, EntityAvatar, SelectMenu } from "@/components/ui";
-import type { EmployeeApiResponse } from "@/features/employees/api/employeesApi";
 import type { SupportTicketEscalationDecision, SupportTicketEscalationResponse, SupportTicketPriority, SupportTicketResponse, SupportTicketStatus } from "@/features/support/api/supportApi";
 import { cn } from "@/lib/cn";
 import { getApplicationTimeZone } from "@/shared/time/applicationTime";
+
+export type SupportAssignee = {
+  accountId: string;
+  avatarUrl?: string | null;
+  name: string;
+  subtitle?: string | null;
+};
 
 type SupportTicketDetailDrawerProps = {
   actionError: string;
   actionLoading: boolean;
   canAssign: boolean;
+  canClaim: boolean;
   canReply: boolean;
   canResolve: boolean;
   canReviewEscalation: boolean;
-  employees: EmployeeApiResponse[];
+  assignees: SupportAssignee[];
   escalation?: SupportTicketEscalationResponse | null;
   reviewerAccountId?: string;
   onAssign: (assignedTo: string) => void;
+  onClaim: () => void;
   onClose: () => void;
   onReply: () => void;
   onRequestResolve: () => void;
@@ -44,10 +52,6 @@ function formatDateTime(value: string | null) {
 
 function shortTicketCode(ticketId: string) {
   return `TK-${ticketId.replace(/-/g, "").slice(0, 10).toUpperCase()}`;
-}
-
-function employeeName(employee: EmployeeApiResponse) {
-  return employee.userProfile?.fullName?.trim() || employee.accountUsername || employee.employeeCode || "Nhân viên chưa có tên";
 }
 
 function initials(value: string) {
@@ -81,6 +85,13 @@ function statusTone(status: SupportTicketStatus) {
   return "primary" as const;
 }
 
+function closeReasonLabel(reason: SupportTicketResponse["closeReason"]) {
+  if (reason === "INACTIVITY") return "Tự động đóng sau 24 giờ không có trao đổi mới";
+  if (reason === "SYSTEM_MAINTENANCE") return "Hệ thống đóng khi kết thúc phạm vi vận hành";
+  if (reason === "MANUAL") return "Đóng thủ công";
+  return "--";
+}
+
 function DetailLine({ icon, label, value }: { icon: string; label: string; value: string }) {
   return (
     <div className="tw-grid tw-grid-cols-[20px_minmax(0,1fr)] tw-gap-3 tw-text-[0.82rem]">
@@ -97,13 +108,15 @@ export function SupportTicketDetailDrawer({
   actionError,
   actionLoading,
   canAssign,
+  canClaim,
   canReply,
   canResolve,
   canReviewEscalation,
-  employees,
+  assignees,
   escalation,
   reviewerAccountId,
   onAssign,
+  onClaim,
   onClose,
   onReply,
   onRequestResolve,
@@ -120,19 +133,17 @@ export function SupportTicketDetailDrawer({
     setEscalationNote("");
   }, [ticket?.assignedTo, ticket?.supportTicketId]);
 
-  const employeeOptions = useMemo(
-    () => employees
-      .filter((employee) => employee.accountId)
-      .map((employee) => ({
-        label: `${employeeName(employee)}${employee.jobTitle ? ` — ${employee.jobTitle}` : ""}`,
-        value: employee.accountId as string,
+  const assigneeOptions = useMemo(
+    () => assignees.map((assignee) => ({
+        label: `${assignee.name}${assignee.subtitle ? ` — ${assignee.subtitle}` : ""}`,
+        value: assignee.accountId,
       })),
-    [employees],
+    [assignees],
   );
 
   if (!ticket) return null;
 
-  const assignedEmployee = employees.find((employee) => employee.accountId === ticket.assignedTo);
+  const assignedAccount = assignees.find((assignee) => assignee.accountId === ticket.assignedTo);
   const canSubmitAssignment = canAssign && Boolean(selectedAssignee) && selectedAssignee !== ticket.assignedTo;
   const canSubmitEscalationDecision = canReviewEscalation && Boolean(escalationNote.trim());
 
@@ -143,10 +154,11 @@ export function SupportTicketDetailDrawer({
           {actionError ? <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-red-100 tw-bg-red-50 tw-p-3 tw-text-[0.8rem] tw-font-bold tw-text-red-600">{actionError}</div> : null}
           {canReply || canResolve ? (
             <div className="tw-grid tw-gap-2">
-              {canReply ? <Button disabled={actionLoading} variant="secondary" onClick={onReply}><i className="far fa-comment-dots" />Phản hồi khách hàng</Button> : null}
+              {canReply ? <Button disabled={actionLoading} variant="secondary" onClick={onReply}><i className="far fa-comment-dots" />{ticket.status === "RESOLVED" ? "Mở lại và phản hồi" : "Phản hồi người yêu cầu"}</Button> : null}
               {canResolve ? <Button disabled={actionLoading} onClick={onRequestResolve}><i className="far fa-check-circle" />Giải quyết ticket</Button> : null}
             </div>
           ) : null}
+          {canClaim && !ticket.assignedTo ? <Button disabled={actionLoading} loading={actionLoading} onClick={onClaim}><i className="fas fa-hand-paper" />Tôi trực tiếp xử lý</Button> : null}
           <div className={cn("tw-grid tw-gap-2", canAssign ? "tw-grid-cols-[1fr_1.15fr]" : "tw-grid-cols-1")}>
             <Button disabled={actionLoading} variant="secondary" onClick={onClose}>Đóng</Button>
             {canAssign ? (
@@ -158,7 +170,7 @@ export function SupportTicketDetailDrawer({
           </div>
         </div>
       }
-      description="Theo dõi nội dung yêu cầu và điều phối nhân viên phụ trách"
+      description="Theo dõi nội dung yêu cầu và điều phối quản trị viên phụ trách"
       onClose={onClose}
       open={open}
       title="Thông tin yêu cầu hỗ trợ"
@@ -178,12 +190,16 @@ export function SupportTicketDetailDrawer({
         </section>
 
         <section className="tw-grid tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-pb-5">
-          <h4 className="tw-m-0 tw-text-[0.82rem] tw-font-black tw-uppercase tw-tracking-[0.06em] tw-text-vm-slate-500">Khách hàng gửi yêu cầu</h4>
+          <h4 className="tw-m-0 tw-text-[0.82rem] tw-font-black tw-uppercase tw-tracking-[0.06em] tw-text-vm-slate-500">Người gửi yêu cầu</h4>
           <div className="tw-grid tw-grid-cols-[48px_minmax(0,1fr)] tw-gap-3 tw-items-center">
             <span className="tw-inline-flex tw-h-12 tw-w-12 tw-items-center tw-justify-center tw-rounded-full tw-bg-brand-50 tw-text-[1rem] tw-font-black tw-text-vm-primary"><i className="far fa-user" /></span>
             <div className="tw-grid tw-gap-1">
-              <strong className="tw-text-[0.92rem] tw-font-black tw-text-vm-slate-900">Khách hàng</strong>
-              <span className="tw-break-all tw-text-[0.77rem] tw-font-semibold tw-text-vm-slate-500">Mã khách hàng: {ticket.customerId}</span>
+              <strong className="tw-text-[0.92rem] tw-font-black tw-text-vm-slate-900">
+                {ticket.requesterNameSnapshot || ticket.requesterEmailSnapshot || ticket.requesterRoleCode}
+              </strong>
+              <span className="tw-break-all tw-text-[0.77rem] tw-font-semibold tw-text-vm-slate-500">
+                {ticket.requesterRoleCode} · {ticket.requesterAccountId}
+              </span>
             </div>
           </div>
         </section>
@@ -206,6 +222,9 @@ export function SupportTicketDetailDrawer({
           <DetailLine icon="far fa-calendar-plus" label="Thời gian tạo" value={formatDateTime(ticket.createdAt)} />
           <DetailLine icon="far fa-clock" label="Cập nhật gần nhất" value={formatDateTime(ticket.updatedAt)} />
           <DetailLine icon="far fa-check-circle" label="Hoàn tất xử lý" value={formatDateTime(ticket.resolvedAt)} />
+          {ticket.status === "RESOLVED" ? <DetailLine icon="far fa-hourglass" label="Tự động đóng nếu không có trao đổi mới" value={formatDateTime(ticket.autoCloseAt)} /> : null}
+          {ticket.status === "CLOSED" ? <DetailLine icon="far fa-calendar-check" label="Thời gian đóng" value={formatDateTime(ticket.closedAt)} /> : null}
+          {ticket.status === "CLOSED" ? <DetailLine icon="fas fa-info-circle" label="Lý do đóng" value={closeReasonLabel(ticket.closeReason)} /> : null}
           {ticket.resolutionNote ? <DetailLine icon="far fa-comment-dots" label="Ghi chú xử lý" value={ticket.resolutionNote} /> : null}
         </section>
 
@@ -215,22 +234,22 @@ export function SupportTicketDetailDrawer({
               <h4 className="tw-m-0 tw-text-[0.82rem] tw-font-black tw-uppercase tw-tracking-[0.06em] tw-text-vm-slate-500">Phân công xử lý</h4>
               {ticket.assignedTo ? <Badge tone="success" className="tw-rounded-vm-sm tw-px-2.5">Đã phân công</Badge> : <Badge tone="warning" className="tw-rounded-vm-sm tw-px-2.5">Chưa phân công</Badge>}
             </div>
-            {assignedEmployee ? <div className="tw-flex tw-items-center tw-gap-2 tw-text-[0.8rem] tw-font-semibold tw-text-vm-slate-600"><EntityAvatar initials={initials(employeeName(assignedEmployee))} size="sm" src={assignedEmployee.userProfile?.avatarUrl} tone="green" />Đang phụ trách: <strong className="tw-text-vm-slate-900">{employeeName(assignedEmployee)}</strong></div> : null}
+            {assignedAccount ? <div className="tw-flex tw-items-center tw-gap-2 tw-text-[0.8rem] tw-font-semibold tw-text-vm-slate-600"><EntityAvatar initials={initials(assignedAccount.name)} size="sm" src={assignedAccount.avatarUrl} tone="green" />Đang phụ trách: <strong className="tw-text-vm-slate-900">{assignedAccount.name}</strong></div> : null}
             <label className="tw-grid tw-gap-2">
-              <span className="tw-text-[0.78rem] tw-font-black tw-text-vm-slate-700">Nhân viên phụ trách <span className="tw-text-vm-danger">*</span></span>
+              <span className="tw-text-[0.78rem] tw-font-black tw-text-vm-slate-700">Quản trị viên phụ trách <span className="tw-text-vm-danger">*</span></span>
               <SelectMenu
-                ariaLabel="Nhân viên phụ trách"
-                disabled={actionLoading || employeeOptions.length === 0}
+                ariaLabel="Quản trị viên phụ trách"
+                disabled={actionLoading || assigneeOptions.length === 0}
                 onChange={setSelectedAssignee}
-                options={employeeOptions}
+                options={assigneeOptions}
                 portal
                 searchable
-                searchPlaceholder="Tìm nhân viên đang hoạt động..."
-                triggerLabel={selectedAssignee ? undefined : "Chọn nhân viên phụ trách"}
+                searchPlaceholder="Tìm tài khoản có quyền xử lý..."
+                triggerLabel={selectedAssignee ? undefined : "Chọn quản trị viên phụ trách"}
                 value={selectedAssignee}
               />
             </label>
-            {employeeOptions.length === 0 ? <p className="tw-m-0 tw-text-[0.78rem] tw-font-semibold tw-text-amber-700">Chưa tải được nhân viên đang hoạt động hoặc danh sách trống.</p> : null}
+            {assigneeOptions.length === 0 ? <p className="tw-m-0 tw-text-[0.78rem] tw-font-semibold tw-text-amber-700">Chưa có tài khoản đang hoạt động với đủ quyền xử lý.</p> : null}
           </section>
         ) : null}
 

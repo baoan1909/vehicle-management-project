@@ -15,6 +15,7 @@ export type ChatConversationType =
   | "INTERNAL_DIRECT"
   | "INTERNAL_GROUP"
   | "CUSTOMER_DIRECT"
+  | "SUPPORT_REQUESTER_DIRECT"
   | "ASSISTANT_SUPPORT"
   | "SUPPORT_TICKET"
   | "PARKING_SESSION"
@@ -80,6 +81,8 @@ export type ChatMessageResponse = {
   relatedSchema: string | null;
   relatedTable: string | null;
   contextTicketId: string | null;
+  supportTicketEventId: string | null;
+  metadata: string | null;
   replyToMessageId: string | null;
   senderAccountId: string | null;
 };

@@ -16,6 +16,9 @@ import {
   type SupportTicketResponse,
 } from "@/features/support/api/supportApi";
 import { cn } from "@/lib/cn";
+import { useAuth } from "@/core/auth/useAuth";
+import { hasAnyPermission } from "@/shared/auth/permissions";
+import { getIamPermissions, type PermissionAdminResponse } from "@/features/iam/api/rolePermissionApi";
 
 type SupportCategoryRow = SupportTicketCategoryResponse & {
   openTickets: number;
@@ -78,6 +81,8 @@ function MetricCard({ icon, iconClassName, label, meta, metaClassName, value }: 
 }
 
 function CategoryTable({
+  canActivate,
+  canEdit,
   currentPage,
   loading,
   onDeactivate,
@@ -90,6 +95,8 @@ function CategoryTable({
   startIndex,
   totalRecords,
 }: {
+  canActivate: boolean;
+  canEdit: boolean;
   currentPage: number;
   loading: boolean;
   onDeactivate: (category: SupportCategoryRow) => void;
@@ -129,18 +136,18 @@ function CategoryTable({
           <strong className="tw-text-vm-slate-900">{category.openTickets.toLocaleString("vi-VN")}</strong>
           <Badge tone={category.status === "ACTIVE" ? "success" : "neutral"} className="tw-w-fit tw-rounded-vm-sm tw-px-3">{category.status === "ACTIVE" ? "Đang hoạt động" : "Ngưng sử dụng"}</Badge>
           <span className="tw-flex tw-justify-end tw-gap-3 max-[1180px]:tw-justify-start">
-            <button type="button" className="tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-white tw-text-vm-primary hover:tw-bg-brand-50" aria-label={`Chỉnh sửa danh mục ${category.name}`} title="Chỉnh sửa danh mục" onClick={() => onEdit(category)}>
+            {canEdit ? <button type="button" className="tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-white tw-text-vm-primary hover:tw-bg-brand-50" aria-label={`Chỉnh sửa danh mục ${category.name}`} title="Chỉnh sửa danh mục" onClick={() => onEdit(category)}>
               <i className="far fa-edit tw-text-[1rem]" />
-            </button>
-            {category.status === "ACTIVE" ? (
+            </button> : null}
+            {canActivate && category.status === "ACTIVE" ? (
               <button type="button" className="tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-white tw-text-vm-slate-700 hover:tw-bg-red-50 hover:tw-text-vm-danger" aria-label={`Ngưng sử dụng danh mục ${category.name}`} title="Ngưng sử dụng danh mục" onClick={() => onDeactivate(category)}>
                 <i className="fas fa-ban" />
               </button>
-            ) : (
+            ) : canActivate ? (
               <button type="button" className="tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-white tw-text-emerald-600 hover:tw-bg-emerald-50" aria-label={`Kích hoạt lại danh mục ${category.name}`} title="Kích hoạt lại danh mục" onClick={() => onReactivate(category)}>
                 <i className="fas fa-check" />
               </button>
-            )}
+            ) : null}
           </span>
         </div>
       ))}
@@ -173,6 +180,7 @@ function CategoryDrawer({
   onClose,
   onSubmit,
   open,
+  permissionOptions,
   saving,
 }: {
   category: SupportCategoryRow | null;
@@ -180,18 +188,29 @@ function CategoryDrawer({
   onClose: () => void;
   onSubmit: (payload: SaveSupportTicketCategoryRequest) => Promise<void> | void;
   open: boolean;
+  permissionOptions: Array<{ code: string; label: string }>;
   saving: boolean;
 }) {
-  const [form, setForm] = useState<SaveSupportTicketCategoryRequest>({ code: "", description: "", name: "", priority: "NORMAL" });
+  const [form, setForm] = useState<SaveSupportTicketCategoryRequest>({
+    audienceType: "CUSTOMER", code: "", description: "", displayOrder: 0, featureCode: "",
+    name: "", permissionMatchMode: "ANY", priority: "NORMAL", requiredPermissionCodes: [],
+  });
+  const [permissionSearch, setPermissionSearch] = useState("");
   const [formError, setFormError] = useState("");
 
   useEffect(() => {
     setForm({
       code: category?.code ?? "",
       description: category?.description ?? "",
+      audienceType: category?.audienceType ?? "CUSTOMER",
+      displayOrder: category?.displayOrder ?? 0,
+      featureCode: category?.featureCode ?? "",
       name: category?.name ?? "",
+      permissionMatchMode: category?.permissionMatchMode ?? "ANY",
       priority: category?.priority ?? "NORMAL",
+      requiredPermissionCodes: category?.requiredPermissionCodes ?? [],
     });
+    setPermissionSearch("");
     setFormError("");
   }, [category, open]);
 
@@ -207,8 +226,13 @@ function CategoryDrawer({
     await onSubmit({
       code: form.code.trim(),
       description: form.description?.trim() || null,
+      audienceType: form.audienceType,
+      displayOrder: Number(form.displayOrder) || 0,
+      featureCode: form.featureCode?.trim() || null,
       name: form.name.trim(),
+      permissionMatchMode: form.permissionMatchMode,
       priority: form.priority,
+      requiredPermissionCodes: form.requiredPermissionCodes,
     });
   }
 
@@ -231,6 +255,41 @@ function CategoryDrawer({
           <span className="tw-text-[0.78rem] tw-font-black tw-text-vm-slate-700">Mã danh mục</span>
           <input className="tw-h-10 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200" value={form.code} onChange={(event) => setForm((current) => ({ ...current, code: event.target.value }))} />
         </label>
+        <div className="tw-grid tw-grid-cols-2 tw-gap-3">
+          <label className="tw-grid tw-gap-2">
+            <span className="tw-text-[0.78rem] tw-font-black tw-text-vm-slate-700">Đối tượng</span>
+            <SelectMenu ariaLabel="Đối tượng sử dụng" value={form.audienceType} onChange={(value) => setForm((current) => ({ ...current, audienceType: value as SaveSupportTicketCategoryRequest["audienceType"] }))} options={[{ label: "Khách hàng", value: "CUSTOMER" }, { label: "Đối tác & nhân sự", value: "INTERNAL" }]} portal />
+          </label>
+          <label className="tw-grid tw-gap-2">
+            <span className="tw-text-[0.78rem] tw-font-black tw-text-vm-slate-700">Chế độ khớp quyền</span>
+            <SelectMenu ariaLabel="Chế độ khớp quyền" value={form.permissionMatchMode} onChange={(value) => setForm((current) => ({ ...current, permissionMatchMode: value as SaveSupportTicketCategoryRequest["permissionMatchMode"] }))} options={[{ label: "Có một quyền (ANY)", value: "ANY" }, { label: "Có đủ quyền (ALL)", value: "ALL" }]} portal />
+          </label>
+        </div>
+        <div className="tw-grid tw-grid-cols-[minmax(0,1fr)_140px] tw-gap-3">
+          <label className="tw-grid tw-gap-2">
+            <span className="tw-text-[0.78rem] tw-font-black tw-text-vm-slate-700">Mã tính năng</span>
+            <input className="tw-h-10 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200" value={form.featureCode ?? ""} onChange={(event) => setForm((current) => ({ ...current, featureCode: event.target.value }))} placeholder="PARKING_SESSION" />
+          </label>
+          <label className="tw-grid tw-gap-2">
+            <span className="tw-text-[0.78rem] tw-font-black tw-text-vm-slate-700">Thứ tự</span>
+            <input type="number" min={0} className="tw-h-10 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200" value={form.displayOrder} onChange={(event) => setForm((current) => ({ ...current, displayOrder: Number(event.target.value) }))} />
+          </label>
+        </div>
+        <fieldset className="tw-grid tw-gap-2 tw-border-0 tw-p-0">
+          <span className="tw-text-[0.78rem] tw-font-black tw-text-vm-slate-700">Quyền bắt buộc</span>
+          <input className="tw-h-10 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.82rem] tw-font-semibold tw-outline-none focus:tw-border-brand-200" value={permissionSearch} onChange={(event) => setPermissionSearch(event.target.value)} placeholder="Tìm quyền theo tên hoặc mã..." />
+          <div className="tw-max-h-44 tw-overflow-y-auto tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-2">
+            {permissionOptions.filter((permission) => `${permission.code} ${permission.label}`.toLowerCase().includes(permissionSearch.trim().toLowerCase())).map((permission) => {
+              const checked = form.requiredPermissionCodes.includes(permission.code);
+              return <label key={permission.code} className="tw-flex tw-cursor-pointer tw-items-start tw-gap-2 tw-rounded-md tw-p-2 hover:tw-bg-white">
+                <input type="checkbox" checked={checked} onChange={() => setForm((current) => ({ ...current, requiredPermissionCodes: checked ? current.requiredPermissionCodes.filter((code) => code !== permission.code) : [...current.requiredPermissionCodes, permission.code] }))} />
+                <span className="tw-min-w-0"><strong className="tw-block tw-break-all tw-text-[0.76rem] tw-text-vm-slate-900">{permission.code}</strong><small className="tw-text-vm-slate-500">{permission.label}</small></span>
+              </label>;
+            })}
+            {permissionOptions.length === 0 ? <p className="tw-m-2 tw-text-[0.78rem] tw-font-semibold tw-text-vm-slate-500">Không tải được danh mục quyền IAM.</p> : null}
+          </div>
+          <small className="tw-text-vm-slate-500">Không chọn quyền: mọi tài khoản thuộc đúng nhóm đối tượng đều có thể dùng danh mục này.</small>
+        </fieldset>
         <label className="tw-grid tw-gap-2">
           <span className="tw-text-[0.78rem] tw-font-black tw-text-vm-slate-700">Tên danh mục</span>
           <input className="tw-h-10 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} />
@@ -259,10 +318,10 @@ function DeactivateModal({ category, onClose, onConfirm, saving }: { category: S
       actions={
         <div className="tw-flex tw-justify-end tw-gap-2">
           <Button variant="secondary" disabled={saving} onClick={onClose}>Hủy</Button>
-          <Button variant="danger" disabled={category.openTickets > 0} loading={saving} onClick={() => void onConfirm()}>{saving ? "Đang xử lý" : "Ngưng sử dụng"}</Button>
+          <Button variant="danger" loading={saving} onClick={() => void onConfirm()}>{saving ? "Đang xử lý" : "Ngưng sử dụng"}</Button>
         </div>
       }
-      description={category.openTickets > 0 ? "Không thể ngưng sử dụng khi còn yêu cầu chưa hoàn tất." : "Danh mục sẽ không còn được chọn khi tạo yêu cầu mới."}
+      description="Danh mục sẽ không còn được chọn khi tạo yêu cầu mới; các phiếu hiện có vẫn được giữ nguyên."
       onClose={onClose}
       open={Boolean(category)}
       title="Ngưng sử dụng danh mục"
@@ -276,7 +335,7 @@ function DeactivateModal({ category, onClose, onConfirm, saving }: { category: S
           <p className="tw-mb-0 tw-mt-1 tw-text-[0.9rem] tw-font-semibold tw-leading-6 tw-text-vm-slate-700">
             Bạn có chắc chắn muốn ngưng sử dụng danh mục "{category.name}"?
           </p>
-          {category.openTickets > 0 ? <p className="tw-mb-0 tw-mt-2 tw-text-[0.86rem] tw-font-black tw-text-red-600">Danh mục này còn {category.openTickets} yêu cầu đang mở hoặc đang xử lý.</p> : null}
+          {category.openTickets > 0 ? <p className="tw-mb-0 tw-mt-2 tw-text-[0.86rem] tw-font-semibold tw-text-orange-600">{category.openTickets} yêu cầu chưa hoàn tất vẫn tiếp tục được xử lý sau khi ngưng danh mục.</p> : null}
         </div>
       </div>
     </Modal>
@@ -285,7 +344,14 @@ function DeactivateModal({ category, onClose, onConfirm, saving }: { category: S
 
 export function SupportCategoryWorkflowPage() {
   const toast = useToast();
+  const { user } = useAuth();
+  const canCreate = hasAnyPermission(user, ["SUPPORT_TICKET_CATEGORY_CREATE_ALL"]);
+  const canUpdate = hasAnyPermission(user, ["SUPPORT_TICKET_CATEGORY_UPDATE_ALL"]);
+  const canActivate = hasAnyPermission(user, ["SUPPORT_TICKET_CATEGORY_ACTIVATE_ALL"]);
+  const canReadSupportTickets = hasAnyPermission(user, ["SUPPORT_TICKET_READ_ALL"]);
   const [rows, setRows] = useState<SupportCategoryRow[]>([]);
+  const [audience, setAudience] = useState<"CUSTOMER" | "INTERNAL">("CUSTOMER");
+  const [permissionOptions, setPermissionOptions] = useState<Array<{ code: string; label: string }>>([]);
   const [keyword, setKeyword] = useState("");
   const [priority, setPriority] = useState("all");
   const [status, setStatus] = useState("all");
@@ -298,6 +364,20 @@ export function SupportCategoryWorkflowPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    let active = true;
+    void getIamPermissions().then((response) => {
+      if (!active) return;
+      setPermissionOptions((response.data ?? []).map((permission: PermissionAdminResponse) => ({
+        code: permission.permissionCode ?? permission.permission_code ?? "",
+        label: permission.name ?? permission.description ?? "",
+      })).filter((permission) => Boolean(permission.code)).sort((left, right) => left.code.localeCompare(right.code)));
+    }).catch(() => {
+      if (active) setPermissionOptions([]);
+    });
+    return () => { active = false; };
+  }, []);
+
   const loadData = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -308,18 +388,16 @@ export function SupportCategoryWorkflowPage() {
         priority: priority === "all" ? undefined : priority as SupportTicketPriority,
         status: status === "all" ? undefined : status as SupportTicketCategoryStatus,
       };
-      const [categoryResponse, ticketResponse] = await Promise.all([
-        getSupportTicketCategories(categoryFilter),
-        getSupportTickets(),
-      ]);
-      setRows(buildRows(categoryResponse.data ?? [], ticketResponse.data ?? []));
+      const categoryResponse = await getSupportTicketCategories(categoryFilter);
+      const tickets = canReadSupportTickets ? (await getSupportTickets()).data ?? [] : [];
+      setRows(buildRows(categoryResponse.data ?? [], tickets));
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Không thể tải dữ liệu hỗ trợ.");
       setRows([]);
     } finally {
       setLoading(false);
     }
-  }, [keyword, priority, status]);
+  }, [canReadSupportTickets, keyword, priority, status]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -339,15 +417,16 @@ export function SupportCategoryWorkflowPage() {
         (category.description ?? "").toLowerCase().includes(normalizedKeyword);
       const matchPriority = priority === "all" || category.priority === priority;
       const matchStatus = status === "all" || category.status === status;
-      return matchKeyword && matchPriority && matchStatus;
+      const matchAudience = category.audienceType === audience;
+      return matchKeyword && matchPriority && matchStatus && matchAudience;
     });
-  }, [keyword, priority, rows, status]);
+  }, [audience, keyword, priority, rows, status]);
 
   const totalPages = Math.max(1, Math.ceil(visibleRows.length / pageSize));
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [keyword, pageSize, priority, status]);
+  }, [audience, keyword, pageSize, priority, status]);
 
   useEffect(() => {
     setCurrentPage((page) => Math.min(page, totalPages));
@@ -437,10 +516,10 @@ export function SupportCategoryWorkflowPage() {
               <i className="fas fa-sync-alt" />
               Làm mới
             </Button>
-            <Button onClick={handleOpenCreate}>
+            {canCreate ? <Button onClick={handleOpenCreate}>
               <i className="fas fa-plus" />
               Thêm danh mục
-            </Button>
+            </Button> : null}
           </div>
         </header>
 
@@ -463,10 +542,17 @@ export function SupportCategoryWorkflowPage() {
           </button>
         </div>
 
+        <div className="tw-mt-4 tw-flex tw-w-fit tw-rounded-vm-md tw-bg-vm-slate-25 tw-p-1" role="tablist" aria-label="Nhóm danh mục hỗ trợ">
+          <button type="button" role="tab" aria-selected={audience === "CUSTOMER"} className={cn("tw-rounded-vm-sm tw-border-0 tw-px-4 tw-py-2 tw-text-[0.8rem] tw-font-black", audience === "CUSTOMER" ? "tw-bg-white tw-text-vm-primary tw-shadow-sm" : "tw-bg-transparent tw-text-vm-slate-500")} onClick={() => setAudience("CUSTOMER")}>Khách hàng</button>
+          <button type="button" role="tab" aria-selected={audience === "INTERNAL"} className={cn("tw-rounded-vm-sm tw-border-0 tw-px-4 tw-py-2 tw-text-[0.8rem] tw-font-black", audience === "INTERNAL" ? "tw-bg-white tw-text-vm-primary tw-shadow-sm" : "tw-bg-transparent tw-text-vm-slate-500")} onClick={() => setAudience("INTERNAL")}>Đối tác & nhân sự</button>
+        </div>
+
         {error ? <div className="tw-mt-4 tw-rounded-vm-md tw-border tw-border-solid tw-border-red-100 tw-bg-red-50 tw-px-3 tw-py-2 tw-text-[0.82rem] tw-font-semibold tw-text-red-700">{error}</div> : null}
 
         <div className="tw-mt-5">
           <CategoryTable
+            canActivate={canActivate}
+            canEdit={canUpdate}
             currentPage={currentPage}
             loading={loading}
             onDeactivate={setDeactivatingCategory}
@@ -492,6 +578,7 @@ export function SupportCategoryWorkflowPage() {
         }}
         onSubmit={handleSubmitCategory}
         open={drawerOpen}
+        permissionOptions={permissionOptions}
         saving={saving}
       />
       {deactivatingCategory ? <DeactivateModal category={deactivatingCategory} onClose={() => setDeactivatingCategory(null)} onConfirm={handleDeactivate} saving={saving} /> : null}

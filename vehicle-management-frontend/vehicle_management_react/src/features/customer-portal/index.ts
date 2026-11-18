@@ -8,4 +8,4 @@ export { CustomerHistoryPage } from "./pages/CustomerHistoryPage";
 export { ProfilePage } from "./pages/ProfilePage";
 export { VehiclePage } from "./pages/VehiclePage";
 export { SubscriptionPage } from "./pages/SubscriptionPage";
-export { SupportPage } from "./pages/SupportPage";
+export { InternalSupportPage, SupportPage } from "./pages/SupportPage";

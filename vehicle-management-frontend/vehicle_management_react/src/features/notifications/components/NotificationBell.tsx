@@ -158,7 +158,12 @@ function normalizeNotificationTarget(notification: NotificationUserResponse, use
   if (redirectUrl) return canOpenNotificationTarget(user, redirectUrl) ? redirectUrl : getProfileRoute(user);
 
   if (notification.notificationType.startsWith("SUPPORT_TICKET")) {
-    return firstAccessibleTarget(user, ["/admin/support-center", "/customer/support"]);
+    return firstAccessibleTarget(user, [
+      "/admin/support-tickets",
+      "/admin/my-support",
+      "/customer/support",
+      "/admin/support-center",
+    ]);
   }
   if (notification.notificationType.startsWith("SUBSCRIPTION") || notification.notificationType.startsWith("PAYMENT") || notification.notificationType === "INVOICE_CREATED") {
     return firstAccessibleTarget(user, ["/admin/subscription-approvals", "/customer/subscriptions"]);

@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 import {
   Badge,
@@ -20,16 +21,19 @@ import {
   type CustomerPortalProfile,
 } from "@/features/customer-portal/api/customerPortalApi";
 import {
-  closeSupportTicket,
+  closeMySupportTicket,
   createSupportTicket,
+  getAvailableSupportTicketCategories,
   getMySupportTickets,
-  reopenSupportTicket,
+  reopenMySupportTicket,
   type SupportTicketPriority,
+  type SupportTicketAvailableCategoryResponse,
   type SupportTicketResponse,
   type SupportTicketStatus,
 } from "@/features/support/api/supportApi";
-import { getPublicSupportCategories, type PublicSupportCategory } from "@/features/support/api/guestSupportApi";
+import { openSupportWidget } from "@/features/support/supportWidgetEvents";
 import { hasAnyPermission } from "@/shared/auth/permissions";
+import { Drawer } from "@/shared/components/ui/Drawer";
 
 import { CustomerPageHeader, CustomerPortalLayout, Field, PortalPagination } from "./PortalShared";
 
@@ -128,15 +132,16 @@ function SupportMetric({
   );
 }
 
-export function SupportPage() {
+export function SupportPage({ mode = "customer" }: { mode?: "customer" | "internal" }) {
   const { user } = useAuth();
+  const location = useLocation();
   const toast = useToast();
   const canCloseOwnTicket = hasAnyPermission(user, ["SUPPORT_TICKET_CLOSE_OWN", "SUPPORT_TICKET_CLOSE_ALL"]);
   const canReopenOwnTicket = hasAnyPermission(user, ["SUPPORT_TICKET_REOPEN_OWN", "SUPPORT_TICKET_REOPEN_ALL"]);
   const canCreateTicket = hasAnyPermission(user, ["SUPPORT_TICKET_CREATE_OWN", "SUPPORT_TICKET_CREATE_ALL"]);
   const [profile, setProfile] = useState<CustomerPortalProfile | null>(null);
   const [tickets, setTickets] = useState<SupportTicketResponse[]>([]);
-  const [categories, setCategories] = useState<PublicSupportCategory[]>([]);
+  const [categories, setCategories] = useState<SupportTicketAvailableCategoryResponse[]>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<string>("");
   const [keyword, setKeyword] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -148,15 +153,15 @@ export function SupportPage() {
   const [createFormOpen, setCreateFormOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const supportWidgetOpenedRef = useRef(false);
 
   const loadData = useCallback(async (preferredTicketId?: string) => {
     setLoading(true);
     try {
-      const nextProfile = await getCustomerPortalProfile();
-
-      const [ticketResponse, categoryResponse] = await Promise.all([
+      const [nextProfile, ticketResponse, categoryResponse] = await Promise.all([
+        mode === "customer" ? getCustomerPortalProfile() : Promise.resolve(null),
         getMySupportTickets(),
-        getPublicSupportCategories(),
+        getAvailableSupportTicketCategories(),
       ]);
       const nextTickets = ticketResponse.data ?? [];
 
@@ -173,18 +178,28 @@ export function SupportPage() {
           return current;
         }
 
-        return nextTickets[0]?.supportTicketId ?? "";
+        return "";
       });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Không thể tải dữ liệu hỗ trợ.");
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [mode, toast]);
 
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    const shouldOpenSupportWidget = mode === "internal"
+      && new URLSearchParams(location.search).get("chat") === "open";
+    if (!shouldOpenSupportWidget || supportWidgetOpenedRef.current) return undefined;
+
+    supportWidgetOpenedRef.current = true;
+    const timer = window.setTimeout(openSupportWidget, 0);
+    return () => window.clearTimeout(timer);
+  }, [location.search, mode]);
 
   const filteredTickets = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLowerCase();
@@ -210,8 +225,8 @@ export function SupportPage() {
   }, [keyword, pageSize, priorityFilter, statusFilter]);
 
   const selectedTicket = useMemo(
-    () => tickets.find((ticket) => ticket.supportTicketId === selectedTicketId) ?? filteredTickets[0] ?? null,
-    [filteredTickets, selectedTicketId, tickets],
+    () => tickets.find((ticket) => ticket.supportTicketId === selectedTicketId) ?? null,
+    [selectedTicketId, tickets],
   );
 
   const stats = useMemo(() => ({
@@ -240,7 +255,7 @@ export function SupportPage() {
       const idempotencyKey = typeof crypto !== "undefined" && "randomUUID" in crypto
         ? crypto.randomUUID()
         : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      const response = await createSupportTicket({
+      await createSupportTicket({
         categoryId: form.categoryId,
         content,
         title,
@@ -248,7 +263,7 @@ export function SupportPage() {
       setForm(emptyForm);
       setCreateFormOpen(false);
       toast.success("Đã gửi yêu cầu hỗ trợ.");
-      await loadData(response.data.supportTicketId);
+      await loadData();
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "Không thể gửi yêu cầu hỗ trợ.");
     } finally {
@@ -278,7 +293,7 @@ export function SupportPage() {
 
     setSaving(true);
     try {
-      const response = await closeSupportTicket(selectedTicket.supportTicketId);
+      const response = await closeMySupportTicket(selectedTicket.supportTicketId);
       toast.success("Đã đóng yêu cầu hỗ trợ.");
       await loadData(response.data.supportTicketId);
     } catch (error) {
@@ -295,7 +310,7 @@ export function SupportPage() {
 
     setSaving(true);
     try {
-      const response = await reopenSupportTicket(selectedTicket.supportTicketId);
+      const response = await reopenMySupportTicket(selectedTicket.supportTicketId);
       toast.success("Đã mở lại yêu cầu hỗ trợ.");
       await loadData(response.data.supportTicketId);
     } catch (error) {
@@ -305,15 +320,18 @@ export function SupportPage() {
     }
   };
 
+  const PageLayout = mode === "customer" ? CustomerPortalLayout : Fragment;
+
   return (
-    <CustomerPortalLayout>
+    <PageLayout>
+      <div className={mode === "internal" ? "tw-min-w-0 tw-p-5 lg:tw-p-6" : "tw-contents"}>
       <CustomerPageHeader
         title="Hỗ trợ"
         subtitle="Gửi yêu cầu và theo dõi tình trạng xử lý hỗ trợ."
         action={canCreateTicket ? <Button size="lg" onClick={handleOpenCreateForm}><i className="fas fa-plus" />Tạo yêu cầu mới</Button> : undefined}
       />
 
-      <div className="tw-grid tw-grid-cols-[minmax(0,1fr)_minmax(320px,360px)] tw-items-start tw-gap-4 max-[1180px]:tw-grid-cols-1">
+      <div className="tw-min-w-0">
         <div className="tw-min-w-0">
           <div className="tw-grid tw-grid-cols-3 tw-gap-3 max-[700px]:tw-grid-cols-1">
             <SupportMetric icon="far fa-question-circle" label="Yêu cầu đang mở" tone="primary" value={stats.open} />
@@ -409,16 +427,17 @@ export function SupportPage() {
           </Card>
         </div>
 
-        <aside className="tw-min-w-0">
-          <Card className="tw-sticky tw-top-4 tw-overflow-hidden max-[1180px]:tw-static">
-            <CardHeader>
-              <h2 className="tw-m-0 tw-text-[1rem] tw-font-bold tw-text-vm-slate-900">{selectedTicket ? `Chi tiết ${shortCode(selectedTicket.supportTicketId)}` : "Chi tiết yêu cầu"}</h2>
-            </CardHeader>
-            <CardContent>
+        <Drawer
+          description="Theo dõi thông tin và tiến độ xử lý yêu cầu hỗ trợ."
+          onClose={() => setSelectedTicketId("")}
+          open={Boolean(selectedTicket)}
+          title={selectedTicket ? `Chi tiết ${shortCode(selectedTicket.supportTicketId)}` : "Chi tiết yêu cầu"}
+          width="md"
+        >
               {selectedTicket ? (
                 <>
                   <dl className="tw-grid tw-grid-cols-[minmax(110px,.8fr)_minmax(0,1fr)] tw-gap-x-3 tw-gap-y-3 tw-text-[0.78rem]">
-                    <dt className="tw-font-semibold tw-text-vm-slate-500">Khách hàng</dt><dd className="tw-m-0 tw-text-right tw-font-semibold tw-text-vm-slate-900">{profile?.profile?.fullName ?? profile?.account?.username ?? "--"}</dd>
+                    <dt className="tw-font-semibold tw-text-vm-slate-500">Người yêu cầu</dt><dd className="tw-m-0 tw-text-right tw-font-semibold tw-text-vm-slate-900">{profile?.profile?.fullName ?? profile?.account?.username ?? user?.fullName ?? user?.username ?? "--"}</dd>
                     <dt className="tw-font-semibold tw-text-vm-slate-500">Trạng thái</dt><dd className="tw-m-0 tw-text-right"><TicketBadge tone={statusTone[selectedTicket.status]}>{statusLabels[selectedTicket.status]}</TicketBadge></dd>
                     <dt className="tw-font-semibold tw-text-vm-slate-500">Mức độ</dt><dd className="tw-m-0 tw-text-right"><TicketBadge tone={priorityTone[selectedTicket.priority]}>{priorityLabels[selectedTicket.priority]}</TicketBadge></dd>
                     <dt className="tw-font-semibold tw-text-vm-slate-500">Loại yêu cầu</dt><dd className="tw-m-0 tw-text-right tw-font-semibold tw-text-vm-slate-900">{selectedTicket.categoryName ?? selectedTicket.categoryCode ?? "--"}</dd>
@@ -461,14 +480,8 @@ export function SupportPage() {
                     </div>
                   ) : null}
                 </>
-              ) : (
-                <div className="tw-grid tw-min-h-56 tw-place-items-center tw-text-center">
-                  <div><i className="far fa-hand-pointer tw-text-2xl tw-text-vm-primary" /><p className="tw-m-0 tw-mt-3 tw-text-sm tw-font-semibold tw-text-vm-slate-500">Chọn một yêu cầu trong danh sách để xem chi tiết xử lý.</p></div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </aside>
+              ) : null}
+        </Drawer>
       </div>
 
       <InfoBanner className="tw-mt-4" description="Khi yêu cầu được giải quyết, bạn có thể xác nhận, mở lại hoặc đóng yêu cầu theo quyền được cấp." icon={<i className="fas fa-info-circle" />} title="Theo dõi tiến độ hỗ trợ tại một nơi" />
@@ -510,6 +523,11 @@ export function SupportPage() {
           <small className="tw-font-semibold tw-text-vm-slate-500"><i className="fas fa-info-circle tw-mr-1" /> Yêu cầu mới sẽ ở trạng thái đang mở để nhân viên tiếp nhận.</small>
         </div>
       </Modal>
-    </CustomerPortalLayout>
+      </div>
+    </PageLayout>
   );
+}
+
+export function InternalSupportPage() {
+  return <SupportPage mode="internal" />;
 }

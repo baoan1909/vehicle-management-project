@@ -215,7 +215,7 @@ iam: {
     supportTicketCategories: "/operations/support-ticket-categories",
     supportTickets: "/operations/support-tickets",
     supportAssistantConversation: "/operations/support-tickets/assistant-conversation",
-    supportTicketCustomerConversation: (ticketId: string) => `/operations/support-tickets/${ticketId}/customer-conversation`,
+    supportTicketRequesterConversation: (ticketId: string) => `/operations/support-tickets/${ticketId}/requester-conversation`,
     supportTicketEscalations: "/operations/support-ticket-escalations",
     supportTicketEscalationForTicket: (ticketId: string) => `/operations/support-tickets/${ticketId}/escalations`,
     supportTicketsFromConversation: (conversationId: string) => `/operations/support-tickets/from-conversations/${conversationId}`,
