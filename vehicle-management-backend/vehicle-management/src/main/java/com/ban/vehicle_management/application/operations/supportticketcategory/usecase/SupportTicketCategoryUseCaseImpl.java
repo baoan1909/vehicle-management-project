@@ -77,6 +77,12 @@ public class SupportTicketCategoryUseCaseImpl implements SupportTicketCategoryPo
 
     @Override
     @Transactional(readOnly = true)
+    public boolean isActiveCategory(UUID categoryId) {
+        return categoryPortOut.existsByIdAndStatus(categoryId, SupportTicketCategoryStatus.ACTIVE);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<SupportTicketCategory> getCategories(
             SupportTicketCategoryStatus status,
             SupportTicketCategoryPriority priority,

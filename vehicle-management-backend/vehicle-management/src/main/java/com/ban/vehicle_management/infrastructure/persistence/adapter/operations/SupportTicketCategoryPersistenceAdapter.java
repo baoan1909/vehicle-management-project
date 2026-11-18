@@ -52,6 +52,11 @@ public class SupportTicketCategoryPersistenceAdapter implements SupportTicketCat
     }
 
     @Override
+    public boolean existsByIdAndStatus(UUID categoryId, SupportTicketCategoryStatus status) {
+        return categoryRepository.existsByCategoryIdAndStatus(categoryId, status);
+    }
+
+    @Override
     public List<SupportTicketCategory> findAll(
             SupportTicketCategoryStatus status,
             SupportTicketCategoryPriority priority,

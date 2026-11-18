@@ -24,6 +24,7 @@ public final class PermissionAccessPrerequisitePolicy {
     );
     private static final Set<String> PRE_APPROVAL_SUPPORT_PERMISSIONS = Set.of(
             "SUPPORT_WIDGET_ACCESS_OWN",
+            "SUPPORT_TICKET_CATEGORY_CUSTOMER_OWN",
             "SUPPORT_TICKET_CREATE_OWN",
             "SUPPORT_TICKET_CREATE_FROM_CHAT_OWN",
             "SUPPORT_TICKET_READ_OWN",

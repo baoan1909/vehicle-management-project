@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.ban.vehicle_management.testsupport.PostgresIntegrationTestSupport;
@@ -42,6 +43,7 @@ class PendingCustomerSupportFlowIT extends PostgresIntegrationTestSupport {
 
     private static final Set<String> SUPPORT_PERMISSIONS = Set.of(
             "SUPPORT_WIDGET_ACCESS_OWN",
+            "SUPPORT_TICKET_CATEGORY_CUSTOMER_OWN",
             "SUPPORT_TICKET_CREATE_OWN",
             "SUPPORT_TICKET_READ_OWN",
             "CHAT_CONVERSATION_READ_OWN",
@@ -73,11 +75,17 @@ class PendingCustomerSupportFlowIT extends PostgresIntegrationTestSupport {
         mockMvc.perform(get("/api/operations/support-tickets/mine")
                         .header("Authorization", "Bearer pending-support-token"))
                 .andExpect(status().isOk());
-        assertEquals(9L, statistics.getPrepareStatementCount(),
-                "current-access aggregate (5) + deletion guard (2) + narrow customer lookup (1) + ticket query (1)");
+        assertEquals(8L, statistics.getPrepareStatementCount(),
+                "current-access aggregate (5) + deletion guard (2) + account-owned ticket query (1)");
 
         UUID categoryId = jdbcTemplate.queryForObject(
-                "select category_id from operations.support_ticket_categories where status = 'ACTIVE' limit 1",
+                """
+                        select category_id
+                        from operations.support_ticket_categories
+                        where status = 'ACTIVE' and audience_type = 'CUSTOMER'
+                        order by display_order, category_id
+                        limit 1
+                        """,
                 UUID.class);
         String createBody = objectMapper.writeValueAsString(Map.of(
                 "categoryId", categoryId,
@@ -120,8 +128,8 @@ class PendingCustomerSupportFlowIT extends PostgresIntegrationTestSupport {
         assertAll(
                 () -> assertEquals(25L, createStatements,
                         "authorization, deletion guard, identity, idempotent ticket write and notification fan-out"),
-                () -> assertEquals(18L, assistantStatements,
-                        "authorization, deletion guard, identity, assistant conversation/member lookup and creation"),
+                () -> assertEquals(17L, assistantStatements,
+                        "authorization, deletion guard, assistant conversation/member lookup and creation"),
                 () -> assertEquals(11L, historyStatements,
                         "authorization, deletion guard, conversation ownership/membership and history read"),
                 () -> assertEquals(20L, sendStatements,
@@ -142,7 +150,7 @@ class PendingCustomerSupportFlowIT extends PostgresIntegrationTestSupport {
         mockMvc.perform(get("/api/operations/support-tickets/mine")
                         .header("Authorization", "Bearer rejected-support-token"))
                 .andExpect(status().isOk());
-        assertEquals(9L, statistics.getPrepareStatementCount());
+        assertEquals(8L, statistics.getPrepareStatementCount());
 
         String currentAccess = mockMvc.perform(get("/api/iam/accounts/current-access")
                         .header("Authorization", "Bearer rejected-support-token"))
@@ -175,13 +183,15 @@ class PendingCustomerSupportFlowIT extends PostgresIntegrationTestSupport {
     }
 
     @Test
-    void missingCustomerIdentityReturnsStableBusinessError() throws Exception {
+    void missingCustomerIdentityCanUseAccountOwnedSupport() throws Exception {
         Actor actor = createActorWithoutCustomer(SUPPORT_PERMISSIONS);
         bindToken("missing-customer-token", actor.accountId());
 
         mockMvc.perform(get("/api/operations/support-tickets/mine")
                         .header("Authorization", "Bearer missing-customer-token"))
-                .andExpect(status().isUnprocessableEntity());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data").isEmpty());
     }
 
     @Test

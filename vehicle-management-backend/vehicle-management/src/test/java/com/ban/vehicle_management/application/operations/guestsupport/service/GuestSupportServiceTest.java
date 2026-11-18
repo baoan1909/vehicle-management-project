@@ -14,9 +14,7 @@ import com.ban.vehicle_management.application.operations.guestsupport.config.Gue
 import com.ban.vehicle_management.application.operations.guestsupport.port.out.GuestSupportRequestPortOut;
 import com.ban.vehicle_management.application.operations.supportticketcategory.port.in.SupportTicketCategoryPortIn;
 import com.ban.vehicle_management.domain.operations.guestsupport.model.GuestSupportRequest;
-import com.ban.vehicle_management.domain.operations.supportticketcategory.model.SupportTicketCategory;
 import com.ban.vehicle_management.entrypoint.dto.operations.guestsupport.request.CreateGuestSupportRequest;
-import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCategoryStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import com.ban.vehicle_management.shared.exception.TooManyRequestsException;
@@ -48,10 +46,7 @@ class GuestSupportServiceTest {
         service = new GuestSupportService(
                 requestPort, categoryPort, auditPort, tokenService, properties, captchaProofService);
         categoryId = UUID.randomUUID();
-        SupportTicketCategory category = new SupportTicketCategory();
-        category.setCategoryId(categoryId);
-        category.setStatus(SupportTicketCategoryStatus.ACTIVE);
-        lenient().when(categoryPort.getCategoryById(categoryId)).thenReturn(category);
+        lenient().when(categoryPort.isActiveCategory(categoryId)).thenReturn(true);
         lenient().when(requestPort.save(any())).thenAnswer(invocation -> {
             GuestSupportRequest request = invocation.getArgument(0);
             request.setCreatedAt(Instant.now());

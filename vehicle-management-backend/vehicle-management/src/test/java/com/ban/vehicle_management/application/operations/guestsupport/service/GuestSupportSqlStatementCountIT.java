@@ -16,7 +16,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest(properties = {
         "spring.jpa.properties.hibernate.generate_statistics=true",
@@ -28,6 +30,7 @@ class GuestSupportSqlStatementCountIT extends PostgresIntegrationTestSupport {
     @Autowired SupportTicketCategoryPortIn categoryPortIn;
     @Autowired EntityManagerFactory entityManagerFactory;
     @Autowired JdbcTemplate jdbcTemplate;
+    @MockitoBean TaskScheduler taskScheduler;
     private Statistics statistics;
 
     @BeforeEach

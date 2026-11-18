@@ -64,7 +64,8 @@ class PublicSupportSecurityIT extends PostgresIntegrationTestSupport {
                                   "code": "%s",
                                   "name": "Guest security test",
                                   "description": "Permission-positive integration test",
-                                  "priority": "NORMAL"
+                                  "priority": "NORMAL",
+                                  "audienceType": "CUSTOMER"
                                 }
                                 """.formatted(uniqueCode)))
                 .andExpect(status().isCreated())

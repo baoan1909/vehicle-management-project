@@ -7,9 +7,7 @@ import com.ban.vehicle_management.application.operations.guestsupport.port.out.G
 import com.ban.vehicle_management.application.operations.supportticketcategory.port.in.SupportTicketCategoryPortIn;
 import com.ban.vehicle_management.domain.audit.auditlog.model.AuditLog;
 import com.ban.vehicle_management.domain.operations.guestsupport.model.GuestSupportRequest;
-import com.ban.vehicle_management.domain.operations.supportticketcategory.model.SupportTicketCategory;
 import com.ban.vehicle_management.entrypoint.dto.operations.guestsupport.request.CreateGuestSupportRequest;
-import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCategoryStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
@@ -75,8 +73,7 @@ public class GuestSupportService {
                 input.sessionId(),
                 remoteAddress);
 
-        SupportTicketCategory category = categoryPortIn.getCategoryById(input.categoryId());
-        if (category.getStatus() != SupportTicketCategoryStatus.ACTIVE) {
+        if (!categoryPortIn.isActiveCategory(input.categoryId())) {
             throw new BadRequestException("Danh mục hỗ trợ không còn hoạt động");
         }
 
