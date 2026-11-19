@@ -2,6 +2,7 @@ package com.ban.vehicle_management.application.operations.supportticket.usecase;
 
 import com.ban.vehicle_management.application.operations.supportticket.authorization.SupportTicketAccessGuard;
 import com.ban.vehicle_management.application.operations.supportticket.model.SupportTicketChatIntake;
+import com.ban.vehicle_management.application.operations.supportticket.model.SupportRequesterContext;
 import com.ban.vehicle_management.application.operations.supportticket.port.in.SupportTicketPortIn;
 import com.ban.vehicle_management.application.operations.supportticket.port.out.SupportTicketConversationLinkPortOut;
 import com.ban.vehicle_management.application.operations.supportticket.port.out.SupportTicketPortOut;
@@ -10,14 +11,16 @@ import com.ban.vehicle_management.application.notification.notification.model.Br
 import com.ban.vehicle_management.application.notification.notification.model.NotificationRecipientCriteria;
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
-import com.ban.vehicle_management.application.people.customer.port.out.CustomerPortOut;
+import com.ban.vehicle_management.application.operations.supportticketcategory.port.in.SupportTicketCategoryPortIn;
 import com.ban.vehicle_management.domain.operations.supportticket.model.SupportTicket;
 import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatConversation;
 import com.ban.vehicle_management.domain.operations.supportticket.policy.SupportTicketPolicy;
+import com.ban.vehicle_management.domain.operations.supportticketcategory.model.SupportTicketCategory;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCategoryPriority;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatConversationType;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketSource;
+import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketEventType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import org.springframework.security.access.AccessDeniedException;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
@@ -29,13 +32,14 @@ import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 
 @Service
 public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
 
     private final SupportTicketPortOut supportTicketPortOut;
     private final SupportTicketAccessGuard accessGuard;
-    private final CustomerPortOut customerPortOut;
+    private final SupportTicketCategoryPortIn categoryPortIn;
     private final NotificationPortIn notificationPortIn;
     private final SupportTicketConversationService ticketConversationService;
     private final SupportTicketConversationLinkPortOut ticketConversationLinkPortOut;
@@ -44,14 +48,14 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
     public SupportTicketUseCaseImpl(
             SupportTicketPortOut supportTicketPortOut,
             SupportTicketAccessGuard accessGuard,
-            CustomerPortOut customerPortOut,
+            SupportTicketCategoryPortIn categoryPortIn,
             NotificationPortIn notificationPortIn,
             SupportTicketConversationService ticketConversationService,
             SupportTicketConversationLinkPortOut ticketConversationLinkPortOut
     ) {
         this.supportTicketPortOut = supportTicketPortOut;
         this.accessGuard = accessGuard;
-        this.customerPortOut = customerPortOut;
+        this.categoryPortIn = categoryPortIn;
         this.notificationPortIn = notificationPortIn;
         this.ticketConversationService = ticketConversationService;
         this.ticketConversationLinkPortOut = ticketConversationLinkPortOut;
@@ -60,20 +64,19 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
     @Override
     @Transactional
     public SupportTicket createTicket(SupportTicket supportTicket, String idempotencyKey) {
-        UUID customerId = accessGuard.resolveCustomerIdForCreate();
-        supportTicket.setCustomerId(customerId);
+        SupportRequesterContext requester = accessGuard.requesterForCreate();
 
         String normalizedKey = normalizeIdempotencyKey(idempotencyKey);
-        SupportTicket existing = findIdempotentTicket(customerId, normalizedKey);
+        SupportTicket existing = findIdempotentTicket(requester.accountId(), normalizedKey);
         if (existing != null) {
             return existing;
         }
 
-        validateActiveCategory(supportTicket.getCategoryId());
-
+        SupportTicketCategory category = categoryPortIn.ensureAvailableCategory(supportTicket.getCategoryId());
+        initializeRequester(supportTicket, requester, category);
         supportTicketPolicy.initialize(supportTicket);
         supportTicket.setSupportTicketId(UUID.randomUUID());
-        supportTicket.setSource(SupportTicketSource.CUSTOMER_PORTAL);
+        supportTicket.setSource(SupportTicketSource.SELF_SERVICE_PORTAL);
         supportTicket.setIdempotencyKey(normalizedKey);
 
         SupportTicket savedTicket = supportTicketPortOut.save(supportTicket);
@@ -84,31 +87,28 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
     @Override
     @Transactional
     public SupportTicketChatIntake createChatIntake(SupportTicket supportTicket, String idempotencyKey) {
-        UUID customerId = accessGuard.resolveCustomerIdForCreate();
-        UUID customerAccountId = accessGuard.currentAccountId();
-        supportTicket.setCustomerId(customerId);
+        SupportRequesterContext requester = accessGuard.requesterForCreate();
 
         ChatConversation assistantConversation = ticketConversationService.openOrCreateAssistantConversation(
-                customerId,
-                customerAccountId
+                requester.accountId()
         );
 
         String normalizedKey = normalizeIdempotencyKey(idempotencyKey);
-        SupportTicket existing = findIdempotentTicket(customerId, normalizedKey);
+        SupportTicket existing = findIdempotentTicket(requester.accountId(), normalizedKey);
         if (existing != null) {
-            ticketConversationService.postTicketCardFromCustomer(existing, assistantConversation, customerAccountId);
+            ticketConversationService.postTicketCardFromRequester(existing, assistantConversation, requester.accountId());
             return new SupportTicketChatIntake(existing, assistantConversation, true);
         }
 
-        validateActiveCategory(supportTicket.getCategoryId());
-
+        SupportTicketCategory category = categoryPortIn.ensureAvailableCategory(supportTicket.getCategoryId());
+        initializeRequester(supportTicket, requester, category);
         supportTicketPolicy.initialize(supportTicket);
         supportTicket.setSupportTicketId(UUID.randomUUID());
         supportTicket.setSource(SupportTicketSource.ASSISTANT_CHAT);
         supportTicket.setSourceConversationId(assistantConversation.getConversationId());
         supportTicket.setIdempotencyKey(normalizedKey);
         SupportTicket savedTicket = supportTicketPortOut.save(supportTicket);
-        ticketConversationService.postTicketCardFromCustomer(savedTicket, assistantConversation, customerAccountId);
+        ticketConversationService.postTicketCardFromRequester(savedTicket, assistantConversation, requester.accountId());
         notifyTicketCreated(savedTicket);
         return new SupportTicketChatIntake(savedTicket, assistantConversation, false);
     }
@@ -116,8 +116,8 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
     @Override
     @Transactional
     public ChatConversation openAssistantConversation() {
-        UUID customerId = accessGuard.resolveCustomerIdForAssistant();
-        return ticketConversationService.openOrCreateAssistantConversation(customerId, accessGuard.currentAccountId());
+        SupportRequesterContext requester = accessGuard.requesterForAssistant();
+        return ticketConversationService.openOrCreateAssistantConversation(requester.accountId());
     }
 
     @Override
@@ -127,36 +127,37 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
             UUID conversationId,
             String idempotencyKey
     ) {
-        UUID customerAccountId = accessGuard.currentAccountId();
-        ChatConversation conversation = ticketConversationService.getCustomerTicketOriginConversation(conversationId, customerAccountId);
-        UUID customerId = conversation.getConversationType() == ChatConversationType.ASSISTANT_SUPPORT
-                ? accessGuard.resolveCustomerIdForCreate()
-                : accessGuard.resolveCustomerIdForCreateFromChat();
-        UUID assignedAccountId = conversation.getConversationType() == ChatConversationType.CUSTOMER_DIRECT
-                ? ticketConversationService.resolveCounterpartAccountId(conversation, customerAccountId)
+        UUID requesterAccountId = accessGuard.currentAccountId();
+        ChatConversation conversation = ticketConversationService.getRequesterTicketOriginConversation(
+                conversationId, requesterAccountId
+        );
+        SupportRequesterContext requester = conversation.getConversationType() == ChatConversationType.ASSISTANT_SUPPORT
+                ? accessGuard.requesterForCreate()
+                : accessGuard.requesterForCreateFromChat();
+        UUID assignedAccountId = conversation.getConversationType() == ChatConversationType.SUPPORT_REQUESTER_DIRECT
+                ? ticketConversationService.resolveCounterpartAccountId(conversation, requesterAccountId)
                 : null;
-        supportTicket.setCustomerId(customerId);
 
         String normalizedKey = normalizeIdempotencyKey(idempotencyKey);
-        SupportTicket existing = findIdempotentTicket(customerId, normalizedKey);
+        SupportTicket existing = findIdempotentTicket(requester.accountId(), normalizedKey);
         if (existing != null) {
-            ticketConversationService.postTicketCardFromCustomer(existing, conversation, customerAccountId);
+            ticketConversationService.postTicketCardFromRequester(existing, conversation, requesterAccountId);
             return existing;
         }
 
-        validateActiveCategory(supportTicket.getCategoryId());
+        SupportTicketCategory category = categoryPortIn.ensureAvailableCategory(supportTicket.getCategoryId());
+        initializeRequester(supportTicket, requester, category);
         supportTicketPolicy.initialize(supportTicket);
-        // Only a customer-to-staff direct conversation can infer an immediate assignee.
         supportTicket.setAssignedTo(assignedAccountId);
         supportTicket.setSupportTicketId(UUID.randomUUID());
         supportTicket.setSource(conversation.getConversationType() == ChatConversationType.ASSISTANT_SUPPORT
                 ? SupportTicketSource.ASSISTANT_CHAT
-                : SupportTicketSource.EMPLOYEE_CHAT);
+                : SupportTicketSource.SUPPORT_CONVERSATION);
         supportTicket.setSourceConversationId(conversationId);
         supportTicket.setIdempotencyKey(normalizedKey);
 
         SupportTicket savedTicket = supportTicketPortOut.save(supportTicket);
-        ticketConversationService.postTicketCardFromCustomer(savedTicket, conversation, customerAccountId);
+        ticketConversationService.postTicketCardFromRequester(savedTicket, conversation, requesterAccountId);
         notifyTicketCreated(savedTicket);
         if (assignedAccountId != null) {
             notifyTicketAssigned(savedTicket);
@@ -173,9 +174,9 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
     @Override
     @Transactional(readOnly = true)
     public List<SupportTicket> getMyTickets(SupportTicketStatus status, String keyword, Integer limit) {
-        UUID customerId = accessGuard.resolveCustomerIdForOwnTickets();
+        UUID requesterAccountId = accessGuard.requesterForOwnTickets().accountId();
         int resolvedLimit = limit == null ? 100 : Math.min(Math.max(limit, 1), 200);
-        return supportTicketPortOut.findOwnTickets(customerId, status, normalizeKeyword(keyword), resolvedLimit);
+        return supportTicketPortOut.findOwnTickets(requesterAccountId, status, normalizeKeyword(keyword), resolvedLimit);
     }
 
     @Override
@@ -187,16 +188,17 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
     ) {
         ChatConversation conversation = ticketConversationService.getConversationForHistory(conversationId);
         if (conversation.getConversationType() == ChatConversationType.ASSISTANT_SUPPORT) {
-            UUID currentCustomerId = accessGuard.resolveCustomerIdForOwnTickets();
-            if (!currentCustomerId.equals(conversation.getCustomerId())) {
+            UUID currentAccountId = accessGuard.requesterForOwnTickets().accountId();
+            if (!currentAccountId.equals(conversation.getOwnerAccountId())) {
                 throw new AccessDeniedException("Access is denied");
             }
-        } else if (conversation.getConversationType() != ChatConversationType.CUSTOMER_DIRECT) {
-            throw new BadRequestException("Ticket history is only available for customer support conversations");
+        } else if (conversation.getConversationType() != ChatConversationType.SUPPORT_REQUESTER_DIRECT) {
+            throw new BadRequestException("Ticket history is only available for requester support conversations");
         }
 
         return supportTicketPortOut.findAll(
-                        conversation.getCustomerId(), null, null, status, null, normalizeKeyword(keyword)
+                        conversation.getOwnerAccountId(), null, null, null, null, null, null,
+                        status, null, normalizeKeyword(keyword)
                 ).stream()
                 .filter(ticket -> {
                     try {
@@ -211,17 +213,71 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
 
     @Override
     @Transactional
-    public SupportTicket shareTicketWithAssistant(UUID supportTicketId) {
-        UUID customerId = accessGuard.resolveCustomerIdForAssistant();
+    public SupportTicket shareTicketWithAssistant(UUID supportTicketId, String idempotencyKey) {
+        UUID requesterAccountId = accessGuard.requesterForAssistant().accountId();
         SupportTicket ticket = findTicketOrThrow(supportTicketId);
-        if (!customerId.equals(ticket.getCustomerId())) {
+        if (!requesterAccountId.equals(ticket.getRequesterAccountId())) {
             throw new AccessDeniedException("Access is denied");
         }
-        UUID accountId = accessGuard.currentAccountId();
         ChatConversation assistantConversation = ticketConversationService.openOrCreateAssistantConversation(
-                customerId, accountId
+                requesterAccountId
         );
-        ticketConversationService.postTicketCardFromCustomer(ticket, assistantConversation, accountId);
+        ticketConversationService.repostTicketCardFromRequester(
+                ticket,
+                assistantConversation,
+                requesterAccountId,
+                snapshotIdempotencyKey(idempotencyKey, "assistant-share")
+        );
+        return ticket;
+    }
+
+    @Override
+    @Transactional
+    public SupportTicket shareTicketWithConversation(
+            UUID supportTicketId,
+            UUID conversationId,
+            String idempotencyKey
+    ) {
+        SupportTicket ticket = findTicketOrThrow(supportTicketId);
+        SupportTicketStatus previousStatus = ticket.getStatus();
+        UUID actorAccountId = accessGuard.currentAccountId();
+        ChatConversation conversation = ticketConversationService.getRequesterTicketOriginConversation(
+                conversationId,
+                actorAccountId
+        );
+        if (!ticket.getRequesterAccountId().equals(conversation.getOwnerAccountId())) {
+            throw new AccessDeniedException("Access is denied");
+        }
+
+        if (actorAccountId.equals(ticket.getRequesterAccountId())) {
+            accessGuard.ensureCanReadOwnRequesterConversation(ticket);
+        } else {
+            accessGuard.ensureCanShareAsAssignee(ticket);
+            if (ticket.getStatus() == SupportTicketStatus.OPEN) {
+                supportTicketPolicy.startProgress(ticket);
+                if (ticket.getFirstRespondedAt() == null) {
+                    ticket.setFirstRespondedAt(Instant.now());
+                }
+                ticket = supportTicketPortOut.save(ticket);
+                ticketConversationService.postAssistantTicketUpdate(
+                        ticket,
+                        "Nhân viên phụ trách đã phản hồi yêu cầu của bạn."
+                );
+            }
+        }
+
+        SupportTicketEventType eventType = previousStatus == SupportTicketStatus.OPEN
+                && ticket.getStatus() == SupportTicketStatus.IN_PROGRESS
+                ? SupportTicketEventType.STARTED_PROCESSING
+                : SupportTicketEventType.SHARED;
+        ticketConversationService.repostTicketCardFromConversation(
+                ticket,
+                conversation,
+                actorAccountId,
+                eventType,
+                previousStatus,
+                snapshotIdempotencyKey(idempotencyKey, "conversation-share")
+        );
         return ticket;
     }
 
@@ -236,14 +292,21 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
     @Override
     @Transactional(readOnly = true)
     public List<SupportTicket> getTickets(
-            UUID customerId,
+            UUID requesterAccountId,
+            String requesterRoleCode,
             UUID categoryId,
             UUID assignedTo,
+            UUID organizationId,
+            UUID parkingLotId,
+            String featureCode,
             SupportTicketStatus status,
             SupportTicketCategoryPriority priority,
             String keyword
     ) {
-        return supportTicketPortOut.findAll(customerId, categoryId, assignedTo, status, priority, normalizeKeyword(keyword))
+        return supportTicketPortOut.findAll(
+                        requesterAccountId, requesterRoleCode, categoryId, assignedTo,
+                        organizationId, parkingLotId, featureCode, status, priority, normalizeKeyword(keyword)
+                )
                 .stream()
                 .filter(ticket -> {
                     try {
@@ -266,9 +329,10 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
             throw new ConflictException("Only open support ticket can be updated");
         }
 
-        validateActiveCategory(supportTicket.getCategoryId());
+        SupportTicketCategory category = categoryPortIn.ensureAvailableCategory(supportTicket.getCategoryId());
 
         existingTicket.setCategoryId(supportTicket.getCategoryId());
+        existingTicket.setFeatureCode(category.getFeatureCode());
         existingTicket.setTitle(supportTicket.getTitle());
         existingTicket.setContent(supportTicket.getContent());
 
@@ -308,9 +372,14 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
         if (!supportTicketPortOut.existsAssignableAccountById(accountId)) {
             throw new NotFoundException("Assignable account not found");
         }
-        SupportTicket existingTicket = findTicketOrThrow(supportTicketId);
-        supportTicketPolicy.claim(existingTicket, accountId);
-        SupportTicket savedTicket = supportTicketPortOut.save(existingTicket);
+        if (!supportTicketPortOut.claimIfAvailable(supportTicketId, accountId)) {
+            SupportTicket current = findTicketOrThrow(supportTicketId);
+            if (!accountId.equals(current.getAssignedTo())) {
+                throw new ConflictException("Support ticket has already been claimed by another system administrator");
+            }
+            return current;
+        }
+        SupportTicket savedTicket = findTicketOrThrow(supportTicketId);
         ticketConversationService.postAssistantTicketUpdate(savedTicket, "Yêu cầu của bạn đang được xử lý.");
         notifyTicketAssigned(savedTicket);
         return savedTicket;
@@ -329,9 +398,23 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
     public SupportTicket resolveTicket(UUID supportTicketId, String resolutionNote) {
         SupportTicket existingTicket = findTicketOrThrow(supportTicketId);
         accessGuard.ensureCanProcess(existingTicket);
+        UUID resolvedByAccountId = accessGuard.currentAccountId();
+
+        if (existingTicket.getStatus() == SupportTicketStatus.RESOLVED) {
+            return existingTicket;
+        }
+
+        SupportTicketStatus previousStatus = existingTicket.getStatus();
 
         supportTicketPolicy.resolve(existingTicket, resolutionNote, Instant.now());
         SupportTicket savedTicket = supportTicketPortOut.save(existingTicket);
+        ticketConversationService.postTicketStatusCard(
+                savedTicket,
+                resolvedByAccountId,
+                SupportTicketEventType.RESOLVED,
+                previousStatus,
+                lifecycleEventKey("resolved", savedTicket)
+        );
         ticketConversationService.postAssistantTicketUpdate(savedTicket, "Yêu cầu của bạn đã được giải quyết.");
         notifyTicketStatusChanged(savedTicket, NotificationType.SUPPORT_TICKET_RESPONDED, "Ticket đã có phản hồi", "Ticket hỗ trợ của bạn đã được phản hồi và đánh dấu đã xử lý.");
         return savedTicket;
@@ -342,10 +425,23 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
     public SupportTicket reopenTicket(UUID supportTicketId) {
         SupportTicket existingTicket = findTicketOrThrow(supportTicketId);
         accessGuard.ensureCanReopen(existingTicket);
+        UUID reopenedByAccountId = accessGuard.currentAccountId();
+
+        if (existingTicket.getStatus() == SupportTicketStatus.OPEN
+                || existingTicket.getStatus() == SupportTicketStatus.IN_PROGRESS) {
+            return existingTicket;
+        }
+
+        SupportTicketStatus previousStatus = existingTicket.getStatus();
 
         supportTicketPolicy.reopen(existingTicket, Instant.now());
         SupportTicket savedTicket = supportTicketPortOut.save(existingTicket);
-        ticketConversationLinkPortOut.deactivate(savedTicket.getSupportTicketId());
+        ticketConversationService.repostReopenedTicketCard(
+                savedTicket,
+                reopenedByAccountId,
+                previousStatus,
+                lifecycleEventKey("reopened", savedTicket)
+        );
         ticketConversationService.postAssistantTicketUpdate(savedTicket, "Yêu cầu của bạn đã được mở lại để tiếp tục xử lý.");
         notifyTicketStatusChanged(savedTicket, NotificationType.SUPPORT_TICKET_REOPENED, "Ticket được mở lại", "Ticket hỗ trợ của bạn đã được mở lại để tiếp tục xử lý.");
         return savedTicket;
@@ -359,6 +455,13 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
 
         supportTicketPolicy.close(existingTicket, closedBy, Instant.now());
         SupportTicket savedTicket = supportTicketPortOut.save(existingTicket);
+        ticketConversationService.postTicketStatusCard(
+                savedTicket,
+                closedBy,
+                SupportTicketEventType.CLOSED,
+                SupportTicketStatus.RESOLVED,
+                lifecycleEventKey("closed", savedTicket)
+        );
         ticketConversationService.postAssistantTicketUpdate(savedTicket, "Yêu cầu của bạn đã được đóng.");
         notifyTicketStatusChanged(savedTicket, NotificationType.SUPPORT_TICKET_CLOSED, "Ticket đã đóng", "Ticket hỗ trợ của bạn đã được đóng.");
         return savedTicket;
@@ -366,18 +469,38 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
 
     @Override
     @Transactional
-    public ChatConversation openCustomerConversationForReply(UUID supportTicketId) {
+    public ChatConversation openRequesterConversationForReply(UUID supportTicketId, String idempotencyKey) {
         SupportTicket ticket = findTicketOrThrow(supportTicketId);
         UUID assignedAccountId = accessGuard.ensureCanReplyAsAssignee(ticket);
-        return ticketConversationService.openPrivateConversationForReply(ticket, assignedAccountId);
+        SupportTicketStatus previousStatus = ticket.getStatus();
+        if (ticket.getStatus() == SupportTicketStatus.OPEN) {
+            supportTicketPolicy.startProgress(ticket);
+            if (ticket.getFirstRespondedAt() == null) {
+                ticket.setFirstRespondedAt(Instant.now());
+            }
+            ticket = supportTicketPortOut.save(ticket);
+            ticketConversationService.postAssistantTicketUpdate(
+                    ticket,
+                    "Nhân viên phụ trách đã phản hồi yêu cầu của bạn."
+            );
+        }
+        String snapshotKey = previousStatus == SupportTicketStatus.OPEN
+                ? lifecycleEventKey("started", ticket)
+                : snapshotIdempotencyKey(idempotencyKey, "open-conversation");
+        return ticketConversationService.openRequesterConversationForReply(
+                ticket,
+                assignedAccountId,
+                previousStatus,
+                snapshotKey
+        );
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ChatConversation getActiveCustomerConversation(UUID supportTicketId) {
+    public ChatConversation getActiveRequesterConversation(UUID supportTicketId) {
         SupportTicket ticket = findTicketOrThrow(supportTicketId);
-        UUID customerAccountId = accessGuard.ensureCanReadOwnCustomerConversation(ticket);
-        return ticketConversationService.getActivePrivateConversation(ticket, customerAccountId);
+        UUID requesterAccountId = accessGuard.ensureCanReadOwnRequesterConversation(ticket);
+        return ticketConversationService.getActiveRequesterConversation(ticket, requesterAccountId);
     }
 
     private SupportTicket findTicketOrThrow(UUID supportTicketId) {
@@ -385,22 +508,46 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
                 .orElseThrow(() -> new NotFoundException("Support ticket not found"));
     }
 
-    private void validateActiveCategory(UUID categoryId) {
-        if (!supportTicketPortOut.existsActiveCategoryById(categoryId)) {
-            throw new NotFoundException("Active support ticket category not found");
-        }
-    }
-
     private String normalizeKeyword(String keyword) {
         return keyword == null || keyword.isBlank() ? null : keyword.trim();
     }
 
-    private SupportTicket findIdempotentTicket(UUID customerId, String idempotencyKey) {
+    private String snapshotIdempotencyKey(String idempotencyKey, String prefix) {
+        String normalized = TextValidationUtils.normalizeNullableText(idempotencyKey, "idempotencyKey", 100);
+        return normalized == null ? prefix + ":" + UUID.randomUUID() : normalized;
+    }
+
+    private String lifecycleEventKey(String prefix, SupportTicket ticket) {
+        int reopenCount = ticket.getReopenCount() == null ? 0 : ticket.getReopenCount();
+        return prefix + ":" + ticket.getSupportTicketId() + ":" + reopenCount;
+    }
+
+    private void initializeRequester(
+            SupportTicket supportTicket,
+            SupportRequesterContext requester,
+            SupportTicketCategory category
+    ) {
+        accessGuard.ensureRequesterScope(
+                requester, supportTicket.getOrganizationId(), supportTicket.getParkingLotId()
+        );
+        supportTicket.setRequesterAccountId(requester.accountId());
+        supportTicket.setRequesterRoleCode(requester.roleCode());
+        supportTicket.setRequesterNameSnapshot(requester.displayName());
+        supportTicket.setRequesterEmailSnapshot(requester.email());
+        supportTicket.setFeatureCode(category.getFeatureCode());
+        supportTicket.setContextKey(TextValidationUtils.normalizeNullableText(
+                supportTicket.getContextKey(), "contextKey", 255
+        ));
+    }
+
+    private SupportTicket findIdempotentTicket(UUID requesterAccountId, String idempotencyKey) {
         if (idempotencyKey == null) {
             return null;
         }
-        supportTicketPortOut.lockCustomerSupport(customerId);
-        return supportTicketPortOut.findByCustomerIdAndIdempotencyKey(customerId, idempotencyKey).orElse(null);
+        supportTicketPortOut.lockRequesterSupport(requesterAccountId);
+        return supportTicketPortOut.findByRequesterAccountIdAndIdempotencyKey(
+                requesterAccountId, idempotencyKey
+        ).orElse(null);
     }
 
     private String normalizeIdempotencyKey(String idempotencyKey) {
@@ -418,7 +565,7 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
         if (notificationPortIn == null) {
             return;
         }
-        sendCustomerNotification(
+        sendRequesterNotification(
                 supportTicket,
                 NotificationType.SUPPORT_TICKET_CREATED,
                 "Ticket hỗ trợ đã được tạo",
@@ -430,23 +577,27 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
                 null,
                 null,
                 NotificationType.SUPPORT_TICKET_CREATED,
-                "Ticket hỗ trợ mới",
-                "Có ticket hỗ trợ mới cần tiếp nhận: " + supportTicket.getTitle(),
-                null,
+                "Yêu cầu hỗ trợ mới",
+                "Có yêu cầu hỗ trợ mới cần tiếp nhận: " + supportTicket.getTitle(),
+                "/admin/support-tickets?ticketId=" + supportTicket.getSupportTicketId(),
                 "operations",
                 "support_tickets",
                 supportTicket.getSupportTicketId(),
                 new NotificationRecipientCriteria(
-                        true,
-                        Set.of("SUPPORT_TICKET_READ_ALL", "SUPPORT_TICKET_ASSIGN"),
-                        Set.of(),
-                        true
+                        false,
+                        Set.of(
+                                "SUPPORT_TICKET_READ_ALL",
+                                "SUPPORT_TICKET_ASSIGN",
+                                "SUPPORT_TICKET_PROCESS_ALL"
+                        ),
+                        Set.of(supportTicket.getRequesterAccountId()),
+                        false
                 )
         ));
     }
 
     private void notifyTicketAssigned(SupportTicket supportTicket) {
-        if (notificationPortIn == null) {
+        if (notificationPortIn == null || supportTicket.getAssignedTo() == null) {
             return;
         }
         notificationPortIn.sendWebNotification(new SendNotificationCommand(
@@ -466,10 +617,10 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
             String title,
             String message
     ) {
-        sendCustomerNotification(supportTicket, notificationType, title, message);
+        sendRequesterNotification(supportTicket, notificationType, title, message);
     }
 
-    private void sendCustomerNotification(
+    private void sendRequesterNotification(
             SupportTicket supportTicket,
             NotificationType notificationType,
             String title,
@@ -478,15 +629,14 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
         if (notificationPortIn == null) {
             return;
         }
-        customerPortOut.findAccountIdByCustomerId(supportTicket.getCustomerId())
-                .ifPresent(accountId -> notificationPortIn.sendWebNotification(new SendNotificationCommand(
-                        accountId,
-                        notificationType,
-                        title,
-                        message,
-                        "operations",
-                        "support_tickets",
-                        supportTicket.getSupportTicketId()
-                )));
+        notificationPortIn.sendWebNotification(new SendNotificationCommand(
+                supportTicket.getRequesterAccountId(),
+                notificationType,
+                title,
+                message,
+                "operations",
+                "support_tickets",
+                supportTicket.getSupportTicketId()
+        ));
     }
 }

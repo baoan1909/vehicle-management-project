@@ -112,7 +112,7 @@ public class SupportTicketEscalationUseCaseImpl implements SupportTicketEscalati
     ) {
         SupportTicket ticket = findTicket(supportTicketId);
         UUID requestedBy = accessGuard.ensureCanCreateOrReadOwnEscalation(ticket);
-        supportTicketPortOut.lockCustomerSupport(ticket.getCustomerId());
+        supportTicketPortOut.lockRequesterSupport(ticket.getRequesterAccountId());
 
         String idempotencyKey = TextValidationUtils.normalizeNullableText(
                 command == null ? null : command.idempotencyKey(), "idempotencyKey", 100

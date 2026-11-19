@@ -23,10 +23,20 @@ public interface ChatConversationPortOut {
 
     Optional<ChatConversation> findActiveCustomerSupportConversation(UUID customerId, UUID staffAccountId);
 
+    Optional<ChatConversation> findActiveRequesterSupportConversation(UUID requesterAccountId, UUID staffAccountId);
+
     Optional<ChatConversation> findActiveAssistantSupportConversation(UUID customerId);
     Optional<ChatConversation> findAssistantSupportConversation(UUID customerId);
 
+    Optional<ChatConversation> findActiveAssistantSupportConversationByOwnerAccountId(UUID ownerAccountId);
+
+    Optional<ChatConversation> findAssistantSupportConversationByOwnerAccountId(UUID ownerAccountId);
+
     void lockCustomerSupport(UUID customerId);
+
+    void lockRequesterSupport(UUID requesterAccountId);
+
+    void lockConversation(UUID conversationId);
 
     Optional<ChatConversation> findActiveSupportTicketConversation(UUID supportTicketId);
 
@@ -49,6 +59,8 @@ public interface ChatConversationPortOut {
     boolean existsSupportTicketCard(UUID conversationId, UUID supportTicketId);
 
     Optional<ChatMessage> findMessageById(UUID messageId);
+
+    Optional<ChatMessage> findMessageBySupportTicketEventId(UUID supportTicketEventId);
 
     List<ChatMessage> findMessageHistory(UUID conversationId, Instant beforeCreatedAt, int limit);
 

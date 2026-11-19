@@ -6,14 +6,16 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.operations.supportticket.authorization.SupportTicketAccessGuard;
+import com.ban.vehicle_management.application.operations.supportticket.model.SupportRequesterContext;
 import com.ban.vehicle_management.application.operations.supportticket.port.out.SupportTicketConversationLinkPortOut;
 import com.ban.vehicle_management.application.operations.supportticket.port.out.SupportTicketPortOut;
 import com.ban.vehicle_management.application.operations.supportticket.service.SupportTicketConversationService;
 import com.ban.vehicle_management.application.operations.supportticket.usecase.SupportTicketUseCaseImpl;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
-import com.ban.vehicle_management.application.people.customer.port.out.CustomerPortOut;
+import com.ban.vehicle_management.application.operations.supportticketcategory.port.in.SupportTicketCategoryPortIn;
 import com.ban.vehicle_management.domain.operations.supportticket.model.SupportTicket;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,7 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class SupportTicketOwnListLimitTest {
 
-    private static final UUID CUSTOMER_ID = UUID.fromString("00000000-0000-0000-0000-000000000501");
+    private static final UUID ACCOUNT_ID = UUID.fromString("00000000-0000-0000-0000-000000000501");
 
     @Mock
     private SupportTicketPortOut supportTicketPortOut;
@@ -33,7 +35,7 @@ class SupportTicketOwnListLimitTest {
     private SupportTicketAccessGuard accessGuard;
 
     @Mock
-    private CustomerPortOut customerPortOut;
+    private SupportTicketCategoryPortIn categoryPortIn;
 
     @Mock
     private NotificationPortIn notificationPortIn;
@@ -49,8 +51,8 @@ class SupportTicketOwnListLimitTest {
 
     @Test
     void shouldDefaultOwnTicketLimitTo100() {
-        when(accessGuard.resolveCustomerIdForOwnTickets()).thenReturn(CUSTOMER_ID);
-        when(supportTicketPortOut.findOwnTickets(eq(CUSTOMER_ID), eq(null), eq(null), eq(100)))
+        when(accessGuard.requesterForOwnTickets()).thenReturn(requester());
+        when(supportTicketPortOut.findOwnTickets(eq(ACCOUNT_ID), eq(null), eq(null), eq(100)))
                 .thenReturn(List.of());
 
         assertEquals(List.of(), useCase.getMyTickets(null, null, null));
@@ -58,20 +60,27 @@ class SupportTicketOwnListLimitTest {
 
     @Test
     void shouldClampOwnTicketLimit() {
-        when(accessGuard.resolveCustomerIdForOwnTickets()).thenReturn(CUSTOMER_ID);
-        when(supportTicketPortOut.findOwnTickets(eq(CUSTOMER_ID), eq(null), eq(null), eq(200)))
+        when(accessGuard.requesterForOwnTickets()).thenReturn(requester());
+        when(supportTicketPortOut.findOwnTickets(eq(ACCOUNT_ID), eq(null), eq(null), eq(200)))
                 .thenReturn(List.of(new SupportTicket()));
 
         assertEquals(1, useCase.getMyTickets(null, null, 10000).size());
-        verify(supportTicketPortOut).findOwnTickets(eq(CUSTOMER_ID), eq(null), eq(null), eq(200));
+        verify(supportTicketPortOut).findOwnTickets(eq(ACCOUNT_ID), eq(null), eq(null), eq(200));
     }
 
     @Test
     void shouldKeepUnboundedLegacyOverloadWorking() {
-        when(accessGuard.resolveCustomerIdForOwnTickets()).thenReturn(CUSTOMER_ID);
-        when(supportTicketPortOut.findOwnTickets(eq(CUSTOMER_ID), eq(null), eq(null), eq(100)))
+        when(accessGuard.requesterForOwnTickets()).thenReturn(requester());
+        when(supportTicketPortOut.findOwnTickets(eq(ACCOUNT_ID), eq(null), eq(null), eq(100)))
                 .thenReturn(List.of());
 
         assertEquals(List.of(), useCase.getMyTickets(null, null));
+    }
+
+    private SupportRequesterContext requester() {
+        return new SupportRequesterContext(
+                ACCOUNT_ID, "EMPLOYEE", "Requester", "requester@example.com",
+                Set.of(), Set.of(), Set.of()
+        );
     }
 }

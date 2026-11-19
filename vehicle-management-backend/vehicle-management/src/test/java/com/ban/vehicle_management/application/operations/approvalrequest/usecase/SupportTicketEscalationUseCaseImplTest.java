@@ -215,7 +215,8 @@ class SupportTicketEscalationUseCaseImplTest {
     private SupportTicket activeTicket() {
         SupportTicket ticket = new SupportTicket();
         ticket.setSupportTicketId(UUID.randomUUID());
-        ticket.setCustomerId(UUID.randomUUID());
+        ticket.setRequesterAccountId(UUID.randomUUID());
+        ticket.setRequesterRoleCode("CUSTOMER");
         ticket.setAssignedTo(UUID.randomUUID());
         ticket.setStatus(SupportTicketStatus.IN_PROGRESS);
         return ticket;

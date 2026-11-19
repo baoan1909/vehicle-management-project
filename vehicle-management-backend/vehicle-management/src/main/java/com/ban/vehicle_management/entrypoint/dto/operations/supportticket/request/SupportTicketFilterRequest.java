@@ -5,9 +5,13 @@ import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketSta
 import java.util.UUID;
 
 public record SupportTicketFilterRequest(
-        UUID customerId,
+        UUID requesterAccountId,
+        String requesterRoleCode,
         UUID categoryId,
         UUID assignedTo,
+        UUID organizationId,
+        UUID parkingLotId,
+        String featureCode,
         SupportTicketStatus status,
         SupportTicketCategoryPriority priority,
         String keyword

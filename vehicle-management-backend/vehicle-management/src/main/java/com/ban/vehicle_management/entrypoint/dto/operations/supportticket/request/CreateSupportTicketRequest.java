@@ -5,6 +5,12 @@ import java.util.UUID;
 public record CreateSupportTicketRequest(
         UUID categoryId,
         String title,
-        String content
+        String content,
+        UUID organizationId,
+        UUID parkingLotId,
+        String contextKey
 ) {
+    public CreateSupportTicketRequest(UUID categoryId, String title, String content) {
+        this(categoryId, title, content, null, null, null);
+    }
 }

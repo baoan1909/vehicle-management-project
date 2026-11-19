@@ -16,13 +16,18 @@ public interface SupportTicketPortIn {
     List<SupportTicket> getMyTickets(SupportTicketStatus status, String keyword);
     List<SupportTicket> getMyTickets(SupportTicketStatus status, String keyword, Integer limit);
     List<SupportTicket> getConversationTicketHistory(UUID conversationId, SupportTicketStatus status, String keyword);
-    SupportTicket shareTicketWithAssistant(UUID supportTicketId);
+    SupportTicket shareTicketWithAssistant(UUID supportTicketId, String idempotencyKey);
+    SupportTicket shareTicketWithConversation(UUID supportTicketId, UUID conversationId, String idempotencyKey);
     SupportTicket getTicketById(UUID supportTicketId);
 
     List<SupportTicket> getTickets(
-            UUID customerId,
+            UUID requesterAccountId,
+            String requesterRoleCode,
             UUID categoryId,
             UUID assignedTo,
+            UUID organizationId,
+            UUID parkingLotId,
+            String featureCode,
             SupportTicketStatus status,
             SupportTicketCategoryPriority priority,
             String keyword
@@ -35,6 +40,6 @@ public interface SupportTicketPortIn {
     SupportTicket resolveTicket(UUID supportTicketId, String resolutionNote);
     SupportTicket reopenTicket(UUID supportTicketId);
     SupportTicket closeTicket(UUID supportTicketId);
-    ChatConversation openCustomerConversationForReply(UUID supportTicketId);
-    ChatConversation getActiveCustomerConversation(UUID supportTicketId);
+    ChatConversation openRequesterConversationForReply(UUID supportTicketId, String idempotencyKey);
+    ChatConversation getActiveRequesterConversation(UUID supportTicketId);
 }

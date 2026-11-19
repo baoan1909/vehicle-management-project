@@ -741,8 +741,11 @@ CREATE TABLE operations.support_tickets (
     assigned_to UUID,
     resolved_at TIMESTAMPTZ,
     resolution_note TEXT,
+    last_context_activity_at TIMESTAMPTZ,
+    auto_close_at TIMESTAMPTZ,
     closed_at TIMESTAMPTZ,
     closed_by UUID,
+    close_reason VARCHAR(30),
     reopen_count INTEGER NOT NULL DEFAULT 0,
     last_reopened_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -754,7 +757,10 @@ CREATE TABLE operations.support_tickets (
     CONSTRAINT fk_support_tickets_assigned_to FOREIGN KEY (assigned_to) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
     CONSTRAINT fk_support_tickets_closed_by FOREIGN KEY (closed_by) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
     CONSTRAINT ck_support_tickets_status CHECK (status IN ('OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED')),
-    CONSTRAINT ck_support_tickets_reopen_count_non_negative CHECK (reopen_count >= 0)
+    CONSTRAINT ck_support_tickets_reopen_count_non_negative CHECK (reopen_count >= 0),
+    CONSTRAINT ck_support_tickets_close_reason CHECK (close_reason IS NULL OR close_reason IN ('MANUAL', 'INACTIVITY', 'SYSTEM_MAINTENANCE')),
+    CONSTRAINT ck_support_tickets_auto_close_state CHECK ((status = 'RESOLVED' AND auto_close_at IS NOT NULL) OR (status <> 'RESOLVED' AND auto_close_at IS NULL)),
+    CONSTRAINT ck_support_tickets_closed_reason_state CHECK ((status = 'CLOSED' AND close_reason IS NOT NULL) OR (status <> 'CLOSED' AND close_reason IS NULL))
 );
 
 -- Lưu hội thoại vận hành: chat nội bộ, hỗ trợ khách hàng và hội thoại gắn ngữ cảnh nghiệp vụ.
@@ -824,6 +830,32 @@ CREATE TABLE operations.support_ticket_conversation_links (
     CONSTRAINT ck_support_ticket_conversation_links_reason CHECK (link_reason IN ('FIRST_REPLY', 'REASSIGNED', 'REOPENED'))
 );
 
+-- Lưu từng lần chia sẻ/chuyển trạng thái phiếu dưới dạng snapshot bất biến trong hội thoại.
+CREATE TABLE operations.support_ticket_events (
+    event_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    support_ticket_id UUID NOT NULL,
+    conversation_id UUID NOT NULL,
+    actor_account_id UUID,
+    event_type VARCHAR(30) NOT NULL,
+    from_status VARCHAR(20),
+    to_status VARCHAR(20),
+    snapshot_status VARCHAR(20) NOT NULL,
+    snapshot_payload JSONB NOT NULL,
+    idempotency_key VARCHAR(100) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_by UUID,
+    updated_at TIMESTAMPTZ,
+    updated_by UUID,
+    CONSTRAINT fk_support_ticket_events_ticket FOREIGN KEY (support_ticket_id) REFERENCES operations.support_tickets(support_ticket_id) ON DELETE CASCADE,
+    CONSTRAINT fk_support_ticket_events_conversation FOREIGN KEY (conversation_id) REFERENCES operations.chat_conversations(conversation_id) ON DELETE CASCADE,
+    CONSTRAINT fk_support_ticket_events_actor FOREIGN KEY (actor_account_id) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
+    CONSTRAINT ck_support_ticket_events_type CHECK (event_type IN ('SHARED', 'STARTED_PROCESSING', 'RESOLVED', 'REOPENED', 'CLOSED', 'LEGACY_IMPORTED')),
+    CONSTRAINT ck_support_ticket_events_from_status CHECK (from_status IS NULL OR from_status IN ('OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED')),
+    CONSTRAINT ck_support_ticket_events_to_status CHECK (to_status IS NULL OR to_status IN ('OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED')),
+    CONSTRAINT ck_support_ticket_events_snapshot_status CHECK (snapshot_status IN ('OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED')),
+    CONSTRAINT uq_support_ticket_events_conversation_idempotency UNIQUE (conversation_id, idempotency_key)
+);
+
 CREATE TABLE operations.chat_messages (
     message_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     conversation_id UUID NOT NULL,
@@ -835,6 +867,7 @@ CREATE TABLE operations.chat_messages (
     related_table VARCHAR(80),
     related_id UUID,
     context_ticket_id UUID,
+    support_ticket_event_id UUID,
     metadata JSONB,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     deleted_at TIMESTAMPTZ,
@@ -847,6 +880,7 @@ CREATE TABLE operations.chat_messages (
     CONSTRAINT fk_chat_messages_sender FOREIGN KEY (sender_account_id) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
     CONSTRAINT fk_chat_messages_reply_to FOREIGN KEY (reply_to_message_id) REFERENCES operations.chat_messages(message_id) ON DELETE SET NULL,
     CONSTRAINT fk_chat_messages_context_ticket FOREIGN KEY (context_ticket_id) REFERENCES operations.support_tickets(support_ticket_id) ON DELETE SET NULL,
+    CONSTRAINT fk_chat_messages_support_ticket_event FOREIGN KEY (support_ticket_event_id) REFERENCES operations.support_ticket_events(event_id) ON DELETE SET NULL,
     CONSTRAINT ck_chat_messages_type CHECK (message_type IN ('TEXT', 'IMAGE', 'FILE', 'SYSTEM', 'CONTEXT_CARD', 'ACTION_CARD', 'SUPPORT_REQUEST'))
 );
 
@@ -1119,6 +1153,7 @@ CREATE TRIGGER trg_shifts_set_updated_at BEFORE UPDATE ON operations.shifts FOR 
 CREATE TRIGGER trg_approval_requests_set_updated_at BEFORE UPDATE ON operations.approval_requests FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_support_ticket_categories_set_updated_at BEFORE UPDATE ON operations.support_ticket_categories FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_support_tickets_set_updated_at BEFORE UPDATE ON operations.support_tickets FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+CREATE TRIGGER trg_support_ticket_events_set_updated_at BEFORE UPDATE ON operations.support_ticket_events FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_chat_conversations_set_updated_at BEFORE UPDATE ON operations.chat_conversations FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_chat_conversation_members_set_updated_at BEFORE UPDATE ON operations.chat_conversation_members FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_support_ticket_conversation_links_set_updated_at BEFORE UPDATE ON operations.support_ticket_conversation_links FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
@@ -1160,6 +1195,8 @@ CREATE INDEX idx_support_tickets_category ON operations.support_tickets(category
 CREATE INDEX idx_support_tickets_status ON operations.support_tickets(status);
 CREATE INDEX idx_support_tickets_customer ON operations.support_tickets(customer_id);
 CREATE INDEX idx_support_tickets_assigned_to ON operations.support_tickets(assigned_to);
+CREATE INDEX idx_support_tickets_auto_close_due ON operations.support_tickets(auto_close_at, support_ticket_id) WHERE status = 'RESOLVED';
+CREATE INDEX idx_chat_messages_context_activity ON operations.chat_messages(context_ticket_id, created_at DESC) WHERE context_ticket_id IS NOT NULL;
 CREATE INDEX idx_chat_conversations_last_message_at ON operations.chat_conversations(last_message_at DESC, conversation_id DESC);
 CREATE INDEX idx_chat_conversations_customer ON operations.chat_conversations(customer_id);
 CREATE INDEX idx_chat_conversations_support_ticket ON operations.chat_conversations(support_ticket_id);
@@ -1168,11 +1205,14 @@ CREATE INDEX idx_chat_conversations_assigned_to_status ON operations.chat_conver
 CREATE INDEX idx_chat_members_account_status ON operations.chat_conversation_members(account_id, status);
 CREATE UNIQUE INDEX uq_support_ticket_conversation_links_active_ticket ON operations.support_ticket_conversation_links(support_ticket_id) WHERE status = 'ACTIVE';
 CREATE INDEX idx_support_ticket_conversation_links_conversation ON operations.support_ticket_conversation_links(conversation_id);
+CREATE INDEX idx_support_ticket_events_ticket_created ON operations.support_ticket_events(support_ticket_id, created_at DESC);
+CREATE INDEX idx_support_ticket_events_conversation_created ON operations.support_ticket_events(conversation_id, created_at DESC);
 CREATE INDEX idx_chat_members_conversation_status ON operations.chat_conversation_members(conversation_id, status);
 CREATE INDEX idx_chat_members_conversation_account_status ON operations.chat_conversation_members(conversation_id, account_id, status);
 CREATE INDEX idx_chat_messages_conversation_created_at ON operations.chat_messages(conversation_id, created_at DESC, message_id DESC);
 CREATE INDEX idx_chat_messages_sender_created_at ON operations.chat_messages(sender_account_id, created_at DESC);
 CREATE INDEX idx_chat_messages_related ON operations.chat_messages(related_schema, related_table, related_id);
+CREATE UNIQUE INDEX uq_chat_messages_support_ticket_event ON operations.chat_messages(support_ticket_event_id) WHERE support_ticket_event_id IS NOT NULL;
 CREATE INDEX idx_chat_attachments_message ON operations.chat_message_attachments(message_id);
 CREATE INDEX idx_chat_attachments_object_key ON operations.chat_message_attachments(object_key);
 CREATE INDEX idx_notifications_account_id ON notification.notifications(account_id);

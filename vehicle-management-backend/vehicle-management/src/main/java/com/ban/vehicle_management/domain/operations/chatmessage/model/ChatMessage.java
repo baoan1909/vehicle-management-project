@@ -27,6 +27,7 @@ public class ChatMessage extends AuditableDomainModel {
     private String relatedTable;
     private UUID relatedId;
     private UUID contextTicketId;
+    private UUID supportTicketEventId;
     private String metadata;
     private boolean deleted;
     private Instant deletedAt;

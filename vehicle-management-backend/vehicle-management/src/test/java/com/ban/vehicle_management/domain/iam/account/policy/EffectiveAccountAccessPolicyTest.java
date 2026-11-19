@@ -44,6 +44,7 @@ class EffectiveAccountAccessPolicyTest {
     void pendingCustomerReceivesOnlyExplicitSupportPermissions() {
         Set<String> assigned = Set.of(
                 "SUPPORT_WIDGET_ACCESS_OWN",
+                "SUPPORT_TICKET_CATEGORY_CUSTOMER_OWN",
                 "SUPPORT_TICKET_READ_OWN",
                 "AI_KNOWLEDGE_READ_CUSTOMER",
                 "CUSTOMER_VEHICLE_READ_OWN",
@@ -51,7 +52,10 @@ class EffectiveAccountAccessPolicyTest {
         var pending = new EffectiveAccountAccessPolicy.AccessState(
                 "CUSTOM_SUPPORT", true, false, Set.of(), Set.of(), AccountStatus.PENDING, null,
                 CustomerStatus.INACTIVE, CustomerApprovalStatus.PENDING);
-        Set<String> expected = Set.of("SUPPORT_WIDGET_ACCESS_OWN", "SUPPORT_TICKET_READ_OWN");
+        Set<String> expected = Set.of(
+                "SUPPORT_WIDGET_ACCESS_OWN",
+                "SUPPORT_TICKET_CATEGORY_CUSTOMER_OWN",
+                "SUPPORT_TICKET_READ_OWN");
         assertEquals(expected, policy.resolveEffectivePermissionCodes(pending, assigned));
         assertFalse(policy.canUseBusinessPermissions(pending));
         assertTrue(policy.canUseEffectivePermissions(pending));
@@ -61,6 +65,7 @@ class EffectiveAccountAccessPolicyTest {
     void rejectedCustomerReceivesOnlyExplicitSupportPermissions() {
         Set<String> assigned = Set.of(
                 "SUPPORT_WIDGET_ACCESS_OWN",
+                "SUPPORT_TICKET_CATEGORY_CUSTOMER_OWN",
                 "SUPPORT_TICKET_READ_OWN",
                 "AI_KNOWLEDGE_READ_CUSTOMER",
                 "CUSTOMER_VEHICLE_READ_OWN",
@@ -69,7 +74,10 @@ class EffectiveAccountAccessPolicyTest {
                 "ANOTHER_CUSTOM_ROLE", true, false, Set.of(), Set.of(), AccountStatus.PENDING, null,
                 CustomerStatus.INACTIVE, CustomerApprovalStatus.REJECTED);
 
-        assertEquals(Set.of("SUPPORT_WIDGET_ACCESS_OWN", "SUPPORT_TICKET_READ_OWN"),
+        assertEquals(Set.of(
+                        "SUPPORT_WIDGET_ACCESS_OWN",
+                        "SUPPORT_TICKET_CATEGORY_CUSTOMER_OWN",
+                        "SUPPORT_TICKET_READ_OWN"),
                 policy.resolveEffectivePermissionCodes(rejected, assigned));
         assertFalse(policy.canUseBusinessPermissions(rejected));
         assertTrue(policy.canUseEffectivePermissions(rejected));

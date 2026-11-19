@@ -1,16 +1,17 @@
 package com.ban.vehicle_management.application.operations.supportticket.service;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
-import com.ban.vehicle_management.application.operations.chatconversation.port.out.ChatConversationPortOut;
 import com.ban.vehicle_management.application.operations.supportticket.port.out.SupportTicketConversationLinkPortOut;
 import com.ban.vehicle_management.application.operations.supportticket.port.out.SupportTicketPortOut;
 import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatConversation;
@@ -19,9 +20,9 @@ import com.ban.vehicle_management.domain.operations.supportticket.model.SupportT
 import com.ban.vehicle_management.shared.enumeration.operations.ChatConversationType;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketConversationLinkStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
-import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -34,8 +35,6 @@ class SupportTicketChatMessageContextServiceTest {
     @Mock
     private CurrentAccountPortIn currentAccountPortIn;
     @Mock
-    private ChatConversationPortOut chatPortOut;
-    @Mock
     private SupportTicketPortOut supportTicketPortOut;
     @Mock
     private SupportTicketConversationLinkPortOut linkPortOut;
@@ -45,66 +44,134 @@ class SupportTicketChatMessageContextServiceTest {
     private SupportTicketChatMessageContextService service;
 
     @Test
-    void rejectsCustomerDirectMessageWithoutTicketContext() {
-        ChatConversation conversation = customerConversation(UUID.randomUUID());
+    void allowsGenericRequesterDirectMessageWithoutTicketContext() {
+        ChatConversation conversation = requesterConversation(UUID.randomUUID());
 
-        assertThrows(BadRequestException.class, () -> service.ensureCanSend(conversation, null, UUID.randomUUID()));
+        UUID resolvedContext = service.resolveContextForSend(conversation, null, UUID.randomUUID());
+
+        assertNull(resolvedContext);
+        verifyNoInteractions(currentAccountPortIn, supportTicketPortOut, linkPortOut, ticketConversationService);
     }
 
     @Test
-    void firstAssignedEmployeeMessageStartsTicketAfterReplyLinkWasOpened() {
-        UUID customerId = UUID.randomUUID();
-        UUID customerAccountId = UUID.randomUUID();
-        UUID employeeAccountId = UUID.randomUUID();
+    void firstAssignedSystemAdminMessageStartsTicketAfterReplyLinkWasOpened() {
+        UUID requesterAccountId = UUID.randomUUID();
+        UUID systemAdminAccountId = UUID.randomUUID();
         UUID ticketId = UUID.randomUUID();
-        ChatConversation conversation = customerConversation(customerId);
-        SupportTicket ticket = openTicket(ticketId, customerId, employeeAccountId);
+        ChatConversation conversation = requesterConversation(requesterAccountId);
+        SupportTicket ticket = openTicket(ticketId, requesterAccountId, systemAdminAccountId);
 
-        when(supportTicketPortOut.findById(ticketId)).thenReturn(Optional.of(ticket));
-        when(chatPortOut.findAccountIdByCustomerId(customerId)).thenReturn(Optional.of(customerAccountId));
+        when(supportTicketPortOut.findByIdForUpdate(ticketId)).thenReturn(Optional.of(ticket));
         when(supportTicketPortOut.save(any(SupportTicket.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(linkPortOut.findActiveBySupportTicketId(ticketId)).thenReturn(Optional.of(activeLink(ticketId, conversation.getConversationId())));
+        when(currentAccountPortIn.hasPermission(anyString())).thenReturn(true);
 
-        service.ensureCanSend(conversation, ticketId, employeeAccountId);
+        UUID resolvedContext = service.resolveContextForSend(conversation, ticketId, systemAdminAccountId);
 
-        verify(currentAccountPortIn).requirePermission("SUPPORT_TICKET_READ_ASSIGNED");
-        verify(currentAccountPortIn).requirePermission("SUPPORT_TICKET_PROCESS_ASSIGNED");
-        verify(currentAccountPortIn).requirePermission("SUPPORT_TICKET_RESPOND_ASSIGNED");
+        assertEquals(ticketId, resolvedContext);
+        verify(currentAccountPortIn).hasPermission("SUPPORT_TICKET_READ_ALL");
+        verify(currentAccountPortIn).hasPermission("SUPPORT_TICKET_PROCESS_ALL");
+        verify(currentAccountPortIn).hasPermission("SUPPORT_TICKET_RESPOND_ASSIGNED");
         assertEquals(SupportTicketStatus.IN_PROGRESS, ticket.getStatus());
         assertNotNull(ticket.getFirstRespondedAt());
         verify(ticketConversationService).postAssistantTicketUpdate(eq(ticket), any(String.class));
     }
 
     @Test
-    void rejectsMessageWhenTicketIsNotActivelyLinkedToConversation() {
-        UUID customerId = UUID.randomUUID();
-        UUID employeeAccountId = UUID.randomUUID();
+    void unlinkedTicketContextFallsBackToGenericPrivateChat() {
+        UUID requesterAccountId = UUID.randomUUID();
+        UUID systemAdminAccountId = UUID.randomUUID();
         UUID ticketId = UUID.randomUUID();
-        ChatConversation conversation = customerConversation(customerId);
-        SupportTicket ticket = openTicket(ticketId, customerId, employeeAccountId);
-        when(supportTicketPortOut.findById(ticketId)).thenReturn(Optional.of(ticket));
-        when(chatPortOut.findAccountIdByCustomerId(customerId)).thenReturn(Optional.of(UUID.randomUUID()));
+        ChatConversation conversation = requesterConversation(requesterAccountId);
+        SupportTicket ticket = openTicket(ticketId, requesterAccountId, systemAdminAccountId);
+        when(supportTicketPortOut.findByIdForUpdate(ticketId)).thenReturn(Optional.of(ticket));
         when(linkPortOut.findActiveBySupportTicketId(ticketId)).thenReturn(Optional.empty());
 
-        assertThrows(org.springframework.security.access.AccessDeniedException.class,
-                () -> service.ensureCanSend(conversation, ticketId, employeeAccountId));
+        UUID resolvedContext = service.resolveContextForSend(conversation, ticketId, systemAdminAccountId);
+
+        assertNull(resolvedContext);
+        verify(supportTicketPortOut, never()).save(any());
     }
 
     @Test
-    void customerMessageKeepsLinkedOpenTicketOpen() {
-        UUID customerId = UUID.randomUUID();
-        UUID customerAccountId = UUID.randomUUID();
-        UUID employeeAccountId = UUID.randomUUID();
+    void requesterMessageKeepsLinkedOpenTicketOpen() {
+        UUID requesterAccountId = UUID.randomUUID();
+        UUID systemAdminAccountId = UUID.randomUUID();
         UUID ticketId = UUID.randomUUID();
-        ChatConversation conversation = customerConversation(customerId);
-        SupportTicket ticket = openTicket(ticketId, customerId, employeeAccountId);
-        when(supportTicketPortOut.findById(ticketId)).thenReturn(Optional.of(ticket));
-        when(chatPortOut.findAccountIdByCustomerId(customerId)).thenReturn(Optional.of(customerAccountId));
+        ChatConversation conversation = requesterConversation(requesterAccountId);
+        SupportTicket ticket = openTicket(ticketId, requesterAccountId, systemAdminAccountId);
+        when(supportTicketPortOut.findByIdForUpdate(ticketId)).thenReturn(Optional.of(ticket));
         when(linkPortOut.findActiveBySupportTicketId(ticketId)).thenReturn(Optional.of(activeLink(ticketId, conversation.getConversationId())));
+        when(supportTicketPortOut.save(any(SupportTicket.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        service.ensureCanSend(conversation, ticketId, customerAccountId);
+        UUID resolvedContext = service.resolveContextForSend(conversation, ticketId, requesterAccountId);
 
+        assertEquals(ticketId, resolvedContext);
         assertEquals(SupportTicketStatus.OPEN, ticket.getStatus());
+        assertNotNull(ticket.getLastContextActivityAt());
+        verify(supportTicketPortOut).save(ticket);
+    }
+
+    @Test
+    void resolvedTicketContextIsKeptAndExtendsItsOwnDeadline() {
+        UUID requesterAccountId = UUID.randomUUID();
+        UUID ticketId = UUID.randomUUID();
+        ChatConversation conversation = requesterConversation(requesterAccountId);
+        SupportTicket ticket = openTicket(ticketId, requesterAccountId, UUID.randomUUID());
+        Instant resolvedAt = Instant.now().minusSeconds(3600);
+        ticket.setStatus(SupportTicketStatus.RESOLVED);
+        ticket.setResolvedAt(resolvedAt);
+        ticket.setAutoCloseAt(resolvedAt.plusSeconds(86400));
+        when(supportTicketPortOut.findByIdForUpdate(ticketId)).thenReturn(Optional.of(ticket));
+        when(linkPortOut.findActiveBySupportTicketId(ticketId)).thenReturn(Optional.of(activeLink(ticketId, conversation.getConversationId())));
+        when(supportTicketPortOut.save(any(SupportTicket.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UUID resolvedContext = service.resolveContextForSend(conversation, ticketId, requesterAccountId);
+
+        assertEquals(ticketId, resolvedContext);
+        assertNotNull(ticket.getLastContextActivityAt());
+        assertEquals(ticket.getLastContextActivityAt().plusSeconds(86400), ticket.getAutoCloseAt());
+        verify(supportTicketPortOut).save(ticket);
+        verifyNoInteractions(currentAccountPortIn, ticketConversationService);
+    }
+
+    @Test
+    void contextualMessageForTicketADoesNotExtendTicketBInSameConversation() {
+        UUID requesterAccountId = UUID.randomUUID();
+        ChatConversation conversation = requesterConversation(requesterAccountId);
+        SupportTicket ticketA = resolvedTicket(UUID.randomUUID(), requesterAccountId);
+        SupportTicket ticketB = resolvedTicket(UUID.randomUUID(), requesterAccountId);
+        Instant ticketBDeadline = ticketB.getAutoCloseAt();
+        when(supportTicketPortOut.findByIdForUpdate(ticketA.getSupportTicketId())).thenReturn(Optional.of(ticketA));
+        when(linkPortOut.findActiveBySupportTicketId(ticketA.getSupportTicketId())).thenReturn(Optional.of(
+                activeLink(ticketA.getSupportTicketId(), conversation.getConversationId())
+        ));
+        when(supportTicketPortOut.save(ticketA)).thenReturn(ticketA);
+
+        assertEquals(
+                ticketA.getSupportTicketId(),
+                service.resolveContextForSend(conversation, ticketA.getSupportTicketId(), requesterAccountId)
+        );
+
+        assertNotNull(ticketA.getLastContextActivityAt());
+        assertNull(ticketB.getLastContextActivityAt());
+        assertEquals(ticketBDeadline, ticketB.getAutoCloseAt());
+        verify(supportTicketPortOut, never()).save(ticketB);
+    }
+
+    @Test
+    void closedTicketContextFallsBackToGenericPrivateChat() {
+        UUID requesterAccountId = UUID.randomUUID();
+        UUID ticketId = UUID.randomUUID();
+        ChatConversation conversation = requesterConversation(requesterAccountId);
+        SupportTicket ticket = openTicket(ticketId, requesterAccountId, UUID.randomUUID());
+        ticket.setStatus(SupportTicketStatus.CLOSED);
+        when(supportTicketPortOut.findByIdForUpdate(ticketId)).thenReturn(Optional.of(ticket));
+
+        UUID resolvedContext = service.resolveContextForSend(conversation, ticketId, requesterAccountId);
+
+        assertNull(resolvedContext);
+        verifyNoInteractions(currentAccountPortIn, linkPortOut, ticketConversationService);
         verify(supportTicketPortOut, never()).save(any());
     }
 
@@ -116,24 +183,34 @@ class SupportTicketChatMessageContextServiceTest {
         return link;
     }
 
-    private ChatConversation customerConversation(UUID customerId) {
+    private ChatConversation requesterConversation(UUID requesterAccountId) {
         ChatConversation conversation = new ChatConversation();
         conversation.setConversationId(UUID.randomUUID());
-        conversation.setCustomerId(customerId);
-        conversation.setConversationType(ChatConversationType.CUSTOMER_DIRECT);
+        conversation.setOwnerAccountId(requesterAccountId);
+        conversation.setConversationType(ChatConversationType.SUPPORT_REQUESTER_DIRECT);
         return conversation;
     }
 
-    private SupportTicket openTicket(UUID ticketId, UUID customerId, UUID assignedTo) {
+    private SupportTicket openTicket(UUID ticketId, UUID requesterAccountId, UUID assignedTo) {
         SupportTicket ticket = new SupportTicket();
         ticket.setSupportTicketId(ticketId);
-        ticket.setCustomerId(customerId);
+        ticket.setRequesterAccountId(requesterAccountId);
+        ticket.setRequesterRoleCode("CUSTOMER");
         ticket.setCategoryId(UUID.randomUUID());
         ticket.setTitle("Need parking support");
         ticket.setContent("The customer needs assistance with a parking issue.");
         ticket.setAssignedTo(assignedTo);
         ticket.setStatus(SupportTicketStatus.OPEN);
         ticket.setReopenCount(0);
+        return ticket;
+    }
+
+    private SupportTicket resolvedTicket(UUID ticketId, UUID requesterAccountId) {
+        SupportTicket ticket = openTicket(ticketId, requesterAccountId, UUID.randomUUID());
+        Instant resolvedAt = Instant.parse("2026-11-17T00:00:00Z");
+        ticket.setStatus(SupportTicketStatus.RESOLVED);
+        ticket.setResolvedAt(resolvedAt);
+        ticket.setAutoCloseAt(resolvedAt.plusSeconds(86_400));
         return ticket;
     }
 }

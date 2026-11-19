@@ -128,7 +128,7 @@ class VehicleManagementApplicationTests extends com.ban.vehicle_management.tests
 	@Transactional
 	void customerSupportLockExecutesOnPostgres() {
 		chatConversationPortOut.lockCustomerSupport(UUID.randomUUID());
-		supportTicketPortOut.lockCustomerSupport(UUID.randomUUID());
+		supportTicketPortOut.lockRequesterSupport(UUID.randomUUID());
 	}
 
 	@Test
@@ -171,8 +171,8 @@ class VehicleManagementApplicationTests extends com.ban.vehicle_management.tests
 				customerId, profileId, "AST-" + uniqueSuffix
 		);
 
-		ChatConversation created = supportTicketConversationService.openOrCreateAssistantConversation(customerId, accountId);
-		ChatConversation reused = supportTicketConversationService.openOrCreateAssistantConversation(customerId, accountId);
+		ChatConversation created = supportTicketConversationService.openOrCreateAssistantConversation(accountId);
+		ChatConversation reused = supportTicketConversationService.openOrCreateAssistantConversation(accountId);
 
 		org.junit.jupiter.api.Assertions.assertEquals(created.getConversationId(), reused.getConversationId());
 		org.junit.jupiter.api.Assertions.assertEquals(ChatConversationType.ASSISTANT_SUPPORT, reused.getConversationType());

@@ -11,6 +11,7 @@ type ApiResponse<T> = {
 
 export type SupportTicketPriority = "LOW" | "NORMAL" | "HIGH" | "URGENT";
 export type SupportTicketStatus = "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
+export type SupportTicketCloseReason = "MANUAL" | "INACTIVITY" | "SYSTEM_MAINTENANCE";
 export type SupportTicketCategoryStatus = "ACTIVE" | "INACTIVE";
 export type ApprovalRequestStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
 export type SupportTicketEscalationReason = "RESPONSE_DELAY" | "UNRESOLVED" | "INAPPROPRIATE_COMMUNICATION" | "REQUEST_DIFFERENT_ASSIGNEE" | "OTHER";
@@ -43,7 +44,17 @@ export type SupportTicketCategoryResponse = {
   status: SupportTicketCategoryStatus;
   updatedAt: string | null;
   updatedBy: string | null;
+  audienceType: "CUSTOMER" | "INTERNAL";
+  featureCode: string | null;
+  permissionMatchMode: "ANY" | "ALL";
+  displayOrder: number;
+  requiredPermissionCodes: string[];
 };
+
+export type SupportTicketAvailableCategoryResponse = Pick<
+  SupportTicketCategoryResponse,
+  "categoryId" | "code" | "description" | "displayOrder" | "featureCode" | "name" | "priority"
+>;
 
 export type SupportTicketResponse = {
   assignedTo: string | null;
@@ -52,11 +63,21 @@ export type SupportTicketResponse = {
   categoryName: string | null;
   closedAt: string | null;
   closedBy: string | null;
+  closeReason: SupportTicketCloseReason | null;
   content: string;
   createdAt: string | null;
   createdBy: string | null;
-  customerId: string;
+  requesterAccountId: string;
+  requesterRoleCode: string;
+  requesterNameSnapshot: string | null;
+  requesterEmailSnapshot: string | null;
+  organizationId: string | null;
+  parkingLotId: string | null;
+  featureCode: string | null;
+  contextKey: string | null;
   lastReopenedAt: string | null;
+  lastContextActivityAt: string | null;
+  autoCloseAt: string | null;
   priority: SupportTicketPriority;
   reopenCount: number | null;
   resolvedAt: string | null;
@@ -66,7 +87,7 @@ export type SupportTicketResponse = {
   title: string;
   updatedAt: string | null;
   updatedBy: string | null;
-  source: "ASSISTANT_CHAT" | "CUSTOMER_PORTAL" | "EMPLOYEE_CHAT" | "OTHER";
+  source: "ASSISTANT_CHAT" | "SELF_SERVICE_PORTAL" | "SUPPORT_CONVERSATION" | "SYSTEM_CREATED";
   sourceConversationId: string | null;
   sourceMessageId: string | null;
   firstRespondedAt: string | null;
@@ -113,7 +134,11 @@ export type SupportTicketCategoryFilter = {
 export type SupportTicketFilter = {
   assignedTo?: string;
   categoryId?: string;
-  customerId?: string;
+  requesterAccountId?: string;
+  requesterRoleCode?: string;
+  organizationId?: string;
+  parkingLotId?: string;
+  featureCode?: string;
   keyword?: string;
   priority?: SupportTicketPriority;
   status?: SupportTicketStatus;
@@ -124,12 +149,20 @@ export type SaveSupportTicketCategoryRequest = {
   description?: string | null;
   name: string;
   priority: SupportTicketPriority;
+  audienceType: "CUSTOMER" | "INTERNAL";
+  featureCode?: string | null;
+  permissionMatchMode: "ANY" | "ALL";
+  displayOrder: number;
+  requiredPermissionCodes: string[];
 };
 
 export type SaveSupportTicketRequest = {
   categoryId: string;
   content: string;
   title: string;
+  organizationId?: string | null;
+  parkingLotId?: string | null;
+  contextKey?: string | null;
 };
 
 function buildQuery(filter: Record<string, string | number | boolean | null | undefined>) {
@@ -148,6 +181,12 @@ function buildQuery(filter: Record<string, string | number | boolean | null | un
 export function getSupportTicketCategories(filter: SupportTicketCategoryFilter = {}) {
   return apiClient<ApiResponse<SupportTicketCategoryResponse[]>>(
     `${apiEndpoints.operations.supportTicketCategories}${buildQuery(filter)}`,
+  );
+}
+
+export function getAvailableSupportTicketCategories() {
+  return apiClient<ApiResponse<SupportTicketAvailableCategoryResponse[]>>(
+    `${apiEndpoints.operations.supportTicketCategories}/available`,
   );
 }
 
@@ -268,6 +307,33 @@ export function getMySupportTickets(filter: Pick<SupportTicketFilter, "keyword" 
   );
 }
 
+export function getMySupportTicketById(ticketId: string) {
+  return apiClient<ApiResponse<SupportTicketResponse>>(
+    `${apiEndpoints.operations.supportTickets}/mine/${ticketId}`,
+  );
+}
+
+export function updateMySupportTicket(ticketId: string, payload: SaveSupportTicketRequest) {
+  return apiClient<ApiResponse<SupportTicketResponse>>(
+    `${apiEndpoints.operations.supportTickets}/mine/${ticketId}`,
+    { body: payload, method: "PATCH" },
+  );
+}
+
+export function closeMySupportTicket(ticketId: string) {
+  return apiClient<ApiResponse<SupportTicketResponse>>(
+    `${apiEndpoints.operations.supportTickets}/mine/${ticketId}/close`,
+    { method: "POST" },
+  );
+}
+
+export function reopenMySupportTicket(ticketId: string) {
+  return apiClient<ApiResponse<SupportTicketResponse>>(
+    `${apiEndpoints.operations.supportTickets}/mine/${ticketId}/reopen`,
+    { method: "POST" },
+  );
+}
+
 export function getConversationSupportTicketHistory(
   conversationId: string,
   filter: Pick<SupportTicketFilter, "keyword" | "status"> = {},
@@ -277,21 +343,33 @@ export function getConversationSupportTicketHistory(
   );
 }
 
-export function shareSupportTicketWithAssistant(ticketId: string) {
+export function shareSupportTicketWithAssistant(ticketId: string, idempotencyKey = crypto.randomUUID()) {
   return apiClient<ApiResponse<SupportTicketResponse>>(
     `${apiEndpoints.operations.supportTickets}/assistant-conversation/tickets/${ticketId}`,
-    { method: "POST" },
+    { headers: { "Idempotency-Key": idempotencyKey }, method: "POST" },
   );
 }
 
-export function openSupportTicketCustomerConversation(ticketId: string) {
-  return apiClient<ApiResponse<ChatConversationResponse>>(apiEndpoints.operations.supportTicketCustomerConversation(ticketId), {
+export function shareSupportTicketWithConversation(
+  conversationId: string,
+  ticketId: string,
+  idempotencyKey = crypto.randomUUID(),
+) {
+  return apiClient<ApiResponse<SupportTicketResponse>>(
+    `${apiEndpoints.operations.supportTickets}/conversations/${conversationId}/tickets/${ticketId}`,
+    { headers: { "Idempotency-Key": idempotencyKey }, method: "POST" },
+  );
+}
+
+export function openSupportTicketRequesterConversation(ticketId: string, idempotencyKey = crypto.randomUUID()) {
+  return apiClient<ApiResponse<ChatConversationResponse>>(apiEndpoints.operations.supportTicketRequesterConversation(ticketId), {
+    headers: { "Idempotency-Key": idempotencyKey },
     method: "POST",
   });
 }
 
-export function getActiveSupportTicketCustomerConversation(ticketId: string) {
-  return apiClient<ApiResponse<ChatConversationResponse>>(apiEndpoints.operations.supportTicketCustomerConversation(ticketId));
+export function getActiveSupportTicketRequesterConversation(ticketId: string) {
+  return apiClient<ApiResponse<ChatConversationResponse>>(apiEndpoints.operations.supportTicketRequesterConversation(ticketId));
 }
 
 export function createSupportTicketEscalation(
@@ -348,15 +426,21 @@ export function assignSupportTicket(ticketId: string, assignedTo: string) {
   });
 }
 
+export function claimSupportTicket(ticketId: string) {
+  return apiClient<ApiResponse<SupportTicketResponse>>(`${apiEndpoints.operations.supportTickets}/${ticketId}/claim`, {
+    method: "PATCH",
+  });
+}
+
 export function startSupportTicketProgress(ticketId: string) {
   return apiClient<ApiResponse<SupportTicketResponse>>(`${apiEndpoints.operations.supportTickets}/${ticketId}/start-progress`, {
     method: "PATCH",
   });
 }
 
-export function resolveSupportTicket(ticketId: string, resolutionNote: string) {
+export function resolveSupportTicket(ticketId: string) {
   return apiClient<ApiResponse<SupportTicketResponse>>(`${apiEndpoints.operations.supportTickets}/${ticketId}/resolve`, {
-    body: { resolutionNote },
+    body: { resolutionNote: null },
     method: "PATCH",
   });
 }

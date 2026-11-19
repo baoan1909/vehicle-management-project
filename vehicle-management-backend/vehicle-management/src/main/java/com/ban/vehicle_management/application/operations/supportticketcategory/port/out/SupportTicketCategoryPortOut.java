@@ -12,8 +12,10 @@ public interface SupportTicketCategoryPortOut {
 
     SupportTicketCategory save(SupportTicketCategory category);
     Optional<SupportTicketCategory> findById(UUID categoryId);
+    boolean existsByIdAndStatus(UUID categoryId, SupportTicketCategoryStatus status);
     List<SupportTicketCategory> findAll(SupportTicketCategoryStatus status, SupportTicketCategoryPriority priority, String keyword);
     boolean existsActiveByCode(String code);
     boolean existsActiveByCodeAndCategoryIdNot(String code, UUID categoryId);
     boolean hasUnfinishedTickets(UUID categoryId);
+    boolean hasTickets(UUID categoryId);
 }

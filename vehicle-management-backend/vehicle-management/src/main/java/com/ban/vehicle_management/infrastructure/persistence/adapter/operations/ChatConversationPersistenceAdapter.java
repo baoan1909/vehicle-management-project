@@ -128,6 +128,20 @@ public class ChatConversationPersistenceAdapter implements ChatConversationPortO
     }
 
     @Override
+    public Optional<ChatConversation> findActiveRequesterSupportConversation(
+            UUID requesterAccountId,
+            UUID staffAccountId
+    ) {
+        return conversationRepository.findDirectConversation(
+                        ChatConversationType.SUPPORT_REQUESTER_DIRECT,
+                        requesterAccountId,
+                        staffAccountId
+                )
+                .map(conversationMapper::toDomain)
+                .map(this::attachParticipants);
+    }
+
+    @Override
     public Optional<ChatConversation> findActiveAssistantSupportConversation(UUID customerId) {
         return conversationRepository.findFirstByCustomerIdAndConversationTypeAndStatus(
                         customerId,
@@ -149,8 +163,34 @@ public class ChatConversationPersistenceAdapter implements ChatConversationPortO
     }
 
     @Override
+    public Optional<ChatConversation> findActiveAssistantSupportConversationByOwnerAccountId(UUID ownerAccountId) {
+        return conversationRepository.findFirstByOwnerAccountIdAndConversationTypeAndStatus(
+                        ownerAccountId,
+                        ChatConversationType.ASSISTANT_SUPPORT,
+                        ChatConversationStatus.ACTIVE
+                )
+                .map(conversationMapper::toDomain)
+                .map(this::attachParticipants);
+    }
+
+    @Override
+    public Optional<ChatConversation> findAssistantSupportConversationByOwnerAccountId(UUID ownerAccountId) {
+        return conversationRepository.findFirstByOwnerAccountIdAndConversationType(
+                        ownerAccountId,
+                        ChatConversationType.ASSISTANT_SUPPORT
+                )
+                .map(conversationMapper::toDomain)
+                .map(this::attachParticipants);
+    }
+
+    @Override
     public void lockCustomerSupport(UUID customerId) {
         conversationRepository.lockCustomerSupport(customerId);
+    }
+
+    @Override
+    public void lockRequesterSupport(UUID requesterAccountId) {
+        conversationRepository.lockRequesterSupport(requesterAccountId);
     }
 
     @Override
@@ -208,6 +248,11 @@ public class ChatConversationPersistenceAdapter implements ChatConversationPortO
     }
 
     @Override
+    public void lockConversation(UUID conversationId) {
+        conversationRepository.lockConversation(conversationId);
+    }
+
+    @Override
     public boolean existsActiveMember(UUID conversationId, UUID accountId) {
         return memberRepository.existsByConversationIdAndAccountIdAndStatus(
                 conversationId,
@@ -227,6 +272,11 @@ public class ChatConversationPersistenceAdapter implements ChatConversationPortO
     @Override
     public Optional<ChatMessage> findMessageById(UUID messageId) {
         return messageRepository.findById(messageId).map(messageMapper::toDomain);
+    }
+
+    @Override
+    public Optional<ChatMessage> findMessageBySupportTicketEventId(UUID supportTicketEventId) {
+        return messageRepository.findBySupportTicketEventId(supportTicketEventId).map(messageMapper::toDomain);
     }
 
     @Override

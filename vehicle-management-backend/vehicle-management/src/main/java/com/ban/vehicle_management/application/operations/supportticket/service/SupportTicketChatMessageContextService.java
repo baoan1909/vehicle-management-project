@@ -1,7 +1,6 @@
 package com.ban.vehicle_management.application.operations.supportticket.service;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
-import com.ban.vehicle_management.application.operations.chatconversation.port.out.ChatConversationPortOut;
 import com.ban.vehicle_management.application.operations.supportticket.port.out.SupportTicketConversationLinkPortOut;
 import com.ban.vehicle_management.application.operations.supportticket.port.out.SupportTicketPortOut;
 import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatConversation;
@@ -9,19 +8,15 @@ import com.ban.vehicle_management.domain.operations.supportticket.model.SupportT
 import com.ban.vehicle_management.domain.operations.supportticket.policy.SupportTicketPolicy;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatConversationType;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
-import com.ban.vehicle_management.shared.exception.BadRequestException;
-import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.time.Instant;
 import java.util.UUID;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
-/** Enforces the ticket scope of every customer-staff chat message. */
+/** Normalizes optional ticket context without preventing an authorized private chat message. */
 @Component
 public class SupportTicketChatMessageContextService {
 
     private final CurrentAccountPortIn currentAccountPortIn;
-    private final ChatConversationPortOut chatPortOut;
     private final SupportTicketPortOut supportTicketPortOut;
     private final SupportTicketConversationLinkPortOut linkPortOut;
     private final SupportTicketConversationService ticketConversationService;
@@ -29,75 +24,93 @@ public class SupportTicketChatMessageContextService {
 
     public SupportTicketChatMessageContextService(
             CurrentAccountPortIn currentAccountPortIn,
-            ChatConversationPortOut chatPortOut,
             SupportTicketPortOut supportTicketPortOut,
             SupportTicketConversationLinkPortOut linkPortOut,
             SupportTicketConversationService ticketConversationService
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
-        this.chatPortOut = chatPortOut;
         this.supportTicketPortOut = supportTicketPortOut;
         this.linkPortOut = linkPortOut;
         this.ticketConversationService = ticketConversationService;
     }
 
-    public void ensureCanSend(ChatConversation conversation, UUID contextTicketId, UUID senderAccountId) {
-        if (conversation.getConversationType() != ChatConversationType.CUSTOMER_DIRECT) {
-            return;
+    public UUID resolveContextForSend(ChatConversation conversation, UUID contextTicketId, UUID senderAccountId) {
+        if (conversation.getConversationType() != ChatConversationType.SUPPORT_REQUESTER_DIRECT) {
+            return contextTicketId;
         }
         if (contextTicketId == null) {
-            throw new BadRequestException("contextTicketId is required for customer support chat messages");
+            // A requester-to-handler conversation is also a private customer-care channel.
+            // Ticket-specific authorization and lifecycle changes only apply when the sender
+            // explicitly attaches a ticket context. Active membership and send permission
+            // are enforced by ChatConversationUseCaseImpl before this hook is invoked.
+            return null;
         }
 
-        SupportTicket ticket = supportTicketPortOut.findById(contextTicketId)
-                .orElseThrow(() -> new NotFoundException("Support ticket not found"));
-        if (!ticket.getCustomerId().equals(conversation.getCustomerId())) {
-            throw new AccessDeniedException("Access is denied");
+        SupportTicket ticket = supportTicketPortOut.findByIdForUpdate(contextTicketId).orElse(null);
+        if (ticket == null) {
+            return null;
+        }
+        if (!ticket.getRequesterAccountId().equals(conversation.getOwnerAccountId())) {
+            return null;
         }
 
-        UUID customerAccountId = chatPortOut.findAccountIdByCustomerId(ticket.getCustomerId())
-                .orElseThrow(() -> new NotFoundException("Customer account not found"));
-        boolean isCustomer = customerAccountId.equals(senderAccountId);
+        if (ticket.getStatus() == SupportTicketStatus.CLOSED) {
+            // The private conversation remains available after the ticket lifecycle ends.
+            // A stale browser may still submit the closed ticket context, so detach that context
+            // and persist the message as general customer-care chat instead of rejecting it.
+            return null;
+        }
+
+        boolean isRequester = ticket.getRequesterAccountId().equals(senderAccountId);
         boolean isCurrentAssignee = senderAccountId.equals(ticket.getAssignedTo());
-        if (!isCustomer && !isCurrentAssignee) {
-            throw new AccessDeniedException("Access is denied");
-        }
-        if (ticket.getStatus() == SupportTicketStatus.RESOLVED || ticket.getStatus() == SupportTicketStatus.CLOSED) {
-            throw new BadRequestException("Resolved or closed support ticket is read-only");
+        if (!isRequester && !isCurrentAssignee) {
+            return null;
         }
 
         boolean linkedToConversation = linkPortOut.findActiveBySupportTicketId(ticket.getSupportTicketId())
                 .map(link -> conversation.getConversationId().equals(link.getConversationId()))
                 .orElse(false);
         if (!linkedToConversation) {
-            throw new AccessDeniedException("Access is denied");
+            return null;
         }
 
-        if (isCurrentAssignee) {
-            currentAccountPortIn.requirePermission("SUPPORT_TICKET_READ_ASSIGNED");
-            if (!currentAccountPortIn.hasPermission("SUPPORT_TICKET_PROCESS_ALL")) {
-                currentAccountPortIn.requirePermission("SUPPORT_TICKET_PROCESS_ASSIGNED");
-            }
-            currentAccountPortIn.requirePermission("SUPPORT_TICKET_RESPOND_ASSIGNED");
+        if (isCurrentAssignee && !canRespondToAssignedTicket()) {
+            return null;
         }
 
         if (ticket.getStatus() == SupportTicketStatus.OPEN) {
-            if (isCustomer) {
-                return;
+            if (isRequester) {
+                recordActivity(ticket);
+                return contextTicketId;
             }
             ticketPolicy.startProgress(ticket);
             if (ticket.getFirstRespondedAt() == null) {
                 ticket.setFirstRespondedAt(Instant.now());
             }
+            ticketPolicy.recordContextActivity(ticket, Instant.now());
             ticket = supportTicketPortOut.save(ticket);
             publishFirstReplyUpdate(ticket);
-            return;
+            return contextTicketId;
         }
 
-        if (ticket.getStatus() != SupportTicketStatus.IN_PROGRESS) {
-            throw new BadRequestException("Support ticket is not available for messaging");
+        if (ticket.getStatus() != SupportTicketStatus.IN_PROGRESS
+                && ticket.getStatus() != SupportTicketStatus.RESOLVED) {
+            return null;
         }
 
+        recordActivity(ticket);
+        return contextTicketId;
+    }
+
+    private void recordActivity(SupportTicket ticket) {
+        ticketPolicy.recordContextActivity(ticket, Instant.now());
+        supportTicketPortOut.save(ticket);
+    }
+
+    private boolean canRespondToAssignedTicket() {
+        return currentAccountPortIn.hasPermission("SUPPORT_TICKET_READ_ALL")
+                && currentAccountPortIn.hasPermission("SUPPORT_TICKET_PROCESS_ALL")
+                && currentAccountPortIn.hasPermission("SUPPORT_TICKET_RESPOND_ASSIGNED");
     }
 
     private void publishFirstReplyUpdate(SupportTicket ticket) {

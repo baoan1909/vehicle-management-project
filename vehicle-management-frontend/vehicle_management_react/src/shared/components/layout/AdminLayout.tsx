@@ -10,6 +10,7 @@ import { deriveGuideContext, shouldAutoStartGuide } from "@/features/user-guide/
 import { PlatformMonitoringScopeProvider } from "@/shared/monitoring/PlatformMonitoringScope";
 import { MonitoringScopeBanner } from "./MonitoringScopeBanner";
 import { useAuth } from "@/core/auth/useAuth";
+import { SupportFloatingWidget } from "@/features/support/components/SupportFloatingWidget";
 
 interface AdminLayoutProps extends PropsWithChildren {
 }
@@ -51,8 +52,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             )}
           >
             {!restrictedToProfile ? <MonitoringScopeBanner /> : null}
-              {children}
+            {children}
           </div>
+          <SupportFloatingWidget />
         </div>
       </UserGuideBackendHost>
     </PlatformMonitoringScopeProvider>

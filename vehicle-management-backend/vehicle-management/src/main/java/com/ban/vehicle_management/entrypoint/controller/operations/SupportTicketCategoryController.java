@@ -7,6 +7,7 @@ import com.ban.vehicle_management.entrypoint.dto.operations.supportticketcategor
 import com.ban.vehicle_management.entrypoint.dto.operations.supportticketcategory.request.SupportTicketCategoryFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.operations.supportticketcategory.request.UpdateSupportTicketCategoryRequest;
 import com.ban.vehicle_management.entrypoint.dto.operations.supportticketcategory.response.SupportTicketCategoryAdminResponse;
+import com.ban.vehicle_management.entrypoint.dto.operations.supportticketcategory.response.SupportTicketCategoryUserResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.util.List;
 import java.util.UUID;
@@ -31,7 +32,7 @@ public class SupportTicketCategoryController {
     }
 
     @PostMapping
-    @PreAuthorize("@permissionAuthorizer.hasPermission('SUPPORT_TICKET_UPDATE_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('SUPPORT_TICKET_CATEGORY_CREATE_ALL')")
     public ResponseEntity<ApiResponse<SupportTicketCategoryAdminResponse>> createCategory(
             @RequestBody CreateSupportTicketCategoryRequest request
     ) {
@@ -44,7 +45,7 @@ public class SupportTicketCategoryController {
     }
 
     @GetMapping("/{categoryId}")
-    @PreAuthorize("@permissionAuthorizer.hasPermission('SUPPORT_TICKET_READ_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('SUPPORT_TICKET_CATEGORY_READ_ALL')")
     public ResponseEntity<ApiResponse<SupportTicketCategoryAdminResponse>> getCategoryById(
             @PathVariable UUID categoryId
     ) {
@@ -57,7 +58,7 @@ public class SupportTicketCategoryController {
     }
 
     @GetMapping
-    @PreAuthorize("@permissionAuthorizer.hasAnyPermission('SUPPORT_TICKET_READ_ALL', 'SUPPORT_TICKET_READ_ASSIGNED')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('SUPPORT_TICKET_CATEGORY_READ_ALL')")
     public ResponseEntity<ApiResponse<List<SupportTicketCategoryAdminResponse>>> getCategories(
             @ModelAttribute SupportTicketCategoryFilterRequest request
     ) {
@@ -73,8 +74,17 @@ public class SupportTicketCategoryController {
         ));
     }
 
+    @GetMapping("/available")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('SUPPORT_TICKET_CREATE_OWN')")
+    public ResponseEntity<ApiResponse<List<SupportTicketCategoryUserResponse>>> getAvailableCategories() {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Fetched available support ticket categories successfully",
+                categoryApiMapper.toUserResponses(categoryPortIn.getAvailableCategories())
+        ));
+    }
+
     @PutMapping("/{categoryId}")
-    @PreAuthorize("@permissionAuthorizer.hasPermission('SUPPORT_TICKET_UPDATE_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('SUPPORT_TICKET_CATEGORY_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<SupportTicketCategoryAdminResponse>> updateCategory(
             @PathVariable UUID categoryId,
             @RequestBody UpdateSupportTicketCategoryRequest request
@@ -91,7 +101,7 @@ public class SupportTicketCategoryController {
     }
 
     @DeleteMapping("/{categoryId}")
-    @PreAuthorize("@permissionAuthorizer.hasPermission('SUPPORT_TICKET_UPDATE_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('SUPPORT_TICKET_CATEGORY_ACTIVATE_ALL')")
     public ResponseEntity<ApiResponse<Void>> deleteCategory(@PathVariable UUID categoryId) {
         categoryPortIn.deleteCategory(categoryId);
 
@@ -99,7 +109,7 @@ public class SupportTicketCategoryController {
     }
 
     @PatchMapping("/{categoryId}/activate")
-    @PreAuthorize("@permissionAuthorizer.hasPermission('SUPPORT_TICKET_UPDATE_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('SUPPORT_TICKET_CATEGORY_ACTIVATE_ALL')")
     public ResponseEntity<ApiResponse<SupportTicketCategoryAdminResponse>> activateCategory(
             @PathVariable UUID categoryId
     ) {

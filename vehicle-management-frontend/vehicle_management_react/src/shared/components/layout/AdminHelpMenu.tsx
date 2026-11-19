@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Link } from "react-router-dom";
 
 import { useAuth } from "@/core/auth/useAuth";
 import { PostOnboardingReadinessDrawer } from "@/features/user-guide/components/PostOnboardingReadinessDrawer";
@@ -20,6 +21,7 @@ export function AdminHelpMenu() {
   const [open, setOpen] = useState(false);
   const [readinessOpen, setReadinessOpen] = useState(false);
   const guideCode = resolvePostOnboardingJourneyGuide(user);
+  const canReadOwnSupportTickets = hasAnyPermission(user, ["SUPPORT_TICKET_READ_OWN"]);
   const readinessAvailable = Boolean(guideCode || (
     user
     && !user.onboardingRequired
@@ -125,6 +127,20 @@ export function AdminHelpMenu() {
             </span>
             <strong className="tw-min-w-0 tw-text-[0.94rem] tw-font-extrabold">Trợ giúp</strong>
           </button>
+
+          {canReadOwnSupportTickets ? (
+            <Link
+              to="/admin/my-support"
+              role="menuitem"
+              className="tw-flex tw-min-h-[52px] tw-w-full tw-items-center tw-gap-3 tw-rounded-vm-md tw-px-3 tw-text-left tw-text-vm-slate-800 tw-transition hover:tw-bg-brand-50 hover:tw-text-vm-primary hover:tw-no-underline"
+              onClick={() => setOpen(false)}
+            >
+              <span className="tw-inline-flex tw-h-9 tw-w-9 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-full tw-bg-brand-50 tw-text-vm-primary">
+                <i className="far fa-list-alt" aria-hidden="true" />
+              </span>
+              <strong className="tw-min-w-0 tw-text-[0.94rem] tw-font-extrabold">Yêu cầu của tôi</strong>
+            </Link>
+          ) : null}
         </div>
       ) : null}
       {typeof document !== "undefined" ? createPortal(

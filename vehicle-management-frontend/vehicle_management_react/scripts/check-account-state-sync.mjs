@@ -84,6 +84,8 @@ assert.equal(calls[1].refreshProfile, true);
 
 const bell = await readFile(new URL("../src/features/notifications/components/NotificationBell.tsx", import.meta.url), "utf8");
 const provider = await readFile(new URL("../src/features/notifications/context/AccountStateSyncProvider.tsx", import.meta.url), "utf8");
+const realtime = await readFile(new URL("../src/features/notifications/api/notificationRealtime.ts", import.meta.url), "utf8");
+const appProviders = await readFile(new URL("../src/app/providers/AppProviders.tsx", import.meta.url), "utf8");
 const customerProfile = await readFile(new URL("../src/features/customer-portal/pages/ProfilePage.tsx", import.meta.url), "utf8");
 const internalProfile = await readFile(new URL("../src/features/iam/pages/InternalProfilePage.tsx", import.meta.url), "utf8");
 
@@ -93,6 +95,15 @@ assert.match(provider, /user\?\.id/);
 assert.match(provider, /AccountStateSyncCoordinator/);
 assert.match(provider, /visibilitychange/);
 assert.match(provider, /reloadNotifications/);
+assert.match(provider, /processNotification\(notification, true\)/,
+  "every realtime notification, including SUPPORT_TICKET_CREATED, must request a toast");
+assert.match(provider, /toast\.notification\(/,
+  "the account-level realtime provider must render notifications through the shared toast system");
+assert.match(realtime, /const NOTIFICATION_DESTINATION = "\/user\/queue\/notifications"/);
+assert.doesNotMatch(realtime, /SUPPORT_TICKET_CREATED/,
+  "the realtime transport must not filter notification types on the client");
+assert.match(appProviders, /<ToastProvider>[\s\S]*<AccountStateSyncProvider>/,
+  "the realtime provider must be mounted inside ToastProvider");
 assert.match(provider, /const reconcileAfterConnection = \(reconnected: boolean\)/);
 assert.match(provider, /if \(!active \|\| !reconnected\) return;/);
 assert.doesNotMatch(provider, /refreshProfile: true/,

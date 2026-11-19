@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+import { canAccessCustomerRoute, getProfileRoute } from "@/app/routePermissions";
 import { useAuth } from "@/core/auth/useAuth";
 import { logoutCurrentUser } from "@/core/auth/logout";
 import { cn } from "@/lib/cn";
@@ -8,7 +9,7 @@ import { getApprovalStatusValue, getRoleLabel, getStatusMeta } from "@/shared/ut
 import { resolvePublicMediaUrl } from "@/shared/utils/mediaUrl";
 
 const panelClassName =
-  "tw-absolute tw-right-0 tw-top-[calc(100%+12px)] tw-z-[1080] tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200/95 tw-bg-white tw-p-2 tw-shadow-[0_18px_42px_rgba(15,23,42,0.16)]";
+  "vm-profile-popover tw-absolute tw-right-0 tw-top-[calc(100%+12px)] tw-z-[1080] tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200/95 tw-bg-white tw-p-2 tw-shadow-[0_18px_42px_rgba(15,23,42,0.16)]";
 
 const itemClassName =
   "tw-my-1 tw-grid tw-grid-cols-[40px_minmax(0,1fr)] tw-items-center tw-gap-3 tw-rounded-vm-md tw-px-2.5 tw-py-2 tw-text-left tw-text-slate-900 tw-transition hover:tw-bg-brand-50 hover:tw-text-slate-900 hover:tw-no-underline";
@@ -41,8 +42,12 @@ function UserAvatar({ alt, className, status, src }: { alt: string; className: s
   );
 }
 
-/** Account menu shared by every internal header, backed by the authenticated session. */
-export function AdminAccountMenu() {
+interface AdminAccountMenuProps {
+  portal?: "admin" | "customer";
+}
+
+/** Account menu shared by standalone portal headers, backed by the authenticated session. */
+export function AdminAccountMenu({ portal = "admin" }: AdminAccountMenuProps) {
   const navigate = useNavigate();
   const { user, setUser } = useAuth();
   const [open, setOpen] = useState(false);
@@ -54,6 +59,7 @@ export function AdminAccountMenu() {
   const approvalStatus = getApprovalStatusValue(user);
   const accountStatus = user?.accountStatus;
   const avatarUrl = resolvePublicMediaUrl(user?.avatarUrl) || undefined;
+  const isCustomerPortal = portal === "customer";
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -72,10 +78,11 @@ export function AdminAccountMenu() {
   }
 
   return (
-    <div ref={rootRef} className="tw-relative">
-      <button type="button" className={cn("tw-flex tw-min-h-12 tw-w-auto tw-min-w-[238px] tw-items-center tw-gap-3 tw-rounded-full tw-border tw-border-solid tw-border-brand-200 tw-bg-white tw-px-3 tw-py-1 tw-text-left tw-transition hover:tw-bg-brand-50", open ? "tw-bg-brand-50 tw-shadow-[0_8px_20px_rgba(37,99,235,0.08)]" : "")} onClick={() => setOpen((current) => !current)} aria-label={`Mở hồ sơ ${displayName}`}>
+    <div ref={rootRef} className="vm-account-menu tw-relative">
+      <button type="button" className={cn("vm-account-menu-trigger tw-flex tw-min-h-12 tw-w-auto tw-min-w-[238px] tw-items-center tw-gap-3 tw-rounded-full tw-border tw-border-solid tw-border-brand-200 tw-bg-white tw-px-3 tw-py-1 tw-text-left tw-transition hover:tw-bg-brand-50", open ? "tw-bg-brand-50 tw-shadow-[0_8px_20px_rgba(37,99,235,0.08)]" : "")} onClick={() => setOpen((current) => !current)} aria-label={`Mở hồ sơ ${displayName}`} aria-expanded={open}>
         <UserAvatar src={avatarUrl} alt={displayName} status={approvalStatus} className="tw-h-9 tw-w-9" />
-        <span className="tw-min-w-0 tw-flex-1"><strong className="tw-block tw-truncate tw-text-[0.92rem] tw-font-extrabold tw-leading-tight tw-text-slate-900">{displayName}</strong><small className="tw-mt-0.5 tw-block tw-truncate tw-text-[0.74rem] tw-font-bold tw-leading-tight tw-text-vm-slate-500">{roleLabel}</small></span>
+        <span className="vm-account-menu-copy tw-min-w-0 tw-flex-1"><strong className="tw-block tw-truncate tw-text-[0.92rem] tw-font-extrabold tw-leading-tight tw-text-slate-900">{displayName}</strong><small className="tw-mt-0.5 tw-block tw-truncate tw-text-[0.74rem] tw-font-bold tw-leading-tight tw-text-vm-slate-500">{roleLabel}</small></span>
+        {isCustomerPortal ? <i className={cn("vm-account-menu-chevron fas fa-chevron-down tw-text-[0.72rem] tw-text-vm-slate-500 tw-transition", open ? "tw-rotate-180" : "")} /> : null}
       </button>
 
       {open ? (
@@ -86,9 +93,11 @@ export function AdminAccountMenu() {
             <div className="tw-flex tw-items-center tw-justify-between tw-gap-3"><span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-500">Trạng thái duyệt</span><StatusBadge status={approvalStatus} /></div>
             <div className="tw-flex tw-items-center tw-justify-between tw-gap-3"><span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-500">Tài khoản</span><StatusBadge status={accountStatus} /></div>
           </div>
-          <Link to="/admin/profile" className={itemClassName} onClick={() => setOpen(false)}><HeaderItemIcon icon="fas fa-user-circle" /><HeaderItemCopy title="Thông tin tài khoản" meta="Cập nhật hồ sơ quản trị" /></Link>
-          <button type="button" className={cn(itemClassName, "tw-w-full tw-border-0 tw-bg-white")} onClick={() => { setOpen(false); navigate("/admin/profile?action=change-password"); }}><HeaderItemIcon icon="fas fa-key" /><HeaderItemCopy title="Đổi mật khẩu" meta="Cập nhật mật khẩu đăng nhập nội bộ" /></button>
-          <Link to="/contact" className={itemClassName} onClick={() => setOpen(false)}><HeaderItemIcon icon="fas fa-question-circle" /><HeaderItemCopy title="Trợ giúp" meta="Xem hướng dẫn và liên hệ hỗ trợ" /></Link>
+          {isCustomerPortal && canAccessCustomerRoute(user, "/customer/dashboard") ? <Link to="/customer/dashboard" className={itemClassName} onClick={() => setOpen(false)}><HeaderItemIcon icon="fas fa-tachometer-alt" /><HeaderItemCopy title="Tổng quan" meta="Xem nhanh bãi xe và dịch vụ của bạn" /></Link> : null}
+          <Link to={isCustomerPortal ? getProfileRoute(user) : "/admin/profile"} className={itemClassName} onClick={() => setOpen(false)}><HeaderItemIcon icon="fas fa-user-circle" /><HeaderItemCopy title={isCustomerPortal ? "Hồ sơ cá nhân" : "Thông tin tài khoản"} meta={isCustomerPortal ? "Cập nhật thông tin tài khoản" : "Cập nhật hồ sơ quản trị"} /></Link>
+          {!isCustomerPortal ? <button type="button" className={cn(itemClassName, "tw-w-full tw-border-0 tw-bg-white")} onClick={() => { setOpen(false); navigate("/admin/profile?action=change-password"); }}><HeaderItemIcon icon="fas fa-key" /><HeaderItemCopy title="Đổi mật khẩu" meta="Cập nhật mật khẩu đăng nhập nội bộ" /></button> : null}
+          {isCustomerPortal && canAccessCustomerRoute(user, "/customer/support") ? <Link to="/customer/support" className={itemClassName} onClick={() => setOpen(false)}><HeaderItemIcon icon="fas fa-question-circle" /><HeaderItemCopy title="Hỗ trợ" meta="Gửi yêu cầu và theo dõi phản hồi" /></Link> : null}
+          {!isCustomerPortal ? <Link to="/contact" className={itemClassName} onClick={() => setOpen(false)}><HeaderItemIcon icon="fas fa-question-circle" /><HeaderItemCopy title="Trợ giúp" meta="Xem hướng dẫn và liên hệ hỗ trợ" /></Link> : null}
           <button type="button" className={cn(itemClassName, "tw-w-full tw-border-0 tw-bg-white", isLoggingOut ? "tw-cursor-wait tw-opacity-75" : "")} disabled={isLoggingOut} aria-busy={isLoggingOut} onClick={handleLogout}><HeaderItemIcon icon={isLoggingOut ? "fas fa-spinner fa-spin" : "fas fa-sign-out-alt"} /><HeaderItemCopy title={isLoggingOut ? "Đang đăng xuất" : "Đăng xuất"} meta="Thoát khỏi phiên làm việc hiện tại" /></button>
         </div>
       ) : null}

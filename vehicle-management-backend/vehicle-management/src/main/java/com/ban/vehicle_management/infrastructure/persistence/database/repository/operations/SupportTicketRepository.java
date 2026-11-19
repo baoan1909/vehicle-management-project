@@ -2,12 +2,16 @@ package com.ban.vehicle_management.infrastructure.persistence.database.repositor
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.operations.SupportTicketEntity;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
+import jakarta.persistence.LockModeType;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.query.Param;
@@ -79,6 +83,7 @@ public interface SupportTicketRepository
         )
         update operations.support_tickets ticket
            set status='CLOSED', assigned_to=null, closed_at=coalesce(ticket.closed_at, :now),
+               close_reason='SYSTEM_MAINTENANCE', auto_close_at=null,
                resolution_note=case
                    when ticket.resolution_note is null or btrim(ticket.resolution_note)='' then 'ORGANIZATION_CLOSED'
                    when position('ORGANIZATION_CLOSED' in ticket.resolution_note)>0 then ticket.resolution_note
@@ -106,32 +111,75 @@ public interface SupportTicketRepository
     @Query("""
             select ticket
             from SupportTicketEntity ticket
-            left join ticket.customer customer
-            left join customer.userProfile profile
-            left join profile.account account
+            join ticket.requesterAccount account
             where ticket.supportTicketId = :supportTicketId
-              and (ticket.customerId is null or account.status not in (
+              and account.status not in (
                   com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION,
-                  com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED))
+                  com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED)
             """)
     Optional<SupportTicketEntity> findBusinessVisibleById(@Param("supportTicketId") UUID supportTicketId);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select ticket
+            from SupportTicketEntity ticket
+            join ticket.requesterAccount account
+            where ticket.supportTicketId = :supportTicketId
+              and account.status not in (
+                  com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION,
+                  com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED)
+            """)
+    Optional<SupportTicketEntity> findBusinessVisibleByIdForUpdate(
+            @Param("supportTicketId") UUID supportTicketId
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select ticket
+            from SupportTicketEntity ticket
+            where ticket.status = com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus.RESOLVED
+              and ticket.autoCloseAt <= :now
+            order by ticket.autoCloseAt asc, ticket.supportTicketId asc
+            """)
+    List<SupportTicketEntity> findDueForAutoClose(@Param("now") Instant now, Pageable pageable);
+
     boolean existsByCategoryIdAndStatusIn(UUID categoryId, Collection<SupportTicketStatus> statuses);
 
-    boolean existsByCustomerIdAndCategoryIdAndStatusIn(
-            UUID customerId,
+    boolean existsByCategoryId(UUID categoryId);
+
+    boolean existsByRequesterAccountIdAndCategoryIdAndStatusIn(
+            UUID requesterAccountId,
             UUID categoryId,
             Collection<SupportTicketStatus> statuses
     );
 
-    Optional<SupportTicketEntity> findFirstByCustomerIdAndCategoryIdAndStatusInOrderByCreatedAtDesc(
-            UUID customerId,
+    Optional<SupportTicketEntity> findFirstByRequesterAccountIdAndCategoryIdAndStatusInOrderByCreatedAtDesc(
+            UUID requesterAccountId,
             UUID categoryId,
             List<SupportTicketStatus> statuses
     );
 
-    Optional<SupportTicketEntity> findByCustomerIdAndIdempotencyKey(UUID customerId, String idempotencyKey);
+    Optional<SupportTicketEntity> findByRequesterAccountIdAndIdempotencyKey(
+            UUID requesterAccountId,
+            String idempotencyKey
+    );
 
-    @Query(value = "SELECT 1::bigint FROM pg_advisory_xact_lock(hashtextextended(CAST(:customerId AS text), 0))", nativeQuery = true)
-    Long lockCustomerSupport(@Param("customerId") UUID customerId);
+    @Query(value = "SELECT 1::bigint FROM pg_advisory_xact_lock(hashtextextended(CAST(:requesterAccountId AS text), 0))", nativeQuery = true)
+    Long lockRequesterSupport(@Param("requesterAccountId") UUID requesterAccountId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = """
+            UPDATE operations.support_tickets
+            SET assigned_to = :accountId,
+                status = CASE WHEN status = 'OPEN' THEN 'IN_PROGRESS' ELSE status END,
+                updated_at = now(),
+                updated_by = :accountId
+            WHERE support_ticket_id = :supportTicketId
+              AND status IN ('OPEN', 'IN_PROGRESS')
+              AND (assigned_to IS NULL OR assigned_to = :accountId)
+            """, nativeQuery = true)
+    int claimIfAvailable(
+            @Param("supportTicketId") UUID supportTicketId,
+            @Param("accountId") UUID accountId
+    );
 }

@@ -19,7 +19,8 @@ class SupportTicketApiMapperUserResponseTest {
     void shouldMapUserResponseWithoutAuditFields() {
         SupportTicket ticket = new SupportTicket();
         ticket.setSupportTicketId(UUID.randomUUID());
-        ticket.setCustomerId(UUID.randomUUID());
+        ticket.setRequesterAccountId(UUID.randomUUID());
+        ticket.setRequesterRoleCode("CUSTOMER");
         ticket.setCategoryId(UUID.randomUUID());
         ticket.setCategoryName("Payment");
         ticket.setPriority(SupportTicketCategoryPriority.HIGH);

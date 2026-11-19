@@ -8,7 +8,7 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface SupportTicketPersistenceMapper {
 
-    @Mapping(target = "customer", ignore = true)
+    @Mapping(target = "requesterAccount", ignore = true)
     @Mapping(target = "category", ignore = true)
     @Mapping(target = "assignedToAccount", ignore = true)
     @Mapping(target = "closedByAccount", ignore = true)

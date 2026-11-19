@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.ban.vehicle_management.domain.operations.supportticket.model.SupportTicket;
+import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCloseReason;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.time.Instant;
@@ -18,7 +19,8 @@ class SupportTicketPolicyTest {
     @Test
     void shouldInitializeSupportTicketWithDefaults() {
         SupportTicket supportTicket = new SupportTicket();
-        supportTicket.setCustomerId(UUID.randomUUID());
+        supportTicket.setRequesterAccountId(UUID.randomUUID());
+        supportTicket.setRequesterRoleCode("CUSTOMER");
         supportTicket.setCategoryId(UUID.randomUUID());
         supportTicket.setTitle(" Hoi gia han ");
         supportTicket.setContent(" Noi dung ");
@@ -45,7 +47,7 @@ class SupportTicketPolicyTest {
         supportTicketPolicy.startProgress(supportTicket);
         supportTicketPolicy.resolve(
                 supportTicket,
-                "Da xu ly",
+                null,
                 Instant.parse("2026-05-15T03:00:00Z")
         );
         supportTicketPolicy.close(
@@ -55,6 +57,54 @@ class SupportTicketPolicyTest {
         );
 
         assertEquals(SupportTicketStatus.CLOSED, supportTicket.getStatus());
+        assertNull(supportTicket.getResolutionNote());
+        assertEquals(SupportTicketCloseReason.MANUAL, supportTicket.getCloseReason());
+        assertNull(supportTicket.getAutoCloseAt());
+    }
+
+    @Test
+    void shouldScheduleResolvedTicketForAutoCloseAfterTwentyFourHours() {
+        SupportTicket supportTicket = validSupportTicket();
+        supportTicketPolicy.assign(supportTicket, UUID.randomUUID());
+        supportTicketPolicy.startProgress(supportTicket);
+        Instant resolvedAt = Instant.parse("2026-05-15T03:00:00Z");
+
+        supportTicketPolicy.resolve(supportTicket, null, resolvedAt);
+
+        assertEquals(resolvedAt.plusSeconds(86_400), supportTicket.getAutoCloseAt());
+    }
+
+    @Test
+    void shouldExtendOnlyResolvedTicketDeadlineWhenContextActivityOccurs() {
+        SupportTicket supportTicket = resolvedSupportTicket();
+        Instant originalDeadline = Instant.parse("2026-05-16T03:00:00Z");
+        Instant activityAt = Instant.parse("2026-05-15T12:00:00Z");
+        supportTicket.setAutoCloseAt(originalDeadline);
+
+        supportTicketPolicy.recordContextActivity(supportTicket, activityAt);
+
+        assertEquals(activityAt, supportTicket.getLastContextActivityAt());
+        assertEquals(activityAt.plusSeconds(86_400), supportTicket.getAutoCloseAt());
+    }
+
+    @Test
+    void shouldAutoCloseResolvedTicketOnlyAfterDeadline() {
+        SupportTicket supportTicket = resolvedSupportTicket();
+        Instant deadline = Instant.parse("2026-05-16T03:00:00Z");
+        supportTicket.setAutoCloseAt(deadline);
+
+        assertThrows(BadRequestException.class, () -> supportTicketPolicy.autoCloseForInactivity(
+                supportTicket,
+                deadline.minusSeconds(1)
+        ));
+
+        supportTicketPolicy.autoCloseForInactivity(supportTicket, deadline);
+
+        assertEquals(SupportTicketStatus.CLOSED, supportTicket.getStatus());
+        assertEquals(SupportTicketCloseReason.INACTIVITY, supportTicket.getCloseReason());
+        assertEquals(deadline, supportTicket.getClosedAt());
+        assertNull(supportTicket.getClosedBy());
+        assertNull(supportTicket.getAutoCloseAt());
     }
 
     @Test
@@ -86,9 +136,24 @@ class SupportTicketPolicyTest {
 
         assertThrows(BadRequestException.class, () -> supportTicketPolicy.resolve(
                 supportTicket,
-                "Da xu ly",
+                null,
                 Instant.parse("2026-05-15T04:00:00Z")
         ));
+    }
+
+    @Test
+    void shouldRejectResolvingTicketThatIsAlreadyResolved() {
+        SupportTicket supportTicket = resolvedSupportTicket();
+        Instant originalResolvedAt = supportTicket.getResolvedAt();
+
+        assertThrows(BadRequestException.class, () -> supportTicketPolicy.resolve(
+                supportTicket,
+                null,
+                Instant.parse("2026-05-16T04:00:00Z")
+        ));
+
+        assertEquals(SupportTicketStatus.RESOLVED, supportTicket.getStatus());
+        assertEquals(originalResolvedAt, supportTicket.getResolvedAt());
     }
 
     @Test
@@ -118,6 +183,7 @@ class SupportTicketPolicyTest {
     void shouldRejectOpenTicketWithResolvedAt() {
         SupportTicket supportTicket = validSupportTicket();
         supportTicket.setResolvedAt(Instant.parse("2026-05-15T03:00:00Z"));
+        supportTicket.setAutoCloseAt(Instant.parse("2026-05-16T03:00:00Z"));
 
         assertThrows(BadRequestException.class, () -> supportTicketPolicy.validateState(supportTicket));
     }
@@ -133,7 +199,8 @@ class SupportTicketPolicyTest {
     private SupportTicket validSupportTicket() {
         SupportTicket supportTicket = new SupportTicket();
         supportTicket.setSupportTicketId(UUID.randomUUID());
-        supportTicket.setCustomerId(UUID.randomUUID());
+        supportTicket.setRequesterAccountId(UUID.randomUUID());
+        supportTicket.setRequesterRoleCode("CUSTOMER");
         supportTicket.setCategoryId(UUID.randomUUID());
         supportTicket.setTitle("Hoi gia han");
         supportTicket.setContent("Noi dung");

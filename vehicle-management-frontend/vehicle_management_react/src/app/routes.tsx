@@ -44,6 +44,7 @@ const ProfilePage = lazyPage(() => import("@/features/customer-portal"), "Profil
 const PartnerRegistrationPage = lazyPage(() => import("@/features/customer-portal"), "PartnerRegistrationPage");
 const SubscriptionPage = lazyPage(() => import("@/features/customer-portal"), "SubscriptionPage");
 const SupportPage = lazyPage(() => import("@/features/customer-portal"), "SupportPage");
+const InternalSupportPage = lazyPage(() => import("@/features/customer-portal"), "InternalSupportPage");
 const VehiclePage = lazyPage(() => import("@/features/customer-portal"), "VehiclePage");
 const CustomerFormPage = lazyPage(() => import("@/features/customers"), "CustomerFormPage");
 const CustomerListPage = lazyPage(() => import("@/features/customers"), "CustomerListPage");
@@ -133,6 +134,8 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/admin/role/form", title: "Thông tin vai trò", layout: "admin", element: <RoleFormPage /> },
   { path: "/admin/support-categories", title: "Danh mục hỗ trợ và quy trình xử lý yêu cầu", layout: "admin", element: <SupportCategoryWorkflowPage /> },
   { path: "/admin/support-tickets", title: "Yêu cầu hỗ trợ", layout: "admin", element: <SupportTicketManagementPage /> },
+  { path: "/admin/my-support", title: "Hỗ trợ của tôi", layout: "admin", element: <InternalSupportPage /> },
+  { path: "/admin/my-support/chat", title: "Hội thoại hỗ trợ", layout: "admin", element: <Navigate to="/admin/my-support?chat=open" replace /> },
   { path: "/admin/parking-reviews", title: "Đánh giá bãi xe", layout: "admin", element: <ParkingLotReviewManagementPage /> },
   { path: "/admin/announcements", title: "Quản lý thông báo", layout: "admin", element: <AnnouncementManagementPage /> },
   { path: "/admin/user-guides", title: "Hướng dẫn sử dụng", layout: "admin", element: <UserGuideManagementPage /> },
