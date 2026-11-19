@@ -37,6 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ParkingLotAssignmentUseCaseImpl implements ParkingLotAssignmentPortIn {
     private static final String MANAGE_ORGANIZATION = "ORGANIZATION_MEMBERSHIP_MANAGE_ALL";
+    private static final String READ_ORGANIZATION = "ORGANIZATION_READ_ALL";
     private static final String MANAGE_EMPLOYEE = "EMPLOYEE_UPDATE_ALL";
     private static final String ASSIGNED_SCOPE = "PARKING_SCOPE_ASSIGNED";
     private static final Instant FAR_FUTURE = Instant.parse("9999-12-31T23:59:59Z");
@@ -241,7 +242,9 @@ public class ParkingLotAssignmentUseCaseImpl implements ParkingLotAssignmentPort
     @Override
     @Transactional(readOnly = true)
     public List<ParkingLotManagementAssignment> getManagementHistory(UUID organizationId, UUID parkingLotId) {
-        requirePartnerManagement(organizationId, parkingLotId);
+        currentAccountPortIn.requirePermission(READ_ORGANIZATION);
+        organizationAccessGuard.ensureCanAccessOrganization(organizationId);
+        requireLotInOrganization(organizationId, parkingLotId);
         return assignmentPortOut.findManagementHistory(parkingLotId);
     }
 

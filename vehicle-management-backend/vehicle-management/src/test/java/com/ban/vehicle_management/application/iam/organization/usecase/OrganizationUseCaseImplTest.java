@@ -128,4 +128,27 @@ class OrganizationUseCaseImplTest {
         verify(currentAccountPortIn).requirePermission("ORGANIZATION_READ_ALL");
         verify(organizationAccessGuard).ensureCanAccessOrganization(organizationId);
     }
+
+    @Test
+    void readsCurrentManagersFromManagementAssignmentsWhenAvailable() {
+        UUID organizationId = UUID.randomUUID();
+        UUID parkingLotId = UUID.randomUUID();
+        UUID managerId = UUID.randomUUID();
+        var assignmentPortIn = org.mockito.Mockito.mock(
+                com.ban.vehicle_management.application.iam.organization.port.in.ParkingLotAssignmentPortIn.class);
+        var assignment = new com.ban.vehicle_management.domain.iam.organization.model.ParkingLotManagementAssignment();
+        assignment.setManagerAccountId(managerId);
+        assignment.setStatus(com.ban.vehicle_management.shared.enumeration.iam.ManagementAssignmentStatus.ACTIVE);
+        assignment.setEffectiveFrom(java.time.Instant.now().minusSeconds(60));
+        when(organizationPortOut.allParkingLotsBelongToOrganization(organizationId, Set.of(parkingLotId)))
+                .thenReturn(true);
+        when(assignmentPortIn.getManagementHistory(organizationId, parkingLotId))
+                .thenReturn(java.util.List.of(assignment));
+        organizationUseCase.configureParkingLotAssignments(assignmentPortIn);
+
+        Set<UUID> result = organizationUseCase.getAssignedParkingManagerAccountIds(organizationId, parkingLotId);
+
+        assertEquals(Set.of(managerId), result);
+        verify(organizationPortOut, never()).findActiveParkingManagerAccountIdsByParkingLotId(parkingLotId);
+    }
 }

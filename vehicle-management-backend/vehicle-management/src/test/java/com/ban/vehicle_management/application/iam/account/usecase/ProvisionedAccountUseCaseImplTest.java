@@ -329,10 +329,10 @@ class ProvisionedAccountUseCaseImplTest {
     }
 
     @Test
-    void shouldFilterProvisionedAccountListBySystemAdminManagedRoles() {
+    void shouldAllowSystemAdminToReadParkingManagersWithoutManagingThem() {
         ProvisionedAccountFilterCommand command = new ProvisionedAccountFilterCommand(
                 " manager ",
-                null,
+                AdminProvisionableAccountRoleCode.PARKING_MANAGER,
                 AccountStatus.ACTIVE,
                 null
         );
@@ -346,11 +346,13 @@ class ProvisionedAccountUseCaseImplTest {
                 ArgumentCaptor.forClass(ProvisionedAccountFilterCommand.class);
         verify(provisionedAccountPortOut).findProvisionedAccounts(commandCaptor.capture());
         assertEquals("manager", commandCaptor.getValue().keyword());
+        assertEquals(AdminProvisionableAccountRoleCode.PARKING_MANAGER, commandCaptor.getValue().roleCode());
         assertEquals(AccountStatus.ACTIVE, commandCaptor.getValue().accountStatus());
         assertEquals(
                 Set.of(
                         AdminProvisionableAccountRoleCode.SYSTEM_ADMIN,
                         AdminProvisionableAccountRoleCode.PARTNER_ADMIN,
+                        AdminProvisionableAccountRoleCode.PARKING_MANAGER,
                         AdminProvisionableAccountRoleCode.CUSTOMER
                 ),
                 commandCaptor.getValue().managedRoleCodes()
