@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 
 import { Badge, Button, Card, Drawer, Modal, PaginationFooter, SelectMenu, useToast } from "@/components/ui";
@@ -177,6 +177,7 @@ function CategoryTable({
 function CategoryDrawer({
   category,
   error,
+  featureOptions,
   onClose,
   onSubmit,
   open,
@@ -185,12 +186,14 @@ function CategoryDrawer({
 }: {
   category: SupportCategoryRow | null;
   error: string;
+  featureOptions: string[];
   onClose: () => void;
   onSubmit: (payload: SaveSupportTicketCategoryRequest) => Promise<void> | void;
   open: boolean;
   permissionOptions: Array<{ code: string; label: string }>;
   saving: boolean;
 }) {
+  const featureListId = useId();
   const [form, setForm] = useState<SaveSupportTicketCategoryRequest>({
     audienceType: "CUSTOMER", code: "", description: "", displayOrder: 0, featureCode: "",
     name: "", permissionMatchMode: "ANY", priority: "NORMAL", requiredPermissionCodes: [],
@@ -268,7 +271,8 @@ function CategoryDrawer({
         <div className="tw-grid tw-grid-cols-[minmax(0,1fr)_140px] tw-gap-3">
           <label className="tw-grid tw-gap-2">
             <span className="tw-text-[0.78rem] tw-font-black tw-text-vm-slate-700">Mã tính năng</span>
-            <input className="tw-h-10 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200" value={form.featureCode ?? ""} onChange={(event) => setForm((current) => ({ ...current, featureCode: event.target.value }))} placeholder="PARKING_SESSION" />
+            <input list={featureListId} maxLength={100} className="tw-h-10 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200" value={form.featureCode ?? ""} onChange={(event) => setForm((current) => ({ ...current, featureCode: event.target.value }))} placeholder="Chọn hoặc nhập mã, có thể để trống" />
+            <datalist id={featureListId}>{featureOptions.map((code) => <option key={code} value={code} />)}</datalist>
           </label>
           <label className="tw-grid tw-gap-2">
             <span className="tw-text-[0.78rem] tw-font-black tw-text-vm-slate-700">Thứ tự</span>
@@ -571,6 +575,7 @@ export function SupportCategoryWorkflowPage() {
       <CategoryDrawer
         category={editingCategory}
         error={error}
+        featureOptions={[...new Set(rows.map((category) => category.featureCode).filter((code): code is string => Boolean(code)))]}
         onClose={() => {
           setDrawerOpen(false);
           setEditingCategory(null);

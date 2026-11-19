@@ -39,6 +39,8 @@ import {
 import { ParkingLotReviewsSection } from "@/features/parking-reviews";
 import { UserGuideHelpButton } from "@/features/user-guide/components/UserGuideHelpButton";
 import { useUserGuideActivation } from "@/features/user-guide/hooks/useUserGuideActivation";
+import { createParkingLotCustomerConversation } from "@/features/support/api/chatApi";
+import { hasAnyPermission } from "@/shared/auth/permissions";
 
 import { PublicFooter } from "./PortalShared";
 
@@ -509,6 +511,9 @@ export function PricingPage() {
   const [showAllCustomerRules, setShowAllCustomerRules] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [openingPartnerChat, setOpeningPartnerChat] = useState(false);
+  const canOpenPartnerChat = hasAnyPermission(user, ["CHAT_CONVERSATION_CREATE_OWN"])
+    && hasAnyPermission(user, ["CHAT_CONVERSATION_READ_OWN"]);
   const pricingDiscoveryGuideEnabled = !detailMode
     && user?.role === "CUSTOMER"
     && !directoryLoading;
@@ -520,6 +525,19 @@ export function PricingPage() {
 
   useUserGuideActivation("CUSTOMER_PRICING_DISCOVERY", pricingDiscoveryGuideEnabled);
   useUserGuideActivation("CUSTOMER_PRICING_DETAIL", pricingDetailGuideEnabled);
+
+  async function handleOpenPartnerChat() {
+    if (!selectedParkingLotId || openingPartnerChat || !canOpenPartnerChat) return;
+    setOpeningPartnerChat(true);
+    try {
+      const response = await createParkingLotCustomerConversation(selectedParkingLotId);
+      navigate(`/customer/support/chat?conversationId=${encodeURIComponent(response.data.conversationId)}`);
+    } catch (requestError) {
+      toast.error(requestError instanceof Error ? requestError.message : "Không thể mở hội thoại với đối tác.");
+    } finally {
+      setOpeningPartnerChat(false);
+    }
+  }
 
   useEffect(() => {
     let ignore = false;
@@ -938,6 +956,17 @@ export function PricingPage() {
                     <p className="tw-m-0 tw-mt-1 tw-text-[0.72rem] tw-font-black tw-uppercase tw-tracking-[0.08em] tw-text-vm-primary">{selectedParkingLot.code}</p>
                     <span className={`tw-mt-4 tw-inline-flex tw-rounded-full tw-px-3 tw-py-1.5 tw-text-[0.68rem] tw-font-black ${parkingLotStatusMeta(selectedParkingLot.status).className}`}>{parkingLotStatusMeta(selectedParkingLot.status).label}</span>
                     <p className="tw-m-0 tw-mt-5 tw-text-[0.78rem] tw-font-semibold tw-leading-6 tw-text-vm-slate-500"><i className="fas fa-map-marker-alt tw-mr-2 tw-text-vm-primary" />{selectedParkingLot.addressDisplay || "Chưa cập nhật địa chỉ"}</p>
+                    {canOpenPartnerChat ? (
+                      <button
+                        type="button"
+                        className="tw-mt-4 tw-flex tw-w-full tw-items-center tw-justify-center tw-gap-2 tw-rounded-[10px] tw-border-0 tw-bg-vm-primary tw-px-4 tw-py-3 tw-text-[0.78rem] tw-font-black tw-text-white tw-shadow-[0_8px_18px_rgba(37,99,235,0.2)] hover:tw-bg-vm-primary-hover disabled:tw-cursor-wait disabled:tw-opacity-60"
+                        disabled={openingPartnerChat}
+                        onClick={() => void handleOpenPartnerChat()}
+                      >
+                        <i className={openingPartnerChat ? "fas fa-spinner fa-spin" : "far fa-comment-dots"} />
+                        Trao đổi với đối tác
+                      </button>
+                    ) : null}
                     <div className="tw-mt-5 tw-border-0 tw-border-t tw-border-solid tw-border-brand-100 tw-pt-5">
                       <span className="tw-block tw-text-[0.68rem] tw-font-black tw-uppercase tw-tracking-[0.08em] tw-text-vm-slate-500">Khoảng giá hiện hành</span>
                       <strong className="tw-mt-2 tw-block tw-text-[1.1rem] tw-font-black tw-leading-6 tw-text-rose-600">{formatPriceRange(selectedParkingLot)}</strong>

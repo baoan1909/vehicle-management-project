@@ -15,7 +15,9 @@ import {
   getChatConversation,
   getChatInbox,
   getChatMessages,
+  getChatSubscriptionOrders,
   markChatConversationRead,
+  shareChatSubscriptionOrder,
   sendChatImageMessage,
   sendChatTextMessage,
   type ChatAttachmentResponse,
@@ -25,12 +27,13 @@ import {
   type ChatInboxItemResponse,
   type ChatMessageResponse,
   type ChatRealtimeEvent,
+  type ChatSubscriptionOrderResponse,
 } from "@/features/support/api/chatApi";
 import { subscribeChatRealtime } from "@/features/support/api/chatRealtime";
 import {
   assignSupportTicket,
   closeSupportTicket,
-  createSupportTicketFromConversation,
+  createSupportTicketForChat,
   getConversationSupportTicketHistory,
   getSupportTicketById,
   openSupportTicketRequesterConversation,
@@ -42,6 +45,7 @@ import {
   type SupportTicketResponse,
   type SupportTicketStatus,
 } from "@/features/support/api/supportApi";
+import { canCreateTicketInChat, canReadOrdersInChat, canReadTicketHistoryInChat } from "@/features/support/utils/chatActionAccess";
 import { parseSupportTicketSnapshot } from "@/features/support/api/supportTicketSnapshot";
 import { CreateSupportTicketDialog } from "@/features/support/components/CreateSupportTicketDialog";
 import { SupportTicketHistoryDialog, type TicketHistoryLoader } from "@/features/support/components/SupportTicketHistoryDialog";
@@ -290,7 +294,7 @@ const relatedInfo: InfoLine[] = [
 
 const chatConversationTypeLabel: Partial<Record<ChatConversationType, string>> = {
   BILLING: "Thanh toán",
-  CUSTOMER_DIRECT: "Hỗ trợ khách hàng",
+  CUSTOMER_DIRECT: "Trao đổi khách hàng - đối tác",
   SUPPORT_REQUESTER_DIRECT: "Hỗ trợ người yêu cầu",
   INTERNAL_DIRECT: "Nội bộ trực tiếp",
   INTERNAL_GROUP: "Nhóm nội bộ",
@@ -320,7 +324,7 @@ function isUuid(value: string | null | undefined) {
   return Boolean(value && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value));
 }
 
-function isRequesterSupportDirect(type: ChatConversationType | undefined) {
+function isCustomerOrRequesterDirect(type: ChatConversationType | undefined) {
   return type === "CUSTOMER_DIRECT" || type === "SUPPORT_REQUESTER_DIRECT";
 }
 
@@ -436,7 +440,7 @@ function getParticipantDisplayName(participant: ChatConversationParticipantRespo
 function resolvePrimaryParticipant(conversation: ChatConversationResponse, currentAccountId?: string | null) {
   const participants = conversation.participants ?? [];
   if (conversation.conversationType === "INTERNAL_DIRECT"
-    || isRequesterSupportDirect(conversation.conversationType)
+    || isCustomerOrRequesterDirect(conversation.conversationType)
     || conversation.conversationType === "SUPPORT_TICKET") {
     // A direct-chat item always represents the other person. Selecting by role made a
     // customer see themselves while the staff member saw the customer.
@@ -564,7 +568,7 @@ function mapChatConversation(
   const isCustomerFlow = Boolean(
     conversation.customerId
       || conversation.supportTicketId
-      || isRequesterSupportDirect(conversation.conversationType)
+      || isCustomerOrRequesterDirect(conversation.conversationType)
       || conversation.conversationType === "ASSISTANT_SUPPORT",
   );
   const participantType = getParticipantType(primaryParticipant);
@@ -705,10 +709,13 @@ function ConversationItem({
     <button
       type="button"
       className={cn(
-        "vm-chat-conversation-item tw-grid tw-w-full tw-grid-cols-[40px_minmax(0,1fr)_auto] tw-gap-3 tw-rounded-vm-lg tw-border tw-border-solid tw-bg-white tw-p-3 tw-text-left tw-transition",
+        "vm-chat-conversation-item tw-grid tw-w-full tw-grid-cols-[40px_minmax(0,1fr)_auto] tw-gap-3 tw-rounded-vm-lg tw-border tw-border-solid tw-p-3 tw-text-left tw-transition",
+        conversation.conversationType === "ASSISTANT_SUPPORT"
+          ? "tw-bg-blue-50 hover:tw-bg-blue-100"
+          : active ? "tw-bg-brand-50" : "tw-bg-white hover:tw-bg-vm-slate-25",
         active
-          ? "tw-border-vm-primary tw-bg-brand-50 tw-shadow-[inset_3px_0_0_#2563EB,0_12px_22px_rgba(37,99,235,0.08)]"
-          : "tw-border-vm-slate-100 hover:tw-border-brand-100 hover:tw-bg-vm-slate-25",
+          ? "tw-border-vm-primary tw-shadow-[inset_3px_0_0_#2563EB,0_12px_22px_rgba(37,99,235,0.08)]"
+          : "tw-border-vm-slate-100 hover:tw-border-brand-100",
       )}
       onClick={onSelect}
     >
@@ -811,7 +818,7 @@ function ConversationList({
         <div className="vm-chat-inbox-tabs tw-mt-4 tw-flex tw-gap-5 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100">
           {[
             ["all", "Tất cả", String(summaryConversations.length)],
-            ["processing", "Ticket đang xử lý", String(processingCount)],
+            ["processing", "Đang xử lý", String(processingCount)],
             ["waiting", "Chờ phản hồi", String(waitingCount)],
           ].map(([value, label, count]) => (
             <button
@@ -1275,6 +1282,74 @@ function SupportTicketMessageCard({
   );
 }
 
+type SubscriptionOrderSnapshot = ChatSubscriptionOrderResponse & {
+  orderCode: string;
+  orderedAt: string | null;
+  sharedAt: string | null;
+};
+
+const subscriptionOrderStatusLabel: Record<string, string> = {
+  PENDING: "Chờ duyệt",
+  PENDING_PAYMENT: "Chờ thanh toán",
+  PENDING_CARD: "Chờ cấp thẻ",
+  PENDING_SPACE: "Chờ chọn chỗ",
+  ACTIVE: "Đang hiệu lực",
+  EXPIRED: "Đã hết hạn",
+  REJECTED: "Đã từ chối",
+  CANCELLED: "Đã hủy",
+  TERMINATED: "Đã chấm dứt",
+};
+
+function parseSubscriptionOrderSnapshot(metadata: string | null): SubscriptionOrderSnapshot | null {
+  if (!metadata) return null;
+  try {
+    const parsed = JSON.parse(metadata) as Partial<SubscriptionOrderSnapshot>;
+    if (!parsed.subscriptionId || !parsed.parkingLotId || !parsed.ticketTypeName) return null;
+    return parsed as SubscriptionOrderSnapshot;
+  } catch {
+    return null;
+  }
+}
+
+function formatOrderCurrency(value: number) {
+  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(value);
+}
+
+function formatOrderDate(value: string | null | undefined) {
+  if (!value) return "--";
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00` : value;
+  const date = new Date(normalized);
+  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat("vi-VN").format(date);
+}
+
+function SubscriptionOrderMessageCard({ order }: { order: SubscriptionOrderSnapshot }) {
+  const active = order.status === "ACTIVE";
+  return (
+    <article className="tw-w-full tw-max-w-[530px] tw-rounded-vm-lg tw-border tw-border-solid tw-border-brand-100 tw-bg-white tw-p-4 tw-shadow-[0_10px_28px_rgba(37,99,235,0.08)]">
+      <div className="tw-flex tw-items-start tw-justify-between tw-gap-3">
+        <div className="tw-flex tw-min-w-0 tw-items-start tw-gap-3">
+          <span className="tw-grid tw-h-11 tw-w-11 tw-flex-none tw-place-items-center tw-rounded-vm-md tw-bg-brand-50 tw-text-vm-primary"><i className="fas fa-receipt" /></span>
+          <div className="tw-min-w-0">
+            <p className="tw-m-0 tw-text-[0.68rem] tw-font-black tw-uppercase tw-tracking-[0.08em] tw-text-vm-primary">Đơn hàng · {order.orderCode}</p>
+            <h3 className="tw-m-0 tw-mt-1 tw-truncate tw-text-[0.95rem] tw-font-black tw-text-vm-slate-900">{order.ticketTypeName}</h3>
+          </div>
+        </div>
+        <span className={cn("tw-flex-none tw-rounded-full tw-px-2.5 tw-py-1 tw-text-[0.68rem] tw-font-black", active ? "tw-bg-emerald-50 tw-text-emerald-700" : "tw-bg-slate-100 tw-text-slate-700")}>{subscriptionOrderStatusLabel[order.status] ?? order.status}</span>
+      </div>
+      <div className="tw-mt-4 tw-grid tw-gap-2 tw-rounded-vm-md tw-bg-vm-slate-25 tw-p-3 tw-text-[0.76rem] tw-font-semibold tw-text-vm-slate-600 min-[520px]:tw-grid-cols-2">
+        <span><i className="fas fa-parking tw-mr-2 tw-text-vm-primary" />{order.parkingLotName} ({order.parkingLotCode})</span>
+        <span><i className="fas fa-motorcycle tw-mr-2 tw-text-vm-primary" />{order.licensePlate || "Chưa có biển số"} · {order.vehicleTypeName}</span>
+        <span><i className="far fa-calendar-alt tw-mr-2 tw-text-vm-primary" />{formatOrderDate(order.effectiveFrom)} – {formatOrderDate(order.effectiveTo)}</span>
+        <strong className="tw-text-vm-primary"><i className="fas fa-coins tw-mr-2" />{formatOrderCurrency(Number(order.price))}</strong>
+      </div>
+      <div className="tw-mt-3 tw-flex tw-items-center tw-justify-between tw-gap-3 tw-text-[0.68rem] tw-font-semibold tw-text-vm-slate-500">
+        <span>Thông tin tại thời điểm gửi</span>
+        <time dateTime={order.sharedAt ?? undefined}><i className="far fa-clock tw-mr-1" />{formatOrderDate(order.sharedAt)}</time>
+      </div>
+    </article>
+  );
+}
+
 function ChatMessageBubble({
   canReopenOwnTicket,
   canResolveTicket,
@@ -1322,6 +1397,19 @@ function ChatMessageBubble({
       ? "tw-border-brand-100 tw-bg-brand-50 tw-text-[0.86rem] tw-font-semibold tw-leading-relaxed tw-text-vm-slate-900"
       : "tw-border-vm-slate-100 tw-bg-white tw-shadow-[0_8px_20px_rgba(15,23,42,0.04)]",
   );
+
+  if (!message.deleted && message.messageType === "CONTEXT_CARD" && message.relatedTable === "subscriptions") {
+    const order = parseSubscriptionOrderSnapshot(message.metadata);
+    if (order) {
+      return (
+        <div className={cn("tw-flex tw-items-end tw-gap-2", isOwnMessage ? "tw-justify-end tw-self-end" : "")}>
+          {!isOwnMessage ? <EntityAvatar initials={senderInitials} src={senderAvatarUrl} tone={conversation.tone} title={senderName} /> : null}
+          <SubscriptionOrderMessageCard order={order} />
+          {isOwnMessage ? <EntityAvatar initials={senderInitials} src={senderAvatarUrl} tone="blue" title={senderName} /> : null}
+        </div>
+      );
+    }
+  }
 
   if (!message.deleted && message.messageType === "SUPPORT_REQUEST") {
     return (
@@ -1562,8 +1650,11 @@ function Composer({
   isSending,
   sendError,
   canCreateTicket,
+  canReadTicketHistory,
+  canShareOrders,
   onCreateTicket,
   onOpenHistory,
+  onOpenOrders,
   onSend,
   onRetrySend,
 }: {
@@ -1574,8 +1665,11 @@ function Composer({
   isSending: boolean;
   sendError: string;
   canCreateTicket: boolean;
+  canReadTicketHistory: boolean;
+  canShareOrders: boolean;
   onCreateTicket: () => void;
   onOpenHistory: () => void;
+  onOpenOrders: () => void;
   onSend: (content: string, files: File[]) => Promise<void>;
   onRetrySend: () => void;
 }) {
@@ -1669,29 +1763,46 @@ function Composer({
           {[
             ["far fa-smile", "Emoji sẽ nối backend ở phase sau"],
             ["far fa-image", canAttach ? "Đính kèm ảnh" : "Bạn chưa có quyền gửi ảnh"],
-            ["far fa-file-alt", "Backend hiện chỉ nhận ảnh, tài liệu để phase sau"],
-            ["fas fa-ellipsis-h", canCreateTicket ? "Tác vụ hỗ trợ" : "Tác vụ mở rộng giữ lại cho phase sau"],
           ].map(([icon, title]) => (
             <button
-              data-user-guide-anchor={icon === "fas fa-ellipsis-h" ? "CUSTOMER.CHAT.MORE_ACTIONS" : undefined}
               key={icon}
-              ref={icon === "fas fa-ellipsis-h" ? moreMenuButtonRef : undefined}
               type="button"
               className="tw-inline-flex tw-h-9 tw-w-9 tw-items-center tw-justify-center tw-rounded-full tw-border-0 tw-bg-white hover:tw-bg-vm-slate-25 disabled:tw-cursor-not-allowed disabled:tw-opacity-50"
               aria-label="Công cụ trả lời"
-              disabled={(icon !== "far fa-image" && icon !== "fas fa-ellipsis-h") || (icon === "far fa-image" && !canAttach)}
+              disabled={icon !== "far fa-image" || !canAttach}
               title={title}
-              onClick={icon === "far fa-image" && canAttach ? () => fileInputRef.current?.click() : icon === "fas fa-ellipsis-h" ? () => setShowMoreMenu((current) => !current) : undefined}
+              onClick={icon === "far fa-image" && canAttach ? () => fileInputRef.current?.click() : undefined}
             >
               <i className={icon} />
             </button>
           ))}
-          {showMoreMenu ? (
+          {canShareOrders ? <button
+            type="button"
+            className="tw-inline-flex tw-h-9 tw-w-9 tw-items-center tw-justify-center tw-rounded-full tw-border-0 tw-bg-white tw-text-vm-primary hover:tw-bg-vm-slate-25 disabled:tw-opacity-40"
+            aria-label="Mở danh sách đơn hàng"
+            disabled={isSending}
+            title="Đơn hàng đã mua từ đối tác"
+            onClick={onOpenOrders}
+          >
+            <i className="far fa-file-alt" />
+          </button> : null}
+          {canCreateTicket || canReadTicketHistory ? <button
+            data-user-guide-anchor="CUSTOMER.CHAT.MORE_ACTIONS"
+            ref={moreMenuButtonRef}
+            type="button"
+            className="tw-inline-flex tw-h-9 tw-w-9 tw-items-center tw-justify-center tw-rounded-full tw-border-0 tw-bg-white hover:tw-bg-vm-slate-25"
+            aria-label="Mở tác vụ khác"
+            title={canCreateTicket ? "Tác vụ hỗ trợ" : "Tác vụ mở rộng"}
+            onClick={() => setShowMoreMenu((current) => !current)}
+          >
+            <i className="fas fa-ellipsis-h" />
+          </button> : null}
+          {showMoreMenu && (canCreateTicket || canReadTicketHistory) ? (
             <div ref={moreMenuRef} className="tw-absolute tw-bottom-[calc(100%+8px)] tw-left-0 tw-z-20 tw-w-52 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-1.5 tw-shadow-[0_14px_30px_rgba(15,23,42,0.14)]">
-              {canCreateTicket ? <button data-user-guide-anchor="CUSTOMER.CHAT.CREATE_TICKET" className="tw-flex tw-w-full tw-items-center tw-gap-2 tw-rounded-vm-sm tw-border-0 tw-bg-white tw-px-3 tw-py-2.5 tw-text-left tw-text-sm tw-font-bold tw-text-vm-slate-700 hover:tw-bg-brand-50 hover:tw-text-vm-primary" type="button" onClick={() => { setShowMoreMenu(false); onCreateTicket(); }}><i className="far fa-life-ring" /> Tạo phiếu hỗ trợ</button> : <button data-user-guide-anchor="CUSTOMER.CHAT.CREATE_TICKET" className="tw-flex tw-w-full tw-items-center tw-gap-2 tw-rounded-vm-sm tw-border-0 tw-bg-slate-50 tw-px-3 tw-py-2.5 tw-text-left tw-text-sm tw-font-bold tw-text-slate-500" disabled type="button"><i className="far fa-life-ring" /> Chưa thể tạo phiếu hỗ trợ</button>}
-              <button className="tw-flex tw-w-full tw-items-center tw-gap-2 tw-rounded-vm-sm tw-border-0 tw-bg-white tw-px-3 tw-py-2.5 tw-text-left tw-text-sm tw-font-bold tw-text-vm-slate-700 hover:tw-bg-brand-50 hover:tw-text-vm-primary" type="button" onClick={() => { setShowMoreMenu(false); onOpenHistory(); }}>
-                <i className="fas fa-history" /> Lịch sử yêu cầu
-              </button>
+              {canCreateTicket ? <button data-user-guide-anchor="CUSTOMER.CHAT.CREATE_TICKET" className="tw-flex tw-w-full tw-items-center tw-gap-2 tw-rounded-vm-sm tw-border-0 tw-bg-white tw-px-3 tw-py-2.5 tw-text-left tw-text-sm tw-font-bold tw-text-vm-slate-700 hover:tw-bg-brand-50 hover:tw-text-vm-primary" type="button" onClick={() => { setShowMoreMenu(false); onCreateTicket(); }}><i aria-hidden="true" className="far fa-life-ring" /> Tạo phiếu hỗ trợ</button> : null}
+              {canReadTicketHistory ? <button className="tw-flex tw-w-full tw-items-center tw-gap-2 tw-rounded-vm-sm tw-border-0 tw-bg-white tw-px-3 tw-py-2.5 tw-text-left tw-text-sm tw-font-bold tw-text-vm-slate-700 hover:tw-bg-brand-50 hover:tw-text-vm-primary" type="button" onClick={() => { setShowMoreMenu(false); onOpenHistory(); }}>
+                <i aria-hidden="true" className="fas fa-history" /> Lịch sử yêu cầu
+              </button> : null}
             </div>
           ) : null}
       </div>
@@ -1705,10 +1816,10 @@ function Composer({
           onChange={(event) => setContent(event.target.value)}
         />
         <Button data-user-guide-anchor="CUSTOMER.CHAT.SEND" className="vm-chat-send-button tw-h-11 tw-w-[140px] tw-flex-shrink-0" disabled={!canSubmit} loading={isSending} onClick={handleSubmit}>
-          <i className="far fa-paper-plane" />
+          <i aria-hidden="true" className="far fa-paper-plane" />
           <span className="vm-chat-send-label">Gửi</span>
           <span className="vm-chat-send-separator tw-ml-2 tw-h-6 tw-border-0 tw-border-l tw-border-solid tw-border-white/25" />
-          <i className="vm-chat-send-chevron fas fa-chevron-down tw-text-[0.65rem]" />
+          <i aria-hidden="true" className="vm-chat-send-chevron fas fa-chevron-down tw-text-[0.65rem]" />
         </Button>
       </div>
       {files.length ? (
@@ -1739,6 +1850,8 @@ function ChatWorkspace({
   canResolveTicket,
   canSend,
   canCreateTicket,
+  canReadTicketHistory,
+  canShareOrders,
   conversation,
   currentUserId,
   disabledReason,
@@ -1760,6 +1873,7 @@ function ChatWorkspace({
   onCreateTicket,
   onClearTicketContext,
   onOpenHistory,
+  onOpenOrders,
   contextTicket,
   resolveAttachmentUrl,
   usingMockData,
@@ -1771,6 +1885,8 @@ function ChatWorkspace({
   canResolveTicket: boolean;
   canSend: boolean;
   canCreateTicket: boolean;
+  canReadTicketHistory: boolean;
+  canShareOrders: boolean;
   conversation: Conversation;
   currentUserId?: string;
   disabledReason?: string;
@@ -1792,6 +1908,7 @@ function ChatWorkspace({
   onCreateTicket: () => void;
   onClearTicketContext: () => void;
   onOpenHistory: () => void;
+  onOpenOrders: () => void;
   contextTicket: SupportTicketResponse | null;
   resolveAttachmentUrl: ResolveAttachmentUrl;
   usingMockData: boolean;
@@ -1805,12 +1922,12 @@ function ChatWorkspace({
         </button>
       </div>
       <ChatHeader conversation={conversation} />
-      {!isRequesterSupportDirect(conversation.conversationType) || contextTicket ? <TicketStrip conversation={conversation} /> : null}
-      {isRequesterSupportDirect(conversation.conversationType) ? (
+      {conversation.conversationType !== "CUSTOMER_DIRECT" && (!isCustomerOrRequesterDirect(conversation.conversationType) || contextTicket) ? <TicketStrip conversation={conversation} /> : null}
+      {conversation.conversationType === "SUPPORT_REQUESTER_DIRECT" ? (
         <div className="tw-border-0 tw-border-b tw-border-solid tw-border-sky-100 tw-bg-sky-50 tw-px-4 tw-py-2 tw-text-xs tw-font-extrabold tw-text-sky-800">
           <i className="far fa-comments tw-mr-2" />
           {contextTicket ? `Đang trao đổi về ${supportTicketCode(contextTicket.supportTicketId)}` : "Đang trao đổi chăm sóc chung"}
-          <button type="button" className="tw-ml-3 tw-border-0 tw-bg-transparent tw-font-extrabold tw-text-sky-700 tw-underline" onClick={onOpenHistory}>{contextTicket ? "Đổi phiếu" : "Gắn phiếu"}</button>
+          {canReadTicketHistory ? <button type="button" className="tw-ml-3 tw-border-0 tw-bg-transparent tw-font-extrabold tw-text-sky-700 tw-underline" onClick={onOpenHistory}>{contextTicket ? "Đổi phiếu" : "Gắn phiếu"}</button> : null}
           {contextTicket ? <button type="button" className="tw-ml-3 tw-border-0 tw-bg-transparent tw-font-extrabold tw-text-slate-600 tw-underline" onClick={onClearTicketContext}>Trao đổi chung</button> : null}
         </div>
       ) : null}
@@ -1838,6 +1955,8 @@ function ChatWorkspace({
         canAttach={canAttach}
         canSend={canSend}
         canCreateTicket={canCreateTicket}
+        canReadTicketHistory={canReadTicketHistory}
+        canShareOrders={canShareOrders}
         disabledReason={disabledReason}
         focusSignal={conversation.id}
         isSending={isSending}
@@ -1846,6 +1965,7 @@ function ChatWorkspace({
         onRetrySend={onRetrySend}
         onCreateTicket={onCreateTicket}
         onOpenHistory={onOpenHistory}
+        onOpenOrders={onOpenOrders}
       />
     </main>
   );
@@ -2002,6 +2122,11 @@ export function OperationsSupportCenterPage() {
   const [isUpdatingTicket, setIsUpdatingTicket] = useState(false);
   const [isChatTicketModalOpen, setIsChatTicketModalOpen] = useState(false);
   const [isTicketHistoryOpen, setIsTicketHistoryOpen] = useState(false);
+  const [isOrderPickerOpen, setIsOrderPickerOpen] = useState(false);
+  const [shareableOrders, setShareableOrders] = useState<ChatSubscriptionOrderResponse[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState("");
+  const [sharingOrderId, setSharingOrderId] = useState<string | null>(null);
   const [assignees, setAssignees] = useState<EmployeeApiResponse[]>([]);
   const selectedConversationIdRef = useRef("");
   const inboxLoadedRef = useRef(false);
@@ -2027,11 +2152,6 @@ export function OperationsSupportCenterPage() {
   const canReopenAllTicket = hasAnyPermission(user, ["SUPPORT_TICKET_REOPEN_ALL"]);
   const canReopenOwnTicket = hasAnyPermission(user, ["SUPPORT_TICKET_REOPEN_OWN"]);
   const canReopenTicket = canReopenAllTicket || canReopenOwnTicket;
-  const requesterAccountIsEligible = user?.accountStatus === "ACTIVE";
-  const canCreateTicketFromAssistant = hasAnyPermission(user, ["SUPPORT_TICKET_CREATE_OWN"])
-    && requesterAccountIsEligible;
-  const canCreateTicketFromChat = hasAnyPermission(user, ["SUPPORT_TICKET_CREATE_FROM_CHAT_OWN"])
-    && requesterAccountIsEligible;
   const customerChatGuideEnabled = !isInboxLoading
     && user?.roleCode === "CUSTOMER"
     && canReadChat
@@ -2090,7 +2210,8 @@ export function OperationsSupportCenterPage() {
       if (byUuid) return byUuid.id;
     }
 
-    return sourceConversations[0]?.id ?? "";
+    return sourceConversations.find((conversation) => conversation.conversationType === "ASSISTANT_SUPPORT")?.id
+      ?? sourceConversations[0]?.id ?? "";
   }, [requestedConversationId, requestedParticipantId, requestedParticipantName]);
 
   const loadInbox = useCallback(async (options: LoadInboxOptions = {}) => {
@@ -2249,7 +2370,9 @@ export function OperationsSupportCenterPage() {
     void loadInbox({ showLoading: true });
   }, [loadInbox]);
 
-  const sourceConversations = apiConversations;
+  const sourceConversations = useMemo(() => [...apiConversations].sort((first, second) => (
+    Number(second.conversationType === "ASSISTANT_SUPPORT") - Number(first.conversationType === "ASSISTANT_SUPPORT")
+  )), [apiConversations]);
   const usingMockData = false;
   const channelOptions = useMemo(() => [
     { label: "Tất cả kênh", value: "all" },
@@ -2321,13 +2444,15 @@ export function OperationsSupportCenterPage() {
     ?? filteredConversations[0]
     ?? sourceConversations[0]
     ?? emptyConversation;
-  const effectiveSelectedTicket = selectedTicket && (
-    isRequesterSupportDirect(selectedBaseConversation.conversationType)
+  const effectiveSelectedTicket = selectedTicket && selectedBaseConversation.conversationType !== "CUSTOMER_DIRECT" && (
+    isCustomerOrRequesterDirect(selectedBaseConversation.conversationType)
       ? selectedTicket.supportTicketId === contextTicketId
       : selectedTicket.supportTicketId === selectedBaseConversation.supportTicketId
   ) ? selectedTicket : null;
   const selectedConversation = mergeTicketIntoConversation(selectedBaseConversation, effectiveSelectedTicket);
-  const requiresTicketContext = isRequesterSupportDirect(selectedConversation.conversationType);
+  const requiresTicketContext = selectedConversation.conversationType === "SUPPORT_REQUESTER_DIRECT";
+  const canCreateChatTicket = canCreateTicketInChat(user, selectedConversation.conversation);
+  const canReadChatTicketHistory = canReadTicketHistoryInChat(user, selectedConversation.conversation);
   const activeContextTicket = effectiveSelectedTicket
     && effectiveSelectedTicket.status !== "CLOSED"
     ? effectiveSelectedTicket
@@ -2336,10 +2461,10 @@ export function OperationsSupportCenterPage() {
   selectedConversationIdRef.current = selectedBaseConversation.id;
 
   const loadConversationTickets = useCallback<TicketHistoryLoader>(async (filter) => {
-    if (!selectedBaseConversation.conversation) return [];
+    if (!canReadChatTicketHistory) return [];
     const response = await getConversationSupportTicketHistory(selectedBaseConversation.id, filter);
     return response.data ?? [];
-  }, [selectedBaseConversation.conversation, selectedBaseConversation.id]);
+  }, [canReadChatTicketHistory, selectedBaseConversation.id]);
 
   useEffect(() => {
     if (usingMockData || !selectedBaseConversation.conversation || !canReadChat) {
@@ -2397,7 +2522,7 @@ export function OperationsSupportCenterPage() {
           markReadAndRefreshInbox(conversationId, lastMessageId);
         }
 
-        if (refreshedConversation.supportTicketId) {
+        if (refreshedConversation.conversationType !== "CUSTOMER_DIRECT" && refreshedConversation.supportTicketId) {
           try {
             const ticketResponse = await getSupportTicketById(refreshedConversation.supportTicketId);
             if (!ignore) setSelectedTicket(ticketResponse.data);
@@ -2491,7 +2616,7 @@ export function OperationsSupportCenterPage() {
               : conversation
           )));
 
-          if (refreshedConversation.supportTicketId) {
+          if (refreshedConversation.conversationType !== "CUSTOMER_DIRECT" && refreshedConversation.supportTicketId) {
             void getSupportTicketById(refreshedConversation.supportTicketId)
               .then((ticketResponse) => {
                 if (syncVersion === realtimeSyncVersionRef.current && conversationId === selectedConversationIdRef.current) {
@@ -2761,7 +2886,7 @@ export function OperationsSupportCenterPage() {
   }
 
   function handleOpenChatTicketModal() {
-    if (!isRequesterSupportDirect(selectedConversation.conversationType) && selectedConversation.conversationType !== "ASSISTANT_SUPPORT") return;
+    if (!canCreateChatTicket) return;
     setIsChatTicketModalOpen(true);
   }
 
@@ -2855,6 +2980,40 @@ export function OperationsSupportCenterPage() {
       && canSendChat
       && selectedConversation.conversation.status !== "CLOSED",
   );
+  const canShareOrders = canUseComposer && canReadOrdersInChat(user, selectedConversation.conversation);
+
+  async function handleOpenOrderPicker() {
+    if (!canShareOrders) return;
+    setIsOrderPickerOpen(true);
+    setOrdersLoading(true);
+    setOrdersError("");
+    try {
+      const response = await getChatSubscriptionOrders(selectedConversation.id);
+      setShareableOrders(response.data ?? []);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Không thể tải danh sách đơn hàng.";
+      setOrdersError(message);
+      setShareableOrders([]);
+    } finally {
+      setOrdersLoading(false);
+    }
+  }
+
+  async function handleShareOrder(order: ChatSubscriptionOrderResponse) {
+    if (sharingOrderId) return;
+    setSharingOrderId(order.subscriptionId);
+    try {
+      const response = await shareChatSubscriptionOrder(selectedConversation.id, order.subscriptionId);
+      setMessages((currentMessages) => upsertChatMessages(currentMessages, [response.data]));
+      setIsOrderPickerOpen(false);
+      await loadInbox({ showLoading: false });
+      toast.success("Đã gửi đơn hàng vào hội thoại.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể gửi đơn hàng.");
+    } finally {
+      setSharingOrderId(null);
+    }
+  }
 
   return (
     <div ref={chatShellRef} data-mobile-view={mobileChatView} className="vm-chat-shell-mobile tw-h-screen tw-overflow-hidden tw-bg-white tw-text-vm-slate-700">
@@ -2896,10 +3055,9 @@ export function OperationsSupportCenterPage() {
             canReopenOwnTicket={canReopenOwnTicket}
             canResolveTicket={canProcessAllTicket}
             canSend={canUseComposer}
-            canCreateTicket={Boolean(
-              (selectedConversation.conversationType === "ASSISTANT_SUPPORT" && canCreateTicketFromAssistant)
-                || (isRequesterSupportDirect(selectedConversation.conversationType) && canCreateTicketFromChat),
-            )}
+            canCreateTicket={canCreateChatTicket}
+            canReadTicketHistory={canReadChatTicketHistory}
+            canShareOrders={canShareOrders}
             contextTicket={activeContextTicket}
             conversation={selectedConversation}
             currentUserId={user?.id}
@@ -2921,7 +3079,8 @@ export function OperationsSupportCenterPage() {
             onBackToList={() => setMobileChatView("list")}
             onCreateTicket={handleOpenChatTicketModal}
             onClearTicketContext={handleClearTicketContext}
-            onOpenHistory={() => setIsTicketHistoryOpen(true)}
+            onOpenHistory={() => { if (canReadChatTicketHistory) setIsTicketHistoryOpen(true); }}
+            onOpenOrders={() => void handleOpenOrderPicker()}
             resolveAttachmentUrl={resolveAttachmentUrl}
             usingMockData={usingMockData}
           />
@@ -2935,7 +3094,7 @@ export function OperationsSupportCenterPage() {
         )}
         loadTickets={loadConversationTickets}
         onClose={() => setIsTicketHistoryOpen(false)}
-        onSelect={async (ticket) => {
+        onSelect={canReadChatTicketHistory ? async (ticket) => {
           const response = await shareSupportTicketWithConversation(selectedConversation.id, ticket.supportTicketId);
           setSelectedTicket(response.data);
           const ticketIsActive = response.data.status === "OPEN" || response.data.status === "IN_PROGRESS";
@@ -2947,11 +3106,48 @@ export function OperationsSupportCenterPage() {
           const messageResponse = await getChatMessages(selectedConversation.id, { limit: 30 });
           setMessages(messageResponse.data ?? []);
           toast.success(`Đã gửi lại ${supportTicketCode(response.data.supportTicketId)} vào hội thoại.`);
-        }}
+        } : undefined}
         onResolve={(ticket) => resolveTicketAndSync(ticket)}
-        open={isTicketHistoryOpen}
+        open={isTicketHistoryOpen && canReadChatTicketHistory}
         title="Lịch sử yêu cầu"
       />
+      <Modal
+        open={isOrderPickerOpen}
+        onClose={() => { if (!sharingOrderId) setIsOrderPickerOpen(false); }}
+        title="Đơn hàng"
+        description="Chọn vé đã mua giữa khách hàng và đối tác để gửi vào hội thoại."
+        width="lg"
+        actions={<Button variant="secondary" disabled={Boolean(sharingOrderId)} onClick={() => setIsOrderPickerOpen(false)}>Đóng</Button>}
+      >
+        {ordersLoading ? (
+          <div className="tw-flex tw-min-h-40 tw-items-center tw-justify-center tw-text-sm tw-font-bold tw-text-vm-slate-500"><i className="fas fa-spinner fa-spin tw-mr-2" />Đang tải đơn hàng...</div>
+        ) : null}
+        {ordersError ? <div className="tw-rounded-vm-md tw-bg-red-50 tw-p-3 tw-text-sm tw-font-bold tw-text-red-700">{ordersError}</div> : null}
+        {!ordersLoading && !ordersError && shareableOrders.length === 0 ? (
+          <div className="tw-rounded-vm-md tw-border tw-border-dashed tw-border-vm-slate-200 tw-p-8 tw-text-center tw-text-sm tw-font-bold tw-text-vm-slate-500">Chưa có vé nào được mua giữa khách hàng và đối tác này.</div>
+        ) : null}
+        {!ordersLoading && !ordersError ? (
+          <div className="tw-grid tw-gap-3">
+            {shareableOrders.map((order) => (
+              <button
+                key={order.subscriptionId}
+                type="button"
+                className="tw-grid tw-w-full tw-grid-cols-[44px_minmax(0,1fr)_auto] tw-items-center tw-gap-3 tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-4 tw-text-left hover:tw-border-brand-200 hover:tw-bg-brand-50 disabled:tw-cursor-wait disabled:tw-opacity-60 max-sm:tw-grid-cols-[40px_minmax(0,1fr)]"
+                disabled={Boolean(sharingOrderId)}
+                onClick={() => void handleShareOrder(order)}
+              >
+                <span className="tw-grid tw-h-11 tw-w-11 tw-place-items-center tw-rounded-vm-md tw-bg-brand-50 tw-text-vm-primary"><i className="fas fa-receipt" /></span>
+                <span className="tw-min-w-0">
+                  <strong className="tw-block tw-truncate tw-text-sm tw-font-black tw-text-vm-slate-900">{order.ticketTypeName}</strong>
+                  <span className="tw-mt-1 tw-block tw-truncate tw-text-xs tw-font-semibold tw-text-vm-slate-500">{order.parkingLotName} · {order.licensePlate || "Chưa có biển số"}</span>
+                  <span className="tw-mt-1 tw-block tw-text-xs tw-font-bold tw-text-vm-primary">{formatOrderDate(order.effectiveFrom)} – {formatOrderDate(order.effectiveTo)} · {formatOrderCurrency(Number(order.price))}</span>
+                </span>
+                <span className="tw-flex tw-items-center tw-gap-2 tw-text-xs tw-font-black tw-text-vm-primary max-sm:tw-col-span-2 max-sm:tw-justify-end">{sharingOrderId === order.subscriptionId ? <i className="fas fa-spinner fa-spin" /> : <i aria-hidden="true" className="far fa-paper-plane" />} Gửi</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </Modal>
       <Modal
         open={isTicketDetailModalOpen}
         onClose={() => { setIsTicketDetailModalOpen(false); setDetailTicket(null); }}
@@ -2985,14 +3181,11 @@ export function OperationsSupportCenterPage() {
         ) : null}
       </Modal>
       <CreateSupportTicketDialog
-        open={isChatTicketModalOpen}
+        open={isChatTicketModalOpen && canCreateChatTicket}
         onClose={() => setIsChatTicketModalOpen(false)}
         createTicket={async (payload, idempotencyKey) => {
-          const response = await createSupportTicketFromConversation(
-            selectedConversation.id,
-            payload,
-            idempotencyKey,
-          );
+          if (!canCreateChatTicket || !selectedConversation.conversation) throw new Error("Bạn không có quyền tạo phiếu hỗ trợ trong hội thoại này.");
+          const response = await createSupportTicketForChat(selectedConversation.conversation, payload, idempotencyKey);
           return response.data;
         }}
         onCreated={(ticket) => {

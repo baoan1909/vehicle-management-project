@@ -58,6 +58,7 @@ export type SupportTicketAvailableCategoryResponse = Pick<
 
 export type SupportTicketResponse = {
   assignedTo: string | null;
+  assignedToUsername: string | null;
   categoryCode: string | null;
   categoryId: string;
   categoryName: string | null;
@@ -188,6 +189,17 @@ export function getAvailableSupportTicketCategories() {
   return apiClient<ApiResponse<SupportTicketAvailableCategoryResponse[]>>(
     `${apiEndpoints.operations.supportTicketCategories}/available`,
   );
+}
+
+export function createSupportTicketForChat(
+  conversation: Pick<ChatConversationResponse, "conversationId" | "conversationType">,
+  payload: SaveSupportTicketRequest,
+  idempotencyKey: string,
+) {
+  if (conversation.conversationType === "ASSISTANT_SUPPORT" || conversation.conversationType === "SUPPORT_REQUESTER_DIRECT") {
+    return createSupportTicketFromConversation(conversation.conversationId, payload, idempotencyKey);
+  }
+  throw new Error("Không thể tạo phiếu hỗ trợ từ loại hội thoại này.");
 }
 
 export function createSupportTicketCategory(payload: SaveSupportTicketCategoryRequest) {
