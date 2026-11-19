@@ -176,9 +176,8 @@ public class SupportTicketEscalationUseCaseImpl implements SupportTicketEscalati
     @Override
     @Transactional(readOnly = true)
     public List<SupportTicketEscalationResult> getAll(ApprovalRequestStatus status) {
-        UUID reviewerAccountId = accessGuard.ensureCanReviewEscalation();
+        accessGuard.ensureCanReviewEscalation();
         return escalationPortOut.findAll(status).stream()
-                .filter(escalation -> !reviewerAccountId.equals(requestedAssignee(escalation)))
                 .map(this::toResult)
                 .toList();
     }

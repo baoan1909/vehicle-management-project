@@ -34,6 +34,10 @@ import java.util.Optional;
 import java.util.UUID;
 import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.CsvSource;
+import com.ban.vehicle_management.shared.exception.BadRequestException;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -304,6 +308,60 @@ class SupportTicketConversationServiceTest {
         assertThrows(org.springframework.security.access.AccessDeniedException.class,
                 () -> service.getActiveRequesterConversation(ticket, customerAccountId));
         verify(chatPortOut, never()).findConversationById(any());
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ChatConversationType.class, names = {"ASSISTANT_SUPPORT", "SUPPORT_REQUESTER_DIRECT"}, mode = EnumSource.Mode.EXCLUDE)
+    void ordinaryChatsCannotCreateOrReceiveSupportTicketCards(ChatConversationType type) {
+        UUID accountId = UUID.randomUUID();
+        ChatConversation ordinary = conversation(type, accountId);
+        SupportTicket ticket = ticket(accountId, UUID.randomUUID());
+        when(chatPortOut.findConversationById(ordinary.getConversationId())).thenReturn(Optional.of(ordinary));
+
+        assertThrows(BadRequestException.class,
+                () -> service.getRequesterTicketOriginConversation(ordinary.getConversationId(), accountId));
+        assertThrows(BadRequestException.class,
+                () -> service.postTicketCardFromRequester(ticket, ordinary, accountId));
+        assertThrows(BadRequestException.class,
+                () -> service.repostTicketCardFromRequester(ticket, ordinary, accountId, "retry"));
+        assertThrows(BadRequestException.class,
+                () -> service.repostTicketCardFromConversation(ticket, ordinary, accountId,
+                        SupportTicketEventType.SHARED, ticket.getStatus(), "share"));
+
+        verify(chatPortOut, never()).saveMessage(any());
+        org.mockito.Mockito.verifyNoInteractions(linkPortOut, ticketEventPortOut, snapshotJsonMapper, realtimePublisher);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"ASSISTANT_SUPPORT,ARCHIVED", "ASSISTANT_SUPPORT,CLOSED",
+            "SUPPORT_REQUESTER_DIRECT,ARCHIVED", "SUPPORT_REQUESTER_DIRECT,CLOSED"})
+    void inactiveSupportConversationCannotReceiveNewTicketCards(ChatConversationType type, ChatConversationStatus status) {
+        UUID accountId = UUID.randomUUID();
+        ChatConversation inactive = conversation(type, accountId);
+        inactive.setStatus(status);
+        SupportTicket ticket = ticket(accountId, UUID.randomUUID());
+        when(chatPortOut.findConversationById(inactive.getConversationId())).thenReturn(Optional.of(inactive));
+
+        assertThrows(BadRequestException.class,
+                () -> service.getRequesterTicketOriginConversation(inactive.getConversationId(), accountId));
+        assertThrows(BadRequestException.class,
+                () -> service.postTicketCardFromRequester(ticket, inactive, accountId));
+        assertThrows(BadRequestException.class,
+                () -> service.repostTicketCardFromRequester(ticket, inactive, accountId, "retry"));
+        assertThrows(BadRequestException.class,
+                () -> service.repostTicketCardFromConversation(ticket, inactive, accountId,
+                        SupportTicketEventType.SHARED, ticket.getStatus(), "share"));
+        verify(chatPortOut, never()).saveMessage(any());
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ChatConversationType.class, names = {"ASSISTANT_SUPPORT", "SUPPORT_REQUESTER_DIRECT"})
+    void activeSystemSupportConversationRemainsAValidTicketOrigin(ChatConversationType type) {
+        UUID accountId = UUID.randomUUID();
+        ChatConversation support = conversation(type, accountId);
+        when(chatPortOut.findConversationById(support.getConversationId())).thenReturn(Optional.of(support));
+        when(chatPortOut.existsActiveMember(support.getConversationId(), accountId)).thenReturn(true);
+        assertSame(support, service.getRequesterTicketOriginConversation(support.getConversationId(), accountId));
     }
 
     private ChatConversation conversation(ChatConversationType type, UUID ownerId) {

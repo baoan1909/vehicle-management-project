@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.infrastructure.persistence.database.repository.operations;
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.operations.SupportTicketCategoryEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.projection.operations.SupportTicketCategoryPermissionProjection;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCategoryStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -29,6 +30,19 @@ public interface SupportTicketCategoryRepository
     boolean existsByCategoryIdAndStatus(UUID categoryId, SupportTicketCategoryStatus status);
 
     @Query(value = """
+            SELECT EXISTS (
+                SELECT 1 FROM operations.support_ticket_categories category
+                WHERE category.category_id = :categoryId
+                  AND category.status = 'ACTIVE' AND category.audience_type = 'CUSTOMER'
+                  AND NOT EXISTS (
+                      SELECT 1 FROM operations.support_ticket_category_permissions mapping
+                      WHERE mapping.category_id = category.category_id
+                  )
+            )
+            """, nativeQuery = true)
+    boolean existsPublicAvailableCategory(@Param("categoryId") UUID categoryId);
+
+    @Query(value = """
             SELECT permission.permission_code
             FROM operations.support_ticket_category_permissions mapping
             JOIN iam.permissions permission ON permission.permission_id = mapping.permission_id
@@ -36,6 +50,15 @@ public interface SupportTicketCategoryRepository
             ORDER BY permission.permission_code
             """, nativeQuery = true)
     List<String> findRequiredPermissionCodes(@Param("categoryId") UUID categoryId);
+
+    @Query(value = """
+            SELECT mapping.category_id AS "categoryId", permission.permission_code AS "permissionCode"
+            FROM operations.support_ticket_category_permissions mapping
+            JOIN iam.permissions permission ON permission.permission_id = mapping.permission_id
+            WHERE mapping.category_id IN (:categoryIds)
+            """, nativeQuery = true)
+    List<SupportTicketCategoryPermissionProjection> findRequiredPermissionsByCategoryIds(
+            @Param("categoryIds") Collection<UUID> categoryIds);
 
     @Modifying
     @Query(value = "DELETE FROM operations.support_ticket_category_permissions WHERE category_id = :categoryId",

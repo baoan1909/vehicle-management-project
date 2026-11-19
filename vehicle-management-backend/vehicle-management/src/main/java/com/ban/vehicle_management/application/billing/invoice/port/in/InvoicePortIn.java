@@ -6,6 +6,7 @@ import com.ban.vehicle_management.application.billing.invoice.model.result.Invoi
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.domain.billing.invoice.model.InvoiceDetail;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.InvoiceSource;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentMethod;
 
 import java.time.Instant;
@@ -49,6 +50,7 @@ public interface InvoicePortIn {
     );
 
     InvoiceManagementPageResult getManagementInvoices(
+            InvoiceSource source,
             InvoiceStatus status,
             PaymentMethod paymentMethod,
             Instant fromDate,

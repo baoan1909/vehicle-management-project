@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.accesscontrol.subscription.port.out;
 
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
+import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionChatOrder;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -47,6 +48,14 @@ public interface SubscriptionPortOut {
             String keyword, Set<UUID> parkingLotIds);
 
     List<Subscription> findOwnSubscriptions(UUID customerId, int limit);
+
+    List<SubscriptionChatOrder> findChatOrders(UUID customerId, Set<UUID> parkingLotIds, int limit);
+
+    Optional<SubscriptionChatOrder> findChatOrderById(
+            UUID subscriptionId,
+            UUID customerId,
+            Set<UUID> parkingLotIds
+    );
 
     boolean existsOverlappingSubscription(
             UUID customerVehicleId,

@@ -3,6 +3,11 @@ package com.ban.vehicle_management.application.operations.chatconversation.useca
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.ai.port.in.AssistantJobPortIn;
 import com.ban.vehicle_management.application.operations.chatconversation.mapper.ChatRealtimeEventMapper;
+import com.ban.vehicle_management.application.operations.chatconversation.mapper.SubscriptionOrderSnapshotJsonMapper;
+import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionChatOrder;
+import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionPortOut;
+import com.ban.vehicle_management.application.iam.organization.port.out.OrganizationPortOut;
+import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.operations.chatconversation.model.ChatAttachmentReadUrl;
 import com.ban.vehicle_management.application.operations.chatconversation.port.in.ChatConversationPortIn;
 import com.ban.vehicle_management.application.operations.chatconversation.port.out.ChatConversationPortOut;
@@ -30,6 +35,7 @@ import com.ban.vehicle_management.shared.enumeration.operations.ChatMemberStatus
 import com.ban.vehicle_management.shared.enumeration.operations.ChatMessageType;
 import com.ban.vehicle_management.shared.enumeration.storage.StorageBucket;
 import com.ban.vehicle_management.shared.enumeration.storage.StorageFolder;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
@@ -55,6 +61,12 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
     private static final int DEFAULT_HISTORY_LIMIT = 30;
     private static final int MAX_HISTORY_LIMIT = 100;
     private static final Set<String> CHAT_PARTICIPANT_PERMISSIONS = Set.of("CHAT_CONVERSATION_READ_OWN");
+    private static final Set<String> PARTNER_CHAT_PERMISSIONS = Set.of(
+            "CHAT_CONVERSATION_READ_OWN",
+            "CHAT_MESSAGE_SEND_OWN",
+            "SUBSCRIPTION_READ_ALL"
+    );
+    private static final int MAX_SHAREABLE_ORDER_COUNT = 50;
 
     private final CurrentAccountPortIn currentAccountPortIn;
     private final ChatConversationPortOut chatPortOut;
@@ -62,6 +74,10 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
     private final AssistantJobPortIn assistantJobPortIn;
     private final ChatRealtimeEventMapper realtimeEventMapper;
     private final SupportTicketChatMessageContextService ticketMessageContextService;
+    private final SubscriptionOrderSnapshotJsonMapper subscriptionOrderSnapshotJsonMapper;
+    private final SubscriptionPortOut subscriptionPortOut;
+    private final OrganizationPortOut organizationPortOut;
+    private final ParkingLotPortOut parkingLotPortOut;
     private final FileStoragePort fileStoragePort;
     private final FileAccessPort fileAccessPort;
     private final ChatConversationPolicy conversationPolicy = new ChatConversationPolicy();
@@ -75,6 +91,10 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
             AssistantJobPortIn assistantJobPortIn,
             ChatRealtimeEventMapper realtimeEventMapper,
             SupportTicketChatMessageContextService ticketMessageContextService,
+            SubscriptionOrderSnapshotJsonMapper subscriptionOrderSnapshotJsonMapper,
+            SubscriptionPortOut subscriptionPortOut,
+            OrganizationPortOut organizationPortOut,
+            ParkingLotPortOut parkingLotPortOut,
             FileStoragePort fileStoragePort,
             FileAccessPort fileAccessPort
     ) {
@@ -84,6 +104,10 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
         this.assistantJobPortIn = assistantJobPortIn;
         this.realtimeEventMapper = realtimeEventMapper;
         this.ticketMessageContextService = ticketMessageContextService;
+        this.subscriptionOrderSnapshotJsonMapper = subscriptionOrderSnapshotJsonMapper;
+        this.subscriptionPortOut = subscriptionPortOut;
+        this.organizationPortOut = organizationPortOut;
+        this.parkingLotPortOut = parkingLotPortOut;
         this.fileStoragePort = fileStoragePort;
         this.fileAccessPort = fileAccessPort;
     }
@@ -175,6 +199,78 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
                 .orElseGet(() -> createCustomerSupportConversation(currentAccount.accountId(), resolvedCustomerId, title));
         ensureCustomerSupportMembers(conversation, resolvedCustomerId);
         return getConversationOrThrow(conversation.getConversationId());
+    }
+
+    @Override
+    @Transactional
+    public ChatConversation createOrGetParkingLotCustomerConversation(UUID parkingLotId) {
+        CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
+        currentAccountPortIn.requirePermission("CHAT_CONVERSATION_CREATE_OWN");
+        UUID customerId = chatPortOut.findCustomerIdByAccountId(currentAccount.accountId())
+                .orElseThrow(() -> new AccessDeniedException("Access is denied"));
+        var parkingLot = parkingLotPortOut.findById(parkingLotId)
+                .filter(lot -> lot.getStatus() == ParkingLotStatus.ACTIVE)
+                .orElseThrow(() -> new NotFoundException("Active parking lot not found"));
+
+        UUID partnerAccountId = organizationPortOut
+                .findActiveAccountIdsByParkingLotIdWithPermissions(parkingLotId, PARTNER_CHAT_PERMISSIONS)
+                .stream()
+                .filter(accountId -> !accountId.equals(currentAccount.accountId()))
+                .sorted()
+                .findFirst()
+                .orElseThrow(() -> new BadRequestException("Parking lot has no available chat contact"));
+
+        ChatConversation conversation = chatPortOut.findActiveCustomerSupportConversation(customerId, partnerAccountId)
+                .orElseGet(() -> createCustomerSupportConversation(partnerAccountId, customerId, parkingLot.getName()));
+        conversation.setTitle(parkingLot.getName());
+        conversation.setRelatedSchema("parking");
+        conversation.setRelatedTable("parking_lots");
+        conversation.setRelatedId(parkingLotId);
+        conversation.setAssignedTo(partnerAccountId);
+        conversation = chatPortOut.saveConversation(conversation);
+        ensureCustomerSupportMembers(conversation, customerId);
+        return getConversationOrThrow(conversation.getConversationId());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SubscriptionChatOrder> getShareableSubscriptionOrders(UUID conversationId) {
+        ChatConversation conversation = getConversationOrThrow(conversationId);
+        requireReadAccess(conversation);
+        requireSubscriptionOrderReadAccess(conversation);
+        ConversationOrderScope scope = resolveConversationOrderScope(conversation);
+        return subscriptionPortOut.findChatOrders(
+                scope.customerId(),
+                scope.parkingLotIds(),
+                MAX_SHAREABLE_ORDER_COUNT
+        );
+    }
+
+    @Override
+    @Transactional
+    public ChatMessage shareSubscriptionOrder(UUID conversationId, UUID subscriptionId) {
+        requireSendAccess(conversationId);
+        ChatConversation conversation = getConversationOrThrow(conversationId);
+        requireSubscriptionOrderReadAccess(conversation);
+        ConversationOrderScope scope = resolveConversationOrderScope(conversation);
+        SubscriptionChatOrder order = subscriptionPortOut.findChatOrderById(
+                        subscriptionId,
+                        scope.customerId(),
+                        scope.parkingLotIds()
+                )
+                .orElseThrow(() -> new NotFoundException("Subscription order not found in this conversation"));
+
+        Instant sharedAt = Instant.now();
+        ChatMessage message = new ChatMessage();
+        message.setConversationId(conversationId);
+        message.setSenderAccountId(requireCurrentAccountId());
+        message.setContent("Đã chia sẻ đơn hàng " + order.ticketTypeName() + " tại " + order.parkingLotName());
+        message.setRelatedSchema("access_control");
+        message.setRelatedTable("subscriptions");
+        message.setRelatedId(order.subscriptionId());
+        message.setMetadata(subscriptionOrderSnapshotJsonMapper.toJson(order, sharedAt));
+        messagePolicy.initializeContextCard(message);
+        return saveMessageAndPublish(message);
     }
 
     @Override
@@ -502,6 +598,51 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
         }
     }
 
+    private ConversationOrderScope resolveConversationOrderScope(ChatConversation conversation) {
+        if (conversation.getConversationType() != ChatConversationType.CUSTOMER_DIRECT
+                || conversation.getCustomerId() == null) {
+            throw new BadRequestException("Orders are available only in customer-partner conversations");
+        }
+        UUID partnerAccountId = conversation.getAssignedTo() != null
+                ? conversation.getAssignedTo()
+                : conversation.getOwnerAccountId();
+        if (partnerAccountId == null) {
+            throw new BadRequestException("Conversation has no partner contact");
+        }
+
+        Set<UUID> parkingLotIds = new LinkedHashSet<>(
+                organizationPortOut.findScopedParkingLotIdsByAccountId(partnerAccountId)
+        );
+        if (parkingLotIds.isEmpty()) {
+            Set<UUID> organizationIds = organizationPortOut.findActiveOrganizationIdsByAccountId(partnerAccountId);
+            parkingLotPortOut.findAll(null, null, organizationIds, null).stream()
+                    .map(lot -> lot.getParkingLotId())
+                    .forEach(parkingLotIds::add);
+        }
+        if (parkingLotIds.isEmpty()
+                && "parking_lots".equals(conversation.getRelatedTable())
+                && conversation.getRelatedId() != null) {
+            parkingLotIds.add(conversation.getRelatedId());
+        }
+        if (parkingLotIds.isEmpty()) {
+            throw new AccessDeniedException("Access is denied");
+        }
+        return new ConversationOrderScope(conversation.getCustomerId(), Set.copyOf(parkingLotIds));
+    }
+
+    private void requireSubscriptionOrderReadAccess(ChatConversation conversation) {
+        if (conversation.getCustomerId() == null) {
+            throw new BadRequestException("Orders are available only in customer-partner conversations");
+        }
+        UUID currentAccountId = requireCurrentAccountId();
+        boolean isConversationCustomer = chatPortOut.findCustomerIdByAccountId(currentAccountId)
+                .filter(conversation.getCustomerId()::equals)
+                .isPresent();
+        currentAccountPortIn.requirePermission(
+                isConversationCustomer ? "SUBSCRIPTION_READ_OWN" : "SUBSCRIPTION_READ_ALL"
+        );
+    }
+
     private ChatConversation getConversationOrThrow(UUID conversationId) {
         if (conversationId == null) {
             throw new BadRequestException("conversationId must not be null");
@@ -529,5 +670,8 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
             return MAX_HISTORY_LIMIT;
         }
         return limit;
+    }
+
+    private record ConversationOrderScope(UUID customerId, Set<UUID> parkingLotIds) {
     }
 }

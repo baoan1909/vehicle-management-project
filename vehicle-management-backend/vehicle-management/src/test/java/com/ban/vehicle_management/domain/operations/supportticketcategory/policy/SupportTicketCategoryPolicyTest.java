@@ -105,6 +105,31 @@ class SupportTicketCategoryPolicyTest {
     }
 
     @Test
+    void shouldRejectNullAudienceNegativeOrderAndMissingStatus() {
+        SupportTicketCategory category = validCategory();
+        category.setAudienceType(null);
+        assertThrows(BadRequestException.class, () -> categoryPolicy.validateState(category));
+        category.setAudienceType(SupportTicketAudienceType.CUSTOMER);
+        category.setDisplayOrder(-1);
+        assertThrows(BadRequestException.class, () -> categoryPolicy.validateState(category));
+        category.setDisplayOrder(0);
+        category.setStatus(null);
+        assertThrows(BadRequestException.class, () -> categoryPolicy.validateState(category));
+    }
+
+    @Test
+    void allRequiresEveryPermissionWhileAnyRequiresOne() {
+        SupportTicketCategory category = validCategory();
+        category.setRequiredPermissionCodes(java.util.Set.of("FIRST", "SECOND"));
+        java.util.Set<String> partial = java.util.Set.of("SUPPORT_TICKET_CATEGORY_CUSTOMER_OWN", "FIRST");
+        org.junit.jupiter.api.Assertions.assertTrue(categoryPolicy.matchesPermissions(category, partial));
+        category.setPermissionMatchMode(PermissionMatchMode.ALL);
+        org.junit.jupiter.api.Assertions.assertFalse(categoryPolicy.matchesPermissions(category, partial));
+        org.junit.jupiter.api.Assertions.assertTrue(categoryPolicy.matchesPermissions(category,
+                java.util.Set.of("SUPPORT_TICKET_CATEGORY_CUSTOMER_OWN", "FIRST", "SECOND")));
+    }
+
+    @Test
     void shouldDeactivateCategory() {
         SupportTicketCategory category = validCategory();
 

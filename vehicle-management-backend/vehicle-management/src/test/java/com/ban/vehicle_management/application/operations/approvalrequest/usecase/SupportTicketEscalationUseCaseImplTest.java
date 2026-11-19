@@ -27,6 +27,7 @@ import com.ban.vehicle_management.shared.exception.ConflictException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -167,6 +168,20 @@ class SupportTicketEscalationUseCaseImplTest {
                 )
         ));
         verify(supportTicketPortIn, never()).assignTicket(any(), any());
+    }
+
+    @Test
+    void reviewerCanSeeAllPendingEscalationsIncludingTheirOwnAssignedTicket() {
+        SupportTicket ticket = activeTicket();
+        UUID reviewer = ticket.getAssignedTo();
+        ApprovalRequest escalation = pendingEscalation(ticket, UUID.randomUUID());
+        when(accessGuard.ensureCanReviewEscalation()).thenReturn(reviewer);
+        when(escalationPortOut.findAll(ApprovalRequestStatus.PENDING)).thenReturn(List.of(escalation));
+
+        List<SupportTicketEscalationResult> results = useCase.getAll(ApprovalRequestStatus.PENDING);
+
+        assertEquals(1, results.size());
+        assertEquals(escalation.getApprovalRequestId(), results.getFirst().escalationId());
     }
 
     @Test

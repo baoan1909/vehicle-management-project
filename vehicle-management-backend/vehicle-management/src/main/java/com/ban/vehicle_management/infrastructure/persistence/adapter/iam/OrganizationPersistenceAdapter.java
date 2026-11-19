@@ -217,6 +217,23 @@ public class OrganizationPersistenceAdapter implements OrganizationPortOut {
     }
 
     @Override
+    public Set<UUID> findActiveAccountIdsByParkingLotIdWithPermissions(
+            UUID parkingLotId,
+            Set<String> permissionCodes
+    ) {
+        if (parkingLotId == null || permissionCodes == null || permissionCodes.isEmpty()) {
+            return Set.of();
+        }
+        return memberParkingLotScopeRepository.findActiveAccountIdsByParkingLotIdWithPermissions(
+                parkingLotId,
+                OrganizationMembershipStatus.ACTIVE,
+                AccountStatus.ACTIVE,
+                permissionCodes,
+                permissionCodes.size()
+        );
+    }
+
+    @Override
     public void deactivateMembershipsAndClearParkingLotScopes(UUID accountId) {
         memberParkingLotScopeRepository.deleteAllByAccountId(accountId);
         organizationMembershipRepository.updateStatusByAccountId(

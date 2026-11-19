@@ -12,6 +12,8 @@ public interface SupportTicketCategoryPortIn {
     boolean isActiveCategory(UUID categoryId);
     List<SupportTicketCategory> getCategories(SupportTicketCategoryStatus status, SupportTicketCategoryPriority priority, String keyword);
     List<SupportTicketCategory> getAvailableCategories();
+    List<SupportTicketCategory> getPublicCategories();
+    void ensurePublicAvailableCategory(UUID categoryId);
     SupportTicketCategory ensureAvailableCategory(UUID categoryId);
     SupportTicketCategory updateCategory(UUID categoryId, SupportTicketCategory category);
     void deleteCategory(UUID categoryId);

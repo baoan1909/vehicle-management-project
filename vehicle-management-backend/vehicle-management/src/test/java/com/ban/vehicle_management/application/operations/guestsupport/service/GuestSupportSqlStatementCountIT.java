@@ -46,7 +46,7 @@ class GuestSupportSqlStatementCountIT extends PostgresIntegrationTestSupport {
 
     @Test
     void createAndCapabilityReadStayWithinQueryBudgets() {
-        UUID categoryId = categoryPortIn.getCategories(SupportTicketCategoryStatus.ACTIVE, null, null)
+        UUID categoryId = categoryPortIn.getPublicCategories()
                 .getFirst().getCategoryId();
         String suffix = UUID.randomUUID().toString();
         CreateGuestSupportRequest input = new CreateGuestSupportRequest(

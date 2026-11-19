@@ -12,6 +12,7 @@ import com.ban.vehicle_management.entrypoint.dto.operations.chatconversation.req
 import com.ban.vehicle_management.entrypoint.dto.operations.chatconversation.request.CreateInternalGroupConversationRequest;
 import com.ban.vehicle_management.entrypoint.dto.operations.chatconversation.response.ChatConversationUserResponse;
 import com.ban.vehicle_management.entrypoint.dto.operations.chatconversation.response.ChatInboxItemUserResponse;
+import com.ban.vehicle_management.entrypoint.dto.operations.chatconversation.response.ChatSubscriptionOrderUserResponse;
 import com.ban.vehicle_management.entrypoint.dto.operations.chatmessage.request.MarkConversationReadRequest;
 import com.ban.vehicle_management.entrypoint.dto.operations.chatmessage.request.SendChatMessageRequest;
 import com.ban.vehicle_management.entrypoint.dto.operations.chatmessage.response.ChatAttachmentReadUrlResponse;
@@ -109,6 +110,43 @@ public class ChatConversationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
                 "Customer support conversation created or fetched successfully",
                 chatConversationApiMapper.toConversationUserResponse(conversation)
+        ));
+    }
+
+    @PostMapping("/conversations/parking-lots/{parkingLotId}")
+    public ResponseEntity<ApiResponse<ChatConversationUserResponse>> createParkingLotCustomerConversation(
+            @PathVariable UUID parkingLotId
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
+                "Customer-partner conversation created or fetched successfully",
+                chatConversationApiMapper.toConversationUserResponse(
+                        chatConversationPortIn.createOrGetParkingLotCustomerConversation(parkingLotId)
+                )
+        ));
+    }
+
+    @GetMapping("/conversations/{conversationId}/subscription-orders")
+    public ResponseEntity<ApiResponse<List<ChatSubscriptionOrderUserResponse>>> getShareableSubscriptionOrders(
+            @PathVariable UUID conversationId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Fetched shareable subscription orders successfully",
+                chatConversationApiMapper.toSubscriptionOrderUserResponses(
+                        chatConversationPortIn.getShareableSubscriptionOrders(conversationId)
+                )
+        ));
+    }
+
+    @PostMapping("/conversations/{conversationId}/subscription-orders/{subscriptionId}")
+    public ResponseEntity<ApiResponse<ChatMessageUserResponse>> shareSubscriptionOrder(
+            @PathVariable UUID conversationId,
+            @PathVariable UUID subscriptionId
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
+                "Subscription order shared successfully",
+                chatConversationApiMapper.toMessageUserResponse(
+                        chatConversationPortIn.shareSubscriptionOrder(conversationId, subscriptionId)
+                )
         ));
     }
 

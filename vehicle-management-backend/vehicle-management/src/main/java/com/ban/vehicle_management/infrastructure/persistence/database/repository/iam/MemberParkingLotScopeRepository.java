@@ -173,6 +173,35 @@ public interface MemberParkingLotScopeRepository extends JpaRepository<MemberPar
             @Param("roleCodes") Collection<String> roleCodes
     );
 
+    @Query(value = """
+        select membership.account_id
+          from parking.parking_lots lot
+          join iam.organization_memberships membership
+            on membership.organization_id = lot.organization_id
+          join iam.organizations organization
+            on organization.organization_id = membership.organization_id
+          join iam.accounts account on account.account_id = membership.account_id
+          join iam.roles role on role.role_id = account.role_id
+          join iam.role_permissions role_permission
+            on role_permission.role_id = role.role_id and role_permission.is_active = true
+          join iam.permissions permission on permission.permission_id = role_permission.permission_id
+         where lot.parking_lot_id = :parkingLotId
+           and membership.status = cast(:#{#membershipStatus.name()} as varchar)
+           and organization.status = 'ACTIVE'
+           and account.status = cast(:#{#accountStatus.name()} as varchar)
+           and role.is_active = true
+           and permission.permission_code in (:permissionCodes)
+         group by membership.account_id
+        having count(distinct permission.permission_code) = :permissionCount
+        """, nativeQuery = true)
+    Set<UUID> findActiveAccountIdsByParkingLotIdWithPermissions(
+            @Param("parkingLotId") UUID parkingLotId,
+            @Param("membershipStatus") OrganizationMembershipStatus membershipStatus,
+            @Param("accountStatus") com.ban.vehicle_management.shared.enumeration.iam.AccountStatus accountStatus,
+            @Param("permissionCodes") Collection<String> permissionCodes,
+            @Param("permissionCount") long permissionCount
+    );
+
     @Modifying
     @Query(value = """
         delete from iam.member_parking_lot_scopes scope

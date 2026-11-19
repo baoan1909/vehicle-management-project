@@ -12,6 +12,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.Formula;
 
 @Entity
 @Table(name = "support_tickets", schema = "operations")
@@ -76,6 +77,9 @@ public class SupportTicketEntity extends AuditableEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_to", referencedColumnName = "account_id", insertable = false, updatable = false)
     private AccountEntity assignedToAccount;
+
+    @Formula("(select account.username from iam.accounts account where account.account_id = assigned_to)")
+    private String assignedToUsername;
 
     @Column(name = "resolved_at")
     private Instant resolvedAt;

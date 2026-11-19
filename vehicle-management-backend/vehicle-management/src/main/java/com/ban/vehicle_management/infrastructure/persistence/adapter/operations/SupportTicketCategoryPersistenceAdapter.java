@@ -4,6 +4,7 @@ import com.ban.vehicle_management.application.operations.supportticketcategory.p
 import com.ban.vehicle_management.domain.operations.supportticketcategory.model.SupportTicketCategory;
 import com.ban.vehicle_management.infrastructure.mapper.operations.SupportTicketCategoryPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.operations.SupportTicketCategoryEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.projection.operations.SupportTicketCategoryPermissionProjection;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.operations.SupportTicketCategoryRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.operations.SupportTicketRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.specification.operations.SupportTicketCategorySpecifications;
@@ -52,6 +53,11 @@ public class SupportTicketCategoryPersistenceAdapter implements SupportTicketCat
     }
 
     @Override
+    public boolean existsPublicAvailableCategory(UUID categoryId) {
+        return categoryRepository.existsPublicAvailableCategory(categoryId);
+    }
+
+    @Override
     public boolean existsByIdAndStatus(UUID categoryId, SupportTicketCategoryStatus status) {
         return categoryRepository.existsByCategoryIdAndStatus(categoryId, status);
     }
@@ -62,11 +68,24 @@ public class SupportTicketCategoryPersistenceAdapter implements SupportTicketCat
             SupportTicketCategoryPriority priority,
             String keyword
     ) {
-        return categoryRepository.findAll(SupportTicketCategorySpecifications.withFilters(status, priority, keyword))
+        List<SupportTicketCategory> categories = categoryRepository.findAll(
+                        SupportTicketCategorySpecifications.withFilters(status, priority, keyword))
                 .stream()
                 .map(categoryPersistenceMapper::toDomain)
-                .map(this::enrich)
                 .toList();
+        if (categories.isEmpty()) {
+            return categories;
+        }
+        java.util.Map<UUID, Set<String>> permissions = categoryRepository.findRequiredPermissionsByCategoryIds(
+                        categories.stream().map(SupportTicketCategory::getCategoryId).toList()).stream()
+                .collect(java.util.stream.Collectors.groupingBy(
+                        SupportTicketCategoryPermissionProjection::getCategoryId,
+                        java.util.stream.Collectors.mapping(
+                                SupportTicketCategoryPermissionProjection::getPermissionCode,
+                                java.util.stream.Collectors.toUnmodifiableSet())));
+        categories.forEach(category -> category.setRequiredPermissionCodes(
+                permissions.getOrDefault(category.getCategoryId(), Set.of())));
+        return categories;
     }
 
     @Override

@@ -11,6 +11,7 @@ public interface SupportTicketPersistenceMapper {
     @Mapping(target = "requesterAccount", ignore = true)
     @Mapping(target = "category", ignore = true)
     @Mapping(target = "assignedToAccount", ignore = true)
+    @Mapping(target = "assignedToUsername", ignore = true)
     @Mapping(target = "closedByAccount", ignore = true)
     SupportTicketEntity toEntity(SupportTicket domain);
 

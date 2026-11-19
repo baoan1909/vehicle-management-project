@@ -30,6 +30,7 @@ public class SupportTicketAdminResponse {
     private String content;
     private SupportTicketStatus status;
     private UUID assignedTo;
+    private String assignedToUsername;
     private java.time.Instant resolvedAt;
     private String resolutionNote;
     private java.time.Instant lastContextActivityAt;

@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.operations.chatconversation.port.in;
 
 import com.ban.vehicle_management.application.operations.chatconversation.model.ChatAttachmentReadUrl;
+import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionChatOrder;
 import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatConversation;
 import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatInboxItem;
 import com.ban.vehicle_management.domain.operations.chatmessage.model.ChatMessage;
@@ -21,6 +22,12 @@ public interface ChatConversationPortIn {
     ChatConversation createInternalGroupConversation(String title, Set<UUID> memberAccountIds);
 
     ChatConversation createOrGetCustomerSupportConversation(UUID customerId, String title);
+
+    ChatConversation createOrGetParkingLotCustomerConversation(UUID parkingLotId);
+
+    List<SubscriptionChatOrder> getShareableSubscriptionOrders(UUID conversationId);
+
+    ChatMessage shareSubscriptionOrder(UUID conversationId, UUID subscriptionId);
 
     ChatConversation addMember(UUID conversationId, UUID accountId);
 

@@ -28,6 +28,7 @@ class SupportTicketApiMapperUserResponseTest {
         ticket.setContent("Details");
         ticket.setStatus(SupportTicketStatus.OPEN);
         ticket.setAssignedTo(UUID.randomUUID());
+        ticket.setAssignedToUsername("support.admin");
         ticket.setCreatedBy(UUID.randomUUID());
         ticket.setUpdatedBy(UUID.randomUUID());
 
@@ -39,6 +40,7 @@ class SupportTicketApiMapperUserResponseTest {
         assertEquals("Help", response.getTitle());
         assertEquals(SupportTicketStatus.OPEN, response.getStatus());
         assertEquals(ticket.getAssignedTo(), response.getAssignedTo());
+        assertEquals("support.admin", response.getAssignedToUsername());
     }
 
     @Test

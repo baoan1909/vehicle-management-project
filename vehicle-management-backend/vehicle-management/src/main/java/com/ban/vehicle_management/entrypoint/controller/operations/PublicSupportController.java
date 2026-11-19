@@ -17,7 +17,6 @@ import com.ban.vehicle_management.entrypoint.dto.operations.guestsupport.respons
 import com.ban.vehicle_management.entrypoint.dto.operations.guestsupport.response.GuestAssistantResponse;
 import com.ban.vehicle_management.entrypoint.dto.operations.guestsupport.response.GuestSupportRequestResponse;
 import com.ban.vehicle_management.entrypoint.dto.operations.guestsupport.response.PublicSupportCategoryResponse;
-import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCategoryStatus;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import com.ban.vehicle_management.entrypoint.converter.ClientIpResolver;
 import com.ban.vehicle_management.entrypoint.policy.EndpointOutcomePolicy;
@@ -69,7 +68,7 @@ public class PublicSupportController {
     public ResponseEntity<ApiResponse<List<PublicSupportCategoryResponse>>> categories() {
         return ResponseEntity.ok(ApiResponse.ok("Fetched public support categories successfully",
                 apiMapper.toCategoryResponses(
-                        categoryPortIn.getCategories(SupportTicketCategoryStatus.ACTIVE, null, null))));
+                        categoryPortIn.getPublicCategories())));
     }
 
     @PostMapping("/requests")

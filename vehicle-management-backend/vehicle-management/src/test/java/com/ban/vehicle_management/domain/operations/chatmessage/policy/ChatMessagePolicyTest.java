@@ -40,4 +40,16 @@ class ChatMessagePolicyTest {
 
         assertThrows(BadRequestException.class, () -> policy.initializeText(message));
     }
+
+    @Test
+    void initializeContextCardKeepsSafeSummaryAndMarksStructuredMessage() {
+        ChatMessage message = new ChatMessage();
+        message.setContent("  Đã chia sẻ đơn hàng Vé tháng  ");
+
+        policy.initializeContextCard(message);
+
+        assertEquals(ChatMessageType.CONTEXT_CARD, message.getMessageType());
+        assertEquals("Đã chia sẻ đơn hàng Vé tháng", message.getContent());
+        assertFalse(message.isDeleted());
+    }
 }
