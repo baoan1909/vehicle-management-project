@@ -28,6 +28,20 @@ public interface CardRepository extends JpaRepository<CardEntity, UUID>, JpaSpec
             """, nativeQuery = true)
     CardStatusCountProjection getDashboardStatusCounts();
 
+    @Query(value = """
+            select coalesce(sum(case when type.code = 'REGISTERED' and card.status <> 'LOST' then 1 else 0 end), 0)
+                       as "memberCards",
+                   coalesce(sum(case when type.code = 'VISITOR' and card.status <> 'LOST' then 1 else 0 end), 0)
+                       as "visitorCards",
+                   coalesce(sum(case when card.status = 'LOST' then 1 else 0 end), 0)
+                       as "lostCards"
+            from access_control.cards card
+            join catalog.card_types type on type.card_type_id = card.card_type_id
+            where card.parking_lot_id in (:parkingLotIds)
+            """, nativeQuery = true)
+    CardStatusCountProjection getDashboardStatusCountsForParkingLots(
+            @Param("parkingLotIds") Collection<UUID> parkingLotIds);
+
     @Query(value = "SELECT nextval('access_control.registered_card_number_seq')", nativeQuery = true)
     long nextRegisteredCardNumberSequence();
 

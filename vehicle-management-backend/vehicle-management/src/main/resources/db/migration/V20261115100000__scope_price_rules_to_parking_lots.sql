@@ -6,13 +6,13 @@ ALTER TABLE catalog.price_rules
 INSERT INTO catalog.price_rules (
     price_rule_id, organization_id, parking_lot_id, price_plan_id, vehicle_type_id,
     ticket_type_id, rule_name, time_from, time_to, base_price, unit,
-    lost_card_fee, priority, is_active, lifecycle_status, created_at, created_by, updated_at, updated_by
+    lost_card_fee, priority, is_active, created_at, created_by, updated_at, updated_by
 )
 SELECT
     gen_random_uuid(), source.organization_id, lot.parking_lot_id, source.price_plan_id,
     source.vehicle_type_id, source.ticket_type_id, source.rule_name, source.time_from,
     source.time_to, source.base_price, source.unit, source.lost_card_fee, source.priority,
-    source.is_active, source.lifecycle_status, now(), source.created_by, source.updated_at, source.updated_by
+    source.is_active, now(), source.created_by, source.updated_at, source.updated_by
 FROM catalog.price_rules source
 JOIN parking.parking_lots lot ON lot.organization_id = source.organization_id
 WHERE source.parking_lot_id IS NULL

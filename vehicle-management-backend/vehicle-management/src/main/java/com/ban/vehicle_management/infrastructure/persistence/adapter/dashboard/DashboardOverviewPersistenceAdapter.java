@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.infrastructure.persistence.adapter.dashboard;
 
+import com.ban.vehicle_management.application.dashboard.overview.model.DashboardParkingLotMetric;
 import com.ban.vehicle_management.application.dashboard.overview.port.out.DashboardOverviewPortOut;
 import com.ban.vehicle_management.entrypoint.dto.dashboard.response.CardStatusOverviewResponse;
 import com.ban.vehicle_management.entrypoint.dto.dashboard.response.DeviceStatusItemResponse;
@@ -8,9 +9,11 @@ import com.ban.vehicle_management.entrypoint.dto.dashboard.response.VehicleTypeR
 import com.ban.vehicle_management.entrypoint.dto.dashboard.response.VehicleTypeRatioResponse;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.accesscontrol.CardRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.billing.InvoiceRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.billing.PlatformFeeAssessmentRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.hardware.DeviceRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ParkingSessionRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ParkingLotRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ZoneRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.CustomerRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.CustomerVehicleRepository;
@@ -23,12 +26,16 @@ import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 @Component
 public class DashboardOverviewPersistenceAdapter implements DashboardOverviewPortOut {
     private final InvoiceRepository invoiceRepository;
+    private final PlatformFeeAssessmentRepository platformFeeAssessmentRepository;
     private final ParkingSessionRepository parkingSessionRepository;
+    private final ParkingLotRepository parkingLotRepository;
     private final ZoneRepository zoneRepository;
     private final CardRepository cardRepository;
     private final AccountRepository accountRepository;
@@ -38,7 +45,9 @@ public class DashboardOverviewPersistenceAdapter implements DashboardOverviewPor
 
     public DashboardOverviewPersistenceAdapter(
             InvoiceRepository invoiceRepository,
+            PlatformFeeAssessmentRepository platformFeeAssessmentRepository,
             ParkingSessionRepository parkingSessionRepository,
+            ParkingLotRepository parkingLotRepository,
             ZoneRepository zoneRepository,
             CardRepository cardRepository,
             AccountRepository accountRepository,
@@ -46,7 +55,9 @@ public class DashboardOverviewPersistenceAdapter implements DashboardOverviewPor
             CustomerVehicleRepository customerVehicleRepository,
             DeviceRepository deviceRepository) {
         this.invoiceRepository = invoiceRepository;
+        this.platformFeeAssessmentRepository = platformFeeAssessmentRepository;
         this.parkingSessionRepository = parkingSessionRepository;
+        this.parkingLotRepository = parkingLotRepository;
         this.zoneRepository = zoneRepository;
         this.cardRepository = cardRepository;
         this.accountRepository = accountRepository;
@@ -56,39 +67,55 @@ public class DashboardOverviewPersistenceAdapter implements DashboardOverviewPor
     }
 
     @Override
-    public BigDecimal sumPaidRevenue(Instant from, Instant to) {
-        BigDecimal value = invoiceRepository.sumPaidRevenue(from, to);
+    public BigDecimal sumPaidRevenue(Instant from, Instant to, Set<UUID> parkingLotIds) {
+        if (parkingLotIds.isEmpty()) return BigDecimal.ZERO;
+        BigDecimal value = invoiceRepository.sumPaidRevenueForParkingLots(from, to, parkingLotIds);
         return value == null ? BigDecimal.ZERO : value;
     }
 
     @Override
-    public long countCheckIns(Instant from, Instant to) {
-        return parkingSessionRepository.countDashboardCheckIns(from, to);
+    public BigDecimal sumAppliedPlatformFee(Instant from, Instant to, Set<UUID> parkingLotIds) {
+        if (parkingLotIds.isEmpty()) return BigDecimal.ZERO;
+        BigDecimal value = platformFeeAssessmentRepository.sumAppliedFeeForParkingLots(from, to, parkingLotIds);
+        return value == null ? BigDecimal.ZERO : value;
     }
 
     @Override
-    public long countCheckOuts(Instant from, Instant to) {
-        return parkingSessionRepository.countDashboardCheckOuts(from, to);
+    public long countCheckIns(Instant from, Instant to, Set<UUID> parkingLotIds) {
+        if (parkingLotIds.isEmpty()) return 0;
+        return parkingSessionRepository.countDashboardCheckInsForParkingLots(from, to, parkingLotIds);
     }
 
     @Override
-    public long countParkingAt(Instant at) {
-        return parkingSessionRepository.countDashboardParkingAt(at);
+    public long countCheckOuts(Instant from, Instant to, Set<UUID> parkingLotIds) {
+        if (parkingLotIds.isEmpty()) return 0;
+        return parkingSessionRepository.countDashboardCheckOutsForParkingLots(from, to, parkingLotIds);
     }
 
     @Override
-    public long sumActiveZoneCapacity() {
-        return zoneRepository.sumDashboardActiveCapacity();
+    public long countParkingAt(Instant at, Set<UUID> parkingLotIds) {
+        if (parkingLotIds.isEmpty()) return 0;
+        return parkingSessionRepository.countDashboardParkingAtForParkingLots(at, parkingLotIds);
+    }
+
+    @Override
+    public long sumActiveZoneCapacity(Set<UUID> parkingLotIds) {
+        if (parkingLotIds.isEmpty()) return 0;
+        return zoneRepository.sumDashboardActiveCapacityForParkingLots(parkingLotIds);
     }
 
     @Override
     public List<RevenueTrendPointResponse> getRevenueTrend(
-            LocalDate fromDate, LocalDate toDate, Instant from, Instant to) {
+            LocalDate fromDate, LocalDate toDate, Instant from, Instant to, Set<UUID> parkingLotIds) {
         Map<LocalDate, BigDecimal> values = new LinkedHashMap<>();
         for (LocalDate date = fromDate; !date.isAfter(toDate); date = date.plusDays(1)) {
             values.put(date, BigDecimal.ZERO);
         }
-        invoiceRepository.findRevenueByDate(from, to, DateTimeUtils.getAppZone().getId())
+        if (parkingLotIds.isEmpty()) return values.entrySet().stream()
+                .map(entry -> new RevenueTrendPointResponse(entry.getKey(), entry.getValue()))
+                .toList();
+        invoiceRepository.findRevenueByDateForParkingLots(
+                        from, to, DateTimeUtils.getAppZone().getId(), parkingLotIds)
                 .forEach(row -> values.put(row.getDate(), row.getRevenue()));
         return values.entrySet().stream()
                 .map(entry -> new RevenueTrendPointResponse(entry.getKey(), entry.getValue()))
@@ -96,8 +123,9 @@ public class DashboardOverviewPersistenceAdapter implements DashboardOverviewPor
     }
 
     @Override
-    public VehicleTypeRatioResponse getVehicleTypeRatio(Instant from, Instant to) {
-        var rows = parkingSessionRepository.findDashboardVehicleTypeCounts(from, to);
+    public VehicleTypeRatioResponse getVehicleTypeRatio(Instant from, Instant to, Set<UUID> parkingLotIds) {
+        if (parkingLotIds.isEmpty()) return new VehicleTypeRatioResponse(0, List.of());
+        var rows = parkingSessionRepository.findDashboardVehicleTypeCountsForParkingLots(from, to, parkingLotIds);
         long total = rows.stream().mapToLong(VehicleTypeCountProjection::getTotal).sum();
         var items = rows.stream().map(row -> new VehicleTypeRatioItemResponse(
                 row.getVehicleTypeId(),
@@ -110,8 +138,9 @@ public class DashboardOverviewPersistenceAdapter implements DashboardOverviewPor
     }
 
     @Override
-    public CardStatusOverviewResponse getCardStatusOverview() {
-        var row = cardRepository.getDashboardStatusCounts();
+    public CardStatusOverviewResponse getCardStatusOverview(Set<UUID> parkingLotIds) {
+        if (parkingLotIds.isEmpty()) return new CardStatusOverviewResponse(0, 0, 0);
+        var row = cardRepository.getDashboardStatusCountsForParkingLots(parkingLotIds);
         return new CardStatusOverviewResponse(row.getMemberCards(), row.getVisitorCards(), row.getLostCards());
     }
 
@@ -131,13 +160,17 @@ public class DashboardOverviewPersistenceAdapter implements DashboardOverviewPor
     }
 
     @Override
-    public List<DeviceStatusItemResponse> getDeviceStatusOverview() {
+    public List<DeviceStatusItemResponse> getDeviceStatusOverview(Set<UUID> parkingLotIds) {
         Map<String, DeviceCounter> counters = new LinkedHashMap<>();
         counters.put("CAMERA", new DeviceCounter("CAMERA", "Camera"));
         counters.put("KIOSK", new DeviceCounter("KIOSK", "Máy tính"));
         counters.put("CARD_READER", new DeviceCounter("CARD_READER", "Đầu đọc thẻ"));
         counters.put("BARRIER", new DeviceCounter("BARRIER", "Barrier"));
-        deviceRepository.findDashboardStatusCounts().forEach(row -> {
+        if (parkingLotIds.isEmpty()) return counters.values().stream()
+                .map(counter -> new DeviceStatusItemResponse(counter.deviceType, counter.deviceTypeName,
+                        counter.activeCount, counter.offlineCount, counter.maintenanceCount))
+                .toList();
+        deviceRepository.findDashboardStatusCountsForParkingLots(parkingLotIds).forEach(row -> {
             DeviceCounter counter = counters.computeIfAbsent(row.getDeviceType(), key -> new DeviceCounter(key, key));
             switch (row.getStatus()) {
                 case "ACTIVE" -> counter.activeCount += row.getTotal();
@@ -149,6 +182,17 @@ public class DashboardOverviewPersistenceAdapter implements DashboardOverviewPor
         return counters.values().stream()
                 .map(counter -> new DeviceStatusItemResponse(counter.deviceType, counter.deviceTypeName,
                         counter.activeCount, counter.offlineCount, counter.maintenanceCount))
+                .toList();
+    }
+
+    @Override
+    public List<DashboardParkingLotMetric> getParkingLotMetrics(Set<UUID> parkingLotIds, Instant at) {
+        if (parkingLotIds.isEmpty()) return List.of();
+        return parkingLotRepository.findDashboardMetrics(parkingLotIds, at).stream()
+                .map(row -> new DashboardParkingLotMetric(
+                        row.getParkingLotId(),
+                        row.getCurrentParkingCount(),
+                        row.getOfflineDeviceCount()))
                 .toList();
     }
 
