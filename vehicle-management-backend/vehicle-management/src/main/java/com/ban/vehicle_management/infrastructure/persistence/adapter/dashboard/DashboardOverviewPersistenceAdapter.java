@@ -8,6 +8,7 @@ import com.ban.vehicle_management.entrypoint.dto.dashboard.response.RevenueTrend
 import com.ban.vehicle_management.entrypoint.dto.dashboard.response.VehicleTypeRatioItemResponse;
 import com.ban.vehicle_management.entrypoint.dto.dashboard.response.VehicleTypeRatioResponse;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.accesscontrol.CardRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.accesscontrol.SubscriptionRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.billing.InvoiceRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.billing.PlatformFeeAssessmentRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.hardware.DeviceRepository;
@@ -38,6 +39,7 @@ public class DashboardOverviewPersistenceAdapter implements DashboardOverviewPor
     private final ParkingLotRepository parkingLotRepository;
     private final ZoneRepository zoneRepository;
     private final CardRepository cardRepository;
+    private final SubscriptionRepository subscriptionRepository;
     private final AccountRepository accountRepository;
     private final CustomerRepository customerRepository;
     private final CustomerVehicleRepository customerVehicleRepository;
@@ -50,6 +52,7 @@ public class DashboardOverviewPersistenceAdapter implements DashboardOverviewPor
             ParkingLotRepository parkingLotRepository,
             ZoneRepository zoneRepository,
             CardRepository cardRepository,
+            SubscriptionRepository subscriptionRepository,
             AccountRepository accountRepository,
             CustomerRepository customerRepository,
             CustomerVehicleRepository customerVehicleRepository,
@@ -60,6 +63,7 @@ public class DashboardOverviewPersistenceAdapter implements DashboardOverviewPor
         this.parkingLotRepository = parkingLotRepository;
         this.zoneRepository = zoneRepository;
         this.cardRepository = cardRepository;
+        this.subscriptionRepository = subscriptionRepository;
         this.accountRepository = accountRepository;
         this.customerRepository = customerRepository;
         this.customerVehicleRepository = customerVehicleRepository;
@@ -152,6 +156,12 @@ public class DashboardOverviewPersistenceAdapter implements DashboardOverviewPor
     @Override
     public long countNewCustomers(Instant from, Instant to) {
         return customerRepository.countDashboardNewCustomers(from, to);
+    }
+
+    @Override
+    public long countNewRegisteredCustomers(Instant from, Instant to, Set<UUID> parkingLotIds) {
+        if (parkingLotIds.isEmpty()) return 0;
+        return subscriptionRepository.countDashboardNewCustomersForParkingLots(from, to, parkingLotIds);
     }
 
     @Override

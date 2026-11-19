@@ -125,5 +125,7 @@ class OrganizationUseCaseImplTest {
         Set<UUID> result = organizationUseCase.getAssignedParkingManagerAccountIds(organizationId, parkingLotId);
 
         assertEquals(managerIds, result);
+        verify(currentAccountPortIn).requirePermission("ORGANIZATION_READ_ALL");
+        verify(organizationAccessGuard).ensureCanAccessOrganization(organizationId);
     }
 }

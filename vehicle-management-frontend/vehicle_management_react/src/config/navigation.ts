@@ -108,15 +108,9 @@ export const adminNavigation: AdminSidebarEntry[] = [
 // the responsibility of getVisibleAdminNavigation.
 export const platformAdminNavigation: AdminSidebarEntry[] = [
   { kind: "section", label: "Giám sát dữ liệu" },
-  { kind: "link", label: "Tổng quan", to: "/admin/dashboard", matches: ["/admin/dashboard"], icon: "dashboard", monitoring: true },
-  { kind: "link", label: "Đối tác và bãi xe", to: "/admin/parking-lots", matches: ["/admin/parking-lots", "/admin/parking-structure", "/admin/parking-layouts", "/admin/parking-live"], icon: "parking", monitoring: true },
-  { kind: "link", label: "Lượt xe, mức lấp đầy", to: "/admin/swipe/sessions", matches: ["/admin/swipe/sessions"], icon: "swipe", monitoring: true },
-  { kind: "link", label: "Vé đăng ký", to: "/admin/subscription-approvals", matches: ["/admin/subscription-approvals"], icon: "catalog", monitoring: true },
-  { kind: "link", label: "Thẻ", to: "/admin/card", matches: ["/admin/card"], icon: "card", monitoring: true },
-  { kind: "link", label: "Doanh thu, hóa đơn", to: "/admin/invoices", matches: ["/admin/invoices"], icon: "pricing", monitoring: true },
-  { kind: "link", label: "Nhân sự", to: "/admin/employee", matches: ["/admin/employee"], icon: "members", monitoring: true },
-  { kind: "link", label: "Thiết bị", to: "/admin/devices", matches: ["/admin/devices"], icon: "settings", monitoring: true },
-  { kind: "planned", label: "Giá gửi xe của bãi (chỉ xem)" },
+  { kind: "link", label: "Tổng quan", to: "/admin/dashboard", matches: ["/admin/dashboard"], icon: "dashboard" },
+  { kind: "link", label: "Đối tác và bãi xe", to: "/admin/parking-lots", matches: ["/admin/parking-lots", "/admin/parking-structure", "/admin/parking-layouts", "/admin/parking-live"], icon: "parking" },
+  { kind: "link", label: "Doanh thu, hóa đơn", to: "/admin/invoices", matches: ["/admin/invoices"], icon: "pricing" },
   { kind: "divider" },
   { kind: "section", label: "Quản trị nền tảng" },
   { kind: "link", label: "Duyệt ảnh đại diện", to: "/admin/avatar-approvals", matches: ["/admin/avatar-approvals"], icon: "members" },

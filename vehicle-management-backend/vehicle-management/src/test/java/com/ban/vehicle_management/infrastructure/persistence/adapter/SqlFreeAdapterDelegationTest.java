@@ -20,6 +20,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.TicketTypeRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.VehicleTypeRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.accesscontrol.CardRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.accesscontrol.SubscriptionRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.billing.InvoiceRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.billing.PlatformFeeAssessmentRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.hardware.DeviceRepository;
@@ -99,10 +100,12 @@ class SqlFreeAdapterDelegationTest {
     @Test
     void shouldDelegateDashboardCounters() {
         var parkingSessionRepository = mock(ParkingSessionRepository.class);
+        var subscriptionRepository = mock(SubscriptionRepository.class);
         var adapter = new DashboardOverviewPersistenceAdapter(
                 mock(InvoiceRepository.class), mock(PlatformFeeAssessmentRepository.class),
                 parkingSessionRepository, mock(ParkingLotRepository.class), mock(ZoneRepository.class),
-                mock(CardRepository.class), mock(AccountRepository.class), mock(CustomerRepository.class),
+                mock(CardRepository.class), subscriptionRepository,
+                mock(AccountRepository.class), mock(CustomerRepository.class),
                 mock(CustomerVehicleRepository.class), mock(DeviceRepository.class));
         Instant from = Instant.parse("2026-11-01T00:00:00Z");
         Instant to = Instant.parse("2026-11-02T00:00:00Z");
@@ -110,8 +113,12 @@ class SqlFreeAdapterDelegationTest {
         when(parkingSessionRepository.countDashboardCheckInsForParkingLots(
                 from, to, java.util.Set.of(parkingLotId)))
                 .thenReturn(7L);
+        when(subscriptionRepository.countDashboardNewCustomersForParkingLots(
+                from, to, java.util.Set.of(parkingLotId)))
+                .thenReturn(3L);
 
         assertEquals(7L, adapter.countCheckIns(from, to, java.util.Set.of(parkingLotId)));
+        assertEquals(3L, adapter.countNewRegisteredCustomers(from, to, java.util.Set.of(parkingLotId)));
     }
 
     @Test

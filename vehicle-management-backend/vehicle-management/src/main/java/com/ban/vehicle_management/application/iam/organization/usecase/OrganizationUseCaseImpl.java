@@ -159,8 +159,8 @@ public class OrganizationUseCaseImpl implements OrganizationPortIn {
     @Override
     @Transactional(readOnly = true)
     public Set<UUID> getAssignedParkingManagerAccountIds(UUID organizationId, UUID parkingLotId) {
-        currentAccountPortIn.requirePermission(ORGANIZATION_MEMBERSHIP_MANAGE_ALL);
-        organizationAccessGuard.ensureCanManageOrganization(organizationId);
+        currentAccountPortIn.requirePermission(ORGANIZATION_READ_ALL);
+        organizationAccessGuard.ensureCanAccessOrganization(organizationId);
         if (!organizationPortOut.allParkingLotsBelongToOrganization(organizationId, Set.of(parkingLotId))) {
             throw new NotFoundException("Parking lot not found in organization");
         }

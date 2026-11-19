@@ -43,6 +43,12 @@ public interface DashboardOverviewPortOut {
 
     long countNewCustomers(Instant fromInstant, Instant toInstantExclusive);
 
+    long countNewRegisteredCustomers(
+            Instant fromInstant,
+            Instant toInstantExclusive,
+            Set<UUID> parkingLotIds
+    );
+
     long countNewCustomerVehicles(Instant fromInstant, Instant toInstantExclusive);
 
     List<DeviceStatusItemResponse> getDeviceStatusOverview(Set<UUID> parkingLotIds);

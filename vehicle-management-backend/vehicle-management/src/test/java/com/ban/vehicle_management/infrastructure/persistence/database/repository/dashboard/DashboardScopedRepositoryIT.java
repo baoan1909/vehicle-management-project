@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.accesscontrol.CardRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.accesscontrol.SubscriptionRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.billing.InvoiceRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.billing.PlatformFeeAssessmentRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.hardware.DeviceRepository;
@@ -38,6 +39,8 @@ class DashboardScopedRepositoryIT extends PostgresIntegrationTestSupport {
     @Autowired
     private CardRepository cardRepository;
     @Autowired
+    private SubscriptionRepository subscriptionRepository;
+    @Autowired
     private DeviceRepository deviceRepository;
 
     @Test
@@ -58,6 +61,8 @@ class DashboardScopedRepositoryIT extends PostgresIntegrationTestSupport {
                 from, to, parkingLotIds));
         assertEquals(0, zoneRepository.sumDashboardActiveCapacityForParkingLots(parkingLotIds));
         assertNotNull(cardRepository.getDashboardStatusCountsForParkingLots(parkingLotIds));
+        assertEquals(0, subscriptionRepository.countDashboardNewCustomersForParkingLots(
+                from, to, parkingLotIds));
         assertNotNull(deviceRepository.findDashboardStatusCountsForParkingLots(parkingLotIds));
         assertNotNull(parkingLotRepository.findDashboardMetrics(parkingLotIds, to));
     }

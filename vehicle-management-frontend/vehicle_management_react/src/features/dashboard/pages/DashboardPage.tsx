@@ -363,13 +363,15 @@ function RevenueChart({
 
   return (
     <section className="tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-border tw-bg-white tw-p-5 tw-shadow-vm-card">
-      <div className="tw-mb-4 tw-flex tw-items-center tw-justify-between tw-gap-4">
+      <div className="tw-mb-4 tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3">
         <h2 className="tw-m-0 tw-text-[1rem] tw-font-extrabold tw-text-slate-900">Biểu đồ doanh thu</h2>
-        <SelectMenu ariaLabel="Nhóm doanh thu"
-                  triggerClassName={"tw-h-9 tw-rounded-vm-sm tw-border tw-border-solid tw-border-vm-border tw-bg-white tw-px-3 tw-text-[0.82rem] tw-font-bold tw-text-slate-700"}
-                  value={groupBy}
-                  onChange={(selectedValue) => onGroupByChange(selectedValue as RevenueGroup)}
-                  options={[...revenueGroupOptions.map((option) => ({ label: option.label, value: option.value }))]} portal clearValue="" />
+        <div className="tw-w-[180px] max-[560px]:tw-w-full">
+          <SelectMenu ariaLabel="Nhóm doanh thu"
+                    triggerClassName={"tw-h-8 tw-w-full tw-rounded-vm-sm tw-border tw-border-solid tw-border-vm-border tw-bg-white tw-px-2.5 tw-text-[0.78rem] tw-font-bold tw-text-slate-700"}
+                    value={groupBy}
+                    onChange={(selectedValue) => onGroupByChange(selectedValue as RevenueGroup)}
+                    options={[...revenueGroupOptions.map((option) => ({ label: option.label, value: option.value }))]} portal clearValue="" />
+        </div>
       </div>
       <div className="tw-overflow-x-auto">
         <svg className="tw-min-w-[680px]" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Biểu đồ đường doanh thu">
@@ -665,7 +667,7 @@ function ParkingLotComparison({
         <span className="tw-text-[0.82rem] tw-font-extrabold tw-text-blue-700">{parkingLots.length} bãi</span>
       </div>
       <div className="tw-mt-4 tw-overflow-x-auto">
-        <table className="tw-w-full tw-min-w-[760px] tw-border-collapse">
+        <table className="tw-w-full tw-min-w-[680px] tw-border-collapse">
           <thead>
             <tr className="tw-border-0 tw-border-b tw-border-solid tw-border-slate-200 tw-text-left tw-text-[0.75rem] tw-font-black tw-uppercase tw-tracking-wide tw-text-slate-500">
               <th className="tw-px-3 tw-py-3">Bãi xe</th>
@@ -673,7 +675,6 @@ function ParkingLotComparison({
               <th className="tw-px-3 tw-py-3 tw-text-right">Xe đang gửi</th>
               <th className="tw-px-3 tw-py-3 tw-text-right">Sức chứa</th>
               <th className="tw-px-3 tw-py-3 tw-text-right">Lấp đầy</th>
-              <th className="tw-px-3 tw-py-3 tw-text-right">Thiết bị offline</th>
             </tr>
           </thead>
           <tbody>
@@ -688,9 +689,6 @@ function ParkingLotComparison({
                 <td className="tw-px-3 tw-py-3 tw-text-right tw-font-bold">{formatNumber(parkingLot.currentParkingCount)}</td>
                 <td className="tw-px-3 tw-py-3 tw-text-right tw-font-bold">{formatNumber(parkingLot.capacity)}</td>
                 <td className="tw-px-3 tw-py-3 tw-text-right tw-font-black tw-text-blue-700">{formatPercent(parkingLot.occupancyRate)}</td>
-                <td className={cn("tw-px-3 tw-py-3 tw-text-right tw-font-black", parkingLot.offlineDeviceCount > 0 ? "tw-text-red-600" : "tw-text-green-600")}>
-                  {formatNumber(parkingLot.offlineDeviceCount)}
-                </td>
               </tr>
             ))}
           </tbody>
@@ -745,8 +743,30 @@ export function DashboardPage() {
     };
   }, [filterDates.fromDate, requestedParkingLotId, selectedOrganizationId, toDate]);
 
-  const kpiCards = useMemo<KpiCardView[]>(
-    () => [
+  const kpiCards = useMemo<KpiCardView[]>(() => {
+    const checkOutCard: KpiCardView = {
+      icon: "fas fa-sign-out-alt",
+      kpi: overview.checkOutCount,
+      label: "Check-out",
+      tone: "orange",
+      value: formatNumber(overview.checkOutCount.value),
+    };
+    const platformFeeCard: KpiCardView = {
+      icon: "fas fa-coins",
+      kpi: overview.platformFeeRevenue,
+      label: "Phí nền tảng đã ghi nhận",
+      tone: "orange",
+      value: formatCurrency(overview.platformFeeRevenue.value),
+    };
+    const newCustomerCard: KpiCardView = {
+      icon: "fas fa-user-plus",
+      kpi: overview.userGrowth.newCustomerCount,
+      label: "Khách đăng ký mới",
+      tone: "purple",
+      value: formatNumber(overview.userGrowth.newCustomerCount.value),
+    };
+
+    return [
       ...(overview.scope.level === "PLATFORM" ? [{
         icon: "fas fa-building",
         kpi: emptyKpi,
@@ -771,51 +791,17 @@ export function DashboardPage() {
         value: formatCurrency(overview.totalRevenue.value),
       },
       {
-        icon: "fas fa-coins",
-        kpi: overview.platformFeeRevenue,
-        label: "Phí nền tảng đã ghi nhận",
-        tone: "orange",
-        value: formatCurrency(overview.platformFeeRevenue.value),
-      },
-      {
         icon: "fas fa-sign-in-alt",
         kpi: overview.checkInCount,
         label: "Check-in",
         tone: "blue",
         value: formatNumber(overview.checkInCount.value),
       },
-      {
-        icon: "fas fa-sign-out-alt",
-        kpi: overview.checkOutCount,
-        label: "Check-out",
-        tone: "orange",
-        value: formatNumber(overview.checkOutCount.value),
-      },
-      {
-        icon: "fas fa-car-side",
-        kpi: overview.currentParkingCount,
-        label: "Xe đang gửi",
-        tone: "purple",
-        value: formatNumber(overview.currentParkingCount.value),
-      },
-      {
-        icon: "fas fa-tachometer-alt",
-        kpi: overview.occupancyRate,
-        label: "Tỷ lệ lấp đầy",
-        tone: "cyan",
-        value: formatPercent(overview.occupancyRate.value),
-      },
-      {
-        icon: "fas fa-triangle-exclamation",
-        kpi: emptyKpi,
-        label: "Thiết bị offline",
-        showChange: false,
-        tone: "purple",
-        value: formatNumber(overview.networkSummary.offlineDeviceCount),
-      },
-    ],
-    [overview],
-  );
+      ...(overview.scope.level === "PLATFORM"
+        ? [checkOutCard, platformFeeCard]
+        : [newCustomerCard, platformFeeCard, checkOutCard]),
+    ];
+  }, [overview]);
 
   const growthCards = useMemo<GrowthCardView[]>(
     () => [
@@ -928,7 +914,7 @@ export function DashboardPage() {
         </div>
       ) : null}
 
-      <section className={cn("tw-mt-5 tw-grid tw-grid-cols-4 tw-gap-4 max-[1450px]:tw-grid-cols-2 max-[560px]:tw-grid-cols-1", loading ? "tw-opacity-70" : "")}>
+      <section className={cn("tw-mt-5 tw-grid tw-grid-cols-3 tw-gap-4 max-[1080px]:tw-grid-cols-2 max-[560px]:tw-grid-cols-1", loading ? "tw-opacity-70" : "")}>
         {kpiCards.map((card) => <KpiCard key={card.label} card={card} />)}
       </section>
 

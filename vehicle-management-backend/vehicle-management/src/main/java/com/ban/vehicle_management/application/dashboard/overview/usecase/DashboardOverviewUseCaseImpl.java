@@ -106,7 +106,7 @@ public class DashboardOverviewUseCaseImpl implements DashboardOverviewPortIn {
 
         UserGrowthOverviewResponse userGrowth = selection.level().equals("PLATFORM")
                 ? loadPlatformGrowth(period)
-                : emptyGrowth();
+                : loadScopedRegistrationGrowth(period, parkingLotIds);
         List<DashboardParkingLotSummaryResponse> parkingLotSummaries = buildParkingLotSummaries(
                 selection.selectedParkingLots(), parkingLotIds, snapshotAt);
 
@@ -322,9 +322,19 @@ public class DashboardOverviewUseCaseImpl implements DashboardOverviewPortIn {
                 toKpi(BigDecimal.valueOf(currentVehicles), BigDecimal.valueOf(previousVehicles)));
     }
 
-    private UserGrowthOverviewResponse emptyGrowth() {
+    private UserGrowthOverviewResponse loadScopedRegistrationGrowth(
+            DashboardPeriod period,
+            Set<UUID> parkingLotIds
+    ) {
+        long currentCustomers = dashboardOverviewPortOut.countNewRegisteredCustomers(
+                period.fromInstant(), period.toInstantExclusive(), parkingLotIds);
+        long previousCustomers = dashboardOverviewPortOut.countNewRegisteredCustomers(
+                period.previousFromInstant(), period.previousToInstantExclusive(), parkingLotIds);
         DashboardKpiResponse empty = toKpi(BigDecimal.ZERO, BigDecimal.ZERO);
-        return new UserGrowthOverviewResponse(empty, empty, empty);
+        return new UserGrowthOverviewResponse(
+                empty,
+                toKpi(BigDecimal.valueOf(currentCustomers), BigDecimal.valueOf(previousCustomers)),
+                empty);
     }
 
     private DashboardPeriod resolvePeriod(LocalDate fromDate, LocalDate toDate) {

@@ -132,6 +132,8 @@ class DashboardOverviewUseCaseImplTest {
         when(organizationPortOut.findAllByIds(Set.of(ORGANIZATION_ID)))
                 .thenReturn(List.of(organization(ORGANIZATION_ID, "Partner A")));
         stubOverviewMetrics();
+        when(dashboardOverviewPortOut.countNewRegisteredCustomers(any(), any(), anySet()))
+                .thenReturn(6L, 2L);
 
         DashboardOverviewResponse result = useCase.getOverview(
                 LocalDate.of(2026, 7, 1), LocalDate.of(2026, 7, 7), null, null);
@@ -141,6 +143,9 @@ class DashboardOverviewUseCaseImplTest {
         assertEquals(ORGANIZATION_ID, result.scope().organizationId());
         assertEquals(Set.of(PARKING_LOT_ID), result.parkingLots().stream()
                 .map(item -> item.parkingLotId()).collect(java.util.stream.Collectors.toSet()));
+        assertEquals(BigDecimal.valueOf(6), result.userGrowth().newCustomerCount().value());
+        assertEquals(BigDecimal.valueOf(200).setScale(2),
+                result.userGrowth().newCustomerCount().changePercent());
         verify(dashboardOverviewPortOut, never()).countNewAccounts(any(), any());
     }
 
