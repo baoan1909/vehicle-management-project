@@ -7,10 +7,6 @@ import { useAuth } from "@/core/auth/useAuth";
 import type { AdminSidebarEntry, AdminSidebarIcon, AdminSidebarLeaf } from "../../types/common";
 import { hasAnyPermission, hasResolvedPermissions } from "@/shared/auth/permissions";
 import { cn } from "@/lib/cn";
-import { PlatformMonitoringScopePicker } from "./PlatformMonitoringScopePicker";
-import { usePlatformMonitoringScope } from "@/shared/monitoring/PlatformMonitoringScope";
-
-const scopedMonitoringPaths = new Set(["/admin/parking-lots", "/admin/parking-structure", "/admin/parking-layouts", "/admin/parking-live", "/admin/swipe/sessions", "/admin/card"]);
 let expandedSidebarScrollTop = 0;
 
 const postOnboardingGroupAnchors: Record<string, string> = {
@@ -177,12 +173,8 @@ interface AdminSidebarProps {
 export function AdminSidebar({ collapsed, offsetTop = 72, onCollapsedChange }: AdminSidebarProps) {
   const location = useLocation();
   const { isAccessLoading, user } = useAuth();
-  const { scope } = usePlatformMonitoringScope();
   const isPermissionLoading = Boolean(user && !hasResolvedPermissions(user) && isAccessLoading);
   const canUsePlatformNavigation = hasAnyPermission(user, ["ORGANIZATION_CREATE_ALL"]);
-  const canSelectMonitoringScope = canUsePlatformNavigation
-    && hasAnyPermission(user, ["ORGANIZATION_READ_ALL"])
-    && hasAnyPermission(user, ["PARKING_LOT_READ_ALL"]);
   const visibleNavigation = useMemo(() => getVisibleAdminNavigation(user), [user]);
   const [expandedGroupLabel, setExpandedGroupLabel] = useState<string | null>(() => getActiveGroupLabel(visibleNavigation, location.pathname));
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -246,7 +238,6 @@ export function AdminSidebar({ collapsed, offsetTop = 72, onCollapsedChange }: A
             <p className="tw-m-0 tw-mt-1 tw-text-sm tw-font-extrabold tw-text-vm-slate-900">Quản trị toàn hệ thống</p>
           </div>
         ) : null}
-        {!collapsed && canSelectMonitoringScope && !isPermissionLoading ? <PlatformMonitoringScopePicker /> : null}
         <nav className="tw-grid tw-gap-2" role="menu" aria-label="CoParking admin navigation">
           {isPermissionLoading ? (
             <div className={cn("tw-flex tw-min-h-[48px] tw-items-center tw-gap-3 tw-rounded-vm-sm tw-bg-brand-50 tw-px-3 tw-text-[0.9rem] tw-font-extrabold tw-text-vm-primary", collapsed ? "tw-justify-center" : "")}>
@@ -292,16 +283,6 @@ export function AdminSidebar({ collapsed, offsetTop = 72, onCollapsedChange }: A
             }
 
             const active = isPathMatch(location.pathname, entry.matches);
-
-            if (entry.monitoring && scope.level !== "ALL" && !scopedMonitoringPaths.has(entry.to)) {
-              return collapsed ? null : (
-                <div key={entry.label} className="tw-flex tw-min-h-[42px] tw-items-center tw-gap-3 tw-rounded-vm-sm tw-px-3 tw-text-[0.82rem] tw-font-semibold tw-text-slate-400" title="Trang này chưa hỗ trợ lọc theo đối tác hoặc bãi xe. Chọn Toàn sàn để xem.">
-                  <span className="tw-inline-flex tw-h-9 tw-w-9 tw-flex-shrink-0 tw-items-center tw-justify-center tw-rounded-vm-sm tw-bg-slate-50"><SidebarIcon icon={entry.icon} /></span>
-                  <span className="tw-min-w-0 tw-truncate">{entry.label}</span>
-                  <span className="tw-ml-auto tw-shrink-0 tw-text-[0.6rem]">Chưa lọc</span>
-                </div>
-              );
-            }
 
             return (
               <NavLink

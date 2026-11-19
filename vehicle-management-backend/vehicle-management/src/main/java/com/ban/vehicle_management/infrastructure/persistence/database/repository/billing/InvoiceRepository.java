@@ -47,6 +47,17 @@ public interface InvoiceRepository extends JpaRepository<InvoiceEntity, UUID>, J
     BigDecimal sumPaidRevenue(@Param("from") Instant from, @Param("to") Instant to);
 
     @Query(value = """
+            select coalesce(sum(final_amount), 0)
+            from billing.invoices
+            where status = 'PAID' and paid_at >= :from and paid_at < :to
+              and parking_lot_id in (:parkingLotIds)
+            """, nativeQuery = true)
+    BigDecimal sumPaidRevenueForParkingLots(
+            @Param("from") Instant from,
+            @Param("to") Instant to,
+            @Param("parkingLotIds") Collection<UUID> parkingLotIds);
+
+    @Query(value = """
             select cast(paid_at at time zone cast(:zoneId as text) as date) as "date",
                    coalesce(sum(final_amount), 0) as "revenue"
             from billing.invoices
@@ -58,6 +69,21 @@ public interface InvoiceRepository extends JpaRepository<InvoiceEntity, UUID>, J
             @Param("from") Instant from,
             @Param("to") Instant to,
             @Param("zoneId") String zoneId);
+
+    @Query(value = """
+            select cast(paid_at at time zone cast(:zoneId as text) as date) as "date",
+                   coalesce(sum(final_amount), 0) as "revenue"
+            from billing.invoices
+            where status = 'PAID' and paid_at >= :from and paid_at < :to
+              and parking_lot_id in (:parkingLotIds)
+            group by "date"
+            order by "date"
+            """, nativeQuery = true)
+    List<RevenueByDateProjection> findRevenueByDateForParkingLots(
+            @Param("from") Instant from,
+            @Param("to") Instant to,
+            @Param("zoneId") String zoneId,
+            @Param("parkingLotIds") Collection<UUID> parkingLotIds);
 
     @Query("""
             select invoice

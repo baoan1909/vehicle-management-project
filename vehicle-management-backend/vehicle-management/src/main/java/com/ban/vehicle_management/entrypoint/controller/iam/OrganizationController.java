@@ -97,7 +97,7 @@ public class OrganizationController {
     }
 
     @GetMapping("/{organizationId}/parking-lots/{parkingLotId}/parking-managers")
-    @PreAuthorize("@permissionAuthorizer.hasPermission('ORGANIZATION_MEMBERSHIP_MANAGE_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('ORGANIZATION_READ_ALL')")
     public ResponseEntity<ApiResponse<ParkingManagerScopeAdminResponse>> getAssignedParkingManagers(
             @PathVariable UUID organizationId,
             @PathVariable UUID parkingLotId

@@ -125,7 +125,7 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
     public List<ProvisionedAccountResult> getProvisionedAccounts(ProvisionedAccountFilterCommand command) {
         currentAccountPortIn.requirePermission(ACCOUNT_READ_ALL);
         List<ProvisionedAccountResult> accounts = provisionedAccountPortOut.findProvisionedAccounts(
-                normalizeFilterCommand(command, managedTargetRolesForCurrentAccount())
+                normalizeFilterCommand(command, readableTargetRolesForCurrentAccount())
         );
         return accounts.stream().filter(this::isWithinCurrentAccountScope).toList();
     }
@@ -348,6 +348,18 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
             throw new AccessDeniedException("Current account is not allowed to manage provisioned accounts");
         }
         return managedRoleCodes;
+    }
+
+    private Set<AdminProvisionableAccountRoleCode> readableTargetRolesForCurrentAccount() {
+        Set<AdminProvisionableAccountRoleCode> readableRoleCodes = managedTargetRolesForCurrentAccount();
+        if (!currentAccountPortIn.getCurrentAccountOrThrow().getEffectivePermissionCodes()
+                .contains(OrganizationAccessGuard.PARKING_SCOPE_PLATFORM)) {
+            return readableRoleCodes;
+        }
+        java.util.HashSet<AdminProvisionableAccountRoleCode> platformReadableRoleCodes =
+                new java.util.HashSet<>(readableRoleCodes);
+        platformReadableRoleCodes.add(AdminProvisionableAccountRoleCode.PARKING_MANAGER);
+        return Set.copyOf(platformReadableRoleCodes);
     }
 
     private void ensureCanManageTargetRole(String targetRoleCode) {

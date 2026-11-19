@@ -54,6 +54,36 @@ export type DeviceStatusItemResponse = {
   offlineCount: number;
 };
 
+export type DashboardScopeLevel = "PLATFORM" | "PARTNER" | "ASSIGNED_LOTS" | "PARKING_LOT";
+
+export type DashboardScopeResponse = {
+  level: DashboardScopeLevel;
+  organizationId: string | null;
+  organizations: Array<{ name: string; organizationId: string }>;
+  parkingLotId: string | null;
+  parkingLots: Array<{ name: string; organizationId: string; parkingLotId: string }>;
+  title: string;
+};
+
+export type DashboardNetworkSummaryResponse = {
+  activeParkingLotCount: number;
+  offlineDeviceCount: number;
+  organizationCount: number;
+  parkingLotCount: number;
+  totalCapacity: number;
+};
+
+export type DashboardParkingLotSummaryResponse = {
+  capacity: number;
+  currentParkingCount: number;
+  name: string;
+  occupancyRate: number;
+  offlineDeviceCount: number;
+  organizationId: string;
+  parkingLotId: string;
+  status: "SETUP" | "ACTIVE" | "MAINTENANCE" | "CLOSED";
+};
+
 export type DashboardOverviewResponse = {
   cardStatus: CardStatusOverviewResponse;
   checkInCount: DashboardKpiResponse;
@@ -61,8 +91,12 @@ export type DashboardOverviewResponse = {
   currentParkingCount: DashboardKpiResponse;
   deviceStatus: DeviceStatusItemResponse[];
   fromDate: string;
+  networkSummary: DashboardNetworkSummaryResponse;
   occupancyRate: DashboardKpiResponse;
+  parkingLots: DashboardParkingLotSummaryResponse[];
+  platformFeeRevenue: DashboardKpiResponse;
   revenueTrend: RevenueTrendPointResponse[];
+  scope: DashboardScopeResponse;
   toDate: string;
   totalRevenue: DashboardKpiResponse;
   userGrowth: UserGrowthOverviewResponse;
@@ -71,12 +105,16 @@ export type DashboardOverviewResponse = {
 
 export type DashboardOverviewFilter = {
   fromDate?: string;
+  organizationId?: string;
+  parkingLotId?: string;
   toDate?: string;
 };
 
 export async function getDashboardOverview(filters: DashboardOverviewFilter = {}) {
   const searchParams = new URLSearchParams();
   if (filters.fromDate) searchParams.set("fromDate", filters.fromDate);
+  if (filters.organizationId) searchParams.set("organizationId", filters.organizationId);
+  if (filters.parkingLotId) searchParams.set("parkingLotId", filters.parkingLotId);
   if (filters.toDate) searchParams.set("toDate", filters.toDate);
 
   const queryString = searchParams.toString();

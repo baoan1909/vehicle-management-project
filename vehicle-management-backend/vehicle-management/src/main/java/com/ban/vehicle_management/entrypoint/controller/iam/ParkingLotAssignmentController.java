@@ -69,7 +69,7 @@ public class ParkingLotAssignmentController {
     }
 
     @GetMapping("/organizations/{organizationId}/parking-lots/{parkingLotId}/management-history")
-    @PreAuthorize("@permissionAuthorizer.hasPermission('ORGANIZATION_MEMBERSHIP_MANAGE_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('ORGANIZATION_READ_ALL')")
     public ResponseEntity<ApiResponse<List<ParkingLotManagementAssignmentAdminResponse>>> getHistory(
             @PathVariable UUID organizationId, @PathVariable UUID parkingLotId) {
         return ResponseEntity.ok(ApiResponse.ok(

@@ -159,10 +159,20 @@ public class OrganizationUseCaseImpl implements OrganizationPortIn {
     @Override
     @Transactional(readOnly = true)
     public Set<UUID> getAssignedParkingManagerAccountIds(UUID organizationId, UUID parkingLotId) {
-        currentAccountPortIn.requirePermission(ORGANIZATION_MEMBERSHIP_MANAGE_ALL);
-        organizationAccessGuard.ensureCanManageOrganization(organizationId);
+        currentAccountPortIn.requirePermission(ORGANIZATION_READ_ALL);
+        organizationAccessGuard.ensureCanAccessOrganization(organizationId);
         if (!organizationPortOut.allParkingLotsBelongToOrganization(organizationId, Set.of(parkingLotId))) {
             throw new NotFoundException("Parking lot not found in organization");
+        }
+        if (parkingLotAssignmentPortIn != null) {
+            Instant now = Instant.now();
+            return parkingLotAssignmentPortIn.getManagementHistory(organizationId, parkingLotId).stream()
+                    .filter(item -> com.ban.vehicle_management.shared.enumeration.iam.ManagementAssignmentStatus.ACTIVE
+                            .equals(item.getStatus()))
+                    .filter(item -> item.getEffectiveFrom() == null || !item.getEffectiveFrom().isAfter(now))
+                    .filter(item -> item.getEffectiveTo() == null || item.getEffectiveTo().isAfter(now))
+                    .map(com.ban.vehicle_management.domain.iam.organization.model.ParkingLotManagementAssignment::getManagerAccountId)
+                    .collect(java.util.stream.Collectors.toUnmodifiableSet());
         }
         return organizationPortOut.findActiveParkingManagerAccountIdsByParkingLotId(parkingLotId);
     }
