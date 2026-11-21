@@ -141,7 +141,9 @@ public class InvoicePolicy {
 
     private void validatePurpose(Invoice invoice) {
         InvoicePurpose purpose = invoice.getPurpose();
-        if (purpose == InvoicePurpose.PARKING_SESSION && invoice.getParkingSessionId() == null) {
+        if ((purpose == InvoicePurpose.PARKING_SESSION
+                || purpose == InvoicePurpose.PARKING_SESSION_PREPAYMENT)
+                && invoice.getParkingSessionId() == null) {
             throw new BadRequestException("Parking-session invoice must reference a parking session");
         }
         if ((purpose == InvoicePurpose.SUBSCRIPTION_PURCHASE

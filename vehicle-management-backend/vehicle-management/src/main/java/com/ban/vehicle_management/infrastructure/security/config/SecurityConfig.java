@@ -118,6 +118,10 @@ public class SecurityConfig {
                                 "/api/public/parking/reservations/*/cancel",
                                 "/api/public/parking/reservations/*/payments/vnpay",
                                 "/api/public/parking/reservations/*/payments/sepay",
+                                "/api/public/parking/prepayments/lookup",
+                                "/api/public/parking/prepayments",
+                                "/api/public/parking/prepayments/*/status",
+                                "/api/public/parking/prepayments/*/qr",
                                 "/api/public/payments/sepay/webhook"
                         ).permitAll()
                         .anyRequest().authenticated()

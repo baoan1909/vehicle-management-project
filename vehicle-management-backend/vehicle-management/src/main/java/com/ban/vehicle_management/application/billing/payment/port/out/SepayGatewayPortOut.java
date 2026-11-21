@@ -11,6 +11,8 @@ public interface SepayGatewayPortOut {
     SepayPaymentInstruction createPaymentInstruction(
             String transactionRef, BigDecimal amount, Instant createdAt);
 
+    byte[] downloadPaymentQr(String transactionRef, BigDecimal amount, Instant createdAt);
+
     SepayWebhookData verifyWebhook(SepayWebhookCommand command);
 
     String transactionPrefix();

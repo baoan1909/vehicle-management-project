@@ -53,6 +53,9 @@ public class CustomerAccountDeletionPolicy {
                     "Yêu cầu báo mất thẻ chưa được xử lý sẽ được tự động hủy.", scheduledAt)
                     : debt(invoice, "UNPAID_LOST_CARD_OBLIGATION");
             case PARKING_SESSION -> debt(invoice, "UNPAID_CONSUMED_PARKING_INVOICE");
+            case PARKING_SESSION_PREPAYMENT -> automatic(invoice,
+                    "CANCEL_UNPAID_PARKING_PREPAYMENT",
+                    "Yêu cầu thanh toán trước chưa hoàn tất sẽ được tự động hủy.", scheduledAt);
             case MANUAL -> debt(invoice, "UNRESOLVED_CUSTOMER_DEBT");
         };
     }

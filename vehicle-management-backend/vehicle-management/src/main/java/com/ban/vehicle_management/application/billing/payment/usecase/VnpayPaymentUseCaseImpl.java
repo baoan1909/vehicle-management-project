@@ -27,6 +27,7 @@ import com.ban.vehicle_management.domain.billing.payment.model.Payment;
 import com.ban.vehicle_management.domain.billing.payment.policy.PaymentPolicy;
 import com.ban.vehicle_management.shared.enumeration.billing.FundCustody;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.PaymentMethod;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
@@ -111,7 +112,7 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
             command = new CreateVnpayPaymentCommand(null, "vn", null);
         }
 
-        Invoice invoice = invoicePortOut.findById(invoiceId)
+        Invoice invoice = invoicePortOut.findByIdForUpdate(invoiceId)
                 .orElseThrow(() -> new NotFoundException("Invoice not found"));
         if (guestAuthorized && invoice.getPurpose() != InvoicePurpose.RESERVATION_PREPAYMENT) {
             throw new ConflictException("Guest payment is limited to reservation invoices");
@@ -129,7 +130,7 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
                 invoiceId,
                 PaymentStatus.PENDING
         );
-        if (pendingPayment.isPresent()) {
+        if (pendingPayment.isPresent() && PaymentMethod.VNPAY.equals(pendingPayment.get().getPaymentMethod())) {
             VnpayPaymentResult reusablePayment = reusePendingPayment(
                     invoice,
                     pendingPayment.get(),
@@ -138,6 +139,9 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
             if (reusablePayment != null) {
                 return reusablePayment;
             }
+        } else if (pendingPayment.isPresent()
+                && paymentPolicy.isPendingWithinPaymentWindow(pendingPayment.get(), Instant.now())) {
+            throw new ConflictException("Another online payment is still pending for this invoice");
         }
 
         UUID paymentId = UUID.randomUUID();
@@ -226,7 +230,7 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
             return new VnpayIpnResult("01", "Order not found");
         }
 
-        Payment payment = paymentPortOut.findByTransactionRefForUpdate(callback.transactionRef())
+        Payment payment = lockCallbackPayment(callback.transactionRef())
                 .orElse(null);
         if (payment == null) {
             return new VnpayIpnResult("01", "Order not found");
@@ -260,9 +264,9 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
     @Transactional
     public VnpayReturnResult verifyReturn(VnpayCallbackCommand command) {
         VnpayCallbackData callback = verifyCallback(command);
-        Payment payment = StringUtils.hasText(callback.transactionRef())
-                ? paymentPortOut.findByTransactionRefForUpdate(callback.transactionRef()).orElse(null)
-                : null;
+        Payment payment = !StringUtils.hasText(callback.transactionRef()) ? null
+                : (callback.validSignature() ? lockCallbackPayment(callback.transactionRef())
+                : paymentPortOut.findByTransactionRef(callback.transactionRef())).orElse(null);
 
         if (callback.validSignature()
                 && payment != null
@@ -303,6 +307,12 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
                     "VNPAY requires a minimum payment amount of " + vnpayMinimumAmount.toPlainString() + " VND"
             );
         }
+    }
+
+    private Optional<Payment> lockCallbackPayment(String transactionRef) {
+        return paymentPortOut.findInvoiceIdByTransactionRef(transactionRef)
+                .flatMap(invoicePortOut::findByIdForUpdate)
+                .flatMap(invoice -> paymentPortOut.findByTransactionRefForUpdate(transactionRef));
     }
 
     private void completeSuccessfulPayment(Payment payment, VnpayCallbackData callback) {

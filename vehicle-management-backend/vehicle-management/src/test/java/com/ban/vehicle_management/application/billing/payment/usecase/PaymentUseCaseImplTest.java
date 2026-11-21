@@ -67,7 +67,7 @@ class PaymentUseCaseImplTest {
         Payment request = validPayment(PaymentMethod.BANK_TRANSFER);
 
         when(paymentAccessGuard.requireCanCreateAndGetAccountId()).thenReturn(receivedBy);
-        when(invoicePortOut.findById(invoiceId)).thenReturn(Optional.of(invoice));
+        when(invoicePortOut.findByIdForUpdate(invoiceId)).thenReturn(Optional.of(invoice));
         when(paymentPortOut.existsByInvoiceIdAndStatus(invoiceId, PaymentStatus.SUCCESS)).thenReturn(false);
         when(paymentPortOut.existsByTransactionRefAndStatus("VCB202606120001", PaymentStatus.SUCCESS)).thenReturn(false);
         when(paymentPortOut.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -98,7 +98,7 @@ class PaymentUseCaseImplTest {
         request.setTransactionRef(null);
 
         when(paymentAccessGuard.requireCanCreateAndGetAccountId()).thenReturn(UUID.randomUUID());
-        when(invoicePortOut.findById(invoiceId)).thenReturn(Optional.of(invoice));
+        when(invoicePortOut.findByIdForUpdate(invoiceId)).thenReturn(Optional.of(invoice));
         when(paymentPortOut.existsByInvoiceIdAndStatus(invoiceId, PaymentStatus.SUCCESS)).thenReturn(false);
         when(paymentPortOut.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(invoicePortOut.save(invoice)).thenReturn(invoice);
@@ -112,11 +112,27 @@ class PaymentUseCaseImplTest {
     }
 
     @Test
+    void shouldRejectCashWhileSepayPaymentIsActive() {
+        UUID invoiceId = UUID.randomUUID();
+        Payment pendingSepay = new Payment();
+        pendingSepay.setPaymentMethod(PaymentMethod.SEPAY);
+        pendingSepay.setStatus(PaymentStatus.PENDING);
+        pendingSepay.setExpiresAt(Instant.now().plusSeconds(600));
+        when(invoicePortOut.findByIdForUpdate(invoiceId)).thenReturn(Optional.of(unpaidInvoice(invoiceId)));
+        when(paymentPortOut.findFirstByInvoiceIdAndStatus(invoiceId, PaymentStatus.PENDING))
+                .thenReturn(Optional.of(pendingSepay));
+
+        assertThrows(ConflictException.class,
+                () -> paymentUseCase.recordPayment(invoiceId, validPayment(PaymentMethod.CASH)));
+        verify(paymentPortOut, never()).save(any(Payment.class));
+    }
+
+    @Test
     void shouldThrowWhenInvoiceNotFound() {
         UUID invoiceId = UUID.randomUUID();
 
         when(paymentAccessGuard.requireCanCreateAndGetAccountId()).thenReturn(UUID.randomUUID());
-        when(invoicePortOut.findById(invoiceId)).thenReturn(Optional.empty());
+        when(invoicePortOut.findByIdForUpdate(invoiceId)).thenReturn(Optional.empty());
 
         assertThrows(NotFoundException.class, () -> paymentUseCase.recordPayment(invoiceId, validPayment(PaymentMethod.BANK_TRANSFER)));
         verify(paymentPortOut, never()).save(any(Payment.class));
@@ -130,7 +146,7 @@ class PaymentUseCaseImplTest {
         invoice.setPaidAt(Instant.parse("2026-06-12T08:00:00Z"));
 
         when(paymentAccessGuard.requireCanCreateAndGetAccountId()).thenReturn(UUID.randomUUID());
-        when(invoicePortOut.findById(invoiceId)).thenReturn(Optional.of(invoice));
+        when(invoicePortOut.findByIdForUpdate(invoiceId)).thenReturn(Optional.of(invoice));
 
         assertThrows(ConflictException.class, () -> paymentUseCase.recordPayment(invoiceId, validPayment(PaymentMethod.BANK_TRANSFER)));
     }
@@ -142,7 +158,7 @@ class PaymentUseCaseImplTest {
         invoice.setStatus(InvoiceStatus.CANCELLED);
 
         when(paymentAccessGuard.requireCanCreateAndGetAccountId()).thenReturn(UUID.randomUUID());
-        when(invoicePortOut.findById(invoiceId)).thenReturn(Optional.of(invoice));
+        when(invoicePortOut.findByIdForUpdate(invoiceId)).thenReturn(Optional.of(invoice));
 
         assertThrows(ConflictException.class, () -> paymentUseCase.recordPayment(invoiceId, validPayment(PaymentMethod.BANK_TRANSFER)));
     }
@@ -154,7 +170,7 @@ class PaymentUseCaseImplTest {
         invoice.setFinalAmount(BigDecimal.ZERO);
 
         when(paymentAccessGuard.requireCanCreateAndGetAccountId()).thenReturn(UUID.randomUUID());
-        when(invoicePortOut.findById(invoiceId)).thenReturn(Optional.of(invoice));
+        when(invoicePortOut.findByIdForUpdate(invoiceId)).thenReturn(Optional.of(invoice));
 
         assertThrows(BadRequestException.class, () -> paymentUseCase.recordPayment(invoiceId, validPayment(PaymentMethod.BANK_TRANSFER)));
     }
@@ -166,7 +182,7 @@ class PaymentUseCaseImplTest {
         request.setAmount(new BigDecimal("200000"));
 
         when(paymentAccessGuard.requireCanCreateAndGetAccountId()).thenReturn(UUID.randomUUID());
-        when(invoicePortOut.findById(invoiceId)).thenReturn(Optional.of(unpaidInvoice(invoiceId)));
+        when(invoicePortOut.findByIdForUpdate(invoiceId)).thenReturn(Optional.of(unpaidInvoice(invoiceId)));
 
         assertThrows(BadRequestException.class, () -> paymentUseCase.recordPayment(invoiceId, request));
         verify(paymentPortOut, never()).save(any(Payment.class));
@@ -177,7 +193,7 @@ class PaymentUseCaseImplTest {
         UUID invoiceId = UUID.randomUUID();
 
         when(paymentAccessGuard.requireCanCreateAndGetAccountId()).thenReturn(UUID.randomUUID());
-        when(invoicePortOut.findById(invoiceId)).thenReturn(Optional.of(unpaidInvoice(invoiceId)));
+        when(invoicePortOut.findByIdForUpdate(invoiceId)).thenReturn(Optional.of(unpaidInvoice(invoiceId)));
         when(paymentPortOut.existsByInvoiceIdAndStatus(invoiceId, PaymentStatus.SUCCESS)).thenReturn(true);
 
         assertThrows(ConflictException.class, () -> paymentUseCase.recordPayment(invoiceId, validPayment(PaymentMethod.BANK_TRANSFER)));
@@ -189,7 +205,7 @@ class PaymentUseCaseImplTest {
         UUID invoiceId = UUID.randomUUID();
 
         when(paymentAccessGuard.requireCanCreateAndGetAccountId()).thenReturn(UUID.randomUUID());
-        when(invoicePortOut.findById(invoiceId)).thenReturn(Optional.of(unpaidInvoice(invoiceId)));
+        when(invoicePortOut.findByIdForUpdate(invoiceId)).thenReturn(Optional.of(unpaidInvoice(invoiceId)));
         when(paymentPortOut.existsByInvoiceIdAndStatus(invoiceId, PaymentStatus.SUCCESS)).thenReturn(false);
         when(paymentPortOut.existsByTransactionRefAndStatus("VCB202606120001", PaymentStatus.SUCCESS)).thenReturn(true);
 

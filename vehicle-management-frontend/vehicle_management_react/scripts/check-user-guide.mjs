@@ -310,7 +310,7 @@ assert.match(pricing, /anchorKey === "PRICING\.RULE\.PARKING_LOT"/);
 assert.match(pricing, /anchorKey === "PRICING\.RULE\.INITIALIZE_DRAFTS"/);
 assert.match(pricing, /setIsCreatePanelOpen\(!staysOnLotSetup\)/);
 assert.match(pricing, /Khung giờ chỉ áp dụng cho kế hoạch khách vãng lai/);
-assert.match(parkingSessionSummary, /Thao tác tiền mặt hoặc VNPay sẽ xuất hiện tại đây/);
+assert.match(parkingSessionSummary, /tiền mặt, SePay và VNPay sẽ xuất hiện khi có hóa đơn cần thanh toán/);
 assert.match(lostCard, /keepCancelGuideTargetVisible/);
 assert.match(subscription, /Không có quyền từ chối/);
 assert.match(catalogPage, /guideAnchorKey="CATALOG_TICKET\.LIST"/);

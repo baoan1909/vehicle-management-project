@@ -44,6 +44,7 @@ import com.ban.vehicle_management.domain.parking.parkingsession.model.ParkingSes
 import com.ban.vehicle_management.domain.parking.zone.model.Zone;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.InvoicePurpose;
 import com.ban.vehicle_management.shared.enumeration.parking.GateStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.LaneDirection;
 import com.ban.vehicle_management.shared.enumeration.parking.LaneStatus;
@@ -141,6 +142,21 @@ class ParkingCheckOutUseCaseImplTest {
     }
 
     @Test
+    void shouldNotCloseSessionWhenPrepaymentInvoiceIsPaid() {
+        UUID invoiceId = UUID.randomUUID();
+        Invoice invoice = new Invoice();
+        invoice.setInvoiceId(invoiceId);
+        invoice.setParkingSessionId(UUID.randomUUID());
+        invoice.setPurpose(InvoicePurpose.PARKING_SESSION_PREPAYMENT);
+        invoice.setStatus(InvoiceStatus.PAID);
+        when(invoicePortOut.findById(invoiceId)).thenReturn(Optional.of(invoice));
+
+        parkingCheckOutUseCase.completePaidCheckout(invoiceId);
+
+        verify(parkingSessionPortOut, never()).findByIdForUpdate(any());
+    }
+
+    @Test
     void shouldPrepareVisitorCheckoutWithoutClosingSession() {
         TestData data = validTestData();
         Card card = card(data.cardId(), data.vehicleTypeId(), CardStatus.IN_USE);
@@ -160,9 +176,11 @@ class ParkingCheckOutUseCaseImplTest {
                 .thenReturn(Optional.of(priceRule(data.vehicleTypeId(), new BigDecimal("10000"), LocalTime.of(20, 0), LocalTime.of(5, 59, 59))));
         when(fileStoragePort.store(any(StoreFileCommand.class))).thenReturn(storedLicensePlateFile, storedVehicleFile, storedPersonFile);
         when(parkingEventPortOut.save(any(ParkingEvent.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(invoicePortOut.findFirstByParkingSessionIdAndStatusIn(eq(data.parkingSessionId()), anyCollection()))
+        when(invoicePortOut.findFirstByParkingSessionIdAndPurposeAndStatusIn(
+                eq(data.parkingSessionId()), eq(InvoicePurpose.PARKING_SESSION), anyCollection()))
                 .thenReturn(Optional.empty());
-        when(invoicePortOut.existsByParkingSessionIdAndStatusIn(eq(data.parkingSessionId()), anyCollection()))
+        when(invoicePortOut.existsByParkingSessionIdAndPurposeAndStatusIn(
+                eq(data.parkingSessionId()), eq(InvoicePurpose.PARKING_SESSION), anyCollection()))
                 .thenReturn(false);
         when(invoicePortOut.save(any(Invoice.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(data.actorAccountId());

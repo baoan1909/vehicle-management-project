@@ -4,7 +4,9 @@ import { useSearchParams } from "react-router-dom";
 import { SelectMenu, useToast } from "@/components/ui";
 import { isApiError } from "@/core/api/apiError";
 import { useAuth } from "@/core/auth/useAuth";
+import type { SepayPaymentResponse } from "@/features/billing/api/invoicePaymentsApi";
 import {
+  createParkingSepayPayment,
   createParkingVnpayPayment,
   recordParkingCashPayment,
   VNPAY_MINIMUM_AMOUNT,
@@ -371,6 +373,13 @@ export function SwipeListPage() {
   const [personImage, setPersonImage] = useState<File | null>(null);
   const [checkOutPreview, setCheckOutPreview] = useState<ParkingSessionCheckOutPreviewResponse | null>(null);
   const [parkingSessionResult, setParkingSessionResult] = useState<ParkingSessionOperationResponse | null>(null);
+  const [sepayCheckout, setSepayCheckout] = useState<SepayPaymentResponse | null>(null);
+  const activeCheckoutInvoiceId = parkingSessionResult && "invoice" in parkingSessionResult
+    ? parkingSessionResult.invoice?.invoiceId
+    : undefined;
+  const activeSepayCheckout = mode === "check-out" && sepayCheckout?.invoiceId === activeCheckoutInvoiceId
+    ? sepayCheckout
+    : null;
   const [cardError, setCardError] = useState("");
   const [parkingLotError, setParkingLotError] = useState("");
   const [vehicleTypeError, setVehicleTypeError] = useState("");
@@ -1207,9 +1216,44 @@ export function SwipeListPage() {
       typeof checkOutPreview.estimatedTotalPrice === "number" &&
       checkOutPreview.estimatedTotalPrice < VNPAY_MINIMUM_AMOUNT
     ) {
-      setCheckOutPaymentMethod("CASH");
+      setCheckOutPaymentMethod((current) => current === "VNPAY" ? "SEPAY" : current);
     }
   }, [checkOutPreview?.customerType, checkOutPreview?.estimatedTotalPrice]);
+
+  useEffect(() => {
+    if (!activeSepayCheckout) return;
+    const { invoiceId, expiresAt } = activeSepayCheckout;
+    let active = true;
+    let timer: number | undefined;
+
+    async function checkPayment() {
+      try {
+        const result = await fetchParkingCheckOutByInvoice(invoiceId);
+        if (!active) return;
+        if (result.invoice?.status === "PAID" && result.barrierAction === "OPEN") {
+          setParkingSessionResult(result);
+          setSepayCheckout(null);
+          setPendingPaymentError("");
+          toast.success("Đã xác nhận thanh toán SePay và hoàn tất lượt xe ra.", "Thanh toán thành công");
+          return;
+        }
+      } catch {
+        if (!active) return;
+      }
+      if (Date.now() >= Date.parse(expiresAt)) {
+        setSepayCheckout(null);
+        setPendingPaymentError("Mã QR SePay đã hết hạn. Hãy kiểm tra khoản chuyển trước khi chọn thanh toán lại.");
+        return;
+      }
+      timer = window.setTimeout(() => void checkPayment(), 3000);
+    }
+
+    void checkPayment();
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [activeSepayCheckout, toast]);
 
   useEffect(() => {
     if (restoredPendingCheckoutRef.current) return;
@@ -1530,6 +1574,22 @@ export function SwipeListPage() {
     }
   }
 
+  async function handlePendingSepayPayment() {
+    if (!activeCheckoutInvoiceId || activeSepayCheckout) return;
+    setPendingPaymentError("");
+    setIsCompletingPendingPayment(true);
+    try {
+      const response = await createParkingSepayPayment(activeCheckoutInvoiceId);
+      setSepayCheckout(response.data);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Không thể tạo mã thanh toán SePay.";
+      setPendingPaymentError(message);
+      toast.error(message, "Không thể thanh toán SePay");
+    } finally {
+      setIsCompletingPendingPayment(false);
+    }
+  }
+
   async function handleSubmit() {
     setSubmitError("");
     setValidationShown(true);
@@ -1677,7 +1737,14 @@ export function SwipeListPage() {
               "Đã ghi nhận xe ra và thanh toán tiền mặt thành công.",
               "Thanh toán thành công",
             );
+          } else if (checkOutPaymentMethod === "SEPAY") {
+            const paymentResponse = await createParkingSepayPayment(invoice.invoiceId);
+            setPendingPaymentError("");
+            setSepayCheckout(paymentResponse.data);
           } else {
+            if (amount < VNPAY_MINIMUM_AMOUNT) {
+              throw new Error("VNPay yêu cầu hóa đơn từ 10.000 đồng. Vui lòng chọn SePay hoặc tiền mặt.");
+            }
             const paymentResponse = await createParkingVnpayPayment(invoice.invoiceId);
             if (!paymentResponse.data.paymentUrl) {
               throw new Error("Máy chủ không trả về đường dẫn thanh toán VNPAY.");
@@ -1945,7 +2012,9 @@ export function SwipeListPage() {
                 trackingMode={resolvedCheckOutTrackingMode}
                 zoneLabel={checkOutZoneLabel}
                 onPayCash={handleCompletePendingCashPayment}
+                onPaySepay={handlePendingSepayPayment}
                 onRetryVnpay={handleRetryPendingVnpayPayment}
+                sepayPayment={activeSepayCheckout}
               />
             </div>
           ) : null}

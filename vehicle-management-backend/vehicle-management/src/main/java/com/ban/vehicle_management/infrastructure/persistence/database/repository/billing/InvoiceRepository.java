@@ -100,6 +100,12 @@ public interface InvoiceRepository extends JpaRepository<InvoiceEntity, UUID>, J
 
     boolean existsByParkingSessionIdAndStatusIn(UUID parkingSessionId, Collection<InvoiceStatus> statuses);
 
+    boolean existsByParkingSessionIdAndPurposeAndStatusIn(
+            UUID parkingSessionId,
+            InvoicePurpose purpose,
+            Collection<InvoiceStatus> statuses
+    );
+
     boolean existsBySubscriptionIdAndStatusIn(UUID subcriptionId, Collection<InvoiceStatus> statuses);
 
     boolean existsBySubscriptionIdAndPurposeAndStatusIn(
@@ -126,6 +132,25 @@ public interface InvoiceRepository extends JpaRepository<InvoiceEntity, UUID>, J
     Optional<InvoiceEntity> findFirstByParkingSessionIdAndStatusIn(
             UUID parkingSessionId,
             Collection<InvoiceStatus> statuses
+    );
+
+    Optional<InvoiceEntity> findFirstByParkingSessionIdAndPurposeAndStatusIn(
+            UUID parkingSessionId,
+            InvoicePurpose purpose,
+            Collection<InvoiceStatus> statuses
+    );
+
+    @Query("""
+            select coalesce(sum(invoice.finalAmount), 0)
+            from InvoiceEntity invoice
+            where invoice.parkingSessionId = :parkingSessionId
+              and invoice.purpose = :purpose
+              and invoice.status = :status
+            """)
+    BigDecimal sumFinalAmountByParkingSessionIdAndPurposeAndStatus(
+            @Param("parkingSessionId") UUID parkingSessionId,
+            @Param("purpose") InvoicePurpose purpose,
+            @Param("status") InvoiceStatus status
     );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

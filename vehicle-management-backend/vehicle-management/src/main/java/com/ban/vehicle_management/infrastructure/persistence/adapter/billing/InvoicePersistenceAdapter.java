@@ -17,6 +17,7 @@ import com.ban.vehicle_management.shared.enumeration.billing.InvoicePurpose;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -157,6 +158,16 @@ public class InvoicePersistenceAdapter implements InvoicePortOut {
     }
 
     @Override
+    public boolean existsByParkingSessionIdAndPurposeAndStatusIn(
+            UUID parkingSessionId,
+            InvoicePurpose purpose,
+            Collection<InvoiceStatus> statuses
+    ) {
+        return invoiceRepository.existsByParkingSessionIdAndPurposeAndStatusIn(
+                parkingSessionId, purpose, statuses);
+    }
+
+    @Override
     public boolean existsBySubscriptionIdAndStatusIn(UUID subscriptionId, Collection<InvoiceStatus> statuses) {
         return invoiceRepository.existsBySubscriptionIdAndStatusIn(subscriptionId, statuses);
     }
@@ -210,6 +221,27 @@ public class InvoicePersistenceAdapter implements InvoicePortOut {
     ) {
         return invoiceRepository.findFirstByParkingSessionIdAndStatusIn(parkingSessionId, statuses)
                 .map(invoicePersistenceMapper::toDomain);
+    }
+
+    @Override
+    public Optional<Invoice> findFirstByParkingSessionIdAndPurposeAndStatusIn(
+            UUID parkingSessionId,
+            InvoicePurpose purpose,
+            Collection<InvoiceStatus> statuses
+    ) {
+        return invoiceRepository.findFirstByParkingSessionIdAndPurposeAndStatusIn(
+                        parkingSessionId, purpose, statuses)
+                .map(invoicePersistenceMapper::toDomain);
+    }
+
+    @Override
+    public BigDecimal sumFinalAmountByParkingSessionIdAndPurposeAndStatus(
+            UUID parkingSessionId,
+            InvoicePurpose purpose,
+            InvoiceStatus status
+    ) {
+        return invoiceRepository.sumFinalAmountByParkingSessionIdAndPurposeAndStatus(
+                parkingSessionId, purpose, status);
     }
 
     @Override
