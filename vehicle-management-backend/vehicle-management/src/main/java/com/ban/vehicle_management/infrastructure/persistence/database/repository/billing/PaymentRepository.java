@@ -50,6 +50,9 @@ public interface PaymentRepository extends JpaRepository<PaymentEntity, UUID>, J
 
     Optional<PaymentEntity> findByTransactionRef(String transactionRef);
 
+    @Query("select p.invoiceId from PaymentEntity p where p.transactionRef = :transactionRef")
+    Optional<UUID> findInvoiceIdByTransactionRef(@Param("transactionRef") String transactionRef);
+
     Optional<PaymentEntity> findByIdempotencyKey(String idempotencyKey);
 
     @Query(value = """

@@ -26,6 +26,7 @@ import com.ban.vehicle_management.application.parking.parkingsession.model.resul
 import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckOutResult;
 import com.ban.vehicle_management.application.parking.parkingsession.port.in.ParkingCheckoutCompletionPortIn;
 import com.ban.vehicle_management.application.parking.parkingsession.port.out.ParkingSessionPortOut;
+import com.ban.vehicle_management.application.parking.parkingsession.service.ParkingSessionChargeService;
 import com.ban.vehicle_management.application.parking.zone.port.out.ZonePortOut;
 import com.ban.vehicle_management.application.storage.model.StoreFileCommand;
 import com.ban.vehicle_management.application.storage.model.StoredFile;
@@ -129,10 +130,16 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
     private final ParkingCheckOutPolicy parkingCheckOutPolicy = new ParkingCheckOutPolicy();
     private final ParkingCheckoutPricePolicy parkingCheckoutPricePolicy = new ParkingCheckoutPricePolicy();
     private CustomerReservationPortOut reservationPortOut;
+    private ParkingSessionChargeService parkingSessionChargeService;
 
     @Autowired
     public void setReservationPortOut(CustomerReservationPortOut reservationPortOut) {
         this.reservationPortOut = reservationPortOut;
+    }
+
+    @Autowired
+    public void setParkingSessionChargeService(ParkingSessionChargeService parkingSessionChargeService) {
+        this.parkingSessionChargeService = parkingSessionChargeService;
     }
     private final ParkingLicensePlatePolicy licensePlatePolicy = new ParkingLicensePlatePolicy();
     private final ParkingSessionPolicy parkingSessionPolicy = new ParkingSessionPolicy();
@@ -276,15 +283,14 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
         }
 
         boolean subscriptionSession = isSubscriptionSession(parkingSession);
-        CustomerReservation reservation = reservationFor(parkingSession);
-        boolean prepaidCovered = reservation != null
+        boolean prepaidCovered = !subscriptionSession
                 && calculateVisitorPrice(parkingSession, now).signum() == 0;
         if (!subscriptionSession && !prepaidCovered) {
             throw new ConflictException("Visitor checkout must be prepared and paid before completion");
         }
         BigDecimal totalPrice = subscriptionSession
                 ? BigDecimal.ZERO
-                : reservation.getPrepaidAmount();
+                : calculateVisitorGrossPrice(parkingSession, now);
         String customerType = subscriptionSession ? CUSTOMER_TYPE_SUBSCRIPTION : CUSTOMER_TYPE_VISITOR;
         String barrierAction = BARRIER_ACTION_OPEN;
 
@@ -402,8 +408,9 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
             throw new ConflictException("Subscription checkout does not require payment preparation");
         }
 
-        Invoice existingInvoice = invoicePortOut.findFirstByParkingSessionIdAndStatusIn(
+        Invoice existingInvoice = invoicePortOut.findFirstByParkingSessionIdAndPurposeAndStatusIn(
                         parkingSession.getParkingSessionId(),
+                        InvoicePurpose.PARKING_SESSION,
                         ACTIVE_INVOICE_STATUSES
                 )
                 .orElse(null);
@@ -420,7 +427,7 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
         }
 
         BigDecimal totalPrice = calculateVisitorPrice(parkingSession, now);
-        if (totalPrice.signum() == 0 && reservationFor(parkingSession) != null) {
+        if (totalPrice.signum() == 0 && prepaidFor(parkingSession).signum() > 0) {
             return checkOut(command);
         }
         UUID actorAccountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
@@ -551,7 +558,8 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
     public void completePaidCheckout(UUID invoiceId) {
         Invoice invoice = invoicePortOut.findById(invoiceId)
                 .orElseThrow(() -> new NotFoundException("Invoice not found"));
-        if (invoice.getParkingSessionId() == null) {
+        if (invoice.getPurpose() != InvoicePurpose.PARKING_SESSION
+                || invoice.getParkingSessionId() == null) {
             return;
         }
         if (!InvoiceStatus.PAID.equals(invoice.getStatus())) {
@@ -755,6 +763,9 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
     }
 
     private BigDecimal calculateVisitorPrice(ParkingSession parkingSession, Instant checkOutTime) {
+        if (parkingSessionChargeService != null) {
+            return parkingSessionChargeService.amountDue(parkingSession, checkOutTime);
+        }
         CustomerReservation reservation = reservationFor(parkingSession);
         if (reservation != null) {
             if (reservation.getPaidAt() == null) {
@@ -799,12 +810,22 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
         );
     }
 
+    private BigDecimal calculateVisitorGrossPrice(ParkingSession parkingSession, Instant checkOutTime) {
+        if (parkingSessionChargeService != null) {
+            return parkingSessionChargeService.grossAmount(parkingSession, checkOutTime);
+        }
+        return calculateVisitorPrice(parkingSession, checkOutTime).add(prepaidFor(parkingSession));
+    }
+
     private CustomerReservation reservationFor(ParkingSession session) {
         return reservationPortOut == null ? null
                 : reservationPortOut.findBySessionId(session.getParkingSessionId()).orElse(null);
     }
 
     private BigDecimal prepaidFor(ParkingSession session) {
+        if (parkingSessionChargeService != null) {
+            return parkingSessionChargeService.successfulPrepaidAmount(session);
+        }
         CustomerReservation reservation = reservationFor(session);
         return reservation == null ? BigDecimal.ZERO : reservation.getPrepaidAmount();
     }
@@ -813,8 +834,9 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
         if (totalPrice.compareTo(BigDecimal.ZERO) == 0) {
             return null;
         }
-        if (invoicePortOut.existsByParkingSessionIdAndStatusIn(
+        if (invoicePortOut.existsByParkingSessionIdAndPurposeAndStatusIn(
                 parkingSession.getParkingSessionId(),
+                InvoicePurpose.PARKING_SESSION,
                 ACTIVE_INVOICE_STATUSES
         )) {
             throw new ConflictException("Active invoice already exists for parking session");

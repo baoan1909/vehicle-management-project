@@ -9,7 +9,7 @@ import { cn } from "@/lib/cn";
 import type { ParkingOperationMode } from "./OperationModeTabs";
 
 type OcrStatus = "idle" | "recognizing" | "success" | "review" | "error";
-export type CheckOutPaymentMethod = "CASH" | "VNPAY";
+export type CheckOutPaymentMethod = "CASH" | "SEPAY" | "VNPAY";
 export type ValidationChipState = "idle" | "loading" | "valid" | "invalid" | "stale";
 
 export type ParkingOperationValidationChip = {
@@ -589,6 +589,12 @@ export function ParkingOperationForm({
                     value: "CASH" as const,
                   },
                   {
+                    description: "Quét QR để chuyển khoản",
+                    icon: "fas fa-qrcode",
+                    label: "SePay",
+                    value: "SEPAY" as const,
+                  },
+                  {
                     description: "Thanh toán qua cổng VNPAY",
                     icon: "fas fa-qrcode",
                     label: "VNPAY",
@@ -647,7 +653,7 @@ export function ParkingOperationForm({
             {vnpayUnavailable ? (
               <div className="tw-flex tw-items-start tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-amber-200 tw-bg-amber-50 tw-px-3 tw-py-2 tw-text-[0.74rem] tw-font-bold tw-leading-snug tw-text-amber-700">
                 <i className="fas fa-info-circle tw-mt-0.5" />
-                VNPAY Sandbox chỉ áp dụng cho hóa đơn từ 10.000 đồng. Hóa đơn này cần thanh toán bằng tiền mặt.
+                VNPay chỉ áp dụng cho hóa đơn từ 10.000 đồng. Bạn có thể dùng SePay hoặc tiền mặt.
               </div>
             ) : null}
           </div>
@@ -687,6 +693,8 @@ export function ParkingOperationForm({
               ? "Xác nhận check-in"
               : requiresPayment && checkOutPaymentMethod === "VNPAY"
                 ? "Tiếp tục thanh toán qua VNPAY"
+                : requiresPayment && checkOutPaymentMethod === "SEPAY"
+                  ? "Tạo QR thanh toán SePay"
                 : requiresPayment
                   ? "Xác nhận tiền mặt và checkout"
                   : "Xác nhận check-out"}

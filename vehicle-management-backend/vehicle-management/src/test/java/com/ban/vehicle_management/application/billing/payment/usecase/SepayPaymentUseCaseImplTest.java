@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePortOut;
+import com.ban.vehicle_management.application.billing.payment.authorization.PaymentAccessGuard;
 import com.ban.vehicle_management.application.billing.payment.model.command.SepayWebhookCommand;
 import com.ban.vehicle_management.application.billing.payment.model.result.SepayPaymentInstruction;
 import com.ban.vehicle_management.application.billing.payment.model.result.SepayWebhookData;
@@ -19,6 +20,8 @@ import com.ban.vehicle_management.application.billing.payment.port.out.SepayGate
 import com.ban.vehicle_management.application.billing.payment.port.out.SepayQuotaPortOut;
 import com.ban.vehicle_management.application.parking.customerreservation.port.in.CustomerReservationPaymentPortIn;
 import com.ban.vehicle_management.application.parking.customerreservation.port.in.CustomerReservationPortIn;
+import com.ban.vehicle_management.application.parking.parkingsession.port.in.ParkingCheckoutCompletionPortIn;
+import com.ban.vehicle_management.application.parking.parkingsessionprepayment.port.in.ParkingSessionPrepaymentPortIn;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.domain.billing.payment.model.Payment;
 import com.ban.vehicle_management.domain.billing.payment.policy.PaymentPolicy;
@@ -40,6 +43,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 
 @ExtendWith(MockitoExtension.class)
 class SepayPaymentUseCaseImplTest {
@@ -50,6 +54,9 @@ class SepayPaymentUseCaseImplTest {
     @Mock private CustomerReservationPortIn reservations;
     @Mock private CustomerReservationPaymentPortIn reservationPayments;
     @Mock private PaymentCompletionPortIn paymentCompletion;
+    @Mock private PaymentAccessGuard paymentAccessGuard;
+    @Mock private ParkingCheckoutCompletionPortIn parkingCheckoutCompletion;
+    @Mock private ParkingSessionPrepaymentPortIn parkingSessionPrepayments;
 
     private SepayPaymentUseCaseImpl useCase;
 
@@ -57,7 +64,9 @@ class SepayPaymentUseCaseImplTest {
     void setUp() {
         useCase = new SepayPaymentUseCaseImpl(
                 payments, invoices, gateway, quota, reservations,
-                reservationPayments, paymentCompletion, BigDecimal.valueOf(10_000));
+                reservationPayments, paymentCompletion, paymentAccessGuard,
+                parkingCheckoutCompletion, BigDecimal.valueOf(10_000));
+        useCase.setParkingSessionPrepayments(parkingSessionPrepayments);
         lenient().when(gateway.transactionPrefix()).thenReturn("CPR");
     }
 
@@ -118,6 +127,7 @@ class SepayPaymentUseCaseImplTest {
         when(gateway.verifyWebhook(command)).thenReturn(new SepayWebhookData(
                 true, payment.getTransactionRef(), payment.getAmount(), "FT123", "MBBank",
                 "0123", "in", paidAt));
+        when(payments.findInvoiceIdByTransactionRef(payment.getTransactionRef())).thenReturn(Optional.of(invoiceId));
         when(payments.findByTransactionRefForUpdate(payment.getTransactionRef()))
                 .thenReturn(Optional.of(payment));
         when(payments.existsByPaymentMethodAndProviderTransactionNo(PaymentMethod.SEPAY, "FT123"))
@@ -140,11 +150,138 @@ class SepayPaymentUseCaseImplTest {
         when(gateway.verifyWebhook(command)).thenReturn(new SepayWebhookData(
                 true, payment.getTransactionRef(), BigDecimal.ONE, "FT123", "MBBank",
                 "0123", "in", Instant.now()));
+        when(payments.findInvoiceIdByTransactionRef(payment.getTransactionRef()))
+                .thenReturn(Optional.of(payment.getInvoiceId()));
+        when(invoices.findByIdForUpdate(payment.getInvoiceId()))
+                .thenReturn(Optional.of(unpaidReservationInvoice(payment.getInvoiceId(), "8000")));
         when(payments.findByTransactionRefForUpdate(payment.getTransactionRef()))
                 .thenReturn(Optional.of(payment));
 
         assertThrows(BadRequestException.class, () -> useCase.processWebhook(command));
         verify(invoices, never()).save(any());
+    }
+
+    @Test
+    void recordsSessionPrepaymentWithoutCompletingParkingCheckout() {
+        UUID invoiceId = UUID.randomUUID();
+        Payment payment = pendingSepayPayment(invoiceId);
+        Invoice invoice = unpaidReservationInvoice(invoiceId, "8000");
+        invoice.setPurpose(InvoicePurpose.PARKING_SESSION_PREPAYMENT);
+        invoice.setParkingSessionId(UUID.randomUUID());
+        Instant paidAt = Instant.parse("2026-11-13T03:00:00Z");
+        SepayWebhookCommand command = new SepayWebhookCommand(new byte[] {1}, "signature", "1");
+        when(gateway.verifyWebhook(command)).thenReturn(new SepayWebhookData(
+                true, payment.getTransactionRef(), payment.getAmount(), "FT-PREPAY", "MBBank",
+                "0123", "in", paidAt));
+        when(payments.findInvoiceIdByTransactionRef(payment.getTransactionRef())).thenReturn(Optional.of(invoiceId));
+        when(payments.findByTransactionRefForUpdate(payment.getTransactionRef()))
+                .thenReturn(Optional.of(payment));
+        when(payments.existsByPaymentMethodAndProviderTransactionNo(
+                PaymentMethod.SEPAY, "FT-PREPAY")).thenReturn(false);
+        when(invoices.findByIdForUpdate(invoiceId)).thenReturn(Optional.of(invoice));
+        when(payments.save(payment)).thenReturn(payment);
+
+        useCase.processWebhook(command);
+
+        verify(parkingSessionPrepayments).onPaymentConfirmed(invoiceId, paidAt);
+        verify(reservationPayments, never()).onPaymentConfirmed(any(), any());
+        verify(parkingCheckoutCompletion, never()).completePaidCheckout(any());
+        verify(paymentCompletion).completePaymentTruth(payment.getPaymentId());
+    }
+
+    @Test
+    void reusesCheckoutQrForTheSameInvoiceWithoutConsumingQuotaTwice() {
+        UUID invoiceId = UUID.randomUUID();
+        var invoice = unpaidCheckoutInvoice(invoiceId, "8000");
+        var payment = pendingSepayPayment(invoiceId);
+        when(invoices.findByIdForUpdate(invoiceId)).thenReturn(Optional.of(invoice));
+        when(payments.findFirstByInvoiceIdAndStatus(invoiceId, PaymentStatus.PENDING)).thenReturn(Optional.of(payment));
+        when(gateway.createPaymentInstruction(payment.getTransactionRef(), payment.getAmount(), payment.getCreatedAt()))
+                .thenReturn(new SepayPaymentInstruction("https://vietqr.app/example", "VCB", "0123", "TEST",
+                        payment.getTransactionRef(), payment.getExpiresAt()));
+
+        var result = useCase.createParkingCheckoutPayment(invoiceId);
+
+        assertEquals(payment.getPaymentId(), result.paymentId());
+        verify(paymentAccessGuard).requireCanCreateAndGetAccountId();
+        verify(paymentAccessGuard).ensureCanRecordPayment(invoice);
+        verify(quota, never()).tryAcquire(any(), any(Integer.class));
+    }
+
+    @Test
+    void createsCheckoutQrWithoutCompletingParkingSession() {
+        UUID invoiceId = UUID.randomUUID();
+        var invoice = unpaidCheckoutInvoice(invoiceId, "8000");
+        Instant expiresAt = Instant.now().plusSeconds(600);
+        when(invoices.findByIdForUpdate(invoiceId)).thenReturn(Optional.of(invoice));
+        when(payments.findFirstByInvoiceIdAndStatus(invoiceId, PaymentStatus.PENDING))
+                .thenReturn(Optional.empty());
+        when(gateway.monthlyTransactionLimit()).thenReturn(50);
+        when(quota.tryAcquire(any(YearMonth.class), any(Integer.class))).thenReturn(true);
+        when(gateway.createPaymentInstruction(any(), any(), any()))
+                .thenAnswer(invocation -> new SepayPaymentInstruction(
+                        "https://vietqr.app/example", "VCB", "0123", "TEST",
+                        invocation.getArgument(0), expiresAt));
+        when(payments.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var result = useCase.createParkingCheckoutPayment(invoiceId);
+
+        assertEquals(invoiceId, result.invoiceId());
+        verify(parkingCheckoutCompletion, never()).completePaidCheckout(any());
+        verify(paymentCompletion, never()).completePaymentTruth(any());
+    }
+
+    @Test
+    void rejectsCheckoutPaymentOutsideTheOperatorsParkingLot() {
+        UUID invoiceId = UUID.randomUUID();
+        var invoice = unpaidCheckoutInvoice(invoiceId, "8000");
+        when(invoices.findByIdForUpdate(invoiceId)).thenReturn(Optional.of(invoice));
+        org.mockito.Mockito.doThrow(new AccessDeniedException("Outside parking lot scope"))
+                .when(paymentAccessGuard).ensureCanRecordPayment(invoice);
+
+        assertThrows(AccessDeniedException.class, () -> useCase.createParkingCheckoutPayment(invoiceId));
+        verify(payments, never()).save(any());
+    }
+
+    @Test
+    void rejectsNewCheckoutQrWhileVnpayPaymentIsActive() {
+        UUID invoiceId = UUID.randomUUID();
+        var invoice = unpaidCheckoutInvoice(invoiceId, "10000");
+        var pendingVnpay = new Payment();
+        pendingVnpay.setPaymentMethod(PaymentMethod.VNPAY);
+        pendingVnpay.setStatus(PaymentStatus.PENDING);
+        pendingVnpay.setExpiresAt(Instant.now().plusSeconds(600));
+        when(invoices.findByIdForUpdate(invoiceId)).thenReturn(Optional.of(invoice));
+        when(payments.findFirstByInvoiceIdAndStatus(invoiceId, PaymentStatus.PENDING))
+                .thenReturn(Optional.of(pendingVnpay));
+
+        assertThrows(ConflictException.class, () -> useCase.createParkingCheckoutPayment(invoiceId));
+        verify(payments, never()).save(any());
+        verify(quota, never()).tryAcquire(any(), any(Integer.class));
+    }
+
+    @Test
+    void checkoutCompletesOnceAfterVerifiedSepayPayment() {
+        UUID invoiceId = UUID.randomUUID();
+        var invoice = unpaidCheckoutInvoice(invoiceId, "8000");
+        var payment = pendingSepayPayment(invoiceId);
+        var paidAt = Instant.now();
+        var command = new SepayWebhookCommand(new byte[] {1}, "signature", "1");
+        when(gateway.verifyWebhook(command)).thenReturn(new SepayWebhookData(
+                true, payment.getTransactionRef(), payment.getAmount(), "FT-CHECKOUT", "MBBank",
+                "0123", "in", paidAt));
+        when(payments.findInvoiceIdByTransactionRef(payment.getTransactionRef())).thenReturn(Optional.of(invoiceId));
+        when(invoices.findByIdForUpdate(invoiceId)).thenReturn(Optional.of(invoice));
+        when(payments.findByTransactionRefForUpdate(payment.getTransactionRef())).thenReturn(Optional.of(payment));
+        when(payments.save(payment)).thenReturn(payment);
+
+        useCase.processWebhook(command);
+        useCase.processWebhook(command);
+
+        assertEquals(InvoiceStatus.PAID, invoice.getStatus());
+        verify(paymentCompletion).completePaymentTruth(payment.getPaymentId());
+        verify(parkingCheckoutCompletion).completePaidCheckout(invoiceId);
+        verify(parkingSessionPrepayments, never()).onPaymentConfirmed(any(), any());
     }
 
     @Test
@@ -179,5 +316,12 @@ class SepayPaymentUseCaseImplTest {
                 Instant.now().minusSeconds(60), Instant.now().plusSeconds(540));
         payment.setFundCustody(FundCustody.PLATFORM);
         return payment;
+    }
+
+    private Invoice unpaidCheckoutInvoice(UUID invoiceId, String amount) {
+        Invoice invoice = unpaidReservationInvoice(invoiceId, amount);
+        invoice.setPurpose(InvoicePurpose.PARKING_SESSION);
+        invoice.setParkingSessionId(UUID.randomUUID());
+        return invoice;
     }
 }

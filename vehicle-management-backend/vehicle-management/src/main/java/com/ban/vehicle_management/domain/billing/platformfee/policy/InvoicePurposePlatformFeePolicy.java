@@ -12,7 +12,7 @@ public class InvoicePurposePlatformFeePolicy {
             throw new BadRequestException("Invoice purpose is required to resolve platform fees");
         }
         return switch (purpose) {
-            case PARKING_SESSION -> PlatformFeeTransactionType.PARKING_SESSION;
+            case PARKING_SESSION, PARKING_SESSION_PREPAYMENT -> PlatformFeeTransactionType.PARKING_SESSION;
             case SUBSCRIPTION_PURCHASE -> PlatformFeeTransactionType.SUBSCRIPTION_PURCHASE;
             case SUBSCRIPTION_RENEWAL -> PlatformFeeTransactionType.SUBSCRIPTION_RENEWAL;
             case SUBSCRIPTION_CARD_DEPOSIT -> PlatformFeeTransactionType.SUBSCRIPTION_CARD_DEPOSIT;

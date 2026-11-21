@@ -22,6 +22,8 @@ class InvoicePurposePlatformFeePolicyTest {
     private static Stream<Arguments> purposeMappings() {
         return Stream.of(
                 Arguments.of(InvoicePurpose.PARKING_SESSION, PlatformFeeTransactionType.PARKING_SESSION),
+                Arguments.of(InvoicePurpose.PARKING_SESSION_PREPAYMENT,
+                        PlatformFeeTransactionType.PARKING_SESSION),
                 Arguments.of(InvoicePurpose.SUBSCRIPTION_PURCHASE, PlatformFeeTransactionType.SUBSCRIPTION_PURCHASE),
                 Arguments.of(InvoicePurpose.SUBSCRIPTION_RENEWAL, PlatformFeeTransactionType.SUBSCRIPTION_RENEWAL),
                 Arguments.of(InvoicePurpose.SUBSCRIPTION_CARD_DEPOSIT,

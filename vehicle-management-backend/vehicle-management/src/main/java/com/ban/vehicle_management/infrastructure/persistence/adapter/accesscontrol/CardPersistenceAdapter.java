@@ -82,6 +82,18 @@ public class CardPersistenceAdapter implements CardPortOut {
     }
 
     @Override
+    public Optional<Card> findByCardNumber(String cardNumber) {
+        return cardRepository.findByCardNumber(cardNumber)
+                .map(cardPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public Optional<Card> findByCardNumberForUpdate(String cardNumber) {
+        return cardRepository.findByCardNumberForUpdate(cardNumber)
+                .map(cardPersistenceMapper::toDomain);
+    }
+
+    @Override
     public List<Card> findAll(CardStatus status, UUID cardTypeId, String keyword) {
         return cardRepository.findAll(CardSpecifications.withFilters(status, cardTypeId, keyword)).stream()
                 .map(cardPersistenceMapper::toDomain)

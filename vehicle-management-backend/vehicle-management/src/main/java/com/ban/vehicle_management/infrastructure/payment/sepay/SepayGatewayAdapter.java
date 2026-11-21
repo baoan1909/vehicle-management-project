@@ -5,9 +5,11 @@ import com.ban.vehicle_management.application.billing.payment.model.result.Sepay
 import com.ban.vehicle_management.application.billing.payment.model.result.SepayWebhookData;
 import com.ban.vehicle_management.application.billing.payment.port.out.SepayGatewayPortOut;
 import com.ban.vehicle_management.shared.exception.ConflictException;
+import com.ban.vehicle_management.shared.exception.ServiceUnavailableException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
@@ -18,24 +20,55 @@ import java.time.format.DateTimeParseException;
 import java.util.HexFormat;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.util.UriComponentsBuilder;
 
 @Component
 public class SepayGatewayAdapter implements SepayGatewayPortOut {
     private static final String HMAC_SHA_256 = "HmacSHA256";
     private static final String SIGNATURE_PREFIX = "sha256=";
+    private static final int MAX_QR_IMAGE_BYTES = 1024 * 1024;
     private static final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final DateTimeFormatter TRANSACTION_TIME =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final SepayProperties properties;
     private final ObjectMapper objectMapper;
+    private final RestClient qrClient;
 
     public SepayGatewayAdapter(SepayProperties properties, ObjectMapper objectMapper) {
         this.properties = properties;
         this.objectMapper = objectMapper;
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(3000);
+        requestFactory.setReadTimeout(5000);
+        this.qrClient = RestClient.builder().requestFactory(requestFactory).build();
+    }
+
+    @Override
+    public byte[] downloadPaymentQr(String transactionRef, BigDecimal amount, Instant createdAt) {
+        var instruction = createPaymentInstruction(transactionRef, amount, createdAt);
+        try {
+            return qrClient.get().uri(URI.create(instruction.qrCodeUrl())).accept(MediaType.IMAGE_PNG)
+                    .exchange((request, response) -> {
+                        if (!response.getStatusCode().is2xxSuccessful()
+                                || !MediaType.IMAGE_PNG.isCompatibleWith(response.getHeaders().getContentType())) {
+                            throw new ServiceUnavailableException("Unable to download the SePay QR image");
+                        }
+                        byte[] image = response.getBody().readNBytes(MAX_QR_IMAGE_BYTES + 1);
+                        if (image.length == 0 || image.length > MAX_QR_IMAGE_BYTES) {
+                            throw new ServiceUnavailableException("Invalid SePay QR image size");
+                        }
+                        return image;
+                    });
+        } catch (RestClientException exception) {
+            throw new ServiceUnavailableException("Unable to download the SePay QR image");
+        }
     }
 
     @Override

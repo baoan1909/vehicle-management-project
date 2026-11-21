@@ -47,6 +47,8 @@ public interface PaymentPortOut {
 
     Optional<Payment> findByTransactionRef(String transactionRef);
 
+    Optional<UUID> findInvoiceIdByTransactionRef(String transactionRef);
+
     Optional<Payment> findByTransactionRefForUpdate(String transactionRef);
 
     Optional<Payment> findByIdempotencyKey(String idempotencyKey);

@@ -58,6 +58,8 @@ public interface CardRepository extends JpaRepository<CardEntity, UUID>, JpaSpec
 
     Optional<CardEntity> findByUid(String uid);
 
+    Optional<CardEntity> findByCardNumber(String cardNumber);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select card from CardEntity card where card.cardId = :cardId")
     Optional<CardEntity> findByIdForUpdate(@Param("cardId") UUID cardId);
@@ -69,6 +71,10 @@ public interface CardRepository extends JpaRepository<CardEntity, UUID>, JpaSpec
             where card.uid = :uid
             """)
     Optional<CardEntity> findByUidForUpdate(@Param("uid") String uid);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select card from CardEntity card where card.cardNumber = :cardNumber")
+    Optional<CardEntity> findByCardNumberForUpdate(@Param("cardNumber") String cardNumber);
 
     boolean existsByCardNumberAndCardIdNot(String cardNumber, UUID cardId);
 

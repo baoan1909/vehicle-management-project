@@ -47,6 +47,24 @@ export type VnpayPaymentResponse = {
   transactionRef: string;
 };
 
+export type SepayPaymentResponse = {
+  paymentId: string;
+  invoiceId: string;
+  transactionRef: string;
+  qrCodeUrl: string;
+  bankCode: string;
+  accountNumber: string;
+  accountHolder: string;
+  expiresAt: string;
+};
+
+export function createSepayInvoicePayment(invoiceId: string) {
+  return apiClient<ApiResponse<SepayPaymentResponse>>(
+    `${apiEndpoints.billing.invoices}/${invoiceId}/payments/sepay`,
+    { method: "POST" },
+  );
+}
+
 function buildQuery(filter: Record<string, string | undefined>) {
   const params = new URLSearchParams();
   Object.entries(filter).forEach(([key, value]) => {

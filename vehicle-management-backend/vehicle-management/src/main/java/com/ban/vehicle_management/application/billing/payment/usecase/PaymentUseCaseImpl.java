@@ -65,7 +65,7 @@ public class PaymentUseCaseImpl implements PaymentPortIn {
     public Payment recordPayment(UUID invoiceId, Payment payment) {
         UUID receivedBy = paymentAccessGuard.requireCanCreateAndGetAccountId();
 
-        Invoice invoice = invoicePortOut.findById(invoiceId)
+        Invoice invoice = invoicePortOut.findByIdForUpdate(invoiceId)
                 .orElseThrow(() -> new NotFoundException("Invoice not found"));
         paymentAccessGuard.ensureCanRecordPayment(invoice);
 
@@ -73,7 +73,7 @@ public class PaymentUseCaseImpl implements PaymentPortIn {
         validatePaymentAmount(payment, invoice);
         validateNoSuccessfulPayment(invoiceId);
         validateManualPaymentMethod(payment);
-        failPendingVnpayPayment(invoiceId);
+        handlePendingOnlinePayment(invoiceId);
 
         payment.setPaymentId(UUID.randomUUID());
         paymentPolicy.initializeSuccessfulPayment(payment, invoiceId, receivedBy, Instant.now());
@@ -97,9 +97,16 @@ public class PaymentUseCaseImpl implements PaymentPortIn {
         return savedPayment;
     }
 
-    private void failPendingVnpayPayment(UUID invoiceId) {
+    private void handlePendingOnlinePayment(UUID invoiceId) {
         paymentPortOut.findFirstByInvoiceIdAndStatus(invoiceId, PaymentStatus.PENDING)
                 .ifPresent(pendingPayment -> {
+                    if (PaymentMethod.SEPAY.equals(pendingPayment.getPaymentMethod())
+                            && paymentPolicy.isPendingWithinPaymentWindow(pendingPayment, Instant.now())) {
+                        throw new ConflictException("Another online payment is still pending for this invoice");
+                    }
+                    if (!PaymentMethod.VNPAY.equals(pendingPayment.getPaymentMethod())) {
+                        return;
+                    }
                     paymentPolicy.markVnpayFailed(
                             pendingPayment,
                             null,
