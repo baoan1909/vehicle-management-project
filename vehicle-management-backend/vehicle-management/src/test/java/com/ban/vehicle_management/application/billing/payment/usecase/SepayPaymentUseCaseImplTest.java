@@ -209,6 +209,29 @@ class SepayPaymentUseCaseImplTest {
     }
 
     @Test
+    void createsCheckoutQrWithoutCompletingParkingSession() {
+        UUID invoiceId = UUID.randomUUID();
+        var invoice = unpaidCheckoutInvoice(invoiceId, "8000");
+        Instant expiresAt = Instant.now().plusSeconds(600);
+        when(invoices.findByIdForUpdate(invoiceId)).thenReturn(Optional.of(invoice));
+        when(payments.findFirstByInvoiceIdAndStatus(invoiceId, PaymentStatus.PENDING))
+                .thenReturn(Optional.empty());
+        when(gateway.monthlyTransactionLimit()).thenReturn(50);
+        when(quota.tryAcquire(any(YearMonth.class), any(Integer.class))).thenReturn(true);
+        when(gateway.createPaymentInstruction(any(), any(), any()))
+                .thenAnswer(invocation -> new SepayPaymentInstruction(
+                        "https://vietqr.app/example", "VCB", "0123", "TEST",
+                        invocation.getArgument(0), expiresAt));
+        when(payments.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var result = useCase.createParkingCheckoutPayment(invoiceId);
+
+        assertEquals(invoiceId, result.invoiceId());
+        verify(parkingCheckoutCompletion, never()).completePaidCheckout(any());
+        verify(paymentCompletion, never()).completePaymentTruth(any());
+    }
+
+    @Test
     void rejectsCheckoutPaymentOutsideTheOperatorsParkingLot() {
         UUID invoiceId = UUID.randomUUID();
         var invoice = unpaidCheckoutInvoice(invoiceId, "8000");

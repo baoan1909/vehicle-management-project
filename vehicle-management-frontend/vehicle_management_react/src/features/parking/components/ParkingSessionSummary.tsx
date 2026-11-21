@@ -251,7 +251,7 @@ export function ParkingSessionSummary({
                 <strong className="tw-text-[0.82rem] tw-font-extrabold tw-text-amber-800">Hóa đơn chưa thanh toán</strong>
                 <span className="tw-text-[0.74rem] tw-font-semibold tw-leading-snug tw-text-amber-700">
                   {sepayPayment
-                    ? "Đang chờ SePay xác nhận. Lượt xe ra sẽ tự hoàn tất sau khi nhận thanh toán."
+                    ? "Mã QR đã được tạo. Phiên gửi xe vẫn đang mở và sẽ tự hoàn tất sau khi SePay xác nhận thanh toán."
                     : "Chọn hình thức thanh toán cho hóa đơn."}
                 </span>
               </div>

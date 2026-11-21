@@ -1231,9 +1231,7 @@ export function SwipeListPage() {
         const result = await fetchParkingCheckOutByInvoice(invoiceId);
         if (!active) return;
         if (result.invoice?.status === "PAID" && result.barrierAction === "OPEN") {
-          setParkingSessionResult(result);
-          setSepayCheckout(null);
-          setPendingPaymentError("");
+          resetCompletedCheckOut(result);
           toast.success("Đã xác nhận thanh toán SePay và hoàn tất lượt xe ra.", "Thanh toán thành công");
           return;
         }
@@ -1465,6 +1463,33 @@ export function SwipeListPage() {
     setOcrStatus("idle");
     setOcrMessage("");
     setOcrResult(null);
+  }
+
+  function resetCompletedCheckOut(result: ParkingSessionCheckOutResponse) {
+    const completedCardId = result.parkingSession.cardId;
+    if (completedCardId) {
+      setCards((currentCards) => currentCards.filter((card) => card.cardId !== completedCardId));
+    }
+    setCardUid("");
+    setSubscriptionQrPayload("");
+    setReservationQrPayload("");
+    setSubscriptionQrLicensePlate("");
+    setVehicleTypeId("");
+    setLicensePlate("");
+    setCommittedLicensePlate("");
+    setNote("");
+    setLicensePlateImage(null);
+    setVehicleImage(null);
+    setPersonImage(null);
+    setCheckOutPreview(null);
+    setParkingSessionResult(null);
+    setSepayCheckout(null);
+    setPendingPaymentError("");
+    setValidationShown(false);
+    resetOcrState();
+    ocrRequestSeq.current += 1;
+    lastAutoCapturedCardRef.current = "";
+    setCameraResetKey((current) => current + 1);
   }
   function formatConfidence(value?: number | null) {
     if (typeof value !== "number" || !Number.isFinite(value)) return "";
@@ -1741,6 +1766,11 @@ export function SwipeListPage() {
             const paymentResponse = await createParkingSepayPayment(invoice.invoiceId);
             setPendingPaymentError("");
             setSepayCheckout(paymentResponse.data);
+            toast.success(
+              "Mã QR SePay đã sẵn sàng. Phiên gửi xe vẫn đang mở và sẽ chỉ hoàn tất sau khi SePay xác nhận thanh toán.",
+              "Đang chờ thanh toán",
+            );
+            return;
           } else {
             if (amount < VNPAY_MINIMUM_AMOUNT) {
               throw new Error("VNPay yêu cầu hóa đơn từ 10.000 đồng. Vui lòng chọn SePay hoặc tiền mặt.");
