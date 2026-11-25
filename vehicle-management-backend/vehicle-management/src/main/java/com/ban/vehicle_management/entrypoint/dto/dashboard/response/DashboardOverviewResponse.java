@@ -6,7 +6,10 @@ import java.util.List;
 public record DashboardOverviewResponse(
         LocalDate fromDate,
         LocalDate toDate,
+        DashboardScopeResponse scope,
+        DashboardNetworkSummaryResponse networkSummary,
         DashboardKpiResponse totalRevenue,
+        DashboardKpiResponse platformFeeRevenue,
         DashboardKpiResponse checkInCount,
         DashboardKpiResponse checkOutCount,
         DashboardKpiResponse currentParkingCount,
@@ -15,6 +18,7 @@ public record DashboardOverviewResponse(
         VehicleTypeRatioResponse vehicleTypeRatio,
         CardStatusOverviewResponse cardStatus,
         UserGrowthOverviewResponse userGrowth,
-        List<DeviceStatusItemResponse> deviceStatus
+        List<DeviceStatusItemResponse> deviceStatus,
+        List<DashboardParkingLotSummaryResponse> parkingLots
 ) {
 }

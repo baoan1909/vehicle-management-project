@@ -63,6 +63,22 @@ class ParkingLotAssignmentUseCaseImplTest {
     }
 
     @Test
+    void systemAdminCanReadManagementHistoryWithoutManagementPermission() {
+        UUID organizationId = UUID.randomUUID();
+        UUID lotId = UUID.randomUUID();
+        ParkingLotManagementAssignment assignment = managementAssignment(UUID.randomUUID(), lotId);
+        when(organizationPortOut.allParkingLotsBelongToOrganization(organizationId, Set.of(lotId)))
+                .thenReturn(true);
+        when(assignmentPortOut.findManagementHistory(lotId)).thenReturn(List.of(assignment));
+
+        List<ParkingLotManagementAssignment> result = useCase.getManagementHistory(organizationId, lotId);
+
+        assertEquals(List.of(assignment), result);
+        verify(currentAccountPortIn).requirePermission("ORGANIZATION_READ_ALL");
+        verify(organizationAccessGuard).ensureCanAccessOrganization(organizationId);
+    }
+
+    @Test
     void emergencyManagerRevocationKeepsEmployeeAssignmentsAndMovesLotToPartnerSupervision() {
         UUID managerId = UUID.randomUUID();
         UUID lotId = UUID.randomUUID();

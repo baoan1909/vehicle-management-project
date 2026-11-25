@@ -19,6 +19,7 @@ import type { ParkingAddressValue } from "@/features/parking/components/ParkingA
 import { ParkingAddressSearchDropdown } from "@/features/parking/components/ParkingAddressSearchDropdown";
 import { lookupParkingByPlate, type ParkingPlateLookup } from "@/features/parking/api/customerReservationApi";
 import { CustomerReservationPage } from "@/features/parking/pages/CustomerReservationPage";
+import { ParkingPrepaymentPanel } from "@/features/parking/components/ParkingPrepaymentPanel";
 import { UnderlineTabs } from "@/shared/components/ui/UnderlineTabs";
 import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 import { useAuth } from "@/core/auth/useAuth";
@@ -148,7 +149,7 @@ export function NearbyParkingLotsPage() {
   const [selectedLotId, setSelectedLotId] = useState<string | null>(null);
   const [focusedLot, setFocusedLot] = useState<FocusedParkingLot | null>(null);
   const [bookingLotId, setBookingLotId] = useState<string | null>(null);
-  const [lookupOpen, setLookupOpen] = useState(false);
+  const [resultsTab, setResultsTab] = useState<"nearby" | "lookup" | "prepayment">("nearby");
   const [lookupPlate, setLookupPlate] = useState("");
   const [lookupResult, setLookupResult] = useState<ParkingPlateLookup | null>(null);
   const [lookupBusy, setLookupBusy] = useState(false);
@@ -185,14 +186,14 @@ export function NearbyParkingLotsPage() {
 
   useEffect(() => {
     if (activeGuide?.code !== "CUSTOMER_NEARBY_PARKING_DISCOVERY") return;
-    setLookupOpen(currentStep?.anchorKey === "CUSTOMER.NEARBY.PLATE_LOOKUP");
+    setResultsTab(currentStep?.anchorKey === "CUSTOMER.NEARBY.PLATE_LOOKUP" ? "lookup" : "nearby");
   }, [activeGuide?.code, currentStep?.anchorKey]);
 
   useEffect(() => {
-    if (!lookupOpen || !lookupResult?.reservations.length) return;
+    if (resultsTab !== "lookup" || !lookupResult?.reservations.length) return;
     const timer = window.setInterval(() => setLookupNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, [lookupOpen, lookupResult]);
+  }, [resultsTab, lookupResult]);
 
   async function submitPlateLookup() {
     if (!lookupPlate.trim()) return;
@@ -277,7 +278,7 @@ export function NearbyParkingLotsPage() {
     setError(null);
     setShowFallback(false);
     setPickingEnabled(false);
-    setLookupOpen(false);
+    setResultsTab("nearby");
 
     if (import.meta.env.PROD && !window.isSecureContext) {
       void recordGeolocationOutcome("INSECURE_CONTEXT").catch(() => undefined);
@@ -355,7 +356,7 @@ export function NearbyParkingLotsPage() {
       setLocationLabel(location.displayName);
       setAddress(nextAddress);
       setPickingEnabled(false);
-      setLookupOpen(false);
+      setResultsTab("nearby");
       await searchNearby(point);
       return true;
     } catch (caught) {
@@ -372,7 +373,7 @@ export function NearbyParkingLotsPage() {
     setPickingEnabled(false);
     setError(null);
     setNotice("Đã chọn điểm trên bản đồ và đang tìm bãi xe gần đó.");
-    setLookupOpen(false);
+    setResultsTab("nearby");
     void searchNearby(point);
     if (featureStatus?.geocodingProviderEnabled) {
       void reversePublicParkingLocation(point.latitude, point.longitude)
@@ -388,13 +389,13 @@ export function NearbyParkingLotsPage() {
     if (open) { setPickingEnabled(false); setNotice(null); }
   }
 
-  function selectResultsTab(lookup: boolean) {
-    if (lookup === lookupOpen) return;
+  function selectResultsTab(tab: "nearby" | "lookup" | "prepayment") {
+    if (tab === resultsTab) return;
     lookupSequence.current += 1;
     setLookupBusy(false);
     setLookupNow(Date.now());
-    setLookupOpen(lookup);
-    if (!lookup) setFocusedLot(null);
+    setResultsTab(tab);
+    if (tab !== "lookup") setFocusedLot(null);
   }
 
   function handleRadiusChange(nextRadius: number) {
@@ -579,11 +580,11 @@ export function NearbyParkingLotsPage() {
           </div>
 
           <div className="tw-min-w-0">
-            <UnderlineTabs value={lookupOpen ? "lookup" : "nearby"} onChange={(tab) => selectResultsTab(tab === "lookup")}
-              tabs={[{ label: "Kết quả gần nhất", value: "nearby" }, { label: "Tra cứu vị trí đỗ xe", value: "lookup" }]}
+            <UnderlineTabs value={resultsTab} onChange={(tab) => selectResultsTab(tab as "nearby" | "lookup" | "prepayment")}
+              tabs={[{ label: "Kết quả gần nhất", value: "nearby" }, { label: "Tra cứu vị trí đỗ xe", value: "lookup" }, { label: "Thanh toán trước", value: "prepayment" }]}
               ariaLabel="Kết quả và tra cứu bãi xe" idPrefix="parking" className="tw-mb-4" />
 
-              <section data-user-guide-anchor="CUSTOMER.NEARBY.PLATE_LOOKUP" id="parking-lookup-panel" role="tabpanel" aria-labelledby="parking-lookup-tab" hidden={!lookupOpen} tabIndex={0} className="tw-space-y-3">
+              <section data-user-guide-anchor="CUSTOMER.NEARBY.PLATE_LOOKUP" id="parking-lookup-panel" role="tabpanel" aria-labelledby="parking-lookup-tab" hidden={resultsTab !== "lookup"} tabIndex={0} className="tw-space-y-3">
                 <h2 className="tw-mb-3 tw-mt-0 tw-text-2xl tw-font-black tw-text-slate-950">Tra cứu vị trí đỗ xe</h2>
                 <form onSubmit={(event) => { event.preventDefault(); void submitPlateLookup(); }}
                   className="tw-flex tw-flex-wrap tw-gap-2 tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-p-3 tw-shadow-sm">
@@ -651,7 +652,12 @@ export function NearbyParkingLotsPage() {
                 })}
               </section>
 
-            <section data-user-guide-anchor="CUSTOMER.NEARBY.RESULT_LIST" id="parking-nearby-panel" role="tabpanel" aria-labelledby="parking-nearby-tab" hidden={lookupOpen} tabIndex={0}>
+            <section id="parking-prepayment-panel" role="tabpanel" aria-labelledby="parking-prepayment-tab"
+              hidden={resultsTab !== "prepayment"} tabIndex={0}>
+              <ParkingPrepaymentPanel />
+            </section>
+
+            <section data-user-guide-anchor="CUSTOMER.NEARBY.RESULT_LIST" id="parking-nearby-panel" role="tabpanel" aria-labelledby="parking-nearby-tab" hidden={resultsTab !== "nearby"} tabIndex={0}>
               <div data-user-guide-anchor="CUSTOMER.NEARBY.LOT_ACTIONS" className="tw-mb-3 tw-flex tw-items-end tw-justify-between tw-gap-3">
                 <h2 className="tw-m-0 tw-text-2xl tw-font-black tw-text-slate-950">Bãi xe trong {radiusKm} km</h2>
                 {userLocation && !isSearching ? <span className="tw-text-sm tw-font-bold tw-text-slate-500">{lots.length} bãi</span> : null}

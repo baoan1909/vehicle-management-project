@@ -28,7 +28,9 @@ public class DashboardOverviewController {
     ) {
         DashboardOverviewResponse response = dashboardOverviewPortIn.getOverview(
                 request.fromDate(),
-                request.toDate()
+                request.toDate(),
+                request.organizationId(),
+                request.parkingLotId()
         );
 
         return ResponseEntity.ok(ApiResponse.ok(

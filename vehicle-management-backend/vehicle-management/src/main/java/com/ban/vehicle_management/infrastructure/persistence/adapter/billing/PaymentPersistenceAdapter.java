@@ -111,6 +111,11 @@ public class PaymentPersistenceAdapter implements PaymentPortOut {
     }
 
     @Override
+    public Optional<UUID> findInvoiceIdByTransactionRef(String transactionRef) {
+        return paymentRepository.findInvoiceIdByTransactionRef(transactionRef);
+    }
+
+    @Override
     public Optional<Payment> findByTransactionRefForUpdate(String transactionRef) {
         return paymentRepository.findByTransactionRefForUpdate(transactionRef)
                 .map(paymentPersistenceMapper::toDomain);

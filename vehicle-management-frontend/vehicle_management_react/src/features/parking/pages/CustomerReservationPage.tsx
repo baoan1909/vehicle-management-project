@@ -1,6 +1,7 @@
 import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
+import { VNPAY_MINIMUM_AMOUNT } from "@/features/billing/api/invoicePaymentsApi";
 import { LayoutCanvas, type CanvasSelection, type LayoutSpaceVisualState } from "@/features/parking/components/LayoutCanvas";
 
 import { getPublicParkingLotDirectory, type PublicParkingLotDirectoryItem } from "@/features/parking/api/publicParkingApi";
@@ -312,7 +313,7 @@ export function CustomerReservationPage({ modalParkingLotId, modalReservationId,
             ) : (
               <button disabled={busy} type="button" onClick={() => void payPending(current)}
                 className="tw-rounded-lg tw-border-0 tw-bg-blue-700 tw-px-4 tw-py-2 tw-font-bold tw-text-white">
-                Tiếp tục thanh toán
+                Tiếp tục thanh toán qua {current.prepaidAmount < VNPAY_MINIMUM_AMOUNT ? "SePay" : "VNPay"}
               </button>
             )
           ) : null}
@@ -406,7 +407,9 @@ export function CustomerReservationPage({ modalParkingLotId, modalReservationId,
             || !policyAccepted || selectedZone.trackingMode === "SPACE" && !parkingSpaceId}
             onClick={() => void submit()}
             className="tw-w-full tw-rounded-lg tw-border-0 tw-bg-blue-700 tw-p-3 tw-font-bold tw-text-white disabled:tw-opacity-50">
-            {busy ? "Đang xử lý..." : `Xác nhận và thanh toán ${money(selectedZone?.prepaidAmount ?? 0)}`}
+            {busy ? "Đang xử lý..." : `Xác nhận và thanh toán ${money(selectedZone?.prepaidAmount ?? 0)} qua ${
+              (selectedZone?.prepaidAmount ?? 0) < VNPAY_MINIMUM_AMOUNT ? "SePay" : "VNPay"
+            }`}
           </button>
         </section>
       ) : null}

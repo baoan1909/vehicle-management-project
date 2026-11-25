@@ -1,5 +1,5 @@
 import { apiClient } from "@/core/api/apiClient";
-import { createVnpayInvoicePayment, VNPAY_MINIMUM_AMOUNT, type VnpayPaymentResponse } from "@/features/billing/api/invoicePaymentsApi";
+import { createVnpayInvoicePayment, VNPAY_MINIMUM_AMOUNT, type SepayPaymentResponse, type VnpayPaymentResponse } from "@/features/billing/api/invoicePaymentsApi";
 import { storeVnpayReturnTarget } from "@/features/billing/utils/vnpayReturnTarget";
 import type { LayoutElementApi, LayoutSpaceItemApi } from "@/features/parking/api/parkingLayoutApi";
 
@@ -50,17 +50,6 @@ export type ReservationPaymentStart = {
   bankCode: string | null;
   accountNumber: string | null;
   accountHolder: string | null;
-  expiresAt: string;
-};
-
-type SepayPaymentResponse = {
-  paymentId: string;
-  invoiceId: string;
-  transactionRef: string;
-  qrCodeUrl: string;
-  bankCode: string;
-  accountNumber: string;
-  accountHolder: string;
   expiresAt: string;
 };
 

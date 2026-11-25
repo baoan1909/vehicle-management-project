@@ -51,9 +51,29 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSessionEn
 
     @Query(value = """
             select count(*) from parking.parking_sessions
+            where check_in_time >= :from and check_in_time < :to
+              and parking_lot_id in (:parkingLotIds)
+            """, nativeQuery = true)
+    long countDashboardCheckInsForParkingLots(
+            @Param("from") Instant from,
+            @Param("to") Instant to,
+            @Param("parkingLotIds") Collection<UUID> parkingLotIds);
+
+    @Query(value = """
+            select count(*) from parking.parking_sessions
             where status = 'CLOSED' and check_out_time >= :from and check_out_time < :to
             """, nativeQuery = true)
     long countDashboardCheckOuts(@Param("from") Instant from, @Param("to") Instant to);
+
+    @Query(value = """
+            select count(*) from parking.parking_sessions
+            where status = 'CLOSED' and check_out_time >= :from and check_out_time < :to
+              and parking_lot_id in (:parkingLotIds)
+            """, nativeQuery = true)
+    long countDashboardCheckOutsForParkingLots(
+            @Param("from") Instant from,
+            @Param("to") Instant to,
+            @Param("parkingLotIds") Collection<UUID> parkingLotIds);
 
     @Query(value = """
             select count(*) from parking.parking_sessions
@@ -61,6 +81,16 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSessionEn
               and (check_out_time is null or check_out_time >= :at)
             """, nativeQuery = true)
     long countDashboardParkingAt(@Param("at") Instant at);
+
+    @Query(value = """
+            select count(*) from parking.parking_sessions
+            where status <> 'CANCELLED' and check_in_time < :at
+              and (check_out_time is null or check_out_time >= :at)
+              and parking_lot_id in (:parkingLotIds)
+            """, nativeQuery = true)
+    long countDashboardParkingAtForParkingLots(
+            @Param("at") Instant at,
+            @Param("parkingLotIds") Collection<UUID> parkingLotIds);
 
     @Query(value = """
             select session.vehicle_type_id as "vehicleTypeId",
@@ -75,6 +105,22 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSessionEn
     List<VehicleTypeCountProjection> findDashboardVehicleTypeCounts(
             @Param("from") Instant from,
             @Param("to") Instant to);
+
+    @Query(value = """
+            select session.vehicle_type_id as "vehicleTypeId",
+                   type.name as "vehicleTypeName",
+                   count(*) as "total"
+            from parking.parking_sessions session
+            left join catalog.vehicle_types type on type.vehicle_type_id = session.vehicle_type_id
+            where session.check_in_time >= :from and session.check_in_time < :to
+              and session.parking_lot_id in (:parkingLotIds)
+            group by session.vehicle_type_id, type.name
+            order by "total" desc
+            """, nativeQuery = true)
+    List<VehicleTypeCountProjection> findDashboardVehicleTypeCountsForParkingLots(
+            @Param("from") Instant from,
+            @Param("to") Instant to,
+            @Param("parkingLotIds") Collection<UUID> parkingLotIds);
 
     @Query("""
             select parkingSession

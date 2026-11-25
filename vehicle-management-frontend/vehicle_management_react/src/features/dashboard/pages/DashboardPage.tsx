@@ -1,8 +1,11 @@
 import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { DatePicker } from "@/components/ui";
+import { useAuth } from "@/core/auth/useAuth";
 import { cn } from "@/lib/cn";
+import { hasAnyPermission } from "@/shared/auth/permissions";
 import { todayApplicationIsoDate } from "@/shared/time/applicationTime";
 
 import {
@@ -10,6 +13,7 @@ import {
   type DashboardChangeDirection,
   type DashboardKpiResponse,
   type DashboardOverviewResponse,
+  type DashboardParkingLotSummaryResponse,
   type DeviceStatusItemResponse,
   type RevenueTrendPointResponse,
 } from "../api/dashboardApi";
@@ -23,6 +27,7 @@ type KpiCardView = {
   label: string;
   tone: "blue" | "cyan" | "green" | "orange" | "purple";
   value: string;
+  showChange?: boolean;
 };
 
 type GrowthCardView = {
@@ -86,8 +91,25 @@ const emptyOverview: DashboardOverviewResponse = {
   currentParkingCount: emptyKpi,
   deviceStatus: [],
   fromDate: "",
+  networkSummary: {
+    activeParkingLotCount: 0,
+    offlineDeviceCount: 0,
+    organizationCount: 0,
+    parkingLotCount: 0,
+    totalCapacity: 0,
+  },
   occupancyRate: emptyKpi,
+  parkingLots: [],
+  platformFeeRevenue: emptyKpi,
   revenueTrend: [],
+  scope: {
+    level: "PLATFORM",
+    organizationId: null,
+    organizations: [],
+    parkingLotId: null,
+    parkingLots: [],
+    title: "Toàn sàn",
+  },
   toDate: "",
   totalRevenue: emptyKpi,
   userGrowth: {
@@ -292,10 +314,12 @@ function KpiCard({ card }: { card: KpiCardView }) {
       <span className="tw-min-w-0">
         <span className="tw-block tw-text-[0.88rem] tw-font-bold tw-text-slate-900">{card.label}</span>
         <strong className="tw-mt-1 tw-block tw-whitespace-nowrap tw-text-[1.25rem] tw-font-black tw-leading-tight tw-text-vm-primary">{card.value}</strong>
-        <small className="tw-mt-2 tw-flex tw-items-center tw-gap-1 tw-text-[0.78rem] tw-font-semibold tw-text-vm-slate-700">
-          <i className={directionIconClassName[card.kpi.changeDirection]} />
-          {formatChange(card.kpi)}
-        </small>
+        {card.showChange === false ? null : (
+          <small className="tw-mt-2 tw-flex tw-items-center tw-gap-1 tw-text-[0.78rem] tw-font-semibold tw-text-vm-slate-700">
+            <i className={directionIconClassName[card.kpi.changeDirection]} />
+            {formatChange(card.kpi)}
+          </small>
+        )}
       </span>
     </article>
   );
@@ -339,13 +363,15 @@ function RevenueChart({
 
   return (
     <section className="tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-border tw-bg-white tw-p-5 tw-shadow-vm-card">
-      <div className="tw-mb-4 tw-flex tw-items-center tw-justify-between tw-gap-4">
+      <div className="tw-mb-4 tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3">
         <h2 className="tw-m-0 tw-text-[1rem] tw-font-extrabold tw-text-slate-900">Biểu đồ doanh thu</h2>
-        <SelectMenu ariaLabel="Nhóm doanh thu"
-                  triggerClassName={"tw-h-9 tw-rounded-vm-sm tw-border tw-border-solid tw-border-vm-border tw-bg-white tw-px-3 tw-text-[0.82rem] tw-font-bold tw-text-slate-700"}
-                  value={groupBy}
-                  onChange={(selectedValue) => onGroupByChange(selectedValue as RevenueGroup)}
-                  options={[...revenueGroupOptions.map((option) => ({ label: option.label, value: option.value }))]} portal clearValue="" />
+        <div className="tw-w-[180px] max-[560px]:tw-w-full">
+          <SelectMenu ariaLabel="Nhóm doanh thu"
+                    triggerClassName={"tw-h-8 tw-w-full tw-rounded-vm-sm tw-border tw-border-solid tw-border-vm-border tw-bg-white tw-px-2.5 tw-text-[0.78rem] tw-font-bold tw-text-slate-700"}
+                    value={groupBy}
+                    onChange={(selectedValue) => onGroupByChange(selectedValue as RevenueGroup)}
+                    options={[...revenueGroupOptions.map((option) => ({ label: option.label, value: option.value }))]} portal clearValue="" />
+        </div>
       </div>
       <div className="tw-overflow-x-auto">
         <svg className="tw-min-w-[680px]" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Biểu đồ đường doanh thu">
@@ -530,7 +556,151 @@ function DeviceStatusSection({ devices }: { devices: DeviceStatusItemResponse[] 
   );
 }
 
+function ScopePanel({
+  canSelectOrganization,
+  onOrganizationChange,
+  onParkingLotChange,
+  overview,
+  selectedOrganizationId,
+  selectedParkingLotId,
+}: {
+  canSelectOrganization: boolean;
+  onOrganizationChange: (organizationId: string) => void;
+  onParkingLotChange: (parkingLotId: string) => void;
+  overview: DashboardOverviewResponse;
+  selectedOrganizationId: string;
+  selectedParkingLotId: string;
+}) {
+  const parkingLots = selectedOrganizationId
+    ? overview.scope.parkingLots.filter((parkingLot) => parkingLot.organizationId === selectedOrganizationId)
+    : overview.scope.parkingLots;
+  const parkingLotAllLabel = overview.scope.level === "ASSIGNED_LOTS"
+    ? "Tất cả bãi được phân công"
+    : selectedOrganizationId
+      ? "Tất cả bãi của Partner"
+      : "Tất cả bãi có quyền xem";
+
+  return (
+    <section className="tw-mb-5 tw-rounded-vm-lg tw-border tw-border-solid tw-border-blue-100 tw-bg-gradient-to-r tw-from-blue-50 tw-to-white tw-p-5 tw-shadow-vm-card">
+      <div className="tw-flex tw-flex-wrap tw-items-start tw-justify-between tw-gap-4">
+        <div>
+          <span className="tw-text-[0.75rem] tw-font-black tw-uppercase tw-tracking-[0.12em] tw-text-blue-600">Phạm vi đang xem</span>
+          <h1 className="tw-mb-0 tw-mt-1 tw-text-[1.45rem] tw-font-black tw-text-slate-950">{overview.scope.title}</h1>
+          <p className="tw-mb-0 tw-mt-1 tw-text-[0.86rem] tw-font-semibold tw-text-slate-600">
+            {overview.scope.level === "PLATFORM"
+              ? "Dữ liệu tổng hợp toàn sàn. Chọn Partner hoặc bãi để tra cứu chi tiết."
+              : "Số liệu chỉ được tổng hợp trong phạm vi tài khoản được phân quyền."}
+          </p>
+        </div>
+        <span className="tw-rounded-full tw-bg-white tw-px-3 tw-py-1.5 tw-text-[0.78rem] tw-font-extrabold tw-text-blue-700 tw-shadow-sm">
+          <i className="fas fa-eye tw-mr-2" />Chế độ tổng quan
+        </span>
+      </div>
+
+      <div className={cn("tw-mt-4 tw-grid tw-gap-4", canSelectOrganization ? "tw-grid-cols-2" : "tw-grid-cols-1", "max-[760px]:tw-grid-cols-1")}>
+        {canSelectOrganization ? (
+          <label className="tw-grid tw-gap-2">
+            <span className="tw-text-[0.8rem] tw-font-extrabold tw-text-slate-800">Partner</span>
+            <SelectMenu
+              ariaLabel="Chọn Partner cần xem"
+              clearValue=""
+              options={[
+                { label: "Toàn sàn", value: "" },
+                ...overview.scope.organizations.map((organization) => ({
+                  label: organization.name,
+                  value: organization.organizationId,
+                })),
+              ]}
+              portal
+              triggerClassName="tw-h-11 tw-rounded-vm-sm tw-border tw-border-solid tw-border-vm-border tw-bg-white tw-px-3 tw-text-left tw-text-[0.88rem] tw-font-bold tw-text-slate-800"
+              value={selectedOrganizationId}
+              onChange={onOrganizationChange}
+            />
+          </label>
+        ) : null}
+
+        <label className="tw-grid tw-gap-2">
+          <span className="tw-text-[0.8rem] tw-font-extrabold tw-text-slate-800">Bãi xe</span>
+          <SelectMenu
+            ariaLabel="Chọn bãi xe cần xem"
+            clearValue=""
+            options={[
+              ...(parkingLots.length > 1 || canSelectOrganization
+                ? [{ label: parkingLotAllLabel, value: "" }]
+                : []),
+              ...parkingLots.map((parkingLot) => ({ label: parkingLot.name, value: parkingLot.parkingLotId })),
+            ]}
+            portal
+            triggerClassName="tw-h-11 tw-rounded-vm-sm tw-border tw-border-solid tw-border-vm-border tw-bg-white tw-px-3 tw-text-left tw-text-[0.88rem] tw-font-bold tw-text-slate-800"
+            value={selectedParkingLotId}
+            onChange={onParkingLotChange}
+          />
+        </label>
+      </div>
+    </section>
+  );
+}
+
+const parkingLotStatusLabel: Record<DashboardParkingLotSummaryResponse["status"], string> = {
+  ACTIVE: "Đang hoạt động",
+  CLOSED: "Đã đóng",
+  MAINTENANCE: "Bảo trì",
+  SETUP: "Đang thiết lập",
+};
+
+function ParkingLotComparison({
+  onSelect,
+  parkingLots,
+}: {
+  onSelect: (parkingLotId: string) => void;
+  parkingLots: DashboardParkingLotSummaryResponse[];
+}) {
+  if (parkingLots.length === 0) return null;
+
+  return (
+    <section className="tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-border tw-bg-white tw-p-5 tw-shadow-vm-card">
+      <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3">
+        <div>
+          <h2 className="tw-m-0 tw-text-[1rem] tw-font-extrabold tw-text-slate-900">Tình hình theo bãi xe</h2>
+          <p className="tw-mb-0 tw-mt-1 tw-text-[0.8rem] tw-font-semibold tw-text-slate-500">Nhấn vào một bãi để chuyển phạm vi tra cứu.</p>
+        </div>
+        <span className="tw-text-[0.82rem] tw-font-extrabold tw-text-blue-700">{parkingLots.length} bãi</span>
+      </div>
+      <div className="tw-mt-4 tw-overflow-x-auto">
+        <table className="tw-w-full tw-min-w-[680px] tw-border-collapse">
+          <thead>
+            <tr className="tw-border-0 tw-border-b tw-border-solid tw-border-slate-200 tw-text-left tw-text-[0.75rem] tw-font-black tw-uppercase tw-tracking-wide tw-text-slate-500">
+              <th className="tw-px-3 tw-py-3">Bãi xe</th>
+              <th className="tw-px-3 tw-py-3">Trạng thái</th>
+              <th className="tw-px-3 tw-py-3 tw-text-right">Xe đang gửi</th>
+              <th className="tw-px-3 tw-py-3 tw-text-right">Sức chứa</th>
+              <th className="tw-px-3 tw-py-3 tw-text-right">Lấp đầy</th>
+            </tr>
+          </thead>
+          <tbody>
+            {parkingLots.map((parkingLot) => (
+              <tr
+                key={parkingLot.parkingLotId}
+                className="tw-cursor-pointer tw-border-0 tw-border-b tw-border-solid tw-border-slate-100 tw-text-[0.86rem] hover:tw-bg-blue-50"
+                onClick={() => onSelect(parkingLot.parkingLotId)}
+              >
+                <td className="tw-px-3 tw-py-3 tw-font-extrabold tw-text-slate-900">{parkingLot.name}</td>
+                <td className="tw-px-3 tw-py-3 tw-font-bold tw-text-slate-700">{parkingLotStatusLabel[parkingLot.status]}</td>
+                <td className="tw-px-3 tw-py-3 tw-text-right tw-font-bold">{formatNumber(parkingLot.currentParkingCount)}</td>
+                <td className="tw-px-3 tw-py-3 tw-text-right tw-font-bold">{formatNumber(parkingLot.capacity)}</td>
+                <td className="tw-px-3 tw-py-3 tw-text-right tw-font-black tw-text-blue-700">{formatPercent(parkingLot.occupancyRate)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
 export function DashboardPage() {
+  const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedPreset, setSelectedPreset] = useState<DashboardPreset | null>("week");
   const [filterDates, setFilterDates] = useState(() => getPresetRange("week", todayIsoDate()));
   const [overview, setOverview] = useState<DashboardOverviewResponse>(emptyOverview);
@@ -539,6 +709,11 @@ export function DashboardPage() {
   const [revenueGroup, setRevenueGroup] = useState<RevenueGroup>("day");
 
   const toDate = filterDates.toDate || todayIsoDate();
+  const selectedOrganizationId = searchParams.get("organizationId") ?? "";
+  const requestedParkingLotId = searchParams.get("parkingLotId") ?? "";
+  const canSelectOrganization = hasAnyPermission(user, ["PARKING_SCOPE_PLATFORM"]);
+  const selectedParkingLotId = requestedParkingLotId
+    || (overview.scope.parkingLots.length === 1 ? overview.scope.parkingLotId ?? "" : "");
 
   useEffect(() => {
     let active = true;
@@ -547,6 +722,8 @@ export function DashboardPage() {
 
     getDashboardOverview({
       fromDate: filterDates.fromDate,
+      organizationId: selectedOrganizationId || undefined,
+      parkingLotId: requestedParkingLotId || undefined,
       toDate,
     })
       .then((response) => {
@@ -564,14 +741,52 @@ export function DashboardPage() {
     return () => {
       active = false;
     };
-  }, [filterDates.fromDate, toDate]);
+  }, [filterDates.fromDate, requestedParkingLotId, selectedOrganizationId, toDate]);
 
-  const kpiCards = useMemo<KpiCardView[]>(
-    () => [
+  const kpiCards = useMemo<KpiCardView[]>(() => {
+    const checkOutCard: KpiCardView = {
+      icon: "fas fa-sign-out-alt",
+      kpi: overview.checkOutCount,
+      label: "Check-out",
+      tone: "orange",
+      value: formatNumber(overview.checkOutCount.value),
+    };
+    const platformFeeCard: KpiCardView = {
+      icon: "fas fa-coins",
+      kpi: overview.platformFeeRevenue,
+      label: "Phí nền tảng đã ghi nhận",
+      tone: "orange",
+      value: formatCurrency(overview.platformFeeRevenue.value),
+    };
+    const newCustomerCard: KpiCardView = {
+      icon: "fas fa-user-plus",
+      kpi: overview.userGrowth.newCustomerCount,
+      label: "Khách đăng ký mới",
+      tone: "purple",
+      value: formatNumber(overview.userGrowth.newCustomerCount.value),
+    };
+
+    return [
+      ...(overview.scope.level === "PLATFORM" ? [{
+        icon: "fas fa-building",
+        kpi: emptyKpi,
+        label: "Partner",
+        showChange: false,
+        tone: "blue" as const,
+        value: formatNumber(overview.networkSummary.organizationCount),
+      }] : []),
+      {
+        icon: "fas fa-square-parking",
+        kpi: emptyKpi,
+        label: "Bãi đang hoạt động",
+        showChange: false,
+        tone: "cyan",
+        value: `${formatNumber(overview.networkSummary.activeParkingLotCount)}/${formatNumber(overview.networkSummary.parkingLotCount)}`,
+      },
       {
         icon: "fas fa-money-bill-wave",
         kpi: overview.totalRevenue,
-        label: "Tổng doanh thu",
+        label: overview.scope.level === "PLATFORM" ? "Tổng giá trị giao dịch" : "Doanh thu trong phạm vi",
         tone: "green",
         value: formatCurrency(overview.totalRevenue.value),
       },
@@ -582,30 +797,11 @@ export function DashboardPage() {
         tone: "blue",
         value: formatNumber(overview.checkInCount.value),
       },
-      {
-        icon: "fas fa-sign-out-alt",
-        kpi: overview.checkOutCount,
-        label: "Check-out",
-        tone: "orange",
-        value: formatNumber(overview.checkOutCount.value),
-      },
-      {
-        icon: "fas fa-car-side",
-        kpi: overview.currentParkingCount,
-        label: "Xe đang gửi",
-        tone: "purple",
-        value: formatNumber(overview.currentParkingCount.value),
-      },
-      {
-        icon: "fas fa-tachometer-alt",
-        kpi: overview.occupancyRate,
-        label: "Tỷ lệ lấp đầy",
-        tone: "cyan",
-        value: formatPercent(overview.occupancyRate.value),
-      },
-    ],
-    [overview],
-  );
+      ...(overview.scope.level === "PLATFORM"
+        ? [checkOutCard, platformFeeCard]
+        : [newCustomerCard, platformFeeCard, checkOutCard]),
+    ];
+  }, [overview]);
 
   const growthCards = useMemo<GrowthCardView[]>(
     () => [
@@ -654,8 +850,38 @@ export function DashboardPage() {
     setFilterDates(getPresetRange(preset, today));
   };
 
+  const updateScopeParams = (organizationId: string, parkingLotId: string) => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (organizationId) nextParams.set("organizationId", organizationId);
+    else nextParams.delete("organizationId");
+    if (parkingLotId) nextParams.set("parkingLotId", parkingLotId);
+    else nextParams.delete("parkingLotId");
+    setSearchParams(nextParams, { replace: true });
+  };
+
+  const selectOrganization = (organizationId: string) => {
+    updateScopeParams(organizationId, "");
+  };
+
+  const selectParkingLot = (parkingLotId: string) => {
+    const parkingLot = overview.scope.parkingLots.find((item) => item.parkingLotId === parkingLotId);
+    updateScopeParams(
+      canSelectOrganization && parkingLot ? parkingLot.organizationId : selectedOrganizationId,
+      parkingLotId,
+    );
+  };
+
   return (
     <main className="tw-mx-auto tw-w-full tw-max-w-[1480px] tw-px-5 tw-py-5 max-[768px]:tw-px-4">
+      <ScopePanel
+        canSelectOrganization={canSelectOrganization}
+        onOrganizationChange={selectOrganization}
+        onParkingLotChange={selectParkingLot}
+        overview={overview}
+        selectedOrganizationId={selectedOrganizationId}
+        selectedParkingLotId={selectedParkingLotId}
+      />
+
       <section className="tw-grid tw-grid-cols-[260px_260px_minmax(360px,1fr)] tw-items-end tw-gap-5 max-[1420px]:tw-grid-cols-2 max-[720px]:tw-grid-cols-1">
         <DateField label="Từ ngày" max={toDate} value={filterDates.fromDate} onChange={(value) => updateDate("fromDate", value)} />
         <DateField label="Đến ngày" min={filterDates.fromDate} value={toDate} onChange={(value) => updateDate("toDate", value)} />
@@ -682,7 +908,13 @@ export function DashboardPage() {
         </div>
       ) : null}
 
-      <section className={cn("tw-mt-5 tw-grid tw-grid-cols-5 tw-gap-4 max-[1450px]:tw-grid-cols-2 max-[560px]:tw-grid-cols-1", loading ? "tw-opacity-70" : "")}>
+      {!loading && overview.scope.level === "ASSIGNED_LOTS" && overview.scope.parkingLots.length === 0 ? (
+        <div className="tw-mt-4 tw-rounded-vm-md tw-border tw-border-solid tw-border-amber-200 tw-bg-amber-50 tw-px-4 tw-py-3 tw-text-[0.9rem] tw-font-bold tw-text-amber-800">
+          Tài khoản chưa được phân công bãi xe. Vui lòng liên hệ Partner Admin để được cấp phạm vi vận hành.
+        </div>
+      ) : null}
+
+      <section className={cn("tw-mt-5 tw-grid tw-grid-cols-3 tw-gap-4 max-[1080px]:tw-grid-cols-2 max-[560px]:tw-grid-cols-1", loading ? "tw-opacity-70" : "")}>
         {kpiCards.map((card) => <KpiCard key={card.label} card={card} />)}
       </section>
 
@@ -691,13 +923,23 @@ export function DashboardPage() {
         <VehicleDonut overview={overview} />
       </section>
 
-      <section className={cn("tw-mt-4 tw-grid tw-grid-cols-[minmax(0,1.15fr)_repeat(3,minmax(210px,0.5fr))] tw-gap-4 max-[1450px]:tw-grid-cols-2 max-[720px]:tw-grid-cols-1", loading ? "tw-opacity-70" : "")}>
-        <CardStatusChart overview={overview} />
-        {growthCards.map((item) => <GrowthCard key={item.label} item={item} />)}
-      </section>
+      {overview.scope.level === "PLATFORM" ? (
+        <section className={cn("tw-mt-4 tw-grid tw-grid-cols-[minmax(0,1.15fr)_repeat(3,minmax(210px,0.5fr))] tw-gap-4 max-[1450px]:tw-grid-cols-2 max-[720px]:tw-grid-cols-1", loading ? "tw-opacity-70" : "")}>
+          <CardStatusChart overview={overview} />
+          {growthCards.map((item) => <GrowthCard key={item.label} item={item} />)}
+        </section>
+      ) : (
+        <section className={cn("tw-mt-4", loading ? "tw-opacity-70" : "")}>
+          <CardStatusChart overview={overview} />
+        </section>
+      )}
 
       <section className={cn("tw-mt-4", loading ? "tw-opacity-70" : "")}>
         <DeviceStatusSection devices={overview.deviceStatus} />
+      </section>
+
+      <section className={cn("tw-mt-4", loading ? "tw-opacity-70" : "")}>
+        <ParkingLotComparison parkingLots={overview.parkingLots} onSelect={selectParkingLot} />
       </section>
     </main>
   );

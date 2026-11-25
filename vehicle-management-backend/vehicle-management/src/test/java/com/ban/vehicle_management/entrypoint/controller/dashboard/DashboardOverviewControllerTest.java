@@ -10,13 +10,16 @@ import com.ban.vehicle_management.application.dashboard.overview.port.in.Dashboa
 import com.ban.vehicle_management.entrypoint.dto.dashboard.request.DashboardOverviewFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.dashboard.response.CardStatusOverviewResponse;
 import com.ban.vehicle_management.entrypoint.dto.dashboard.response.DashboardKpiResponse;
+import com.ban.vehicle_management.entrypoint.dto.dashboard.response.DashboardNetworkSummaryResponse;
 import com.ban.vehicle_management.entrypoint.dto.dashboard.response.DashboardOverviewResponse;
+import com.ban.vehicle_management.entrypoint.dto.dashboard.response.DashboardScopeResponse;
 import com.ban.vehicle_management.entrypoint.dto.dashboard.response.UserGrowthOverviewResponse;
 import com.ban.vehicle_management.entrypoint.dto.dashboard.response.VehicleTypeRatioResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -35,19 +38,22 @@ class DashboardOverviewControllerTest {
         DashboardOverviewController controller = new DashboardOverviewController(dashboardOverviewPortIn);
         LocalDate fromDate = LocalDate.of(2026, 7, 1);
         LocalDate toDate = LocalDate.of(2026, 7, 7);
+        UUID organizationId = UUID.randomUUID();
+        UUID parkingLotId = UUID.randomUUID();
         DashboardOverviewResponse overview = overview(fromDate, toDate);
 
-        when(dashboardOverviewPortIn.getOverview(fromDate, toDate))
+        when(dashboardOverviewPortIn.getOverview(fromDate, toDate, organizationId, parkingLotId))
                 .thenReturn(overview);
 
         ResponseEntity<ApiResponse<DashboardOverviewResponse>> response =
-                controller.getOverview(new DashboardOverviewFilterRequest(fromDate, toDate));
+                controller.getOverview(new DashboardOverviewFilterRequest(
+                        fromDate, toDate, organizationId, parkingLotId));
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertTrue(response.getBody().isSuccess());
         assertEquals("Fetched dashboard overview successfully", response.getBody().getMessage());
         assertSame(overview, response.getBody().getData());
-        verify(dashboardOverviewPortIn).getOverview(fromDate, toDate);
+        verify(dashboardOverviewPortIn).getOverview(fromDate, toDate, organizationId, parkingLotId);
     }
 
     @Test
@@ -55,15 +61,15 @@ class DashboardOverviewControllerTest {
         DashboardOverviewController controller = new DashboardOverviewController(dashboardOverviewPortIn);
         DashboardOverviewResponse overview = overview(LocalDate.of(2026, 6, 30), LocalDate.of(2026, 7, 6));
 
-        when(dashboardOverviewPortIn.getOverview(null, null))
+        when(dashboardOverviewPortIn.getOverview(null, null, null, null))
                 .thenReturn(overview);
 
         ResponseEntity<ApiResponse<DashboardOverviewResponse>> response =
-                controller.getOverview(new DashboardOverviewFilterRequest(null, null));
+                controller.getOverview(new DashboardOverviewFilterRequest(null, null, null, null));
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertSame(overview, response.getBody().getData());
-        verify(dashboardOverviewPortIn).getOverview(null, null);
+        verify(dashboardOverviewPortIn).getOverview(null, null, null, null);
     }
 
     private DashboardOverviewResponse overview(LocalDate fromDate, LocalDate toDate) {
@@ -77,6 +83,9 @@ class DashboardOverviewControllerTest {
         return new DashboardOverviewResponse(
                 fromDate,
                 toDate,
+                new DashboardScopeResponse("PLATFORM", "Toàn sàn", null, null, List.of(), List.of()),
+                new DashboardNetworkSummaryResponse(0, 0, 0, 0, 0),
+                zeroKpi,
                 zeroKpi,
                 zeroKpi,
                 zeroKpi,
@@ -86,6 +95,7 @@ class DashboardOverviewControllerTest {
                 new VehicleTypeRatioResponse(0, List.of()),
                 new CardStatusOverviewResponse(0, 0, 0),
                 new UserGrowthOverviewResponse(zeroKpi, zeroKpi, zeroKpi),
+                List.of(),
                 List.of()
         );
     }

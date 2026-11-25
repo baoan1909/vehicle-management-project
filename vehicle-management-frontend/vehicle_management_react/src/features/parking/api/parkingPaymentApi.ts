@@ -1,4 +1,5 @@
 import {
+  createSepayInvoicePayment,
   createVnpayInvoicePayment,
   recordCashInvoicePayment,
   VNPAY_MINIMUM_AMOUNT,
@@ -16,4 +17,8 @@ export function recordParkingCashPayment(invoiceId: string, amount: number, note
 
 export function createParkingVnpayPayment(invoiceId: string) {
   return createVnpayInvoicePayment(invoiceId, "/admin/swipe");
+}
+
+export function createParkingSepayPayment(invoiceId: string) {
+  return createSepayInvoicePayment(invoiceId);
 }

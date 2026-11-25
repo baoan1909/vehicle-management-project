@@ -42,7 +42,7 @@ import { usePlatformMonitoringScope } from "@/shared/monitoring/PlatformMonitori
 import { userGuideAnchorProps, useUserGuideActivation } from "@/features/user-guide";
 
 type OverviewData = {
-  availableManagerCount: number;
+  assignedManagerCount: number;
   gates: GateApiResponse[];
   lanes: LaneApiResponse[];
   levels: ParkingLevelApi[];
@@ -56,7 +56,7 @@ type OverviewData = {
 type LifecycleAction = "close" | "delete" | "maintenance";
 
 const EMPTY_DATA: OverviewData = {
-  availableManagerCount: 0,
+  assignedManagerCount: 0,
   gates: [],
   lanes: [],
   levels: [],
@@ -220,7 +220,7 @@ export function ParkingLotOverviewPage() {
         : [];
 
       setData({
-        availableManagerCount: availableManagers.length,
+        assignedManagerCount: assignedManagerIds.length,
         gates,
         lanes,
         levels: levelResult.status === "fulfilled" ? levelResult.value.data ?? [] : [],
@@ -265,13 +265,21 @@ export function ParkingLotOverviewPage() {
   const structureComplete = data.levels.length > 0 && data.zones.length > 0;
   const trafficFlowComplete = data.gates.length > 0 && data.lanes.length > 0;
   const layoutComplete = activeSpaceZones.length === publishedSpaceZoneCount;
-  const partnerAdminDirectlyResponsible = canManageLots;
-  const hasAssignedManager = data.managerAssignmentsLoaded && data.managers.length > 0;
-  const responsibilityComplete = partnerAdminDirectlyResponsible
-    || isParkingManager
-    || hasAssignedManager;
-  const completedCount = [informationComplete, structureComplete, trafficFlowComplete, layoutComplete, responsibilityComplete].filter(Boolean).length;
-  const completionPercent = completedCount === 4 ? 85 : completedCount * 20;
+  const hasAssignedManager = data.managerAssignmentsLoaded && data.assignedManagerCount > 0;
+  const partnerAdminDirectlyResponsible = Boolean(data.organization) && !hasAssignedManager;
+  const responsibilityComplete = hasAssignedManager || partnerAdminDirectlyResponsible || isParkingManager;
+  const applicableCompletionItems = [
+    informationComplete,
+    structureComplete,
+    trafficFlowComplete,
+    ...(activeSpaceZones.length > 0 ? [layoutComplete] : []),
+    responsibilityComplete,
+  ];
+  const completedCount = applicableCompletionItems.filter(Boolean).length;
+  const applicableItemCount = applicableCompletionItems.length;
+  const completionPercent = applicableItemCount === 0
+    ? 0
+    : Math.round((completedCount / applicableItemCount) * 100);
   const maintenanceGate = data.gates.find((gate) => gate.status === "MAINTENANCE");
   const totalCapacity = Number(data.summary?.total ?? selectedLot?.totalCapacity ?? 0);
   const hasVerifiedLocation = Boolean(
@@ -503,7 +511,11 @@ export function ParkingLotOverviewPage() {
           <MetricCard icon="fas fa-car" label="Sức chứa" value={totalCapacity.toLocaleString("vi-VN")} />
           <MetricCard icon="fas fa-layer-group" label="Tầng" value={data.levels.length} />
           <MetricCard icon="fas fa-th-large" label="Khu vực" value={data.zones.length} />
-          <MetricCard icon="fas fa-user-friends" label="Manager khả dụng" value={data.availableManagerCount || "—"} />
+          <MetricCard
+            icon="fas fa-user-friends"
+            label="Manager được phân công"
+            value={data.managerAssignmentsLoaded ? data.assignedManagerCount : "—"}
+          />
         </div>
 
         <div className="tw-mt-3 tw-grid tw-grid-cols-[minmax(0,1.72fr)_minmax(340px,1fr)] tw-gap-3 max-[1050px]:tw-grid-cols-1">
@@ -515,7 +527,7 @@ export function ParkingLotOverviewPage() {
                   <div className="tw-flex tw-size-[126px] tw-items-center tw-justify-center tw-rounded-full tw-bg-white tw-text-[1.8rem] tw-font-extrabold tw-text-vm-slate-900">{completionPercent}%</div>
                 </div>
                 <span className="tw-mt-3 tw-text-[0.76rem] tw-font-medium tw-text-vm-slate-500">Đã hoàn thành</span>
-                <span className="tw-mt-1 tw-text-[0.76rem] tw-font-bold tw-text-vm-slate-500">{completedCount} / 5 hạng mục</span>
+                <span className="tw-mt-1 tw-text-[0.76rem] tw-font-bold tw-text-vm-slate-500">{completedCount} / {applicableItemCount} hạng mục áp dụng</span>
               </div>
               <div {...userGuideAnchorProps("PARKING_SETUP.ACTIVATION_MISSING")}>
                 <ChecklistRow complete={informationComplete} index={1} label="Thông tin bãi xe" note={informationComplete ? "Đã hoàn thành" : "Cần bổ sung"} />

@@ -11,6 +11,11 @@ import java.util.UUID;
 
 public class PaymentPolicy {
 
+    public boolean isPendingWithinPaymentWindow(Payment payment, Instant now) {
+        return PaymentStatus.PENDING.equals(payment.getStatus())
+                && payment.getExpiresAt() != null && payment.getExpiresAt().isAfter(now);
+    }
+
     public void initializePendingVnpayPayment(
             Payment payment,
             UUID invoiceId,

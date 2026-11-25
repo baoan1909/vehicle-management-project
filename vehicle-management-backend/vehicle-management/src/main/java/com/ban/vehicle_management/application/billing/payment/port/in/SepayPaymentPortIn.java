@@ -8,5 +8,15 @@ public interface SepayPaymentPortIn {
 
     SepayPaymentResult createGuestReservationPayment(UUID reservationId, String accessToken);
 
+    SepayPaymentResult createParkingCheckoutPayment(UUID invoiceId);
+
+    SepayPaymentResult createParkingSessionPrepaymentPayment(
+            UUID prepaymentId,
+            String licensePlate,
+            String cardNumber
+    );
+
+    byte[] downloadParkingSessionPrepaymentQr(UUID prepaymentId, String licensePlate, String cardNumber);
+
     void processWebhook(SepayWebhookCommand command);
 }

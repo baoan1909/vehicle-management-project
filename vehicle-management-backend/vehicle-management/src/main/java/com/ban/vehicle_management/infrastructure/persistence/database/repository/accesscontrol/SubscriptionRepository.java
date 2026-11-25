@@ -80,6 +80,17 @@ public interface SubscriptionRepository extends JpaRepository<SubscriptionEntity
     );
 
     @Query(value = """
+        select count(distinct customer_id)
+        from access_control.subscriptions
+        where created_at >= :from and created_at < :to
+          and parking_lot_id in (:parkingLotIds)
+        """, nativeQuery = true)
+    long countDashboardNewCustomersForParkingLots(
+            @Param("from") Instant from,
+            @Param("to") Instant to,
+            @Param("parkingLotIds") Collection<UUID> parkingLotIds);
+
+    @Query(value = """
         select subscription_id from access_control.subscriptions
         where customer_id=:customerId
           and status in ('PENDING','PENDING_PAYMENT','PENDING_CARD','ACTIVE') limit 1

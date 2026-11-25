@@ -31,6 +31,15 @@ public interface DeviceRepository
             """, nativeQuery = true)
     List<DeviceStatusCountProjection> findDashboardStatusCounts();
 
+    @Query(value = """
+            select device_type as "deviceType", status as "status", count(*) as "total"
+            from hardware.devices
+            where status <> 'RETIRED' and parking_lot_id in (:parkingLotIds)
+            group by device_type, status
+            """, nativeQuery = true)
+    List<DeviceStatusCountProjection> findDashboardStatusCountsForParkingLots(
+            @Param("parkingLotIds") Collection<UUID> parkingLotIds);
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = """
         update hardware.devices device set status = 'RETIRED', updated_at = :now

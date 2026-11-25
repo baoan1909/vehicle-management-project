@@ -1,4 +1,5 @@
 import { Button, Card, CardContent, CardHeader } from "@/components/ui";
+import type { SepayPaymentResponse } from "@/features/billing/api/invoicePaymentsApi";
 import { VNPAY_MINIMUM_AMOUNT } from "@/features/parking/api/parkingPaymentApi";
 import type {
   ParkingSessionCheckOutPreviewResponse,
@@ -15,6 +16,8 @@ type ParkingSessionSummaryProps = {
   mode: ParkingOperationMode;
   onPayCash?: () => void;
   onRetryVnpay?: () => void;
+  onPaySepay?: () => void;
+  sepayPayment?: SepayPaymentResponse | null;
   paymentActionError?: string;
   preview?: ParkingSessionCheckOutPreviewResponse | null;
   result?: ParkingSessionOperationResponse | null;
@@ -136,7 +139,9 @@ export function ParkingSessionSummary({
   isPaymentActionLoading = false,
   mode,
   onPayCash,
+  onPaySepay,
   onRetryVnpay,
+  sepayPayment,
   paymentActionError,
   preview,
   result,
@@ -245,14 +250,16 @@ export function ParkingSessionSummary({
               <div className="tw-grid tw-gap-0.5">
                 <strong className="tw-text-[0.82rem] tw-font-extrabold tw-text-amber-800">Hóa đơn chưa thanh toán</strong>
                 <span className="tw-text-[0.74rem] tw-font-semibold tw-leading-snug tw-text-amber-700">
-                  Có thể xác nhận tiền mặt hoặc tạo lại giao dịch VNPAY.
+                  {sepayPayment
+                    ? "Mã QR đã được tạo. Phiên gửi xe vẫn đang mở và sẽ tự hoàn tất sau khi SePay xác nhận thanh toán."
+                    : "Chọn hình thức thanh toán cho hóa đơn."}
                 </span>
               </div>
             </div>
 
             {!vnpayAvailable ? (
               <div className="tw-rounded-vm-sm tw-bg-white/80 tw-px-3 tw-py-2 tw-text-[0.72rem] tw-font-bold tw-text-amber-700">
-                VNPAY Sandbox yêu cầu hóa đơn tối thiểu 10.000 đồng. Hóa đơn này chỉ có thể chuyển sang tiền mặt.
+                VNPay yêu cầu hóa đơn tối thiểu 10.000 đồng. Bạn có thể dùng SePay hoặc tiền mặt.
               </div>
             ) : null}
 
@@ -262,10 +269,17 @@ export function ParkingSessionSummary({
               </div>
             ) : null}
 
+            {sepayPayment ? (
+              <div className="tw-grid tw-justify-items-center tw-gap-2 tw-rounded-vm-md tw-bg-white tw-p-3 tw-text-center tw-text-sm">
+                <img className="tw-w-full tw-max-w-[240px]" src={sepayPayment.qrCodeUrl} alt="QR chuyển khoản SePay khi checkout" />
+                <span>Nội dung chuyển khoản: <strong>{sepayPayment.transactionRef}</strong></span>
+                <span>Hiệu lực đến {formatApplicationDateTime(sepayPayment.expiresAt)}</span>
+              </div>
+            ) : null}
             <div className="tw-grid tw-grid-cols-2 tw-gap-2" {...userGuideAnchorProps("PARKING_OPERATION.PAYMENT_ACTION")}>
               <Button
                 className="tw-h-10 tw-w-full"
-                disabled={!onPayCash || isPaymentActionLoading}
+                disabled={!onPayCash || isPaymentActionLoading || Boolean(sepayPayment)}
                 loading={isPaymentActionLoading}
                 onClick={onPayCash}
               >
@@ -274,7 +288,16 @@ export function ParkingSessionSummary({
               </Button>
               <Button
                 className="tw-h-10 tw-w-full"
-                disabled={!vnpayAvailable || !onRetryVnpay || isPaymentActionLoading}
+                disabled={!onPaySepay || isPaymentActionLoading || Boolean(sepayPayment)}
+                variant="secondary"
+                onClick={onPaySepay}
+              >
+                <i className="fas fa-qrcode" />
+                Thanh toán SePay
+              </Button>
+              <Button
+                className="tw-h-10 tw-w-full"
+                disabled={!vnpayAvailable || !onRetryVnpay || isPaymentActionLoading || Boolean(sepayPayment)}
                 variant="secondary"
                 onClick={onRetryVnpay}
               >
@@ -290,7 +313,7 @@ export function ParkingSessionSummary({
           >
             <strong className="tw-text-[0.82rem] tw-font-extrabold tw-text-vm-slate-700">Hoàn tất thanh toán</strong>
             <span className="tw-text-[0.74rem] tw-font-semibold tw-leading-snug tw-text-vm-slate-500">
-              Thao tác tiền mặt hoặc VNPay sẽ xuất hiện tại đây khi phiên xe ra có hóa đơn cần thanh toán.
+              Các hình thức thanh toán tiền mặt, SePay và VNPay sẽ xuất hiện khi có hóa đơn cần thanh toán.
             </span>
           </div>
         ) : null}

@@ -17,8 +17,29 @@ import java.util.Optional;
 import java.util.List;
 import java.math.BigDecimal;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotManagementState;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.dashboard.ParkingLotDashboardMetricProjection;
+import java.time.Instant;
 
 public interface ParkingLotRepository extends JpaRepository<ParkingLotEntity, UUID>, JpaSpecificationExecutor<ParkingLotEntity> {
+
+    @Query(value = """
+        select lot.parking_lot_id as "parkingLotId",
+               (select count(*)
+                  from parking.parking_sessions session
+                 where session.parking_lot_id = lot.parking_lot_id
+                   and session.status <> 'CANCELLED'
+                   and session.check_in_time < :at
+                   and (session.check_out_time is null or session.check_out_time >= :at)) as "currentParkingCount",
+               (select count(*)
+                  from hardware.devices device
+                 where device.parking_lot_id = lot.parking_lot_id
+                   and device.status = 'OFFLINE') as "offlineDeviceCount"
+          from parking.parking_lots lot
+         where lot.parking_lot_id in (:parkingLotIds)
+        """, nativeQuery = true)
+    List<ParkingLotDashboardMetricProjection> findDashboardMetrics(
+            @Param("parkingLotIds") Collection<UUID> parkingLotIds,
+            @Param("at") Instant at);
 
     @Query(value = """
         select exists (

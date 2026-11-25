@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.Set;
+import java.math.BigDecimal;
 
 public interface InvoicePortOut {
 
@@ -51,6 +52,11 @@ public interface InvoicePortOut {
     boolean existsSubcriptionById(UUID subcriptionId);
     boolean existsLostCardReportById(UUID lostCardReportId);
     boolean existsByParkingSessionIdAndStatusIn(UUID parkingSessionId, Collection<InvoiceStatus> statuses);
+    boolean existsByParkingSessionIdAndPurposeAndStatusIn(
+            UUID parkingSessionId,
+            InvoicePurpose purpose,
+            Collection<InvoiceStatus> statuses
+    );
     boolean existsBySubscriptionIdAndStatusIn(UUID subscriptionId, Collection<InvoiceStatus> statuses);
     boolean existsBySubscriptionIdAndPurposeAndStatusIn(
             UUID subscriptionId,
@@ -78,6 +84,18 @@ public interface InvoicePortOut {
     Optional<Invoice> findFirstByParkingSessionIdAndStatusIn(
             UUID parkingSessionId,
             Collection<InvoiceStatus> statuses
+    );
+
+    Optional<Invoice> findFirstByParkingSessionIdAndPurposeAndStatusIn(
+            UUID parkingSessionId,
+            InvoicePurpose purpose,
+            Collection<InvoiceStatus> statuses
+    );
+
+    BigDecimal sumFinalAmountByParkingSessionIdAndPurposeAndStatus(
+            UUID parkingSessionId,
+            InvoicePurpose purpose,
+            InvoiceStatus status
     );
 
     Optional<UUID> findCustomerAccountIdByInvoiceId(UUID invoiceId);

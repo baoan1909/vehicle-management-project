@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.billing.payment.usecase;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -30,6 +31,7 @@ import com.ban.vehicle_management.domain.billing.payment.policy.PaymentPolicy;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoicePurpose;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
+import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Map;
@@ -90,7 +92,7 @@ class VnpayPaymentUseCaseImplTest {
         invoice.setPurpose(InvoicePurpose.RESERVATION_PREPAYMENT);
         when(reservationPortIn.authorizeGuestPayment(reservationId, "secret"))
                 .thenReturn(invoiceId);
-        when(invoicePortOut.findById(invoiceId)).thenReturn(Optional.of(invoice));
+        when(invoicePortOut.findByIdForUpdate(invoiceId)).thenReturn(Optional.of(invoice));
         when(vnpayGatewayPortOut.createPaymentLink(any()))
                 .thenReturn(new VnpayPaymentLink("https://sandbox.vnpayment.vn/payment",
                         Instant.now().plusSeconds(600)));
@@ -104,12 +106,31 @@ class VnpayPaymentUseCaseImplTest {
     }
 
     @Test
+    void rejectsCheckoutAndReservationAmountsBelowVnpayMinimum() {
+        UUID invoiceId = UUID.randomUUID();
+        UUID reservationId = UUID.randomUUID();
+        Invoice invoice = unpaidInvoice(invoiceId, null);
+        invoice.setFinalAmount(BigDecimal.valueOf(9_999));
+        invoice.setPurpose(InvoicePurpose.PARKING_SESSION);
+        when(invoicePortOut.findByIdForUpdate(invoiceId)).thenReturn(Optional.of(invoice));
+        when(reservationPortIn.authorizeGuestPayment(reservationId, "secret")).thenReturn(invoiceId);
+
+        assertThrows(BadRequestException.class,
+                () -> useCase.createPayment(invoiceId, null));
+
+        invoice.setPurpose(InvoicePurpose.RESERVATION_PREPAYMENT);
+        assertThrows(BadRequestException.class,
+                () -> useCase.createGuestReservationPayment(reservationId, "secret", null));
+        verify(vnpayGatewayPortOut, never()).createPaymentLink(any());
+    }
+
+    @Test
     void shouldCreatePendingVnpayPayment() {
         UUID invoiceId = UUID.randomUUID();
         Invoice invoice = unpaidInvoice(invoiceId, null);
         Instant expiresAt = Instant.now().plusSeconds(900);
 
-        when(invoicePortOut.findById(invoiceId)).thenReturn(Optional.of(invoice));
+        when(invoicePortOut.findByIdForUpdate(invoiceId)).thenReturn(Optional.of(invoice));
         when(paymentPortOut.existsByInvoiceIdAndStatus(invoiceId, PaymentStatus.SUCCESS)).thenReturn(false);
         when(paymentPortOut.findFirstByInvoiceIdAndStatus(invoiceId, PaymentStatus.PENDING))
                 .thenReturn(Optional.empty());
@@ -140,7 +161,7 @@ class VnpayPaymentUseCaseImplTest {
                 Instant.now().plusSeconds(840)
         );
 
-        when(invoicePortOut.findById(invoiceId)).thenReturn(Optional.of(invoice));
+        when(invoicePortOut.findByIdForUpdate(invoiceId)).thenReturn(Optional.of(invoice));
         when(paymentPortOut.existsByInvoiceIdAndStatus(invoiceId, PaymentStatus.SUCCESS)).thenReturn(false);
         when(paymentPortOut.findFirstByInvoiceIdAndStatus(invoiceId, PaymentStatus.PENDING))
                 .thenReturn(Optional.of(pendingPayment));
@@ -173,7 +194,7 @@ class VnpayPaymentUseCaseImplTest {
         );
         Instant newExpiresAt = Instant.now().plusSeconds(900);
 
-        when(invoicePortOut.findById(invoiceId)).thenReturn(Optional.of(invoice));
+        when(invoicePortOut.findByIdForUpdate(invoiceId)).thenReturn(Optional.of(invoice));
         when(paymentPortOut.existsByInvoiceIdAndStatus(invoiceId, PaymentStatus.SUCCESS)).thenReturn(false);
         when(paymentPortOut.findFirstByInvoiceIdAndStatus(invoiceId, PaymentStatus.PENDING))
                 .thenReturn(Optional.of(expiredPayment));
@@ -216,6 +237,9 @@ class VnpayPaymentUseCaseImplTest {
                 "ATM",
                 paidAt
         ));
+        when(paymentPortOut.findInvoiceIdByTransactionRef(payment.getTransactionRef()))
+                .thenReturn(Optional.of(invoiceId));
+        when(invoicePortOut.findByIdForUpdate(invoiceId)).thenReturn(Optional.of(invoice));
         when(paymentPortOut.findByTransactionRefForUpdate(payment.getTransactionRef()))
                 .thenReturn(Optional.of(payment));
         when(invoicePortOut.findById(invoiceId)).thenReturn(Optional.of(invoice));
@@ -251,6 +275,9 @@ class VnpayPaymentUseCaseImplTest {
                 "ATM",
                 paidAt
         ));
+        when(paymentPortOut.findInvoiceIdByTransactionRef(payment.getTransactionRef()))
+                .thenReturn(Optional.of(invoiceId));
+        when(invoicePortOut.findByIdForUpdate(invoiceId)).thenReturn(Optional.of(invoice));
         when(paymentPortOut.findByTransactionRefForUpdate(payment.getTransactionRef()))
                 .thenReturn(Optional.of(payment));
         when(invoicePortOut.findById(invoiceId)).thenReturn(Optional.of(invoice));
@@ -290,6 +317,9 @@ class VnpayPaymentUseCaseImplTest {
                 "ATM",
                 null
         ));
+        when(paymentPortOut.findInvoiceIdByTransactionRef(payment.getTransactionRef()))
+                .thenReturn(Optional.of(invoiceId));
+        when(invoicePortOut.findByIdForUpdate(invoiceId)).thenReturn(Optional.of(unpaidInvoice(invoiceId, null)));
         when(paymentPortOut.findByTransactionRefForUpdate(payment.getTransactionRef()))
                 .thenReturn(Optional.of(payment));
         when(paymentPortOut.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
