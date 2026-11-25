@@ -1,0 +1,4 @@
+SYNTAX PASS src/features/ai/api/aiKnowledgeAdminApi.ts
+SYNTAX PASS src/features/ai/pages/components/AiRuntimeModePanel.tsx
+SYNTAX PASS src/features/ai/pages/components/KnowledgeTestsTab.tsx
+Syntax transform only; not a full TypeScript typecheck or browser test.

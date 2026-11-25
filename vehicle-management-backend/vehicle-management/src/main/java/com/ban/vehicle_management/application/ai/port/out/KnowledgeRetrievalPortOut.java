@@ -8,6 +8,9 @@ import java.util.UUID;
 
 public interface KnowledgeRetrievalPortOut {
 
+    /** Current DB authorization/version check before using cached evidence. */
+    boolean areChunksEligible(UUID tenantId, UUID indexVersionId, List<String> accessScopes, List<UUID> chunkIds);
+
     /**
      * Single-statement hybrid retrieval: vector and lexical branches share one
      * snapshot and one filter set, fused by weighted RRF in SQL with a

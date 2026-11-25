@@ -17,4 +17,6 @@ public class KnowledgeRetrievalTestResponse {
     private boolean evidenceSufficient;
     private String normalizedQuery;
     private String retrievalPolicyVersion;
+    private String retrievalMethod;
+    private String sourceSnapshot;
 }

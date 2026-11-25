@@ -1,0 +1,11 @@
+{
+  "capturedAt": "2026-11-23T18:22:56.834546+00:00",
+  "totals": {
+    "tests": 4215,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "log": "target/batch4-work/full-suite-v13-deadline-final.log",
+  "note": "All final production changes including auth,4s,deadline guard,registry fixture. One test-only savedRuns assertion and plain public wording polished after compilation; next --verify-local exercises current sources."
+}

@@ -1,0 +1,882 @@
+[
+  {
+    "scenarioId": "B3-PRI01",
+    "documentSlug": "pricing-and-fee-calculation",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Xem bảng giá gửi xe như thế nào?",
+      "xem bang gia gui xe nhu the nao",
+      "Làm sao tìm bảng giá của bãi xe?",
+      "minh muon bit lam sao tim bang gia cua bai xe",
+      "Cách xem bảng giá từng bãi",
+      "Về bảng giá và cách tính phí, xem bảng giá gửi xe như thế nào?"
+    ],
+    "requiredIdeas": [
+      "Bảng giá",
+      "bãi xe",
+      "loại xe"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B3-PRI02",
+    "documentSlug": "pricing-and-fee-calculation",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Vì sao phí gửi xe khác giữa các bãi?",
+      "vi sao phi gui xe khac giua cac bai",
+      "Tại sao mỗi bãi có mức phí khác nhau?",
+      "minh muon bit tai sao moi bai co muc phi khac nhau",
+      "Phí gửi xe khác bãi",
+      "Về bảng giá và cách tính phí, vì sao phí gửi xe khác giữa các bãi?"
+    ],
+    "requiredIdeas": [
+      "bãi",
+      "loại xe",
+      "thời điểm"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "acceptance"
+  },
+  {
+    "scenarioId": "B3-PRI03",
+    "documentSlug": "pricing-and-fee-calculation",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Phí gửi xe không quá bốn giờ được tính như thế nào?",
+      "phi gui xe khong qua bon gio duoc tinh nhu the nao",
+      "Cách tính phí gửi xe tối đa bốn giờ là gì?",
+      "minh muon bit cach tinh phi gui xe toi da bon gio la gi",
+      "Cách tính phí gửi tối đa bốn giờ",
+      "Về bảng giá và cách tính phí, phí gửi xe không quá bốn giờ được tính như thế nào?"
+    ],
+    "requiredIdeas": [
+      "bốn giờ",
+      "ban ngày",
+      "bảng giá"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B3-PRI04",
+    "documentSlug": "pricing-and-fee-calculation",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Gửi xe qua đêm được tính phí như thế nào?",
+      "gui xe qua dem duoc tinh phi nhu the nao",
+      "Làm sao hiểu cách tính tiền gửi xe ban đêm?",
+      "minh muon bit lam sao hieu cach tinh tien gui xe ban dem",
+      "Cách tính phí gửi xe qua đêm",
+      "Về bảng giá và cách tính phí, gửi xe qua đêm được tính phí như thế nào?"
+    ],
+    "requiredIdeas": [
+      "bốn giờ",
+      "ban đêm",
+      "bảng giá"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "acceptance"
+  },
+  {
+    "scenarioId": "B3-PRI05",
+    "documentSlug": "pricing-and-fee-calculation",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Gửi xe đủ một ngày thì tính phí như thế nào?",
+      "gui xe du mot ngay thi tinh phi nhu the nao",
+      "Cách tính tiền khi gửi xe tròn hai mươi bốn giờ là gì?",
+      "minh muon bit cach tinh tien khi gui xe tron hai muoi bon gio la gi",
+      "Phí gửi tròn hai mươi bốn giờ",
+      "Về bảng giá và cách tính phí, gửi xe đủ một ngày thì tính phí như thế nào?"
+    ],
+    "requiredIdeas": [
+      "hai mươi bốn giờ",
+      "ban ngày",
+      "ban đêm"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B3-PRI06",
+    "documentSlug": "pricing-and-fee-calculation",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Gửi xe đúng ranh giới khung ban ngày tính phí ra sao?",
+      "gui xe dung ranh gioi khung ban ngay tinh phi ra sao",
+      "Làm sao tính phí khi thời điểm vào ra nằm đúng đầu hoặc cuối khung ban ngày?",
+      "minh muon bit lam sao tinh phi khi thoi diem vao ra nam dung dau hoac cuoi khung ban ngay",
+      "Phí tại ranh giới giờ ban ngày",
+      "Về bảng giá và cách tính phí, gửi xe đúng ranh giới khung ban ngày tính phí ra sao?"
+    ],
+    "requiredIdeas": [
+      "cùng ngày",
+      "ban ngày",
+      "hệ thống"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B3-PRI07",
+    "documentSlug": "pricing-and-fee-calculation",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Không thấy bảng giá của bãi thì phải làm sao?",
+      "khong thay bang gia cua bai thi phai lam sao",
+      "Bảng giá bị thiếu thì cần làm gì?",
+      "minh muon bit bang gia bi thieu thi can lam gi",
+      "Lỗi không tìm thấy bảng giá bãi xe",
+      "Về bảng giá và cách tính phí, không thấy bảng giá của bãi thì phải làm sao?"
+    ],
+    "requiredIdeas": [
+      "bãi",
+      "loại xe",
+      "không"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "acceptance"
+  },
+  {
+    "scenarioId": "B3-PRI08",
+    "documentSlug": "pricing-and-fee-calculation",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Hóa đơn gửi xe khác bảng giá thì kiểm tra như thế nào?",
+      "hoa don gui xe khac bang gia thi kiem tra nhu the nao",
+      "Phải làm sao khi số tiền hóa đơn gửi xe khác mức đã xem?",
+      "minh muon bit phai lam sao khi so tien hoa don gui xe khac muc da xem",
+      "Lỗi hóa đơn khác bảng giá gửi xe",
+      "Về bảng giá và cách tính phí, hóa đơn gửi xe khác bảng giá thì kiểm tra như thế nào?"
+    ],
+    "requiredIdeas": [
+      "bãi",
+      "thời gian",
+      "trả trước"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B3-PRI09",
+    "documentSlug": "pricing-and-fee-calculation",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Phí gửi xe ngày lễ có tự tăng không?",
+      "phi gui xe ngay le co tu tang khong",
+      "Ngày lễ thì hệ thống có tự cộng thêm phí gửi xe không?",
+      "minh muon bit ngay le thi he thong co tu cong them phi gui xe ko",
+      "Quy định phí gửi xe ngày lễ",
+      "Về bảng giá và cách tính phí, phí gửi xe ngày lễ có tự tăng không?"
+    ],
+    "requiredIdeas": [
+      "không",
+      "ngày lễ",
+      "bảng giá"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "acceptance"
+  },
+  {
+    "scenarioId": "B3-PRI10",
+    "documentSlug": "pricing-and-fee-calculation",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Đặt chỗ đã trả trước thì khi ra bãi tính phí thế nào?",
+      "dat cho da tra truoc thi khi ra bai tinh phi the nao",
+      "Khoản trả trước khi đặt chỗ có được trừ vào tiền gửi xe không?",
+      "minh muon bit khoan tra truoc khi dat cho co dc tru vao tien gui xe ko",
+      "Cách trừ tiền trả trước đặt chỗ",
+      "Về bảng giá và cách tính phí, đặt chỗ đã trả trước thì khi ra bãi tính phí thế nào?"
+    ],
+    "requiredIdeas": [
+      "thanh toán thành công",
+      "trả trước",
+      "phát sinh"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B3-PAY01",
+    "documentSlug": "invoice-vnpay-payment-refund",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Thanh toán vé tháng qua VNPay như thế nào?",
+      "thanh toan ve thang qua vnpay nhu the nao",
+      "Làm sao trả tiền vé tháng bằng VNPay?",
+      "minh muon bit lam sao tra tien ve thang bang vnpay",
+      "Cách thanh toán vé tháng VNPay",
+      "Về hóa đơn, thanh toán và yêu cầu hoàn tiền, thanh toán vé tháng qua VNPay như thế nào?"
+    ],
+    "requiredIdeas": [
+      "Vé tháng",
+      "số tiền",
+      "xác minh"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B3-PAY02",
+    "documentSlug": "invoice-vnpay-payment-refund",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Tiền đã trừ nhưng hóa đơn còn chờ thì phải làm sao?",
+      "tien da tru nhung hoa don con cho thi phai lam sao",
+      "Làm sao xử lý khi đã trả tiền mà hóa đơn chưa cập nhật?",
+      "minh muon bit lam sao xu ly khi da tra tien ma hoa don chua cap nhat",
+      "Lỗi tiền đã trừ hóa đơn chưa cập nhật",
+      "Về hóa đơn, thanh toán và yêu cầu hoàn tiền, tiền đã trừ nhưng hóa đơn còn chờ thì phải làm sao?"
+    ],
+    "requiredIdeas": [
+      "chưa",
+      "lần nữa",
+      "xác minh"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "acceptance"
+  },
+  {
+    "scenarioId": "B3-PAY03",
+    "documentSlug": "invoice-vnpay-payment-refund",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Thanh toán thất bại thì có được thử lại không?",
+      "thanh toan that bai thi co duoc thu lai khong",
+      "Làm sao thanh toán lại sau khi giao dịch báo thất bại?",
+      "minh muon bit lam sao thanh toan lai sau khi giao dich bao that bai",
+      "Cách thử lại thanh toán thất bại",
+      "Về hóa đơn, thanh toán và yêu cầu hoàn tiền, thanh toán thất bại thì có được thử lại không?"
+    ],
+    "requiredIdeas": [
+      "thất bại",
+      "xác minh",
+      "cho phép"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B3-PAY04",
+    "documentSlug": "invoice-vnpay-payment-refund",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Quay lại trang thành công có nghĩa là đã thanh toán chưa?",
+      "quay lai trang thanh cong co nghia la da thanh toan chua",
+      "Trang trả về của cổng thanh toán có đủ để xác nhận đã trả tiền không?",
+      "minh muon bit trang tra ve cua cong thanh toan co du de xac nhan da tra tien ko",
+      "Ý nghĩa trang thanh toán thành công",
+      "Về hóa đơn, thanh toán và yêu cầu hoàn tiền, quay lại trang thành công có nghĩa là đã thanh toán chưa?"
+    ],
+    "requiredIdeas": [
+      "hệ thống",
+      "xác minh",
+      "không"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "acceptance"
+  },
+  {
+    "scenarioId": "B3-PAY05",
+    "documentSlug": "invoice-vnpay-payment-refund",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Thông báo thanh toán gửi lặp có bị thu tiền hai lần không?",
+      "thong bao thanh toan gui lap co bi thu tien hai lan khong",
+      "Hệ thống xử lý thông báo thanh toán trùng như thế nào?",
+      "minh muon bit he thong xu ly thong bao thanh toan trung nhu the nao",
+      "Cách xử lý thông báo thanh toán lặp",
+      "Về hóa đơn, thanh toán và yêu cầu hoàn tiền, thông báo thanh toán gửi lặp có bị thu tiền hai lần không?"
+    ],
+    "requiredIdeas": [
+      "trùng",
+      "không",
+      "đối chiếu"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B3-PAY06",
+    "documentSlug": "invoice-vnpay-payment-refund",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Thanh toán qua SePay dùng trong trường hợp nào?",
+      "thanh toan qua sepay dung trong truong hop nao",
+      "Làm sao biết lúc nào được thanh toán đặt chỗ bằng SePay?",
+      "minh muon bit lam sao biet luc nao dc thanh toan dat cho bang sepay",
+      "Phạm vi thanh toán đặt chỗ SePay",
+      "Về hóa đơn, thanh toán và yêu cầu hoàn tiền, thanh toán qua SePay dùng trong trường hợp nào?"
+    ],
+    "requiredIdeas": [
+      "đặt chỗ",
+      "SePay",
+      "không"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B3-PAY07",
+    "documentSlug": "invoice-vnpay-payment-refund",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Thanh toán vé tháng bằng ví như thế nào?",
+      "thanh toan ve thang bang vi nhu the nao",
+      "Làm sao dùng số dư ví để trả hóa đơn vé tháng?",
+      "minh muon bit lam sao dung so du vi de tra hoa don ve thang",
+      "Cách thanh toán hóa đơn vé tháng bằng ví",
+      "Về hóa đơn, thanh toán và yêu cầu hoàn tiền, thanh toán vé tháng bằng ví như thế nào?"
+    ],
+    "requiredIdeas": [
+      "Vé tháng",
+      "ví",
+      "xác nhận"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "acceptance"
+  },
+  {
+    "scenarioId": "B3-PAY08",
+    "documentSlug": "invoice-vnpay-payment-refund",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Không dùng VNPay thì thanh toán vé tháng tại quầy thế nào?",
+      "khong dung vnpay thi thanh toan ve thang tai quay the nao",
+      "Làm sao chọn trả tiền vé tháng tại quầy?",
+      "minh muon bit lam sao chon tra tien ve thang tai quay",
+      "Cách thanh toán vé tháng tại quầy",
+      "Về hóa đơn, thanh toán và yêu cầu hoàn tiền, không dùng VNPay thì thanh toán vé tháng tại quầy thế nào?"
+    ],
+    "requiredIdeas": [
+      "tại quầy",
+      "chưa",
+      "thực tế"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B3-PAY09",
+    "documentSlug": "invoice-vnpay-payment-refund",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Muốn hoàn tiền hóa đơn thì cần làm gì?",
+      "muon hoan tien hoa don thi can lam gi",
+      "Làm sao yêu cầu kiểm tra việc hoàn tiền đã thanh toán?",
+      "minh muon bit lam sao yeu cau kiem tra viec hoan tien da thanh toan",
+      "Quy trình yêu cầu hoàn tiền hóa đơn",
+      "Về hóa đơn, thanh toán và yêu cầu hoàn tiền, muốn hoàn tiền hóa đơn thì cần làm gì?"
+    ],
+    "requiredIdeas": [
+      "chưa",
+      "hoàn tiền",
+      "không cam kết"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "acceptance"
+  },
+  {
+    "scenarioId": "B3-PAY10",
+    "documentSlug": "invoice-vnpay-payment-refund",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Vì sao hóa đơn đã thanh toán mà vé chưa có hiệu lực?",
+      "vi sao hoa don da thanh toan ma ve chua co hieu luc",
+      "Làm sao kiểm tra vé khi đã trả tiền nhưng chưa dùng được?",
+      "minh muon bit lam sao kiem tra ve khi da tra tien nhung chua dung dc",
+      "Lỗi trả tiền xong vé chưa hiệu lực",
+      "Về hóa đơn, thanh toán và yêu cầu hoàn tiền, vì sao hóa đơn đã thanh toán mà vé chưa có hiệu lực?"
+    ],
+    "requiredIdeas": [
+      "hóa đơn",
+      "Vé tháng",
+      "không"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B3-VOU01",
+    "documentSlug": "voucher-and-promotions",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Dùng mã giảm giá vé tháng như thế nào?",
+      "dung ma giam gia ve thang nhu the nao",
+      "Làm sao áp dụng mã ưu đãi khi đăng ký vé tháng?",
+      "minh muon bit lam sao ap dung ma uu dai khi dang ky ve thang",
+      "Cách dùng voucher vé tháng",
+      "Về mã ưu đãi và khuyến mãi vé tháng, dùng mã giảm giá vé tháng như thế nào?"
+    ],
+    "requiredIdeas": [
+      "Vé tháng",
+      "mã ưu đãi",
+      "số tiền"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B3-VOU02",
+    "documentSlug": "voucher-and-promotions",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Mã giảm giá hết hạn thì phải làm sao?",
+      "ma giam gia het han thi phai lam sao",
+      "Vì sao voucher không còn trong thời gian sử dụng?",
+      "minh muon bit vi sao voucher ko con trong thoi gian su dung",
+      "Lỗi voucher hết hạn",
+      "Về mã ưu đãi và khuyến mãi vé tháng, mã giảm giá hết hạn thì phải làm sao?"
+    ],
+    "requiredIdeas": [
+      "thời gian",
+      "hiệu lực",
+      "không"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "acceptance"
+  },
+  {
+    "scenarioId": "B3-VOU03",
+    "documentSlug": "voucher-and-promotions",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Đơn vé tháng chưa đủ điều kiện mã giảm giá thì làm sao?",
+      "don ve thang chua du dieu kien ma giam gia thi lam sao",
+      "Vì sao voucher báo chưa đạt giá trị vé tối thiểu?",
+      "minh muon bit vi sao voucher bao chua dat gia tri ve toi thieu",
+      "Lỗi voucher chưa đủ giá trị tối thiểu",
+      "Về mã ưu đãi và khuyến mãi vé tháng, đơn vé tháng chưa đủ điều kiện mã giảm giá thì làm sao?"
+    ],
+    "requiredIdeas": [
+      "tối thiểu",
+      "bãi",
+      "không"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B3-VOU04",
+    "documentSlug": "voucher-and-promotions",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Vì sao mã ưu đãi không dùng được ở bãi khác?",
+      "vi sao ma uu dai khong dung duoc o bai khac",
+      "Voucher có dùng được cho mọi bãi không?",
+      "minh muon bit voucher co dung dc cho moi bai ko",
+      "Phạm vi bãi xe của mã ưu đãi",
+      "Về mã ưu đãi và khuyến mãi vé tháng, vì sao mã ưu đãi không dùng được ở bãi khác?"
+    ],
+    "requiredIdeas": [
+      "đối tác",
+      "bãi",
+      "phạm vi"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "acceptance"
+  },
+  {
+    "scenarioId": "B3-VOU05",
+    "documentSlug": "voucher-and-promotions",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Mã giảm theo phần trăm có giới hạn tiền giảm không?",
+      "ma giam theo phan tram co gioi han tien giam khong",
+      "Voucher phần trăm được giảm tối đa như thế nào?",
+      "minh muon bit voucher phan tram dc giam toi da nhu the nao",
+      "Giới hạn tiền giảm voucher phần trăm",
+      "Về mã ưu đãi và khuyến mãi vé tháng, mã giảm theo phần trăm có giới hạn tiền giảm không?"
+    ],
+    "requiredIdeas": [
+      "tối đa",
+      "giá trị vé",
+      "hệ thống"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B3-VOU06",
+    "documentSlug": "voucher-and-promotions",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Voucher báo hết lượt sử dụng thì cần làm gì?",
+      "voucher bao het luot su dung thi can lam gi",
+      "Mã ưu đãi hết số lượt thì xử lý như nào?",
+      "minh muon bit ma uu dai het so luot thi xu ly nhu nao",
+      "Lỗi voucher hết lượt sử dụng",
+      "Về mã ưu đãi và khuyến mãi vé tháng, voucher báo hết lượt sử dụng thì cần làm gì?"
+    ],
+    "requiredIdeas": [
+      "giới hạn",
+      "đang được giữ",
+      "không"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B3-VOU07",
+    "documentSlug": "voucher-and-promotions",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Xem thử mã ưu đãi có giữ lượt sử dụng không?",
+      "xem thu ma uu dai co giu luot su dung khong",
+      "Chỉ kiểm tra voucher trước đăng ký có tiêu thụ lượt không?",
+      "minh muon bit chi kiem tra voucher truoc dang ky co tieu thu luot ko",
+      "Xem thử voucher và giữ lượt",
+      "Về mã ưu đãi và khuyến mãi vé tháng, xem thử mã ưu đãi có giữ lượt sử dụng không?"
+    ],
+    "requiredIdeas": [
+      "chưa giữ",
+      "hóa đơn",
+      "kiểm tra lại"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "acceptance"
+  },
+  {
+    "scenarioId": "B3-VOU08",
+    "documentSlug": "voucher-and-promotions",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Hủy vé đang chờ thì lượt mã ưu đãi có được trả lại không?",
+      "huy ve dang cho thi luot ma uu dai co duoc tra lai khong",
+      "Làm sao biết voucher được giải phóng khi hủy đăng ký chưa thanh toán?",
+      "minh muon bit lam sao biet voucher dc giai phong khi huy dang ky chua thanh toan",
+      "Giải phóng voucher của vé chờ bị hủy",
+      "Về mã ưu đãi và khuyến mãi vé tháng, hủy vé đang chờ thì lượt mã ưu đãi có được trả lại không?"
+    ],
+    "requiredIdeas": [
+      "đang được giữ",
+      "giải phóng",
+      "thành công"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B3-VOU09",
+    "documentSlug": "voucher-and-promotions",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Hai người cùng dùng lượt voucher cuối thì sao?",
+      "hai nguoi cung dung luot voucher cuoi thi sao",
+      "Lượt mã giảm giá cuối có bảo đảm cho cả hai người đang xem thử không?",
+      "minh muon bit luot ma giam gia cuoi co bao dam cho ca hai nguoi dang xem thu ko",
+      "Cạnh tranh lượt voucher cuối",
+      "Về mã ưu đãi và khuyến mãi vé tháng, hai người cùng dùng lượt voucher cuối thì sao?"
+    ],
+    "requiredIdeas": [
+      "kiểm tra lại",
+      "hết lượt",
+      "không"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "acceptance"
+  },
+  {
+    "scenarioId": "B3-VOU10",
+    "documentSlug": "voucher-and-promotions",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Có thể dùng nhiều mã giảm giá cho một vé không?",
+      "co the dung nhieu ma giam gia cho mot ve khong",
+      "Một đăng ký vé tháng có cộng dồn nhiều voucher không?",
+      "minh muon bit mot dang ky ve thang co cong don nhieu voucher ko",
+      "Cộng dồn voucher trên một vé",
+      "Về mã ưu đãi và khuyến mãi vé tháng, có thể dùng nhiều mã giảm giá cho một vé không?"
+    ],
+    "requiredIdeas": [
+      "một mã",
+      "hóa đơn",
+      "chưa"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B3-RES01",
+    "documentSlug": "reservations-and-holds",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Đặt chỗ gửi xe trước như thế nào?",
+      "dat cho gui xe truoc nhu the nao",
+      "Làm sao giữ chỗ trước khi đến bãi xe?",
+      "minh muon bit lam sao giu cho truoc khi den bai xe",
+      "Cách đặt chỗ gửi xe trước",
+      "Về đặt chỗ trước và thời gian giữ chỗ, đặt chỗ gửi xe trước như thế nào?"
+    ],
+    "requiredIdeas": [
+      "Đặt chỗ trước",
+      "biển số",
+      "thanh toán"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B3-RES02",
+    "documentSlug": "reservations-and-holds",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Có phải đăng nhập mới được đặt chỗ không?",
+      "co phai dang nhap moi duoc dat cho khong",
+      "Khách chưa đăng nhập có đặt chỗ trước được không?",
+      "minh muon bit khach chua dang nhap co dat cho truoc dc ko",
+      "Đặt chỗ gửi xe không đăng nhập",
+      "Về đặt chỗ trước và thời gian giữ chỗ, có phải đăng nhập mới được đặt chỗ không?"
+    ],
+    "requiredIdeas": [
+      "chưa đăng nhập",
+      "trình duyệt",
+      "mã truy cập"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "acceptance"
+  },
+  {
+    "scenarioId": "B3-RES03",
+    "documentSlug": "reservations-and-holds",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Đặt chỗ phải thanh toán trong bao lâu?",
+      "dat cho phai thanh toan trong bao lau",
+      "Sau khi xác nhận đặt chỗ thì có bao nhiêu phút để trả tiền?",
+      "minh muon bit sau khi xac nhan dat cho thi co bao nhieu phut de tra tien",
+      "Thời hạn thanh toán đặt chỗ",
+      "Về đặt chỗ trước và thời gian giữ chỗ, đặt chỗ phải thanh toán trong bao lâu?"
+    ],
+    "requiredIdeas": [
+      "mười phút",
+      "giải phóng",
+      "đối soát"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B3-RES04",
+    "documentSlug": "reservations-and-holds",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Trả tiền đặt chỗ xong phải đến bãi trong bao lâu?",
+      "tra tien dat cho xong phai den bai trong bao lau",
+      "Thanh toán đặt chỗ thành công thì hạn vào bãi là bao lâu?",
+      "minh muon bit thanh toan dat cho thanh cong thi han vao bai la bao lau",
+      "Thời hạn đến bãi sau trả tiền đặt chỗ",
+      "Về đặt chỗ trước và thời gian giữ chỗ, trả tiền đặt chỗ xong phải đến bãi trong bao lâu?"
+    ],
+    "requiredIdeas": [
+      "sáu mươi phút",
+      "thanh toán thành công",
+      "giải phóng"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "acceptance"
+  },
+  {
+    "scenarioId": "B3-RES05",
+    "documentSlug": "reservations-and-holds",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Tiền gửi xe đặt chỗ bắt đầu tính từ khi nào?",
+      "tien gui xe dat cho bat dau tinh tu khi nao",
+      "Đặt chỗ có tính phí trước lúc xe vào bãi không?",
+      "minh muon bit dat cho co tinh phi truoc luc xe vao bai ko",
+      "Mốc bắt đầu tính phí đặt chỗ",
+      "Về đặt chỗ trước và thời gian giữ chỗ, tiền gửi xe đặt chỗ bắt đầu tính từ khi nào?"
+    ],
+    "requiredIdeas": [
+      "thanh toán thành công",
+      "ra",
+      "trả trước"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B3-RES06",
+    "documentSlug": "reservations-and-holds",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Hủy đặt chỗ đã thanh toán có được hoàn tiền không?",
+      "huy dat cho da thanh toan co duoc hoan tien khong",
+      "Đặt chỗ trả tiền rồi nhưng không đến có nhận lại tiền không?",
+      "minh muon bit dat cho tra tien roi nhung ko den co nhan lai tien ko",
+      "Quy định hủy đặt chỗ không hoàn tiền",
+      "Về đặt chỗ trước và thời gian giữ chỗ, hủy đặt chỗ đã thanh toán có được hoàn tiền không?"
+    ],
+    "requiredIdeas": [
+      "không được hoàn tiền",
+      "chưa sử dụng",
+      "giải phóng"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B3-RES07",
+    "documentSlug": "reservations-and-holds",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Hai người cùng đặt chỗ cuối cùng thì sao?",
+      "hai nguoi cung dat cho cuoi cung thi sao",
+      "Đặt chỗ cuối có chắc thành công khi vừa thấy còn chỗ không?",
+      "minh muon bit dat cho cuoi co chac thanh cong khi vua thay con cho ko",
+      "Cạnh tranh chỗ cuối khi đặt trước",
+      "Về đặt chỗ trước và thời gian giữ chỗ, hai người cùng đặt chỗ cuối cùng thì sao?"
+    ],
+    "requiredIdeas": [
+      "kiểm tra lại",
+      "người khác",
+      "chọn lại"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "acceptance"
+  },
+  {
+    "scenarioId": "B3-RES08",
+    "documentSlug": "reservations-and-holds",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Đặt chỗ báo biển số đã có yêu cầu còn hiệu lực thì làm sao?",
+      "dat cho bao bien so da co yeu cau con hieu luc thi lam sao",
+      "Vì sao không đặt thêm được cùng biển số trong khu vực?",
+      "minh muon bit vi sao ko dat them dc cung bien so trong khu vuc",
+      "Lỗi trùng biển số khi đặt chỗ",
+      "Về đặt chỗ trước và thời gian giữ chỗ, đặt chỗ báo biển số đã có yêu cầu còn hiệu lực thì làm sao?"
+    ],
+    "requiredIdeas": [
+      "biển số",
+      "chưa kết thúc",
+      "không"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B3-RES09",
+    "documentSlug": "reservations-and-holds",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Thanh toán đặt chỗ bị báo cần nhân viên đối soát thì sao?",
+      "thanh toan dat cho bi bao can nhan vien doi soat thi sao",
+      "Đặt chỗ nhận tiền trễ và cần kiểm tra thì phải làm gì?",
+      "minh muon bit dat cho nhan tien tre va can kiem tra thi phai lam gi",
+      "Đặt chỗ thanh toán cần đối soát",
+      "Về đặt chỗ trước và thời gian giữ chỗ, thanh toán đặt chỗ bị báo cần nhân viên đối soát thì sao?"
+    ],
+    "requiredIdeas": [
+      "đối soát",
+      "chưa",
+      "giữ chỗ"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "acceptance"
+  },
+  {
+    "scenarioId": "B3-RES10",
+    "documentSlug": "reservations-and-holds",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Đặt chỗ chọn vị trí cụ thể khác giữ số lượng thế nào?",
+      "dat cho chon vi tri cu the khac giu so luong the nao",
+      "Vì sao có khu vực đặt chỗ không cho chọn từng ô?",
+      "minh muon bit vi sao co khu vuc dat cho ko cho chon tung o",
+      "Chọn ô cụ thể và giữ sức chứa khi đặt chỗ",
+      "Về đặt chỗ trước và thời gian giữ chỗ, đặt chỗ chọn vị trí cụ thể khác giữ số lượng thế nào?"
+    ],
+    "requiredIdeas": [
+      "từng ô",
+      "sức chứa",
+      "loại xe"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  }
+]

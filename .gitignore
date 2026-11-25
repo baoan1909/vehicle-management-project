@@ -63,3 +63,25 @@ dist/
 !/docs/project-control/**
 !/docs/ci-cd/
 !/docs/ci-cd/**
+
+# Local task output, interpreter caches and generated test/build files.
+/.tmp/
+**/__pycache__/
+*.pyc
+*.pyo
+**/.pytest_cache/
+**/.venv/
+**/.vite/
+**/coverage/
+**/test-results/
+**/playwright-report/
+*.tsbuildinfo
+*.log
+hs_err_pid*
+replay_pid*
+*.hprof
+*.dmp
+.DS_Store
+Thumbs.db
+# Keep deliberate test evidence referenced by the handoff reports.
+!**/docs/**/evidence/**/*.log

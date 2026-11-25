@@ -29,6 +29,9 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class KnowledgeIndexBuildService {
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.ban.vehicle_management.application.ai.service.AiRuntimeModeService runtimeMode;
+
 
     private static final Logger log = LoggerFactory.getLogger(KnowledgeIndexBuildService.class);
 
@@ -65,6 +68,10 @@ public class KnowledgeIndexBuildService {
     }
 
     public void process(UUID indexVersionId) {
+        if (runtimeMode != null) {
+            var version = indexVersionPortOut.findById(indexVersionId).orElse(null);
+            if (version == null || !runtimeMode.allows(version.getProvider())) return;
+        }
         UUID leaseId = UUID.randomUUID();
         if (!indexVersionPortOut.tryAcquireBuildLease(
                 indexVersionId,
@@ -114,6 +121,7 @@ public class KnowledgeIndexBuildService {
             KnowledgeChunk chunk,
             Instant now
     ) {
+        if (runtimeMode != null && !runtimeMode.allows(version.getProvider())) return false;
         if (reuseStagedEmbedding(version, configuration, chunk, now)) {
             return true;
         }
@@ -123,6 +131,7 @@ public class KnowledgeIndexBuildService {
         EmbeddingResult result = embeddingService.embed(new EmbeddingRequest(documentText, chunk.chunkId()), configuration);
         if (!result.isSuccess()) {
             String failureCode = result.getFailureCode() == null ? "EMBEDDING_FAILED" : result.getFailureCode();
+            if (java.util.Set.of("AI_MODE_CHANGED", "LOCAL_BUSY").contains(failureCode)) return false;
             log.warn("Knowledge index build failed for version {} on chunk {}: {}",
                     version.getIndexVersionId(), chunk.chunkId(), failureCode);
             failVersion(version, failureCode);
@@ -161,6 +170,7 @@ public class KnowledgeIndexBuildService {
         List<KnowledgeStagedEmbedding> staged = stagedEmbeddingPortOut.findByChunkIds(List.of(chunk.chunkId()));
         for (KnowledgeStagedEmbedding candidate : staged) {
             if (candidate.getEmbedding() == null
+                    || configuration.getProvider() != candidate.getProvider()
                     || !configuration.getModelId().equals(candidate.getModelId())
                     || configuration.getOutputDimension() != candidate.getEmbeddingDimension()
                     || !version.getEmbeddingPromptVersion().equals(candidate.getEmbeddingPromptVersion())

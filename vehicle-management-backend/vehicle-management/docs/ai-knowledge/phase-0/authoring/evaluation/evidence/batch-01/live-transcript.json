@@ -1,0 +1,89 @@
+[ {
+  "question" : "Quên mật khẩu phải làm sao?",
+  "expectedDocument" : "authentication-and-profile",
+  "retrievalHit" : true,
+  "evidenceSufficient" : true,
+  "diagnostic" : "null",
+  "model" : "gemini-3.8-flash",
+  "providerSuccess" : false,
+  "response" : "",
+  "failureCode" : "TIMEOUT",
+  "latencyMs" : 20484
+}, {
+  "question" : "quen mat khau phai lam sao",
+  "expectedDocument" : "authentication-and-profile",
+  "retrievalHit" : true,
+  "evidenceSufficient" : true,
+  "diagnostic" : "null",
+  "model" : "gemini-3.8-flash",
+  "providerSuccess" : false,
+  "response" : "",
+  "failureCode" : "HTTP_5XX",
+  "latencyMs" : 2131
+}, {
+  "question" : "Có nên gửi OTP vào chatbot không?",
+  "expectedDocument" : "chatbot-privacy-and-prohibited-data",
+  "retrievalHit" : true,
+  "evidenceSufficient" : true,
+  "diagnostic" : "null",
+  "model" : "gemini-3.8-flash",
+  "providerSuccess" : false,
+  "response" : "",
+  "failureCode" : "HTTP_5XX",
+  "latencyMs" : 4430
+}, {
+  "question" : "co nen gui otp vao chatbot khong",
+  "expectedDocument" : "chatbot-privacy-and-prohibited-data",
+  "retrievalHit" : true,
+  "evidenceSufficient" : true,
+  "diagnostic" : "null",
+  "model" : "gemini-3.8-flash",
+  "providerSuccess" : false,
+  "response" : "",
+  "failureCode" : "TIMEOUT",
+  "latencyMs" : 20917
+}, {
+  "question" : "Tạo phiếu trong chat đối tác như thế nào?",
+  "expectedDocument" : "chat-conversations-and-support-boundaries",
+  "retrievalHit" : true,
+  "evidenceSufficient" : true,
+  "diagnostic" : "null",
+  "model" : "gemini-3.8-flash",
+  "providerSuccess" : false,
+  "response" : "",
+  "failureCode" : "HTTP_5XX",
+  "latencyMs" : 7862
+}, {
+  "question" : "tao phieu trong chat doi tac nhu the nao",
+  "expectedDocument" : "chat-conversations-and-support-boundaries",
+  "retrievalHit" : true,
+  "evidenceSufficient" : true,
+  "diagnostic" : "null",
+  "model" : "gemini-3.8-flash",
+  "providerSuccess" : false,
+  "response" : "",
+  "failureCode" : "HTTP_5XX",
+  "latencyMs" : 5132
+}, {
+  "question" : "Tạo phiếu hỗ trợ cần nhập gì?",
+  "expectedDocument" : "support-ticket-and-escalation",
+  "retrievalHit" : true,
+  "evidenceSufficient" : true,
+  "diagnostic" : "null",
+  "model" : "gemini-3.8-flash",
+  "providerSuccess" : false,
+  "response" : "",
+  "failureCode" : "HTTP_5XX",
+  "latencyMs" : 8027
+}, {
+  "question" : "tao phieu ho tro can nhap gi",
+  "expectedDocument" : "support-ticket-and-escalation",
+  "retrievalHit" : true,
+  "evidenceSufficient" : true,
+  "diagnostic" : "null",
+  "model" : "gemini-3.8-flash",
+  "providerSuccess" : false,
+  "response" : "",
+  "failureCode" : "HTTP_5XX",
+  "latencyMs" : 12850
+} ]

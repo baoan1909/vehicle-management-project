@@ -37,3 +37,17 @@ build/
 ### Local Env ###
 .env
 .env.local
+
+# Generated local tooling and diagnostics (the application uses Java).
+.m2-local/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.venv/
+*.log
+hs_err_pid*
+replay_pid*
+*.hprof
+*.dmp
+!docs/**/evidence/**/*.log

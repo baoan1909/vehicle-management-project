@@ -1,0 +1,14 @@
+{
+  "kind": "REAL_QWEN_GENERATION_GROUNDED_COMPONENT_512",
+  "model": "qwen3.5-4b",
+  "context": 512,
+  "parallel": 1,
+  "plannedCases": 40,
+  "documents": 16,
+  "retrieval": "Whole source FAQ selected by test; no SQL/backend/retrieval acceptance",
+  "prompt": "Compact standalone evaluation prompt; not claimed as production chatbot prompt",
+  "independentBlindHoldout": false,
+  "qualityAccepted": false,
+  "googleCalled": false,
+  "note": "Not full chatbox/API acceptance. Semantic grades applied separately by Codex after reading actual outputs."
+}

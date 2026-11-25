@@ -33,8 +33,39 @@ public record RetrievalAudit(
         String diagnosticCode,
         Long latencyMs,
         Instant createdAt,
-        List<RetrievalAuditResult> results
+        List<RetrievalAuditResult> results,
+        String retrievalMethod,
+        String sourceSnapshot
 ) {
+    public RetrievalAudit(
+        UUID retrievalAuditId,
+        UUID runId,
+        UUID conversationId,
+        UUID inputMessageId,
+        UUID outputMessageId,
+        UUID requestedBy,
+        UUID tenantId,
+        String queryRedacted,
+        String normalizedQueryHash,
+        UUID activeIndexVersionId,
+        String retrievalPolicyVersion,
+        String thresholdVersion,
+        String accessScopes,
+        int vectorCandidateCount,
+        int lexicalCandidateCount,
+        int fusedResultCount,
+        int finalResultCount,
+        int topK,
+        int maxChunksPerDocument,
+        BigDecimal groundedConfidence,
+        String diagnosticCode,
+        Long latencyMs,
+        Instant createdAt,
+        List<RetrievalAuditResult> results
+    ) {
+        this(retrievalAuditId, runId, conversationId, inputMessageId, outputMessageId, requestedBy, tenantId, queryRedacted, normalizedQueryHash, activeIndexVersionId, retrievalPolicyVersion, thresholdVersion, accessScopes, vectorCandidateCount, lexicalCandidateCount, fusedResultCount, finalResultCount, topK, maxChunksPerDocument, groundedConfidence, diagnosticCode, latencyMs, createdAt, results, "HYBRID", null);
+    }
+
     public record RetrievalAuditResult(
             UUID documentId,
             UUID chunkId,

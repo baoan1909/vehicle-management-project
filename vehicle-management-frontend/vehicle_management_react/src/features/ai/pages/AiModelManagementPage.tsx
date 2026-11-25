@@ -1,3 +1,4 @@
+import { AiRuntimeModePanel } from "./components/AiRuntimeModePanel";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, ConfirmDialog } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
@@ -112,10 +113,12 @@ export function AiModelManagementPage() {
       <section className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3">
         <div>
           <h1 className="tw-m-0 tw-text-xl tw-font-black tw-text-slate-900">Quản trị model AI</h1>
-          <p className="tw-m-0 tw-mt-1 tw-text-sm tw-font-semibold tw-text-slate-500">Gemini routing, rollout, catalog và cảnh báo vận hành.</p>
+          <p className="tw-m-0 tw-mt-1 tw-text-sm tw-font-semibold tw-text-slate-500">Chế độ AI, phân phối model, danh mục và cảnh báo vận hành.</p>
         </div>
         <Button disabled={!canSyncCatalog} loading={savingId === "catalog"} onClick={() => void syncCatalog()} variant="primary">Đồng bộ catalog</Button>
       </section>
+
+      {user?.role === "SYSTEM_ADMIN" ? <AiRuntimeModePanel canManage={canManage} /> : null}
 
       {error ? <div className="tw-rounded-lg tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-3 tw-text-sm tw-font-bold tw-text-red-700">{error}</div> : null}
 

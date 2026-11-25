@@ -1,0 +1,13 @@
+{
+  "usage": {
+    "prompt_tokens": 0,
+    "total_tokens": 0
+  },
+  "dimensions": 1024,
+  "elapsedMs": 8282,
+  "model": "text-embedding-qwen3-embedding-0.6b",
+  "kind": "TINY_LOCAL_EMBEDDING_PROBE_NOT_RETRIEVAL_ACCEPTANCE",
+  "l2Norm": 0.9999999560408371,
+  "googleCalled": false,
+  "fullHarnessStarted": false
+}

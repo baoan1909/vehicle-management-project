@@ -37,10 +37,86 @@ public interface KnowledgeChunkRepository extends JpaRepository<KnowledgeChunkEn
         limit 1
         """, nativeQuery = true)
     String findImmutableUnaccentWrapper();
+    @Query(value = """
+        select chunk.chunk_id from ai.knowledge_chunks chunk
+        join ai.knowledge_documents document on document.document_id=chunk.document_id
+        join ai.knowledge_sources source on source.source_id=document.source_id
+        where chunk.chunk_id in (:chunkIds)
+          and chunk.status='READY' and document.status='READY' and source.status='ACTIVE'
+          and chunk.document_version=document.document_version
+          and chunk.access_scope in (:accessScopes) and document.access_scope in (:accessScopes)
+          and source.access_scope in (:accessScopes)
+          and (document.effective_from is null or document.effective_from<=now())
+          and (document.effective_to is null or document.effective_to>now())
+          and ((cast(:tenantId as uuid) is null and chunk.tenant_id is null and document.tenant_id is null and source.tenant_id is null)
+            or (cast(:tenantId as uuid) is not null and (chunk.tenant_id is null or chunk.tenant_id=cast(:tenantId as uuid))
+              and (document.tenant_id is null or document.tenant_id=cast(:tenantId as uuid))
+              and (source.tenant_id is null or source.tenant_id=cast(:tenantId as uuid))))
+          and document.document_version=(select max(d2.document_version) from ai.knowledge_documents d2
+              where d2.document_key=document.document_key and d2.status='READY')
+          and exists (select 1 from ai.knowledge_embeddings embedding where embedding.chunk_id=chunk.chunk_id
+              and embedding.index_version_id=:indexVersionId and embedding.document_version=chunk.document_version)
+        """, nativeQuery = true)
+    List<UUID> findEligibleCachedChunkIds(@Param("tenantId") UUID tenantId, @Param("indexVersionId") UUID indexVersionId,
+            @Param("accessScopes") List<String> accessScopes, @Param("chunkIds") List<UUID> chunkIds);
+
     interface SearchProjection {
         UUID getDocumentId(); UUID getChunkId(); String getTitle(); String getContent();
         String getSummary(); Integer getSourcePage(); String getSourceSection(); BigDecimal getScore();
     }
+    interface CommonProjection extends SearchProjection {
+        Integer getDocumentVersion(); java.time.Instant getReviewedAt(); String getDocumentChecksum();
+    }
+
+    String COMMON_SELECT = """
+        select document.document_id as "documentId", chunk.chunk_id as "chunkId", chunk.title as "title",
+          faq.content as "content", chunk.summary as "summary", faq.source_page as "sourcePage",
+          faq.section as "sourceSection", document.document_version as "documentVersion",
+          document.reviewed_at as "reviewedAt", document.checksum_sha256 as "documentChecksum",
+        """;
+    String COMMON_FROM = """
+        from ai.knowledge_chunks chunk
+        join ai.knowledge_documents document on document.document_id=chunk.document_id
+        join ai.knowledge_sources source on source.source_id=document.source_id
+        join lateral (
+          select string_agg(block.content, chr(10) order by block.block_index) as content,
+            min(coalesce(block.source_section,block.heading_path)) as section, min(block.source_page) as source_page
+          from ai.knowledge_document_blocks block
+          where block.document_id=document.document_id and block.doc_version=document.document_version
+            and block.block_index between chunk.start_block_index and chunk.end_block_index
+            and trim(regexp_replace(ai.immutable_unaccent(lower(coalesce(block.source_section,block.heading_path,''))),
+                '^.*[>/]','')) ~ '^(faq|cau hoi.*thuong gap)$'
+        ) faq on faq.content is not null
+        where chunk.status='READY' and document.status='READY' and source.status='ACTIVE'
+          and document.reviewed_at is not null and document.reviewed_by is not null
+          and chunk.document_version=document.document_version
+          and chunk.access_scope in (:accessScopes) and document.access_scope in (:accessScopes)
+          and source.access_scope in (:accessScopes)
+          and (document.effective_from is null or document.effective_from<=now())
+          and (document.effective_to is null or document.effective_to>now())
+          and ((cast(:tenantId as uuid) is null and chunk.tenant_id is null and document.tenant_id is null and source.tenant_id is null)
+            or (cast(:tenantId as uuid) is not null and (chunk.tenant_id is null or chunk.tenant_id=cast(:tenantId as uuid))
+              and (document.tenant_id is null or document.tenant_id=cast(:tenantId as uuid))
+              and (source.tenant_id is null or source.tenant_id=cast(:tenantId as uuid))))
+          and document.document_version=(select max(latest.document_version) from ai.knowledge_documents latest
+              where latest.document_key=document.document_key and latest.status='READY')
+        """;
+
+    @Query(value = COMMON_SELECT + " ts_rank(chunk.search_vector_unaccent,to_tsquery('simple',:query)) as score " + COMMON_FROM + """
+          and chunk.search_vector_unaccent @@ to_tsquery('simple',:query)
+        order by score desc, document.document_id, chunk.chunk_id limit :limit
+        """, nativeQuery = true)
+    List<CommonProjection> commonFaqRows(@Param("tenantId") UUID tenantId, @Param("accessScopes") List<String> scopes,
+            @Param("query") String query, @Param("limit") int limit);
+
+    @Query(value = COMMON_SELECT + " cast(0 as numeric) as score " + COMMON_FROM + """
+          and chunk.chunk_id in (:chunkIds)
+        order by document.document_id, chunk.chunk_id
+        for share of chunk,document,source
+        """, nativeQuery = true)
+    List<CommonProjection> lockCommonFaqRows(@Param("tenantId") UUID tenantId, @Param("accessScopes") List<String> scopes,
+            @Param("chunkIds") List<UUID> chunkIds);
+
     interface HybridProjection {
         UUID getChunkId(); UUID getDocumentId(); String getTitle(); String getContent();
         String getSummary(); Integer getSourcePage(); String getSourceSection();
@@ -72,11 +148,21 @@ public interface KnowledgeChunkRepository extends JpaRepository<KnowledgeChunkEn
         join ai.knowledge_sources source on source.source_id=document.source_id
         where chunk.status='READY' and document.status='READY' and source.status='ACTIVE'
           and chunk.access_scope in (:accessScopes)
+          and document.access_scope in (:accessScopes) and source.access_scope in (:accessScopes)
+          and chunk.document_version=document.document_version
+          and (document.effective_from is null or document.effective_from<=now())
+          and (document.effective_to is null or document.effective_to>now())
+          and ((cast(:tenantId as uuid) is null and document.tenant_id is null and source.tenant_id is null)
+            or (cast(:tenantId as uuid) is not null and (document.tenant_id is null or document.tenant_id=cast(:tenantId as uuid))
+              and (source.tenant_id is null or source.tenant_id=cast(:tenantId as uuid))))
           and ((cast(:tenantId as uuid) is null and chunk.tenant_id is null)
             or (cast(:tenantId as uuid) is not null and (chunk.tenant_id is null or chunk.tenant_id=cast(:tenantId as uuid))))
+          and document.document_version=(select max(d2.document_version) from ai.knowledge_documents d2
+              where d2.document_key=document.document_key and d2.status='READY')
           and chunk.search_vector @@ plainto_tsquery('simple', :query)
           and exists (select 1 from ai.knowledge_embeddings embedding
-                      where embedding.chunk_id=chunk.chunk_id and embedding.index_version_id=:indexVersionId)
+                      where embedding.chunk_id=chunk.chunk_id and embedding.index_version_id=:indexVersionId
+                      and embedding.document_version=chunk.document_version)
         order by "score" desc, chunk.created_at desc limit :limit
         """, nativeQuery = true)
     List<SearchProjection> lexicalSearchRows(@Param("tenantId") UUID tenantId,
@@ -99,11 +185,20 @@ public interface KnowledgeChunkRepository extends JpaRepository<KnowledgeChunkEn
         join ai.knowledge_chunks chunk on chunk.chunk_id=embedding.chunk_id
         join ai.knowledge_documents document on document.document_id=chunk.document_id
         join ai.knowledge_sources source on source.source_id=document.source_id
-        where embedding.index_version_id=:indexVersionId and chunk.status='READY'
+        where embedding.index_version_id=:indexVersionId and embedding.document_version=chunk.document_version and chunk.status='READY'
           and document.status='READY' and source.status='ACTIVE'
           and chunk.access_scope in (:accessScopes)
+          and document.access_scope in (:accessScopes) and source.access_scope in (:accessScopes)
+          and chunk.document_version=document.document_version
+          and (document.effective_from is null or document.effective_from<=now())
+          and (document.effective_to is null or document.effective_to>now())
+          and ((cast(:tenantId as uuid) is null and document.tenant_id is null and source.tenant_id is null)
+            or (cast(:tenantId as uuid) is not null and (document.tenant_id is null or document.tenant_id=cast(:tenantId as uuid))
+              and (source.tenant_id is null or source.tenant_id=cast(:tenantId as uuid))))
           and ((cast(:tenantId as uuid) is null and chunk.tenant_id is null)
             or (cast(:tenantId as uuid) is not null and (chunk.tenant_id is null or chunk.tenant_id=cast(:tenantId as uuid))))
+          and document.document_version=(select max(d2.document_version) from ai.knowledge_documents d2
+              where d2.document_key=document.document_key and d2.status='READY')
         order by embedding.embedding <=> cast(:queryVector as vector) limit :limit
         """, nativeQuery = true)
     List<SearchProjection> vectorSearchRows(@Param("tenantId") UUID tenantId,
@@ -136,6 +231,13 @@ public interface KnowledgeChunkRepository extends JpaRepository<KnowledgeChunkEn
             join ai.knowledge_sources source on source.source_id=document.source_id
             where chunk.status='READY' and document.status='READY' and source.status='ACTIVE'
               and chunk.access_scope in (:accessScopes)
+          and document.access_scope in (:accessScopes) and source.access_scope in (:accessScopes)
+          and chunk.document_version=document.document_version
+          and (document.effective_from is null or document.effective_from<=now())
+          and (document.effective_to is null or document.effective_to>now())
+          and ((cast(:tenantId as uuid) is null and document.tenant_id is null and source.tenant_id is null)
+            or (cast(:tenantId as uuid) is not null and (document.tenant_id is null or document.tenant_id=cast(:tenantId as uuid))
+              and (source.tenant_id is null or source.tenant_id=cast(:tenantId as uuid))))
               and ((cast(:tenantId as uuid) is null and chunk.tenant_id is null)
                 or (cast(:tenantId as uuid) is not null and (chunk.tenant_id is null or chunk.tenant_id=cast(:tenantId as uuid))))
               and (document.effective_from is null or document.effective_from<=now())
@@ -143,7 +245,8 @@ public interface KnowledgeChunkRepository extends JpaRepository<KnowledgeChunkEn
               and document.document_version=(select max(d2.document_version) from ai.knowledge_documents d2
                   where d2.document_key=document.document_key and d2.status='READY')
               and exists (select 1 from ai.knowledge_embeddings embedding
-                  where embedding.chunk_id=chunk.chunk_id and embedding.index_version_id=:indexVersionId)
+                  where embedding.chunk_id=chunk.chunk_id and embedding.index_version_id=:indexVersionId
+                      and embedding.document_version=chunk.document_version)
         ), vector_branch as (
             select corpus.*,
                    (1-(embedding.embedding <=> cast(:queryVector as vector)))::numeric as vector_score,
@@ -251,7 +354,8 @@ public interface KnowledgeChunkRepository extends JpaRepository<KnowledgeChunkEn
                 and latest.document_version=(select max(all_versions.document_version)
                     from ai.knowledge_documents all_versions where all_versions.document_key=document.document_key))
           and not exists (select 1 from ai.knowledge_embeddings embedding
-              where embedding.chunk_id=chunk.chunk_id and embedding.index_version_id=:indexVersionId)
+              where embedding.chunk_id=chunk.chunk_id and embedding.index_version_id=:indexVersionId
+                      and embedding.document_version=chunk.document_version)
         order by chunk.created_at limit :limit
         """, nativeQuery = true)
     List<EligibleChunkProjection> findEligibleChunkRows(

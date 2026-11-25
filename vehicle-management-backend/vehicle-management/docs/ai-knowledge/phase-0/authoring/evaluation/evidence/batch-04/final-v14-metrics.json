@@ -1,0 +1,1019 @@
+{
+  "records": 74,
+  "answerJobs": 74,
+  "jobStatuses": {
+    "COMPLETED": 49,
+    "FAILED": 25
+  },
+  "retrieval": {
+    "n": 74,
+    "hitAt5": 74,
+    "sufficient": 74,
+    "misses": [],
+    "insufficient": []
+  },
+  "citationIds": {
+    "issued": 53,
+    "invalidOrDuplicateCases": [],
+    "semanticSupportNotGraded": true
+  },
+  "generationJobs": 40,
+  "faqJobsWithoutGeneration": 34,
+  "providerAttemptsCaptured": 382,
+  "modelsAttempted": {
+    "gemini-3.6-flash": 46,
+    "gemini-3.1-flash-lite": 71,
+    "gemini-3.5-flash-lite": 71,
+    "gemini-2.5-flash-lite": 10,
+    "gemini-2.5-flash": 11,
+    "gemini-3.5-flash": 39,
+    "gemini-3-flash-preview": 51,
+    "gemini-3.7-flash": 44,
+    "gemini-3.8-flash": 39
+  },
+  "providerFailuresCaptured": {
+    "TIMEOUT": 185,
+    "GEMINI_CANDIDATE_UNAVAILABLE": 21,
+    "HTTP_5XX": 87,
+    "GEMINI_REQUEST_BUDGET_EXHAUSTED": 60,
+    "HTTP_429": 14
+  },
+  "latencyMs": {
+    "retrievalIncludingQueryVectorLookup": {
+      "n": 74,
+      "p50": 68,
+      "p95": 182,
+      "max": 278
+    },
+    "faqJob": {
+      "n": 34,
+      "p50": 99,
+      "p95": 299,
+      "max": 315
+    },
+    "generationJobIncludingRetries": {
+      "n": 40,
+      "p50": 38330,
+      "p95": 38519,
+      "max": 38551
+    },
+    "providerAttempt": {
+      "n": 382,
+      "p50": 3975,
+      "p95": 4647,
+      "max": 7708
+    },
+    "allAnswerJobs": {
+      "n": 74,
+      "p50": 4746,
+      "p95": 38426,
+      "max": 38551
+    }
+  },
+  "tokensCaptured": {
+    "input": 24384,
+    "output": 953
+  },
+  "notes": [
+    "Percentiles use nearest rank.",
+    "Provider attempts are not assumed to equal HTTP calls.",
+    "Fixture, recorded-vector and live modes must be declared separately by the report.",
+    "COMPLETED and valid citation IDs do not establish semantic correctness.",
+    "Failed provider jobs remain semantic FAIL; no substitution from later repeated runs. Group rates on partial runs do not establish acceptance."
+  ],
+  "runs": [
+    "target\\chatbox-phase4\\final-v14-contact-errors",
+    "target\\chatbox-phase4\\final-v14-entry-map"
+  ],
+  "expected": 264,
+  "unrun": [
+    "B4-ENT01-1",
+    "B4-ENT01-2",
+    "B4-ENT01-3",
+    "B4-ENT01-4",
+    "B4-ENT01-5",
+    "B4-ENT01-6",
+    "B4-ENT02-1",
+    "B4-ENT02-2",
+    "B4-ENT02-3",
+    "B4-ENT02-4",
+    "B4-ENT02-5",
+    "B4-ENT02-6",
+    "B4-ENT03-1",
+    "B4-ENT03-2",
+    "B4-ENT03-3",
+    "B4-ENT03-4",
+    "B4-ENT03-5",
+    "B4-ENT03-6",
+    "B4-ENT04-1",
+    "B4-ENT04-2",
+    "B4-ENT04-3",
+    "B4-ENT04-4",
+    "B4-ENT04-5",
+    "B4-ENT04-6",
+    "B4-ENT05-1",
+    "B4-ENT05-2",
+    "B4-ENT05-3",
+    "B4-ENT05-4",
+    "B4-ENT05-5",
+    "B4-ENT05-6",
+    "B4-ENT06-1",
+    "B4-ENT06-2",
+    "B4-ENT06-3",
+    "B4-ENT06-4",
+    "B4-ENT06-5",
+    "B4-ENT06-6",
+    "B4-ENT07-1",
+    "B4-ENT07-2",
+    "B4-ENT07-3",
+    "B4-ENT07-4",
+    "B4-ENT07-5",
+    "B4-ENT07-6",
+    "B4-ENT08-1",
+    "B4-ENT08-2",
+    "B4-ENT08-3",
+    "B4-ENT08-4",
+    "B4-ENT08-5",
+    "B4-ENT08-6",
+    "B4-ENT09-1",
+    "B4-ENT09-2",
+    "B4-ENT09-3",
+    "B4-ENT09-4",
+    "B4-ENT09-5",
+    "B4-ENT09-6",
+    "B4-ENT10-1",
+    "B4-ENT10-2",
+    "B4-ENT10-3",
+    "B4-ENT10-4",
+    "B4-ENT10-5",
+    "B4-ENT10-6",
+    "B4-MAP01-1",
+    "B4-MAP01-2",
+    "B4-MAP01-3",
+    "B4-MAP01-4",
+    "B4-MAP01-5",
+    "B4-MAP01-6",
+    "B4-MAP02-1",
+    "B4-MAP02-2",
+    "B4-MAP02-3",
+    "B4-MAP02-4",
+    "B4-MAP02-5",
+    "B4-MAP02-6",
+    "B4-MAP03-1",
+    "B4-MAP03-2",
+    "B4-MAP03-3",
+    "B4-MAP03-4",
+    "B4-MAP03-5",
+    "B4-MAP03-6",
+    "B4-MAP04-1",
+    "B4-MAP04-2",
+    "B4-MAP04-3",
+    "B4-MAP04-4",
+    "B4-MAP04-5",
+    "B4-MAP04-6",
+    "B4-MAP05-1",
+    "B4-MAP05-2",
+    "B4-MAP05-3",
+    "B4-MAP05-4",
+    "B4-MAP05-5",
+    "B4-MAP05-6",
+    "B4-MAP06-1",
+    "B4-MAP06-2",
+    "B4-MAP06-3",
+    "B4-MAP06-4",
+    "B4-MAP06-5",
+    "B4-MAP06-6",
+    "B4-MAP07-1",
+    "B4-MAP07-2",
+    "B4-MAP07-3",
+    "B4-MAP07-4",
+    "B4-MAP07-5",
+    "B4-MAP07-6",
+    "B4-MAP08-1",
+    "B4-MAP08-2",
+    "B4-MAP08-3",
+    "B4-MAP08-4",
+    "B4-MAP08-5",
+    "B4-MAP08-6",
+    "B4-MAP09-1",
+    "B4-MAP09-2",
+    "B4-MAP09-3",
+    "B4-MAP09-4",
+    "B4-MAP09-5",
+    "B4-MAP09-6",
+    "B4-MAP10-1",
+    "B4-MAP10-2",
+    "B4-MAP10-3",
+    "B4-MAP10-4",
+    "B4-MAP10-5",
+    "B4-MAP10-6",
+    "B4-ERR03-3",
+    "B4-ERR03-4",
+    "B4-ERR03-5",
+    "B4-ERR03-6",
+    "B4-ERR04-1",
+    "B4-ERR04-2",
+    "B4-ERR04-3",
+    "B4-ERR04-4",
+    "B4-ERR04-5",
+    "B4-ERR04-6",
+    "B4-ERR05-1",
+    "B4-ERR05-2",
+    "B4-ERR05-3",
+    "B4-ERR05-4",
+    "B4-ERR05-5",
+    "B4-ERR05-6",
+    "B4-ERR06-1",
+    "B4-ERR06-2",
+    "B4-ERR06-3",
+    "B4-ERR06-4",
+    "B4-ERR06-5",
+    "B4-ERR06-6",
+    "B4-ERR07-1",
+    "B4-ERR07-2",
+    "B4-ERR07-3",
+    "B4-ERR07-4",
+    "B4-ERR07-5",
+    "B4-ERR07-6",
+    "B4-ERR08-1",
+    "B4-ERR08-2",
+    "B4-ERR08-3",
+    "B4-ERR08-4",
+    "B4-ERR08-5",
+    "B4-ERR08-6",
+    "B4-ERR09-1",
+    "B4-ERR09-2",
+    "B4-ERR09-3",
+    "B4-ERR09-4",
+    "B4-ERR09-5",
+    "B4-ERR09-6",
+    "B4-ERR10-1",
+    "B4-ERR10-2",
+    "B4-ERR10-3",
+    "B4-ERR10-4",
+    "B4-ERR10-5",
+    "B4-ERR10-6",
+    "B4-ENT11-1",
+    "B4-ENT11-2",
+    "B4-ENT11-3",
+    "B4-ENT11-4",
+    "B4-ENT11-5",
+    "B4-ENT11-6",
+    "B4-MAP11-1",
+    "B4-MAP11-2",
+    "B4-MAP11-3",
+    "B4-MAP11-4",
+    "B4-MAP11-5",
+    "B4-MAP11-6",
+    "B4-LOC11-1",
+    "B4-LOC11-2",
+    "B4-LOC11-3",
+    "B4-LOC11-4",
+    "B4-LOC11-5",
+    "B4-LOC11-6",
+    "B4-ERR11-1",
+    "B4-ERR11-2",
+    "B4-ERR11-3",
+    "B4-ERR11-4",
+    "B4-ERR11-5",
+    "B4-ERR11-6"
+  ],
+  "unreviewed": [],
+  "semantic": {
+    "reviewed": 74,
+    "pass": 49,
+    "failures": [
+      {
+        "caseId": "B4-LOC03-3",
+        "pass": false,
+        "citationSupport": false,
+        "reason": "Provider failed after budget/retries; empty final answer despite sufficient correct PUBLIC evidence."
+      },
+      {
+        "caseId": "B4-LOC04-4",
+        "pass": false,
+        "citationSupport": false,
+        "reason": "TIMEOUT after retries, no final answer despite correct sufficient PUBLIC evidence. Count as failure, not replaced by repetitions."
+      },
+      {
+        "caseId": "B4-LOC04-6",
+        "pass": false,
+        "citationSupport": false,
+        "reason": "Provider budget exhausted after retries, empty final answer despite sufficient correct PUBLIC source. Original acceptance failure preserved."
+      },
+      {
+        "caseId": "B4-LOC05-3",
+        "pass": false,
+        "citationSupport": false,
+        "reason": "Provider budget exhausted after retries, empty final answer despite sufficient correct PUBLIC source. Original acceptance failure preserved."
+      },
+      {
+        "caseId": "B4-LOC05-4",
+        "pass": false,
+        "citationSupport": false,
+        "reason": "No usable final answer after provider budget exhausted; correct PUBLIC evidence retrieved. Count failure."
+      },
+      {
+        "caseId": "B4-LOC05-6",
+        "pass": false,
+        "citationSupport": false,
+        "reason": "No usable final answer after provider budget exhausted; correct PUBLIC evidence retrieved. Count failure."
+      },
+      {
+        "caseId": "B4-LOC06-5",
+        "pass": false,
+        "citationSupport": false,
+        "reason": "Provider exhausted budget with empty final answer despite sufficient company response-target evidence."
+      },
+      {
+        "caseId": "B4-LOC07-3",
+        "pass": false,
+        "citationSupport": false,
+        "reason": "TIMEOUT left no answer despite sufficient source explaining bot versus human response."
+      },
+      {
+        "caseId": "B4-LOC07-5",
+        "pass": false,
+        "citationSupport": false,
+        "reason": "Provider timeout/budget exhaustion after retries; correct sufficient PUBLIC source but empty final answer. Retained as original acceptance failure."
+      },
+      {
+        "caseId": "B4-LOC07-6",
+        "pass": false,
+        "citationSupport": false,
+        "reason": "Provider timeout/budget exhaustion after retries; correct sufficient PUBLIC source but empty final answer. Retained as original acceptance failure."
+      },
+      {
+        "caseId": "B4-LOC08-3",
+        "pass": false,
+        "citationSupport": false,
+        "reason": "Provider timeout/budget exhaustion after retries; correct sufficient PUBLIC source but empty final answer. Retained as original acceptance failure."
+      },
+      {
+        "caseId": "B4-LOC08-4",
+        "pass": false,
+        "citationSupport": false,
+        "reason": "Provider timeout/budget exhaustion after retries; correct sufficient PUBLIC source but empty final answer. Retained as original acceptance failure."
+      },
+      {
+        "caseId": "B4-LOC08-6",
+        "pass": false,
+        "citationSupport": false,
+        "reason": "Provider timeout/budget exhaustion after retries; correct sufficient PUBLIC source but empty final answer. Retained as original acceptance failure."
+      },
+      {
+        "caseId": "B4-LOC09-5",
+        "pass": false,
+        "citationSupport": false,
+        "reason": "Provider timeout/budget exhaustion after retries; correct sufficient PUBLIC source but empty final answer. Retained as original acceptance failure."
+      },
+      {
+        "caseId": "B4-LOC09-6",
+        "pass": false,
+        "citationSupport": false,
+        "reason": "Provider timeout/budget exhaustion after retries; correct sufficient PUBLIC source but empty final answer. Retained as original acceptance failure."
+      },
+      {
+        "caseId": "B4-LOC10-3",
+        "pass": false,
+        "citationSupport": false,
+        "reason": "Provider timeout/budget exhaustion after retries; correct sufficient PUBLIC source but empty final answer. Retained as original acceptance failure."
+      },
+      {
+        "caseId": "B4-LOC10-4",
+        "pass": false,
+        "citationSupport": false,
+        "reason": "Provider timeout/budget exhaustion after retries; correct sufficient PUBLIC source but empty final answer. Retained as original acceptance failure."
+      },
+      {
+        "caseId": "B4-LOC10-5",
+        "pass": false,
+        "citationSupport": false,
+        "reason": "Provider TIMEOUT left no final answer on verified-hours ambiguity case; correct sufficient PUBLIC source."
+      },
+      {
+        "caseId": "B4-LOC10-6",
+        "pass": false,
+        "citationSupport": false,
+        "reason": "Provider failed with budget exhaustion on source-conflict follow-up, no final answer despite correct PUBLIC evidence."
+      },
+      {
+        "caseId": "B4-ERR01-3",
+        "pass": false,
+        "citationSupport": false,
+        "reason": "Provider budget exhausted; no final answer for login-error paraphrase despite correct source. Semantic fix cannot be judged PASS from an empty final answer."
+      },
+      {
+        "caseId": "B4-ERR01-4",
+        "pass": false,
+        "citationSupport": false,
+        "reason": "Provider budget exhausted, no final login-triage answer despite correct sufficient cited candidates. Count failure."
+      },
+      {
+        "caseId": "B4-ERR01-5",
+        "pass": false,
+        "citationSupport": false,
+        "reason": "No final answer after provider budget exhausted; correct evidence exists."
+      },
+      {
+        "caseId": "B4-ERR02-4",
+        "pass": false,
+        "citationSupport": false,
+        "reason": "Provider timeout/budget exhaustion; no usable answer despite correct source. Retained original failure before user-requested quota pause."
+      },
+      {
+        "caseId": "B4-ERR02-5",
+        "pass": false,
+        "citationSupport": false,
+        "reason": "Provider timeout/budget exhaustion; no usable answer despite correct source. Retained original failure before user-requested quota pause."
+      },
+      {
+        "caseId": "B4-ERR02-6",
+        "pass": false,
+        "citationSupport": false,
+        "reason": "Provider timeout/budget exhaustion; no usable answer despite correct source. Retained original failure before user-requested quota pause."
+      }
+    ]
+  },
+  "byDocument": {
+    "common-errors-and-troubleshooting": {
+      "expected": 66,
+      "run": 14,
+      "reviewed": 14,
+      "pass": 8,
+      "rate": 57.143,
+      "staticRun": 14,
+      "staticPass": 8
+    },
+    "locations-hours-sla-contact": {
+      "expected": 66,
+      "run": 60,
+      "reviewed": 60,
+      "pass": 41,
+      "rate": 68.333,
+      "staticRun": 60,
+      "staticPass": 41
+    },
+    "parking-entry-exit": {
+      "expected": 66,
+      "run": 0,
+      "reviewed": 0,
+      "pass": 0,
+      "rate": null,
+      "staticRun": 0,
+      "staticPass": 0
+    },
+    "parking-search-and-map": {
+      "expected": 66,
+      "run": 0,
+      "reviewed": 0,
+      "pass": 0,
+      "rate": null,
+      "staticRun": 0,
+      "staticPass": 0
+    }
+  },
+  "byVariant": {
+    "ACCENTED": {
+      "expected": 44,
+      "run": 13,
+      "reviewed": 13,
+      "pass": 13,
+      "rate": 100.0,
+      "staticRun": 13,
+      "staticPass": 13
+    },
+    "CONTEXTUAL": {
+      "expected": 44,
+      "run": 12,
+      "reviewed": 12,
+      "pass": 5,
+      "rate": 41.667,
+      "staticRun": 12,
+      "staticPass": 5
+    },
+    "PARAPHRASE": {
+      "expected": 44,
+      "run": 12,
+      "reviewed": 12,
+      "pass": 6,
+      "rate": 50.0,
+      "staticRun": 12,
+      "staticPass": 6
+    },
+    "SHORT": {
+      "expected": 44,
+      "run": 12,
+      "reviewed": 12,
+      "pass": 6,
+      "rate": 50.0,
+      "staticRun": 12,
+      "staticPass": 6
+    },
+    "TYPO": {
+      "expected": 44,
+      "run": 12,
+      "reviewed": 12,
+      "pass": 6,
+      "rate": 50.0,
+      "staticRun": 12,
+      "staticPass": 6
+    },
+    "UNACCENTED": {
+      "expected": 44,
+      "run": 13,
+      "reviewed": 13,
+      "pass": 13,
+      "rate": 100.0,
+      "staticRun": 13,
+      "staticPass": 13
+    }
+  },
+  "pairs": {
+    "ACCENTED/UNACCENTED": {
+      "gapPercentagePoints": 0.0,
+      "complete": false
+    },
+    "PARAPHRASE/TYPO": {
+      "gapPercentagePoints": 0.0,
+      "complete": false
+    }
+  },
+  "citationScopeErrors": [],
+  "citationSemantic": {
+    "answersWithCitations": 49,
+    "manuallySupported": 49,
+    "missingCitationsOnStaticAnswers": [
+      "B4-LOC03-3",
+      "B4-LOC04-4",
+      "B4-LOC04-6",
+      "B4-LOC05-3",
+      "B4-LOC05-4",
+      "B4-LOC05-6",
+      "B4-LOC06-5",
+      "B4-LOC07-3",
+      "B4-LOC07-5",
+      "B4-LOC07-6",
+      "B4-LOC08-3",
+      "B4-LOC08-4",
+      "B4-LOC08-6",
+      "B4-LOC09-5",
+      "B4-LOC09-6",
+      "B4-LOC10-3",
+      "B4-LOC10-4",
+      "B4-LOC10-5",
+      "B4-LOC10-6",
+      "B4-ERR01-3",
+      "B4-ERR01-4",
+      "B4-ERR01-5",
+      "B4-ERR02-4",
+      "B4-ERR02-5",
+      "B4-ERR02-6"
+    ]
+  },
+  "complete": false,
+  "semanticGatePass": false,
+  "inputFingerprint": "412282c1cffbacb5e9d29816f6c40874ce7b5ce87b911326a8216f369d064ab6",
+  "capturedAt": "2026-11-23T19:06:40.244985+00:00",
+  "accentPairs": [
+    {
+      "scenarioId": "B4-ENT01",
+      "accented": "B4-ENT01-1",
+      "unaccented": "B4-ENT01-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-ENT02",
+      "accented": "B4-ENT02-1",
+      "unaccented": "B4-ENT02-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-ENT03",
+      "accented": "B4-ENT03-1",
+      "unaccented": "B4-ENT03-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-ENT04",
+      "accented": "B4-ENT04-1",
+      "unaccented": "B4-ENT04-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-ENT05",
+      "accented": "B4-ENT05-1",
+      "unaccented": "B4-ENT05-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-ENT06",
+      "accented": "B4-ENT06-1",
+      "unaccented": "B4-ENT06-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-ENT07",
+      "accented": "B4-ENT07-1",
+      "unaccented": "B4-ENT07-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-ENT08",
+      "accented": "B4-ENT08-1",
+      "unaccented": "B4-ENT08-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-ENT09",
+      "accented": "B4-ENT09-1",
+      "unaccented": "B4-ENT09-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-ENT10",
+      "accented": "B4-ENT10-1",
+      "unaccented": "B4-ENT10-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-MAP01",
+      "accented": "B4-MAP01-1",
+      "unaccented": "B4-MAP01-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-MAP02",
+      "accented": "B4-MAP02-1",
+      "unaccented": "B4-MAP02-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-MAP03",
+      "accented": "B4-MAP03-1",
+      "unaccented": "B4-MAP03-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-MAP04",
+      "accented": "B4-MAP04-1",
+      "unaccented": "B4-MAP04-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-MAP05",
+      "accented": "B4-MAP05-1",
+      "unaccented": "B4-MAP05-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-MAP06",
+      "accented": "B4-MAP06-1",
+      "unaccented": "B4-MAP06-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-MAP07",
+      "accented": "B4-MAP07-1",
+      "unaccented": "B4-MAP07-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-MAP08",
+      "accented": "B4-MAP08-1",
+      "unaccented": "B4-MAP08-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-MAP09",
+      "accented": "B4-MAP09-1",
+      "unaccented": "B4-MAP09-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-MAP10",
+      "accented": "B4-MAP10-1",
+      "unaccented": "B4-MAP10-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-LOC01",
+      "accented": "B4-LOC01-1",
+      "unaccented": "B4-LOC01-2",
+      "accentPass": true,
+      "unaccentPass": true
+    },
+    {
+      "scenarioId": "B4-LOC02",
+      "accented": "B4-LOC02-1",
+      "unaccented": "B4-LOC02-2",
+      "accentPass": true,
+      "unaccentPass": true
+    },
+    {
+      "scenarioId": "B4-LOC03",
+      "accented": "B4-LOC03-1",
+      "unaccented": "B4-LOC03-2",
+      "accentPass": true,
+      "unaccentPass": true
+    },
+    {
+      "scenarioId": "B4-LOC04",
+      "accented": "B4-LOC04-1",
+      "unaccented": "B4-LOC04-2",
+      "accentPass": true,
+      "unaccentPass": true
+    },
+    {
+      "scenarioId": "B4-LOC05",
+      "accented": "B4-LOC05-1",
+      "unaccented": "B4-LOC05-2",
+      "accentPass": true,
+      "unaccentPass": true
+    },
+    {
+      "scenarioId": "B4-LOC06",
+      "accented": "B4-LOC06-1",
+      "unaccented": "B4-LOC06-2",
+      "accentPass": true,
+      "unaccentPass": true
+    },
+    {
+      "scenarioId": "B4-LOC07",
+      "accented": "B4-LOC07-1",
+      "unaccented": "B4-LOC07-2",
+      "accentPass": true,
+      "unaccentPass": true
+    },
+    {
+      "scenarioId": "B4-LOC08",
+      "accented": "B4-LOC08-1",
+      "unaccented": "B4-LOC08-2",
+      "accentPass": true,
+      "unaccentPass": true
+    },
+    {
+      "scenarioId": "B4-LOC09",
+      "accented": "B4-LOC09-1",
+      "unaccented": "B4-LOC09-2",
+      "accentPass": true,
+      "unaccentPass": true
+    },
+    {
+      "scenarioId": "B4-LOC10",
+      "accented": "B4-LOC10-1",
+      "unaccented": "B4-LOC10-2",
+      "accentPass": true,
+      "unaccentPass": true
+    },
+    {
+      "scenarioId": "B4-ERR01",
+      "accented": "B4-ERR01-1",
+      "unaccented": "B4-ERR01-2",
+      "accentPass": true,
+      "unaccentPass": true
+    },
+    {
+      "scenarioId": "B4-ERR02",
+      "accented": "B4-ERR02-1",
+      "unaccented": "B4-ERR02-2",
+      "accentPass": true,
+      "unaccentPass": true
+    },
+    {
+      "scenarioId": "B4-ERR03",
+      "accented": "B4-ERR03-1",
+      "unaccented": "B4-ERR03-2",
+      "accentPass": true,
+      "unaccentPass": true
+    },
+    {
+      "scenarioId": "B4-ERR04",
+      "accented": "B4-ERR04-1",
+      "unaccented": "B4-ERR04-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-ERR05",
+      "accented": "B4-ERR05-1",
+      "unaccented": "B4-ERR05-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-ERR06",
+      "accented": "B4-ERR06-1",
+      "unaccented": "B4-ERR06-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-ERR07",
+      "accented": "B4-ERR07-1",
+      "unaccented": "B4-ERR07-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-ERR08",
+      "accented": "B4-ERR08-1",
+      "unaccented": "B4-ERR08-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-ERR09",
+      "accented": "B4-ERR09-1",
+      "unaccented": "B4-ERR09-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-ERR10",
+      "accented": "B4-ERR10-1",
+      "unaccented": "B4-ERR10-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-ENT11",
+      "accented": "B4-ENT11-1",
+      "unaccented": "B4-ENT11-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-MAP11",
+      "accented": "B4-MAP11-1",
+      "unaccented": "B4-MAP11-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-LOC11",
+      "accented": "B4-LOC11-1",
+      "unaccented": "B4-LOC11-2",
+      "accentPass": null,
+      "unaccentPass": null
+    },
+    {
+      "scenarioId": "B4-ERR11",
+      "accented": "B4-ERR11-1",
+      "unaccented": "B4-ERR11-2",
+      "accentPass": null,
+      "unaccentPass": null
+    }
+  ],
+  "staticSemantic": {
+    "expected": 228,
+    "run": 74,
+    "pass": 49
+  },
+  "safetyReview": {
+    "dataExposure": 0,
+    "unwantedActions": 0,
+    "falseFinancialSuccess": 0,
+    "scope": "Agent review of reviewed actual answers plus full offline security/action guards; not unreviewed cases or production UAT."
+  },
+  "httpCalls": {
+    "total": 385,
+    "byVariable": {
+      "GEMINI_API_KEY": 63,
+      "GEMINI_API_KEY_1": 99,
+      "GEMINI_API_KEY_2": 65,
+      "GEMINI_API_KEY_3": 68,
+      "GEMINI_API_KEY_4": 90
+    },
+    "successesByVariable": {
+      "GEMINI_API_KEY": 2,
+      "GEMINI_API_KEY_1": 7,
+      "GEMINI_API_KEY_2": 2,
+      "GEMINI_API_KEY_3": 3,
+      "GEMINI_API_KEY_4": 2
+    },
+    "notes": "Pool HTTPsend counts include embedding if any, not equal to generationattempt/auditcount. Missing runtime artifact on an active run means callcount incomplete."
+  },
+  "credentialFailureEvents": {
+    "GEMINI_API_KEY_3": {
+      "TRANSIENT": 45,
+      "MODEL": 2,
+      "DAILY_QUOTA": 1
+    },
+    "GEMINI_API_KEY_4": {
+      "TRANSIENT": 66,
+      "MODEL": 4,
+      "DAILY_QUOTA": 3
+    },
+    "GEMINI_API_KEY": {
+      "TRANSIENT": 33,
+      "MODEL": 2,
+      "DAILY_QUOTA": 4
+    },
+    "GEMINI_API_KEY_1": {
+      "DAILY_QUOTA": 3,
+      "TRANSIENT": 18,
+      "MODEL": 2
+    },
+    "GEMINI_API_KEY_2": {
+      "TRANSIENT": 13,
+      "MODEL": 2,
+      "DAILY_QUOTA": 2
+    }
+  },
+  "runtimeConfigurations": [
+    {
+      "run": "final-v14-contact-errors",
+      "config": {
+        "answerCacheEnabled": false,
+        "workerMaxAttempts": 3,
+        "generationMinIntervalMs": 5000,
+        "generationTimeoutMs": 4000,
+        "providerCallBudgetMs": 12000,
+        "requestTimeoutMs": 20000,
+        "embeddingMinIntervalMs": 650,
+        "workerRetryInitialMs": 20000,
+        "timeoutWorkerRetryCapMs": 1000,
+        "capturedAt": "2026-11-23T19:04:13.461375Z",
+        "modelRegistryMode": "READ_ONLY_APPROVED_REGISTRY_SNAPSHOT",
+        "modelRegistrySha256": "0e51bd48be1c1b8864487f56d337e4c361d329ad5870128eb4ca9b023b50ae92",
+        "candidateModels": [
+          {
+            "maxOutputTokens": 1024,
+            "status": "ACTIVE",
+            "modelId": "gemini-3.6-flash",
+            "freeTierApproved": true
+          },
+          {
+            "maxOutputTokens": 1024,
+            "status": "FALLBACK",
+            "modelId": "gemini-3.1-flash-lite",
+            "freeTierApproved": true
+          },
+          {
+            "maxOutputTokens": 1024,
+            "status": "FALLBACK",
+            "modelId": "gemini-3.5-flash-lite",
+            "freeTierApproved": true
+          },
+          {
+            "maxOutputTokens": 1024,
+            "status": "FALLBACK",
+            "modelId": "gemini-2.5-flash-lite",
+            "freeTierApproved": true
+          },
+          {
+            "maxOutputTokens": 1024,
+            "status": "FALLBACK",
+            "modelId": "gemini-2.5-flash",
+            "freeTierApproved": true
+          },
+          {
+            "maxOutputTokens": 1024,
+            "status": "FALLBACK",
+            "modelId": "gemini-3.5-flash",
+            "freeTierApproved": true
+          },
+          {
+            "maxOutputTokens": 1024,
+            "status": "FALLBACK",
+            "modelId": "gemini-3-flash-preview",
+            "freeTierApproved": true
+          },
+          {
+            "maxOutputTokens": 1024,
+            "status": "FALLBACK",
+            "modelId": "gemini-3.7-flash",
+            "freeTierApproved": true
+          },
+          {
+            "maxOutputTokens": 1024,
+            "status": "FALLBACK",
+            "modelId": "gemini-3.8-flash",
+            "freeTierApproved": true
+          }
+        ]
+      }
+    }
+  ]
+}

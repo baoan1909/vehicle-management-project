@@ -1,0 +1,224 @@
+{
+  "kind": "CODEX_QUALITATIVE_SEMANTIC_REVIEW_OF_OFFLINE_CANONICAL_ANSWERS",
+  "reviewer": "Codex agent reviewing actual answer meaning, required ideas, reference and source; not Qwen and not a human approval",
+  "reviewedAt": "2026-11-24T22:51:47.600448+07:00",
+  "manifestSha256": "f36ea972e7812f6a995769fce352f4da15615485c3369ac27b80447d002b4275",
+  "observationsSha256": "4a1053e69bb20d08b7a72b19e966c9d6613fa2fa99edbc8cb2d9f32af2a83b86",
+  "casesInBatchCorpus": 984,
+  "gradedFaqCases": 209,
+  "groupsReviewed": 103,
+  "passed": 201,
+  "incomplete": 8,
+  "observedSubsetPassPercent": 96.172,
+  "notSemanticallyGraded": 775,
+  "qualityAccepted": false,
+  "qwenLiveGradedCases": 0,
+  "googleLiveGradedCases": 0,
+  "blindHoldout": false,
+  "dbPermissionValidationIncluded": false,
+  "humanSignOff": false,
+  "limitation": "This conditional score covers only matched offline FAQ outputs. It is not full984-case accuracy, RAG Hit@5, production delivery, Qwen synthesis quality or security acceptance. References and sources share authored material; independent live and human review remain necessary.",
+  "criteria": "Correct meaning and all required business details; paraphrases and equivalent negation are accepted. Missing explicit policy conditions fail completeness. No score is computed from literal keyword matches.",
+  "byDocument": {
+    "authentication-and-profile": {
+      "gradedFaqCases": 11,
+      "passed": 11,
+      "incomplete": 0,
+      "observedSubsetPassPercent": 100.0,
+      "allBatchCasesForDocument": 60,
+      "notSemanticallyGraded": 49
+    },
+    "cards-and-lost-card": {
+      "gradedFaqCases": 5,
+      "passed": 2,
+      "incomplete": 3,
+      "observedSubsetPassPercent": 40.0,
+      "allBatchCasesForDocument": 60,
+      "notSemanticallyGraded": 55
+    },
+    "chat-conversations-and-support-boundaries": {
+      "gradedFaqCases": 3,
+      "passed": 3,
+      "incomplete": 0,
+      "observedSubsetPassPercent": 100.0,
+      "allBatchCasesForDocument": 60,
+      "notSemanticallyGraded": 57
+    },
+    "chatbot-privacy-and-prohibited-data": {
+      "gradedFaqCases": 1,
+      "passed": 1,
+      "incomplete": 0,
+      "observedSubsetPassPercent": 100.0,
+      "allBatchCasesForDocument": 60,
+      "notSemanticallyGraded": 59
+    },
+    "common-errors-and-troubleshooting": {
+      "gradedFaqCases": 18,
+      "passed": 18,
+      "incomplete": 0,
+      "observedSubsetPassPercent": 100.0,
+      "allBatchCasesForDocument": 66,
+      "notSemanticallyGraded": 48
+    },
+    "customer-vehicle-management": {
+      "gradedFaqCases": 5,
+      "passed": 5,
+      "incomplete": 0,
+      "observedSubsetPassPercent": 100.0,
+      "allBatchCasesForDocument": 60,
+      "notSemanticallyGraded": 55
+    },
+    "invoice-vnpay-payment-refund": {
+      "gradedFaqCases": 20,
+      "passed": 20,
+      "incomplete": 0,
+      "observedSubsetPassPercent": 100.0,
+      "allBatchCasesForDocument": 60,
+      "notSemanticallyGraded": 40
+    },
+    "locations-hours-sla-contact": {
+      "gradedFaqCases": 28,
+      "passed": 28,
+      "incomplete": 0,
+      "observedSubsetPassPercent": 100.0,
+      "allBatchCasesForDocument": 66,
+      "notSemanticallyGraded": 38
+    },
+    "parking-entry-exit": {
+      "gradedFaqCases": 19,
+      "passed": 19,
+      "incomplete": 0,
+      "observedSubsetPassPercent": 100.0,
+      "allBatchCasesForDocument": 66,
+      "notSemanticallyGraded": 47
+    },
+    "parking-history": {
+      "gradedFaqCases": 4,
+      "passed": 4,
+      "incomplete": 0,
+      "observedSubsetPassPercent": 100.0,
+      "allBatchCasesForDocument": 60,
+      "notSemanticallyGraded": 56
+    },
+    "parking-search-and-map": {
+      "gradedFaqCases": 20,
+      "passed": 20,
+      "incomplete": 0,
+      "observedSubsetPassPercent": 100.0,
+      "allBatchCasesForDocument": 66,
+      "notSemanticallyGraded": 46
+    },
+    "pricing-and-fee-calculation": {
+      "gradedFaqCases": 20,
+      "passed": 20,
+      "incomplete": 0,
+      "observedSubsetPassPercent": 100.0,
+      "allBatchCasesForDocument": 60,
+      "notSemanticallyGraded": 40
+    },
+    "reservations-and-holds": {
+      "gradedFaqCases": 21,
+      "passed": 21,
+      "incomplete": 0,
+      "observedSubsetPassPercent": 100.0,
+      "allBatchCasesForDocument": 60,
+      "notSemanticallyGraded": 39
+    },
+    "subscription-lifecycle": {
+      "gradedFaqCases": 6,
+      "passed": 1,
+      "incomplete": 5,
+      "observedSubsetPassPercent": 16.667,
+      "allBatchCasesForDocument": 60,
+      "notSemanticallyGraded": 54
+    },
+    "support-ticket-and-escalation": {
+      "gradedFaqCases": 8,
+      "passed": 8,
+      "incomplete": 0,
+      "observedSubsetPassPercent": 100.0,
+      "allBatchCasesForDocument": 60,
+      "notSemanticallyGraded": 52
+    },
+    "voucher-and-promotions": {
+      "gradedFaqCases": 20,
+      "passed": 20,
+      "incomplete": 0,
+      "observedSubsetPassPercent": 100.0,
+      "allBatchCasesForDocument": 60,
+      "notSemanticallyGraded": 40
+    }
+  },
+  "byVariant": {
+    "ACCENTED": {
+      "gradedFaqCases": 86,
+      "passed": 85,
+      "incomplete": 1,
+      "observedSubsetPassPercent": 98.837
+    },
+    "ALTERNATIVE": {
+      "gradedFaqCases": 3,
+      "passed": 3,
+      "incomplete": 0,
+      "observedSubsetPassPercent": 100.0
+    },
+    "CONTEXTUAL": {
+      "gradedFaqCases": 6,
+      "passed": 6,
+      "incomplete": 0,
+      "observedSubsetPassPercent": 100.0
+    },
+    "CONVERSATIONAL": {
+      "gradedFaqCases": 11,
+      "passed": 6,
+      "incomplete": 5,
+      "observedSubsetPassPercent": 54.545
+    },
+    "KEYWORD": {
+      "gradedFaqCases": 1,
+      "passed": 1,
+      "incomplete": 0,
+      "observedSubsetPassPercent": 100.0
+    },
+    "PARAPHRASE": {
+      "gradedFaqCases": 6,
+      "passed": 6,
+      "incomplete": 0,
+      "observedSubsetPassPercent": 100.0
+    },
+    "SHORT": {
+      "gradedFaqCases": 3,
+      "passed": 3,
+      "incomplete": 0,
+      "observedSubsetPassPercent": 100.0
+    },
+    "SHORT_OR_TYPO": {
+      "gradedFaqCases": 4,
+      "passed": 4,
+      "incomplete": 0,
+      "observedSubsetPassPercent": 100.0
+    },
+    "TYPO": {
+      "gradedFaqCases": 3,
+      "passed": 2,
+      "incomplete": 1,
+      "observedSubsetPassPercent": 66.667
+    },
+    "UNACCENTED": {
+      "gradedFaqCases": 86,
+      "passed": 85,
+      "incomplete": 1,
+      "observedSubsetPassPercent": 98.837
+    }
+  },
+  "failedCases": [
+    "B2-SUB01-1",
+    "B2-SUB01-2",
+    "B2-SUB01-3",
+    "B2-SUB01-5",
+    "B2-SUB01-6",
+    "B2-CARD04-3",
+    "B2-CARD04-5",
+    "B2-CARD04-6"
+  ]
+}

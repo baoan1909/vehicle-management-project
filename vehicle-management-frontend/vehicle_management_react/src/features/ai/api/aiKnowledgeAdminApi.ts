@@ -130,6 +130,8 @@ export type KnowledgeSearchHit = {
 };
 
 export type KnowledgeRetrievalTestResponse = {
+  retrievalMethod?: "HYBRID" | "COMMON_FAQ" | "COMMON_CONFLICT";
+  sourceSnapshot?: string | null;
   activeIndexVersionId: string | null;
   diagnosticCode: string | null;
   results: KnowledgeSearchHit[];

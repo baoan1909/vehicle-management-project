@@ -32,6 +32,10 @@ public class GeminiResponseMapper {
             StringBuilder text = new StringBuilder();
             JsonNode parts = root.path("candidates").path(0).path("content").path("parts");
             String finishReason = textOrNull(root.path("candidates").path(0).path("finishReason"));
+            if (finishReason != null && java.util.Set.of("SAFETY", "BLOCKLIST", "PROHIBITED_CONTENT",
+                    "SPII", "RECITATION", "IMAGE_SAFETY", "IMAGE_PROHIBITED_CONTENT").contains(finishReason)) {
+                return AiResponse.safetyBlocked(body, null, null);
+            }
             AiFunctionCall functionCall = null;
             if (parts.isArray()) {
                 for (JsonNode part : parts) {
@@ -64,7 +68,7 @@ public class GeminiResponseMapper {
     }
 
     private boolean isRetryableStatus(int statusCode) {
-        return statusCode == 429 || statusCode >= 500;
+        return statusCode == 408 || statusCode == 429 || statusCode >= 500;
     }
 
     private String normalizedHttpFailureCode(int statusCode) {

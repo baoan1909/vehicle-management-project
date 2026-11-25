@@ -23,10 +23,14 @@ public class AiModelPolicyService {
 
     public boolean canFallbackFor(String failureCode) {
         return "TIMEOUT".equals(failureCode)
+                || "GEMINI_CANDIDATE_UNAVAILABLE".equals(failureCode)
+                || "GEMINI_REQUEST_BUDGET_EXHAUSTED".equals(failureCode)
                 || "HTTP_429".equals(failureCode)
+                || "HTTP_408".equals(failureCode)
                 || "HTTP_5XX".equals(failureCode)
                 || "MODEL_NOT_FOUND".equals(failureCode)
                 || "INVALID_RESPONSE_SCHEMA".equals(failureCode)
-                || "PROVIDER_EXCEPTION".equals(failureCode);
+                || "PROVIDER_EXCEPTION".equals(failureCode)
+                || "PROVIDER_ERROR".equals(failureCode);
     }
 }

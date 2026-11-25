@@ -1,0 +1,68 @@
+[
+  {
+    "log": "target/chatbox-phase1/model-fallback/unit-tests.log",
+    "sha256": "4551483c2b0f6c2674f999a384cd0a775bb6f732c514ff858f56eab381cdf375",
+    "note": "See result excerpt",
+    "excerpt": [
+      "[INFO] BUILD SUCCESS"
+    ],
+    "lastSummary": {
+      "tests": 61,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  {
+    "log": "target/chatbox-phase1/model-fallback/live-and-unit-tests.log",
+    "sha256": "1e1f2d40a0004790c693f582cf99e73fdf9e229c4bfbe96fbcadac942418b4ba",
+    "note": "See result excerpt",
+    "excerpt": [
+      "[INFO] BUILD SUCCESS"
+    ],
+    "lastSummary": {
+      "tests": 74,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  {
+    "log": "target/chatbox-phase1/model-fallback/frontend-lint.log",
+    "sha256": "237d54b39d3408bad137c9afdc2d8faa7590a123aa303a9fda4114a1ff56e776",
+    "note": "See result excerpt",
+    "excerpt": []
+  },
+  {
+    "log": "target/chatbox-phase1/model-fallback/frontend-build.log",
+    "sha256": "4ccc980304e95d1bb11bfd33d9b5ef75cba83a34476b64ce39d5ca6a5cb3031a",
+    "note": "See result excerpt",
+    "excerpt": [
+      "✓ built in 11.79s"
+    ]
+  },
+  {
+    "log": "target/chatbox-phase1/model-fallback/guest-browser.log",
+    "sha256": "41ad75297ec49bff18b84b20853aa66500b7096346df40cb8d475655c1e193c5",
+    "note": "Initial browser dev-server startup timeout; superseded by guest-browser-final.log",
+    "excerpt": [
+      "Error: Timed out waiting 30000ms from config.webServer."
+    ]
+  },
+  {
+    "log": "target/chatbox-phase1/model-fallback/guest-browser-final.log",
+    "sha256": "b895bb61cf59ada40579842bb14c70ccfef894bca07329024750155823878f94",
+    "note": "See result excerpt",
+    "excerpt": [
+      "  17 passed (35.3s)"
+    ]
+  },
+  {
+    "log": "target/chatbox-phase1/model-fallback/artifact-validation.log",
+    "sha256": "015a8734d0065765d7b6e030093e0291e1162f66751ee4a1a50af5a5e05d6593",
+    "status": "PASS",
+    "excerpt": [
+      "{\"knowledgeDocuments\": 13, \"batchDocuments\": 4, \"questions\": 360, \"localLinks\": 61, \"errors\": [], \"databaseTouched\": false}"
+    ]
+  }
+]

@@ -46,4 +46,14 @@ playwright-report/
 .env
 .env.local
 
-vehicle-management-backend/vehicle-management/src/main/resources/application.yaml
+
+# Local compiler/cache/diagnostic output.
+.vite/
+coverage/
+*.tsbuildinfo
+*.log
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+Thumbs.db

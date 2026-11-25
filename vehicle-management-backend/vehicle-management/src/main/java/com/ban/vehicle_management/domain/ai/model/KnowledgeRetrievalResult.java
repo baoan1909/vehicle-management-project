@@ -24,8 +24,24 @@ public record KnowledgeRetrievalResult(
         BigDecimal groundedConfidence,
         boolean evidenceSufficient,
         String normalizedQuery,
-        String retrievalPolicyVersion
+        String retrievalPolicyVersion,
+        String retrievalMethod,
+        String sourceSnapshot,
+        String canonicalAnswer
 ) {
+    public KnowledgeRetrievalResult(
+        String diagnosticCode,
+        UUID activeIndexVersionId,
+        List<KnowledgeSearchResult> results,
+        UUID retrievalAuditId,
+        BigDecimal groundedConfidence,
+        boolean evidenceSufficient,
+        String normalizedQuery,
+        String retrievalPolicyVersion
+    ) {
+        this(diagnosticCode, activeIndexVersionId, results, retrievalAuditId, groundedConfidence, evidenceSufficient, normalizedQuery, retrievalPolicyVersion, "HYBRID", null, null);
+    }
+
     public static KnowledgeRetrievalResult ok(UUID activeIndexVersionId, List<KnowledgeSearchResult> results) {
         return new KnowledgeRetrievalResult(null, activeIndexVersionId, results,
                 null, null, !results.isEmpty(), null, null);
@@ -35,6 +51,8 @@ public record KnowledgeRetrievalResult(
         return new KnowledgeRetrievalResult(diagnosticCode, null, List.of(),
                 null, null, false, null, null);
     }
+
+    public boolean isCommonFaq() { return "COMMON_FAQ".equals(retrievalMethod); }
 
     public boolean hasResults() {
         return results != null && !results.isEmpty();

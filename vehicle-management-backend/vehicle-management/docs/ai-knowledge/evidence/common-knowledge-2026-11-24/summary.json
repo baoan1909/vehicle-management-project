@@ -1,0 +1,317 @@
+{
+  "kind": "OFFLINE_DRAFT_FIXTURE",
+  "qualityAccepted": false,
+  "scope": "Domain resolver, FAQ matching and output validator; no DB ranking, final user delivery or provider inference",
+  "overall": {
+    "cases": 984,
+    "routeMatchesExpected": 984,
+    "expectedStaticCases": 780,
+    "canonicalMatches": 209,
+    "outputValidatorPassed": 207,
+    "conflicts": 2,
+    "sourceSlugDiffersFromExpected": 1,
+    "missingLiteralIdeaDiagnostics": 20
+  },
+  "canonicalCoverageOfExpectedStaticPercent": 26.795,
+  "byDocument": {
+    "authentication-and-profile": {
+      "cases": 60,
+      "routeMatchesExpected": 60,
+      "expectedStaticCases": 54,
+      "canonicalMatches": 11,
+      "outputValidatorPassed": 11,
+      "conflicts": 0,
+      "sourceSlugDiffersFromExpected": 1,
+      "missingLiteralIdeaDiagnostics": 0
+    },
+    "cards-and-lost-card": {
+      "cases": 60,
+      "routeMatchesExpected": 60,
+      "expectedStaticCases": 36,
+      "canonicalMatches": 3,
+      "outputValidatorPassed": 3,
+      "conflicts": 2,
+      "sourceSlugDiffersFromExpected": 0,
+      "missingLiteralIdeaDiagnostics": 3
+    },
+    "chat-conversations-and-support-boundaries": {
+      "cases": 60,
+      "routeMatchesExpected": 60,
+      "expectedStaticCases": 42,
+      "canonicalMatches": 3,
+      "outputValidatorPassed": 3,
+      "conflicts": 0,
+      "sourceSlugDiffersFromExpected": 0,
+      "missingLiteralIdeaDiagnostics": 0
+    },
+    "chatbot-privacy-and-prohibited-data": {
+      "cases": 60,
+      "routeMatchesExpected": 60,
+      "expectedStaticCases": 24,
+      "canonicalMatches": 1,
+      "outputValidatorPassed": 1,
+      "conflicts": 0,
+      "sourceSlugDiffersFromExpected": 0,
+      "missingLiteralIdeaDiagnostics": 1
+    },
+    "common-errors-and-troubleshooting": {
+      "cases": 66,
+      "routeMatchesExpected": 66,
+      "expectedStaticCases": 54,
+      "canonicalMatches": 18,
+      "outputValidatorPassed": 18,
+      "conflicts": 0,
+      "sourceSlugDiffersFromExpected": 0,
+      "missingLiteralIdeaDiagnostics": 0
+    },
+    "customer-vehicle-management": {
+      "cases": 60,
+      "routeMatchesExpected": 60,
+      "expectedStaticCases": 36,
+      "canonicalMatches": 5,
+      "outputValidatorPassed": 5,
+      "conflicts": 0,
+      "sourceSlugDiffersFromExpected": 0,
+      "missingLiteralIdeaDiagnostics": 2
+    },
+    "invoice-vnpay-payment-refund": {
+      "cases": 60,
+      "routeMatchesExpected": 60,
+      "expectedStaticCases": 60,
+      "canonicalMatches": 20,
+      "outputValidatorPassed": 20,
+      "conflicts": 0,
+      "sourceSlugDiffersFromExpected": 0,
+      "missingLiteralIdeaDiagnostics": 0
+    },
+    "locations-hours-sla-contact": {
+      "cases": 66,
+      "routeMatchesExpected": 66,
+      "expectedStaticCases": 60,
+      "canonicalMatches": 28,
+      "outputValidatorPassed": 28,
+      "conflicts": 0,
+      "sourceSlugDiffersFromExpected": 0,
+      "missingLiteralIdeaDiagnostics": 0
+    },
+    "parking-entry-exit": {
+      "cases": 66,
+      "routeMatchesExpected": 66,
+      "expectedStaticCases": 54,
+      "canonicalMatches": 19,
+      "outputValidatorPassed": 19,
+      "conflicts": 0,
+      "sourceSlugDiffersFromExpected": 0,
+      "missingLiteralIdeaDiagnostics": 2
+    },
+    "parking-history": {
+      "cases": 60,
+      "routeMatchesExpected": 60,
+      "expectedStaticCases": 36,
+      "canonicalMatches": 4,
+      "outputValidatorPassed": 4,
+      "conflicts": 0,
+      "sourceSlugDiffersFromExpected": 0,
+      "missingLiteralIdeaDiagnostics": 4
+    },
+    "parking-search-and-map": {
+      "cases": 66,
+      "routeMatchesExpected": 66,
+      "expectedStaticCases": 60,
+      "canonicalMatches": 20,
+      "outputValidatorPassed": 20,
+      "conflicts": 0,
+      "sourceSlugDiffersFromExpected": 0,
+      "missingLiteralIdeaDiagnostics": 0
+    },
+    "pricing-and-fee-calculation": {
+      "cases": 60,
+      "routeMatchesExpected": 60,
+      "expectedStaticCases": 60,
+      "canonicalMatches": 20,
+      "outputValidatorPassed": 20,
+      "conflicts": 0,
+      "sourceSlugDiffersFromExpected": 0,
+      "missingLiteralIdeaDiagnostics": 0
+    },
+    "reservations-and-holds": {
+      "cases": 60,
+      "routeMatchesExpected": 60,
+      "expectedStaticCases": 60,
+      "canonicalMatches": 21,
+      "outputValidatorPassed": 19,
+      "conflicts": 0,
+      "sourceSlugDiffersFromExpected": 0,
+      "missingLiteralIdeaDiagnostics": 0
+    },
+    "subscription-lifecycle": {
+      "cases": 60,
+      "routeMatchesExpected": 60,
+      "expectedStaticCases": 36,
+      "canonicalMatches": 6,
+      "outputValidatorPassed": 6,
+      "conflicts": 0,
+      "sourceSlugDiffersFromExpected": 0,
+      "missingLiteralIdeaDiagnostics": 6
+    },
+    "support-ticket-and-escalation": {
+      "cases": 60,
+      "routeMatchesExpected": 60,
+      "expectedStaticCases": 48,
+      "canonicalMatches": 10,
+      "outputValidatorPassed": 10,
+      "conflicts": 0,
+      "sourceSlugDiffersFromExpected": 0,
+      "missingLiteralIdeaDiagnostics": 2
+    },
+    "voucher-and-promotions": {
+      "cases": 60,
+      "routeMatchesExpected": 60,
+      "expectedStaticCases": 60,
+      "canonicalMatches": 20,
+      "outputValidatorPassed": 20,
+      "conflicts": 0,
+      "sourceSlugDiffersFromExpected": 0,
+      "missingLiteralIdeaDiagnostics": 0
+    }
+  },
+  "byVariant": {
+    "ACCENTED": {
+      "cases": 164,
+      "routeMatchesExpected": 164,
+      "expectedStaticCases": 130,
+      "canonicalMatches": 85,
+      "outputValidatorPassed": 84,
+      "conflicts": 1,
+      "sourceSlugDiffersFromExpected": 0,
+      "missingLiteralIdeaDiagnostics": 3
+    },
+    "ALTERNATIVE": {
+      "cases": 40,
+      "routeMatchesExpected": 40,
+      "expectedStaticCases": 28,
+      "canonicalMatches": 3,
+      "outputValidatorPassed": 3,
+      "conflicts": 0,
+      "sourceSlugDiffersFromExpected": 0,
+      "missingLiteralIdeaDiagnostics": 1
+    },
+    "CONTEXTUAL": {
+      "cases": 124,
+      "routeMatchesExpected": 124,
+      "expectedStaticCases": 106,
+      "canonicalMatches": 7,
+      "outputValidatorPassed": 7,
+      "conflicts": 0,
+      "sourceSlugDiffersFromExpected": 0,
+      "missingLiteralIdeaDiagnostics": 1
+    },
+    "CONVERSATIONAL": {
+      "cases": 196,
+      "routeMatchesExpected": 196,
+      "expectedStaticCases": 132,
+      "canonicalMatches": 11,
+      "outputValidatorPassed": 11,
+      "conflicts": 0,
+      "sourceSlugDiffersFromExpected": 0,
+      "missingLiteralIdeaDiagnostics": 10
+    },
+    "KEYWORD": {
+      "cases": 40,
+      "routeMatchesExpected": 40,
+      "expectedStaticCases": 40,
+      "canonicalMatches": 1,
+      "outputValidatorPassed": 1,
+      "conflicts": 0,
+      "sourceSlugDiffersFromExpected": 0,
+      "missingLiteralIdeaDiagnostics": 0
+    },
+    "PARAPHRASE": {
+      "cases": 84,
+      "routeMatchesExpected": 84,
+      "expectedStaticCases": 66,
+      "canonicalMatches": 6,
+      "outputValidatorPassed": 6,
+      "conflicts": 0,
+      "sourceSlugDiffersFromExpected": 0,
+      "missingLiteralIdeaDiagnostics": 0
+    },
+    "SHORT": {
+      "cases": 44,
+      "routeMatchesExpected": 44,
+      "expectedStaticCases": 38,
+      "canonicalMatches": 3,
+      "outputValidatorPassed": 3,
+      "conflicts": 0,
+      "sourceSlugDiffersFromExpected": 0,
+      "missingLiteralIdeaDiagnostics": 0
+    },
+    "SHORT_OR_TYPO": {
+      "cases": 40,
+      "routeMatchesExpected": 40,
+      "expectedStaticCases": 28,
+      "canonicalMatches": 5,
+      "outputValidatorPassed": 5,
+      "conflicts": 0,
+      "sourceSlugDiffersFromExpected": 1,
+      "missingLiteralIdeaDiagnostics": 1
+    },
+    "TYPO": {
+      "cases": 88,
+      "routeMatchesExpected": 88,
+      "expectedStaticCases": 82,
+      "canonicalMatches": 3,
+      "outputValidatorPassed": 3,
+      "conflicts": 0,
+      "sourceSlugDiffersFromExpected": 0,
+      "missingLiteralIdeaDiagnostics": 1
+    },
+    "UNACCENTED": {
+      "cases": 164,
+      "routeMatchesExpected": 164,
+      "expectedStaticCases": 130,
+      "canonicalMatches": 85,
+      "outputValidatorPassed": 84,
+      "conflicts": 1,
+      "sourceSlugDiffersFromExpected": 0,
+      "missingLiteralIdeaDiagnostics": 3
+    }
+  },
+  "bySplit": {
+    "acceptance": {
+      "cases": 456,
+      "routeMatchesExpected": 456,
+      "expectedStaticCases": 396,
+      "canonicalMatches": 133,
+      "outputValidatorPassed": 133,
+      "conflicts": 2,
+      "sourceSlugDiffersFromExpected": 1,
+      "missingLiteralIdeaDiagnostics": 11
+    },
+    "regression": {
+      "cases": 528,
+      "routeMatchesExpected": 528,
+      "expectedStaticCases": 384,
+      "canonicalMatches": 76,
+      "outputValidatorPassed": 74,
+      "conflicts": 0,
+      "sourceSlugDiffersFromExpected": 0,
+      "missingLiteralIdeaDiagnostics": 9
+    }
+  },
+  "domainTimingMicros": {
+    "p50": 10589.0,
+    "p95": 19517,
+    "max": 81031
+  },
+  "interpretation": [
+    "Coverage is not accuracy. A canonical miss can still need a model or clarification.",
+    "Literal idea matching is diagnostic, not semantic grading.",
+    "Different expected source slugs can reflect overlapping valid documentation; review content and provenance.",
+    "Validator passing is not proof of complete/correct business content or source permission enforcement in SQL.",
+    "No Hit@5, model equivalence, zero leakage or >=95% end-to-end quality claim is made from this fixture run."
+  ],
+  "accentedCanonicalCoveragePercent": 65.385,
+  "unaccentedCanonicalCoveragePercent": 65.385,
+  "accentCoverageGapPoints": 0.0
+}

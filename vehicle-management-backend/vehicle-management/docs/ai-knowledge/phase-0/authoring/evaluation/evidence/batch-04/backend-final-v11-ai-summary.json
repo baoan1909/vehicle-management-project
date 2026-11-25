@@ -1,0 +1,9 @@
+{
+  "tests": 1424,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "inputFingerprint": "fc2c9f31dc8f6decd73dfd7c4e3bbd60f398551ab4a666cbecda094b0eb1d7b0",
+  "log": "target/batch4-work/final-v11-ai-gate.log",
+  "scope": "Final code; AI/domain/provider unit gates, no DB boot, no external calls"
+}

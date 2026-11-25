@@ -19,7 +19,7 @@ export type AiModelConfigurationResponse = {
   modelId: string;
   outputDimension: number | null;
   priority: number | null;
-  provider: "GEMINI";
+  provider: "GEMINI" | "LM_STUDIO";
   requiresFunctionCalling: boolean;
   requiresStructuredOutput: boolean;
   rolloutPercentage: number | null;
@@ -34,7 +34,7 @@ export type AiModelCatalogResponse = {
   modelId: string;
   modelVersion: string | null;
   outputTokenLimit: number | null;
-  provider: "GEMINI";
+  provider: "GEMINI" | "LM_STUDIO";
   supportedActions: string[];
 };
 
@@ -43,7 +43,7 @@ export type AiModelWarningResponse = {
   detail: string | null;
   detectedAt: string | null;
   modelId: string | null;
-  provider: "GEMINI";
+  provider: "GEMINI" | "LM_STUDIO";
   severity: "INFO" | "WARNING" | "CRITICAL";
   status: "OPEN" | "ACKNOWLEDGED" | "RESOLVED";
   warningCode: string;
@@ -78,4 +78,22 @@ export function syncAiModelCatalog() {
 
 export function getAiModelWarnings() {
   return apiClient<ApiResponse<AiModelWarningResponse[]>>(apiEndpoints.ai.modelWarnings);
+}
+
+export type AiRuntimeMode = "GOOGLE_API" | "QWEN_LOCAL";
+export type AiRuntimeState = {
+  mode: AiRuntimeMode;
+  targetMode: AiRuntimeMode;
+  epoch: number;
+  status: "READY" | "SWITCHING" | "PREPARING" | "ERROR";
+  changedBy: string | null;
+  changedAt: string;
+};
+export function getAiRuntimeMode() {
+  return apiClient<ApiResponse<AiRuntimeState>>(apiEndpoints.ai.runtimeMode);
+}
+export function changeAiRuntimeMode(mode: AiRuntimeMode, expectedEpoch: number) {
+  return apiClient<ApiResponse<AiRuntimeState>>(apiEndpoints.ai.runtimeMode, {
+    method: "PUT", body: { mode, expectedEpoch },
+  });
 }

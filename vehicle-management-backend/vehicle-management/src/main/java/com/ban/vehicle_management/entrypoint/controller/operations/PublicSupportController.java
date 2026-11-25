@@ -122,7 +122,7 @@ public class PublicSupportController {
         return ResponseEntity.ok(ApiResponse.ok("Public assistant response generated successfully",
                 assistantService.answer(
                         request.message(), request.sessionId(), request.captchaProof(),
-                        clientIpResolver.resolve(servletRequest))));
+                        clientIpResolver.resolve(servletRequest), request.contextQuestion())));
     }
 
 }

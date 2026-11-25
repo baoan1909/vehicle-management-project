@@ -1,0 +1,56 @@
+[
+  {
+    "model": "gemini-3.1-flash-lite",
+    "configurationId": "e6e6cd2f-243b-467a-a89d-ee37c7f5ae00",
+    "priority": 20,
+    "status": 200,
+    "validStructuredResponse": true,
+    "finishReason": "STOP",
+    "latencyMs": 1383
+  },
+  {
+    "model": "gemini-3.5-flash-lite",
+    "configurationId": "f6ad87c3-16b1-4b9b-beca-d1cf64470a5f",
+    "priority": 30,
+    "status": 200,
+    "validStructuredResponse": true,
+    "finishReason": "STOP",
+    "latencyMs": 7289
+  },
+  {
+    "model": "gemini-3.5-flash",
+    "configurationId": "13b6cf0b-cf03-4027-91e3-f35982d4d4dc",
+    "priority": 60,
+    "status": 200,
+    "validStructuredResponse": true,
+    "finishReason": "STOP",
+    "latencyMs": 5241
+  },
+  {
+    "model": "gemini-3-flash-preview",
+    "configurationId": "ea0fff44-6944-4139-96ee-d925ec319b8b",
+    "priority": 70,
+    "status": 200,
+    "validStructuredResponse": true,
+    "finishReason": "STOP",
+    "latencyMs": 4410
+  },
+  {
+    "model": "gemini-3.7-flash",
+    "configurationId": "a6bbb830-4422-412b-b1f6-160e0cdb6deb",
+    "priority": 80,
+    "status": 503,
+    "errorCode": "UNAVAILABLE",
+    "message": "This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+    "latencyMs": 1771
+  },
+  {
+    "model": "gemini-3.8-flash",
+    "configurationId": "ea72e3d1-dd98-4c59-86dc-4ebf721c7e51",
+    "priority": 90,
+    "status": 503,
+    "errorCode": "UNAVAILABLE",
+    "message": "This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+    "latencyMs": 3640
+  }
+]

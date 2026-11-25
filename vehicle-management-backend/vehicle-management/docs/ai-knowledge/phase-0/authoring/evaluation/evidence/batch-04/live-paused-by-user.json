@@ -1,0 +1,35 @@
+{
+  "pausedAt": "2026-11-23T19:05:23.036385+00:00",
+  "reason": "User requested stopping when all credentials are limited or temporarily unavailable; each of five has observed DAILY_QUOTA on at least one model plus transient failures. Not proof every model exhausted or any key invalid.",
+  "credentialFailureEvents": {
+    "GEMINI_API_KEY": {
+      "TRANSIENT": 33,
+      "MODEL": 2,
+      "DAILY_QUOTA": 4
+    },
+    "GEMINI_API_KEY_1": {
+      "DAILY_QUOTA": 3,
+      "TRANSIENT": 18,
+      "MODEL": 2
+    },
+    "GEMINI_API_KEY_2": {
+      "TRANSIENT": 13,
+      "MODEL": 2,
+      "DAILY_QUOTA": 2
+    },
+    "GEMINI_API_KEY_3": {
+      "TRANSIENT": 45,
+      "MODEL": 2,
+      "DAILY_QUOTA": 1
+    },
+    "GEMINI_API_KEY_4": {
+      "TRANSIENT": 66,
+      "MODEL": 4,
+      "DAILY_QUOTA": 3
+    }
+  },
+  "backgroundApiQueuesStopped": true,
+  "resumePolicy": "No automatic retries or scheduled resumption. Resume only on user instruction after quota recovers; retain original failures, run only unrun acceptance IDs on same frozenhash if unchanged.",
+  "nextRetryAtFromApplication": "2026-11-24T08:00:00Z",
+  "retryTimeCaveat": "Local pool calculated retryAt, not provider-confirmed universal reset. Other models/error types may recover at different times."
+}

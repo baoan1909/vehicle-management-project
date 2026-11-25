@@ -1,0 +1,139 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ---------------------< com.ban:vehicle-management >---------------------
+[INFO] Building  0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ vehicle-management ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 173 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.14.1:compile (default-compile) @ vehicle-management ---
+[INFO] Compiling 3 source files with javac [debug parameters release 21] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ vehicle-management ---
+[INFO] Copying 4 resources from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.14.1:testCompile (default-testCompile) @ vehicle-management ---
+[INFO] Compiling 7 source files with javac [debug parameters release 21] to target\test-classes
+[INFO] /C:/DiskD/VehicleManagementProject/vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/infrastructure/persistence/adapter/parking/LanePersistenceAdapter.java: C:\DiskD\VehicleManagementProject\vehicle-management-backend\vehicle-management\src\test\java\com\ban\vehicle_management\infrastructure\persistence\adapter\parking\LanePersistenceAdapter.java uses unchecked or unsafe operations.
+[INFO] /C:/DiskD/VehicleManagementProject/vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/infrastructure/persistence/adapter/parking/LanePersistenceAdapter.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- surefire:3.5.6:test (default-test) @ vehicle-management ---
+[WARNING] useSystemClassLoader setting has no effect when not forking
+[WARNING] The parameter forkCount should likely not be 0. Forking a JVM for tests improves test accuracy. Ensure to have a <forkCount> >= 1.
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] Running com.ban.vehicle_management.ai.golden.CommonKnowledgeCorpusTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 11.29 s -- in com.ban.vehicle_management.ai.golden.CommonKnowledgeCorpusTest
+[INFO] Running com.ban.vehicle_management.application.ai.service.AiModelRouterTest
+Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (C:\DiskD\VehicleManagementProject\vehicle-management-backend\vehicle-management\.m2-local\net\bytebuddy\byte-buddy-agent\1.17.8\byte-buddy-agent-1.17.8.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+Java HotSpot(TM) 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.166 s -- in com.ban.vehicle_management.application.ai.service.AiModelRouterTest
+[INFO] Running com.ban.vehicle_management.application.ai.service.AiRuntimeModeServiceTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.200 s -- in com.ban.vehicle_management.application.ai.service.AiRuntimeModeServiceTest
+[INFO] Running com.ban.vehicle_management.application.ai.service.AssistantOrchestratorTest
+21:15:31.695 [support-assistant-0] WARN com.ban.vehicle_management.application.ai.service.AssistantOrchestrator -- AI assistant job failed jobId=cc733692-f1b1-44b1-ad11-09a48c66c181 conversationId=28d7914a-76b0-468a-9ab6-190be40c21d3 inputMessageId=8ef2ecac-f441-4da9-ad6c-8cbc57f3cb67 error=IllegalStateException
+java.lang.IllegalStateException: simulated worker failure
+	at com.ban.vehicle_management.application.ai.service.AssistantOrchestrator.loadJobContext(AssistantOrchestrator.java:1357)
+	at com.ban.vehicle_management.application.ai.service.AssistantOrchestrator.lambda$processJobInMode$3(AssistantOrchestrator.java:332)
+	at com.ban.vehicle_management.application.ai.service.AssistantOrchestratorTest.lambda$setUp$0(AssistantOrchestratorTest.java:127)
+	at org.springframework.transaction.support.TransactionTemplate.execute(TransactionTemplate.java:128)
+	at com.ban.vehicle_management.application.ai.service.AssistantOrchestrator.processJobInMode(AssistantOrchestrator.java:332)
+	at com.ban.vehicle_management.application.ai.service.AssistantOrchestrator.processJob(AssistantOrchestrator.java:319)
+	at com.ban.vehicle_management.application.ai.service.AssistantOrchestrator.processJobSafely(AssistantOrchestrator.java:305)
+	at com.ban.vehicle_management.application.ai.service.AssistantOrchestrator.lambda$processDueJobs$0(AssistantOrchestrator.java:288)
+	at java.base/java.util.concurrent.ThreadPerTaskExecutor$TaskRunner.run(ThreadPerTaskExecutor.java:314)
+	at java.base/java.lang.VirtualThread.run(VirtualThread.java:329)
+[INFO] Tests run: 45, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.235 s -- in com.ban.vehicle_management.application.ai.service.AssistantOrchestratorTest
+[INFO] Running com.ban.vehicle_management.application.ai.service.CommonKnowledgeSchedulerTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.198 s -- in com.ban.vehicle_management.application.ai.service.CommonKnowledgeSchedulerTest
+[INFO] Running com.ban.vehicle_management.application.ai.service.CommonKnowledgeServiceTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.053 s -- in com.ban.vehicle_management.application.ai.service.CommonKnowledgeServiceTest
+[INFO] Running com.ban.vehicle_management.application.ai.service.KnowledgeRetrievalServiceTest
+21:15:32.443 [main] WARN com.ban.vehicle_management.application.ai.service.KnowledgeRetrievalService -- Reviewed FAQ retrieval unavailable error=IllegalStateException
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.262 s -- in com.ban.vehicle_management.application.ai.service.KnowledgeRetrievalServiceTest
+[INFO] Running com.ban.vehicle_management.application.operations.guestsupport.service.GuestPublicAssistantServiceTest
+[INFO] Tests run: 45, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.292 s -- in com.ban.vehicle_management.application.operations.guestsupport.service.GuestPublicAssistantServiceTest
+[INFO] Running com.ban.vehicle_management.domain.ai.model.AssistantQuestionResolverTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in com.ban.vehicle_management.domain.ai.model.AssistantQuestionResolverTest
+[INFO] Running com.ban.vehicle_management.domain.ai.model.CanonicalFaqTest
+[INFO] Tests run: 12, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.014 s -- in com.ban.vehicle_management.domain.ai.model.CanonicalFaqTest
+[INFO] Running com.ban.vehicle_management.domain.ai.model.CompanyContactFaqLookupTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in com.ban.vehicle_management.domain.ai.model.CompanyContactFaqLookupTest
+[INFO] Running com.ban.vehicle_management.domain.ai.model.LocalGroundedProfileTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.008 s -- in com.ban.vehicle_management.domain.ai.model.LocalGroundedProfileTest
+[INFO] Running com.ban.vehicle_management.domain.ai.model.VietnameseQueryNormalizerTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in com.ban.vehicle_management.domain.ai.model.VietnameseQueryNormalizerTest
+[INFO] Running com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialAvailabilityTest
+21:15:32.943 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=DAILY_QUOTA operation=generateContent model=model-a retryAt=2026-11-21T08:00:00Z
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.111 s -- in com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialAvailabilityTest
+[INFO] Running com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPoolTest
+21:15:33.326 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=DAILY_QUOTA operation=generateContent model=model-a retryAt=2026-11-25T08:00:00Z
+21:15:33.347 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=AUTH operation=generateContent model=model-a retryAt=2026-11-25T14:15:33.347468600Z
+21:15:33.347 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY_1 category=AUTH operation=generateContent model=model-a retryAt=2026-11-25T14:15:33.347468600Z
+21:15:33.354 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY_3 category=AUTH operation=generateContent model=model-a retryAt=2026-11-25T14:15:33.354068400Z
+21:15:33.354 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY_5 category=AUTH operation=generateContent model=model-a retryAt=2026-11-25T14:15:33.354068400Z
+21:15:33.354 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY_7 category=AUTH operation=generateContent model=model-a retryAt=2026-11-25T14:15:33.354068400Z
+21:15:33.360 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY_9 category=AUTH operation=generateContent model=model-a retryAt=2026-11-25T14:15:33.360720400Z
+21:15:33.362 [main] INFO com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini selection changed scope=generateContent:SUPPORT_CHAT credential=GEMINI_API_KEY_12 model=model-a
+21:15:33.373 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=DAILY_QUOTA operation=generateContent model=model-a retryAt=2026-11-25T08:00:00Z
+21:15:33.374 [main] INFO com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini selection changed scope=generateContent:SUPPORT_CHAT credential=GEMINI_API_KEY_2 model=model-a
+21:15:33.402 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=AUTH operation=generateContent model=model-a retryAt=2026-11-25T14:15:33.402464600Z
+21:15:33.406 [main] INFO com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini selection changed scope=generateContent:SUPPORT_CHAT credential=GEMINI_API_KEY_1 model=model-a
+21:15:33.416 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=AUTH operation=generateContent model=model-a retryAt=2026-11-25T14:15:33.416594Z
+21:15:33.422 [main] INFO com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini selection changed scope=generateContent:SUPPORT_CHAT credential=GEMINI_API_KEY_1 model=model-a
+21:15:33.434 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=AUTH operation=generateContent model=model-a retryAt=2026-11-25T14:15:33.434750200Z
+21:15:33.437 [main] INFO com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini selection changed scope=generateContent:SUPPORT_CHAT credential=GEMINI_API_KEY_1 model=model-a
+21:15:33.461 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=DAILY_QUOTA operation=generateContent model=model-a retryAt=2026-11-25T08:00:00Z
+21:15:33.499 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=MODEL operation=generateContent model=model-a retryAt=2026-11-24T14:20:33.499232700Z
+21:15:33.525 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=DAILY_QUOTA operation=embedContent model=gemini-embedding-2 retryAt=2026-11-25T08:00:00Z
+21:15:33.530 [main] INFO com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini selection changed scope=embedContent credential=GEMINI_API_KEY_1 model=gemini-embedding-2
+21:15:33.533 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=TRANSIENT operation=generateContent model=model-a retryAt=2026-11-24T14:16:03.533922600Z
+21:15:33.549 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=RATE_LIMIT operation=generateContent model=model-a retryAt=2026-11-24T14:16:03.549549900Z
+21:15:33.564 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=TRANSIENT operation=generateContent model=model-a retryAt=2026-11-24T14:16:03.564066300Z
+21:15:33.568 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=TRANSIENT operation=generateContent model=model-a retryAt=2026-11-24T14:16:03.568681400Z
+21:15:33.584 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=AUTH operation=generateContent model=model-a retryAt=2026-11-25T14:15:33.584188300Z
+21:15:33.589 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY_1 category=AUTH operation=generateContent model=model-a retryAt=2026-11-25T14:15:33.589756400Z
+21:15:33.599 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=REQUEST operation=generateContent model=model-a retryAt=null
+21:15:33.603 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=DAILY_QUOTA operation=embedContent model=embedding-a retryAt=2026-11-25T08:00:00Z
+21:15:33.603 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=DAILY_QUOTA operation=generateContent model=model-a retryAt=2026-11-20T08:00:00Z
+21:15:33.615 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=RATE_LIMIT operation=generateContent model=model-b retryAt=2026-11-20T08:01:00Z
+21:15:33.625 [virtual-213] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=AUTH operation=generateContent model=model-a retryAt=2026-11-25T14:15:33.625611700Z
+21:15:33.629 [virtual-213] INFO com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini selection changed scope=generateContent:SUPPORT_CHAT credential=GEMINI_API_KEY_1 model=model-a
+21:15:33.902 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=TRANSIENT operation=generateContent model=model-a retryAt=2026-11-24T14:16:03.902529200Z
+21:15:34.275 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=AUTH operation=generateContent model=model-a retryAt=2026-11-25T14:15:34.274379400Z
+21:15:34.277 [main] INFO com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini selection changed scope=generateContent:SUPPORT_CHAT credential=GEMINI_API_KEY_1 model=model-a
+21:15:35.278 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=TRANSIENT operation=generateContent model=model-a retryAt=2026-11-24T14:16:05.278137100Z
+21:15:35.719 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=AUTH operation=listModels model=catalog retryAt=2026-11-25T14:15:35.719611100Z
+[INFO] Tests run: 29, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.738 s -- in com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPoolTest
+[INFO] Running com.ban.vehicle_management.infrastructure.ai.gemini.GeminiEmbeddingRequestMapperTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in com.ban.vehicle_management.infrastructure.ai.gemini.GeminiEmbeddingRequestMapperTest
+[INFO] Running com.ban.vehicle_management.infrastructure.ai.gemini.GeminiEmbeddingResponseMapperTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in com.ban.vehicle_management.infrastructure.ai.gemini.GeminiEmbeddingResponseMapperTest
+[INFO] Running com.ban.vehicle_management.infrastructure.ai.gemini.GeminiGenerationDeadlineTest
+21:15:36.235 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=TRANSIENT operation=generateContent model=test-model retryAt=2026-11-24T14:16:06.235981200Z
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.650 s -- in com.ban.vehicle_management.infrastructure.ai.gemini.GeminiGenerationDeadlineTest
+[INFO] Running com.ban.vehicle_management.infrastructure.ai.gemini.GeminiRequestMapperTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.025 s -- in com.ban.vehicle_management.infrastructure.ai.gemini.GeminiRequestMapperTest
+[INFO] Running com.ban.vehicle_management.infrastructure.ai.gemini.GeminiResponseMapperTest
+[INFO] Tests run: 13, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.011 s -- in com.ban.vehicle_management.infrastructure.ai.gemini.GeminiResponseMapperTest
+[INFO] Running com.ban.vehicle_management.infrastructure.ai.lmstudio.LmStudioWireMapperTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in com.ban.vehicle_management.infrastructure.ai.lmstudio.LmStudioWireMapperTest
+[INFO] Running com.ban.vehicle_management.infrastructure.mapper.ai.CommonRetrievalProvenanceMapperTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in com.ban.vehicle_management.infrastructure.mapper.ai.CommonRetrievalProvenanceMapperTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 205, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  27.651 s
+[INFO] Finished at: 2026-11-24T21:15:36+07:00
+[INFO] ------------------------------------------------------------------------

@@ -138,7 +138,7 @@ public class CustomerVehicleUseCaseImpl implements CustomerVehiclePortIn {
     @Override
     @Transactional(readOnly = true)
     public List<CustomerVehicle> getMyCustomerVehicles(Integer limit) {
-        UUID customerId = customerVehicleAccessGuard.resolveCustomerIdForRead(null);
+        UUID customerId = java.util.Objects.requireNonNull(customerVehicleAccessGuard.resolveOwnCustomerId());
         int resolvedLimit = limit == null ? 100 : Math.min(Math.max(limit, 1), 200);
         return customerVehiclePortOut.findOwnVehicles(customerId, resolvedLimit);
     }

@@ -1,0 +1,782 @@
+[
+  {
+    "attempts": [
+      {
+        "model": "gemini-3.1-flash-lite",
+        "credential": "primary",
+        "ms": 10123,
+        "success": false,
+        "failure": "TIMEOUT",
+        "inputTokens": null,
+        "outputTokens": null,
+        "rawResponse": null
+      },
+      {
+        "model": "gemini-3.5-flash-lite",
+        "credential": "primary",
+        "ms": 1856,
+        "success": false,
+        "failure": "GEMINI_REQUEST_BUDGET_EXHAUSTED",
+        "inputTokens": null,
+        "outputTokens": null,
+        "rawResponse": null
+      },
+      {
+        "model": "gemini-3.1-flash-lite",
+        "credential": "backup-1",
+        "ms": 0,
+        "success": false,
+        "failure": "GEMINI_CANDIDATE_UNAVAILABLE",
+        "inputTokens": null,
+        "outputTokens": null,
+        "rawResponse": null
+      },
+      {
+        "model": "gemini-3.5-flash-lite",
+        "credential": "backup-1",
+        "ms": 0,
+        "success": false,
+        "failure": "GEMINI_CANDIDATE_UNAVAILABLE",
+        "inputTokens": null,
+        "outputTokens": null,
+        "rawResponse": null
+      },
+      {
+        "model": "gemini-3.1-flash-lite",
+        "credential": "backup-2",
+        "ms": 0,
+        "success": false,
+        "failure": "GEMINI_CANDIDATE_UNAVAILABLE",
+        "inputTokens": null,
+        "outputTokens": null,
+        "rawResponse": null
+      },
+      {
+        "model": "gemini-3.5-flash-lite",
+        "credential": "backup-2",
+        "ms": 0,
+        "success": false,
+        "failure": "GEMINI_CANDIDATE_UNAVAILABLE",
+        "inputTokens": null,
+        "outputTokens": null,
+        "rawResponse": null
+      },
+      {
+        "model": "gemini-3.1-flash-lite",
+        "credential": "backup-3",
+        "ms": 0,
+        "success": false,
+        "failure": "GEMINI_CANDIDATE_UNAVAILABLE",
+        "inputTokens": null,
+        "outputTokens": null,
+        "rawResponse": null
+      },
+      {
+        "model": "gemini-3.5-flash-lite",
+        "credential": "backup-3",
+        "ms": 0,
+        "success": false,
+        "failure": "GEMINI_CANDIDATE_UNAVAILABLE",
+        "inputTokens": null,
+        "outputTokens": null,
+        "rawResponse": null
+      },
+      {
+        "model": "gemini-3.1-flash-lite",
+        "credential": "backup-4",
+        "ms": 0,
+        "success": false,
+        "failure": "GEMINI_CANDIDATE_UNAVAILABLE",
+        "inputTokens": null,
+        "outputTokens": null,
+        "rawResponse": null
+      },
+      {
+        "model": "gemini-3.5-flash-lite",
+        "credential": "backup-4",
+        "ms": 0,
+        "success": false,
+        "failure": "GEMINI_CANDIDATE_UNAVAILABLE",
+        "inputTokens": null,
+        "outputTokens": null,
+        "rawResponse": null
+      },
+      {
+        "model": "gemini-3.5-flash-lite",
+        "credential": "primary",
+        "ms": 6851,
+        "success": true,
+        "failure": null,
+        "inputTokens": 1260,
+        "outputTokens": 65,
+        "rawResponse": "{\"responseText\":\"Với phần thời gian chưa đủ một ngày, nếu quá bốn giờ và không nằm hoàn toàn trong khung ban ngày thì cách tính hiện tại dùng mức ban đêm. Mức tiền cụ thể phụ thuộc bảng giá của bãi; kiểm tra hóa đơn nếu cần biết số phải trả.\",\"citations\":[\"C1\"]}"
+      }
+    ],
+    "queryVectorMode": "LIVE_PROVIDER_OR_RECORDED_REAL_VECTOR",
+    "caseId": "B3-PRI04-3",
+    "batch": "batch-03-questions.jsonl",
+    "split": "acceptance",
+    "question": "Làm sao hiểu cách tính tiền gửi xe ban đêm?",
+    "expectedDocument": "pricing-and-fee-calculation",
+    "personalProbe": false,
+    "retrievalMs": 85,
+    "citations": [
+      {
+        "citationId": "41bc7818-b4a9-4656-ab17-8beac0c2ba05",
+        "messageId": "c1e8d6b1-db9f-4586-b8a4-de8329f26d24",
+        "documentId": "192442df-1213-43d7-bfbf-07e12cbde612",
+        "chunkId": "c4140eac-8bbf-4da2-b8d3-3fd979d9c88f",
+        "label": "C1",
+        "title": "Bảng giá và cách tính phí",
+        "sourcePage": null,
+        "sourceSection": "Câu hỏi khách hàng thường gặp",
+        "retrievalScore": 0.01639344,
+        "retrievalAuditId": "ed091754-f353-4e91-816d-70088f1bde46",
+        "indexVersionId": "a5b5a3a2-25ac-431b-a745-418a83b94ab1",
+        "citationOrder": 0
+      }
+    ],
+    "retryEvents": [
+      {
+        "attempt": 1,
+        "waitMs": 19998,
+        "failure": "GEMINI_CANDIDATE_UNAVAILABLE"
+      }
+    ],
+    "attemptCount": 2,
+    "jobStatus": "COMPLETED",
+    "jobError": null,
+    "answer": "Với phần thời gian chưa đủ một ngày, nếu quá bốn giờ và không nằm hoàn toàn trong khung ban ngày thì cách tính hiện tại dùng mức ban đêm. Mức tiền cụ thể phụ thuộc bảng giá của bãi; kiểm tra hóa đơn nếu cần biết số phải trả.",
+    "totalMs": 39247,
+    "evidenceSufficient": true,
+    "groundedConfidence": 0.779,
+    "diagnostic": null,
+    "hitAt5": true,
+    "citedEvidence": [
+      {
+        "documentId": "192442df-1213-43d7-bfbf-07e12cbde612",
+        "chunkId": "c4140eac-8bbf-4da2-b8d3-3fd979d9c88f",
+        "title": "Bảng giá và cách tính phí",
+        "content": "Vì sao phí gửi xe khác giữa các bãi? Mỗi bãi có bảng giá và thời gian áp dụng riêng. Hãy kiểm tra cùng loại xe, loại vé và thời điểm ở bãi cần gửi; không dùng giá của bãi khác để kết luận hóa đơn bị tính sai.\nPhí gửi xe không quá bốn giờ được tính như thế nào? Trong cách tính lượt gửi xe thông thường đang có, phần thời gian còn lại không quá bốn giờ được áp mức ban ngày. Số tiền phải lấy từ bảng giá phù hợp của bãi; đây không phải mức tiền cố định cho mọi bãi.\nGửi xe qua đêm được tính phí như thế nào? Với phần thời gian chưa đủ một ngày, nếu quá bốn giờ và không nằm hoàn toàn trong khung ban ngày thì cách tính hiện tại dùng mức ban đêm. Mức tiền cụ thể phụ thuộc bảng giá của bãi; kiểm tra hóa đơn nếu cần biết số phải trả.\nGửi xe đủ một ngày thì tính phí như thế nào? Mỗi khoảng đủ hai mươi bốn giờ được tính bằng mức ban ngày cộng mức ban đêm. Phần thời gian còn lại được tính riêng theo quy tắc lượt gửi hiện tại. Trợ lý không tự suy ra số tiền nếu thiếu bảng giá đúng bãi.\nGửi xe đúng ranh giới khung ban ngày tính phí ra sao? Phần thời gian chưa đủ một ngày và nằm cùng ngày, từ đúng giờ bắt đầu đến đúng giờ kết thúc khung ban ngày, được coi là nằm trong khung ban ngày. Số tiền cuối cùng do hệ thống tính với bảng giá phù hợp.\nKhông thấy bảng giá của bãi thì phải làm sao? Kiểm tra đã chọn đúng bãi, loại xe và loại vé. Nếu vẫn chưa có giá, liên hệ bãi hoặc gửi phản ánh lỗi chức năng; không tự dùng giá của bãi khác và không coi giá bằng không.\nHóa đơn gửi xe khác bảng giá thì kiểm tra như thế nào? Đối chiếu bãi, loại xe, thời gian vào ra, bảng giá có hiệu lực và khoản đã trả trước nếu có đặt chỗ. Nếu vẫn khác, cung cấp thông tin giao dịch cần thiết cho nhân viên bãi kiểm tra; không gửi mã thanh toán bí mật.\nPhí gửi xe ngày lễ có tự tăng không? Không mặc định ngày lễ sẽ tăng giá. Cách tính lượt gửi xe hiện được đối chiếu chưa tự dùng lịch ngày lễ để cộng phụ thu. Hãy xem bảng giá có hiệu lực của bãi; trợ lý không tự thêm phí hoặc cam kết chính sách chưa có nguồn.\nĐặt chỗ đã trả trước thì khi ra bãi tính phí thế nào? Với lượt gửi xe gắn đặt chỗ, thời gian tính phí bắt đầu khi thanh toán thành công và kết thúc khi ra bãi. Hệ thống dùng bảng giá đã ghi nhận khi đặt, trừ khoản trả trước và chỉ thu phần phát sinh thêm; không thu lại toàn bộ lần nữa."
+      }
+    ]
+  },
+  {
+    "attempts": [
+      {
+        "model": "gemini-3.5-flash-lite",
+        "credential": "primary",
+        "ms": 6965,
+        "success": true,
+        "failure": null,
+        "inputTokens": 1381,
+        "outputTokens": 97,
+        "rawResponse": "{\"responseText\":\"Khi tiền đã trừ mà hóa đơn chưa cập nhật, bạn hãy kiểm tra lại trạng thái hóa đơn và lịch sử giao dịch. Không thanh toán lần nữa khi giao dịch trước chưa được xác minh. Nếu vẫn chưa cập nhật, hãy liên hệ bộ phận phụ trách kèm thời điểm, số tiền và mã giao dịch cần thiết để đối soát, và lưu ý không gửi mã xác minh hoặc thông tin thẻ bí mật.\",\"citations\":[\"C2\",\"C3\"]}"
+      }
+    ],
+    "queryVectorMode": "LIVE_PROVIDER_OR_RECORDED_REAL_VECTOR",
+    "caseId": "B3-PAY02-3",
+    "batch": "batch-03-questions.jsonl",
+    "split": "acceptance",
+    "question": "Làm sao xử lý khi đã trả tiền mà hóa đơn chưa cập nhật?",
+    "expectedDocument": "invoice-vnpay-payment-refund",
+    "personalProbe": false,
+    "retrievalMs": 27,
+    "citations": [
+      {
+        "citationId": "c0b9b489-c3ad-476c-b4a1-8888a25758b5",
+        "messageId": "1f8bc72b-c11d-42c9-9558-5b6d79319bb1",
+        "documentId": "3e870a51-738f-410e-88ae-c26919ab4777",
+        "chunkId": "69254aa1-1ff0-454e-a9bc-332d3307d050",
+        "label": "C2",
+        "title": "Hóa đơn, thanh toán và yêu cầu hoàn tiền",
+        "sourcePage": null,
+        "sourceSection": "Khi giao diện đặt chỗ cho thanh toán bằng SePay",
+        "retrievalScore": 0.00983607,
+        "retrievalAuditId": "7f29a134-5cb6-4127-904a-05993ba7f1a1",
+        "indexVersionId": "a5b5a3a2-25ac-431b-a745-418a83b94ab1",
+        "citationOrder": 0
+      },
+      {
+        "citationId": "5ba466e7-4a57-4557-a0b3-04a3e841037f",
+        "messageId": "1f8bc72b-c11d-42c9-9558-5b6d79319bb1",
+        "documentId": "3e870a51-738f-410e-88ae-c26919ab4777",
+        "chunkId": "6f74d352-93bb-4052-aaba-f7aec4598024",
+        "label": "C3",
+        "title": "Hóa đơn, thanh toán và yêu cầu hoàn tiền",
+        "sourcePage": null,
+        "sourceSection": "Hóa đơn, thanh toán và yêu cầu hoàn tiền",
+        "retrievalScore": 0.00952381,
+        "retrievalAuditId": "7f29a134-5cb6-4127-904a-05993ba7f1a1",
+        "indexVersionId": "a5b5a3a2-25ac-431b-a745-418a83b94ab1",
+        "citationOrder": 1
+      }
+    ],
+    "retryEvents": [],
+    "attemptCount": 1,
+    "jobStatus": "COMPLETED",
+    "jobError": null,
+    "answer": "Khi tiền đã trừ mà hóa đơn chưa cập nhật, bạn hãy kiểm tra lại trạng thái hóa đơn và lịch sử giao dịch. Không thanh toán lần nữa khi giao dịch trước chưa được xác minh. Nếu vẫn chưa cập nhật, hãy liên hệ bộ phận phụ trách kèm thời điểm, số tiền và mã giao dịch cần thiết để đối soát, và lưu ý không gửi mã xác minh hoặc thông tin thẻ bí mật.",
+    "totalMs": 7024,
+    "evidenceSufficient": true,
+    "groundedConfidence": 0.754,
+    "diagnostic": null,
+    "hitAt5": true,
+    "citedEvidence": [
+      {
+        "documentId": "3e870a51-738f-410e-88ae-c26919ab4777",
+        "chunkId": "69254aa1-1ff0-454e-a9bc-332d3307d050",
+        "title": "Hóa đơn, thanh toán và yêu cầu hoàn tiền",
+        "content": "Nếu phương thức chưa cấu hình hoặc tạm không dùng được, làm theo lựa chọn thực tế trên giao diện. Không chuyển tiền vào tài khoản hay đường dẫn do chatbot tự nghĩ ra. Tiền đã trừ, sai số tiền hoặc trùng giao dịch cần được đối soát.\nTrạng thái và giới hạn\nHóa đơn chờ, đã thanh toán và đã hủy khác với giao dịch đang chờ, thành công hoặc thất bại. Hiệu lực vé còn phụ thuộc các điều kiện của vé. Chưa xác minh có luồng thực thi hoàn tiền tự động; không hứa hoàn tiền hoặc thời hạn.\nTiếp nhận yêu cầu hoàn tiền\nĐể yêu cầu hoàn tiền cho hóa đơn, liên hệ bộ phận phụ trách giao dịch để kiểm tra điều kiện và đối soát. Chatbot chưa có chức năng thực hiện hoàn tiền, chưa có quy trình tự động được xác minh và không cam kết chắc chắn được hoàn hoặc ngày nhận tiền. Chỉ cung cấp thông tin giao dịch cần thiết qua kênh được phép; không gửi mật khẩu, mã xác minh hay thông tin thẻ bí mật. Với đặt chỗ đã trả tiền, cần đọc quy định hủy hoặc không đến thì không hoàn tiền đang hiển thị trước khi xác nhận.\nCâu hỏi khách hàng thường gặp\nThanh toán vé tháng qua VNPay như thế nào? Mở Vé tháng, chọn hóa đơn đang chờ thanh toán, kiểm tra số tiền rồi chọn phương thức VNPay đang khả dụng. Hoàn tất tại cổng thanh toán và quay lại xem kết quả đã được hệ thống xác minh; trợ lý không tự thanh toán thay bạn.\nTiền đã trừ nhưng hóa đơn còn chờ thì phải làm sao? Kiểm tra lại trạng thái hóa đơn và lịch sử giao dịch. Chưa thanh toán lần nữa khi giao dịch trước chưa được xác minh. Nếu vẫn chưa cập nhật, liên hệ bộ phận phụ trách kèm thời điểm, số tiền và mã giao dịch cần thiết; không gửi mã xác minh hoặc thông tin thẻ bí mật.\nThanh toán thất bại thì có được thử lại không? Kiểm tra giao dịch trước có thực sự thất bại và hóa đơn còn được phép thanh toán. Nếu đã bị trừ tiền hoặc kết quả chưa rõ, cần xác minh trước. Chỉ tạo lần thanh toán mới khi hệ thống cho phép, tránh trả trùng.\nQuay lại trang thành công có nghĩa là đã thanh toán chưa? Trang chuyển về chỉ hiển thị kết quả. Cần kiểm tra trạng thái đã được hệ thống xác minh từ thông báo hợp lệ của cổng thanh toán. Không dựa riêng vào địa chỉ trang hoặc ảnh chụp để kết luận hóa đơn đã được trả."
+      },
+      {
+        "documentId": "3e870a51-738f-410e-88ae-c26919ab4777",
+        "chunkId": "6f74d352-93bb-4052-aaba-f7aec4598024",
+        "title": "Hóa đơn, thanh toán và yêu cầu hoàn tiền",
+        "content": "Hóa đơn, thanh toán và yêu cầu hoàn tiền\nMục đích\nHướng dẫn kiểm tra và thanh toán hóa đơn an toàn; phân biệt đã trả tiền với vé hoặc đặt chỗ đã có hiệu lực.\nĐối tượng và phạm vi\nKhách đã đăng nhập với hóa đơn của mình và quyền phù hợp. VNPay, ví và thanh toán tại quầy xuất hiện trong luồng vé tháng. SePay hiện được đối chiếu ở luồng đặt chỗ công khai; có code không đồng nghĩa môi trường đang bật tích hợp.\nĐiều kiện trước\nHóa đơn thuộc phạm vi được phép xem, còn được thanh toán và chưa có giao dịch thành công. Kiểm tra số tiền và phương thức thực sự hiển thị. Cấu hình cổng thanh toán phải hợp lệ.\nLuồng chính\nÝ nghĩa của trang thanh toán thành công\nTrang thanh toán thành công hoặc trang quay về từ cổng thanh toán là nơi hiển thị kết quả, không phải bằng chứng độc lập rằng hóa đơn đã được trả. Trạng thái thanh toán cần được hệ thống xác minh với giao dịch hợp lệ, đúng chữ ký và số tiền. Nếu tiền đã trừ nhưng kết quả còn chờ, kiểm tra giao dịch và nhờ đối soát trước khi trả thêm lần nữa.\nCác bước thanh toán\nMở Vé tháng và chọn hóa đơn cần trả.\nKiểm tra số tiền; chọn phương thức đang được hỗ trợ.\nThực hiện và xác nhận trong giao diện nghiệp vụ.\nXem kết quả do hệ thống xác minh; không gửi thêm một lần khi kết quả còn chưa rõ.\nLuồng thay thế và lỗi\nLỗi tiền đã trừ nhưng hóa đơn chưa cập nhật\nNếu tiền đã trừ mà hóa đơn chưa cập nhật, kiểm tra trạng thái và lịch sử giao dịch. Không trả thêm lần nữa khi giao dịch trước chưa được xác minh. Liên hệ bộ phận phụ trách với thời điểm, số tiền và mã giao dịch cần thiết để đối soát; không gửi mã xác minh hoặc thông tin thẻ bí mật.\nGiao dịch thất bại và thử lại\nSau khi giao dịch báo thất bại, kiểm tra kết quả thực tế và xem tiền có bị trừ không trước khi thanh toán lại. Chỉ thử lại bằng lựa chọn đang có khi giao dịch trước đã rõ kết quả; nếu tiền bị trừ hoặc chưa chắc chắn, nhờ đối soát trước để tránh trả trùng. Không tự sửa số tiền hay giả kết quả thành công.\nKhi giao diện đặt chỗ cho thanh toán bằng SePay\nSePay hiện có ở luồng đặt chỗ công khai: giao diện chọn SePay cho khoản dưới mười nghìn đồng và VNPay từ ngưỡng đó theo code đã đối chiếu. Thanh toán đặt chỗ bằng SePay chỉ dùng được khi cổng có cấu hình hợp lệ và giao diện cho phép. Không suy ra mọi hóa đơn hoặc mọi tài khoản đều dùng SePay. Xem phương thức đang hiển thị và chờ hệ thống xác minh kết quả; không chuyển tiền vào tài khoản do trợ lý tự nghĩ ra."
+      }
+    ]
+  },
+  {
+    "attempts": [
+      {
+        "model": "gemini-3.5-flash-lite",
+        "credential": "primary",
+        "ms": 7136,
+        "success": true,
+        "failure": null,
+        "inputTokens": 1498,
+        "outputTokens": 63,
+        "rawResponse": "{\"responseText\":\"Chưa đủ. Trang chuyển về chỉ hiển thị kết quả. Bạn cần kiểm tra trạng thái đã được hệ thống xác minh từ thông báo hợp lệ của cổng thanh toán. Không dựa riêng vào địa chỉ trang hoặc ảnh chụp để kết luận hóa đơn đã được trả.\",\"citations\":[\"C1\"]}"
+      }
+    ],
+    "queryVectorMode": "LIVE_PROVIDER_OR_RECORDED_REAL_VECTOR",
+    "caseId": "B3-PAY04-3",
+    "batch": "batch-03-questions.jsonl",
+    "split": "acceptance",
+    "question": "Trang trả về của cổng thanh toán có đủ để xác nhận đã trả tiền không?",
+    "expectedDocument": "invoice-vnpay-payment-refund",
+    "personalProbe": false,
+    "retrievalMs": 26,
+    "citations": [
+      {
+        "citationId": "41170769-fd01-4f64-9411-0bbfbb753841",
+        "messageId": "55fd1ca3-e7bc-48f4-8c6b-0e852b0482a1",
+        "documentId": "3e870a51-738f-410e-88ae-c26919ab4777",
+        "chunkId": "4bf5e71f-2b9b-41e8-9047-e69aea9cd876",
+        "label": "C1",
+        "title": "Hóa đơn, thanh toán và yêu cầu hoàn tiền",
+        "sourcePage": null,
+        "sourceSection": "Câu hỏi khách hàng thường gặp",
+        "retrievalScore": 0.01639344,
+        "retrievalAuditId": "9766e7f5-6b39-45f1-809d-012681f94df7",
+        "indexVersionId": "a5b5a3a2-25ac-431b-a745-418a83b94ab1",
+        "citationOrder": 0
+      }
+    ],
+    "retryEvents": [],
+    "attemptCount": 1,
+    "jobStatus": "COMPLETED",
+    "jobError": null,
+    "answer": "Chưa đủ. Trang chuyển về chỉ hiển thị kết quả. Bạn cần kiểm tra trạng thái đã được hệ thống xác minh từ thông báo hợp lệ của cổng thanh toán. Không dựa riêng vào địa chỉ trang hoặc ảnh chụp để kết luận hóa đơn đã được trả.",
+    "totalMs": 7190,
+    "evidenceSufficient": true,
+    "groundedConfidence": 0.801,
+    "diagnostic": null,
+    "hitAt5": true,
+    "citedEvidence": [
+      {
+        "documentId": "3e870a51-738f-410e-88ae-c26919ab4777",
+        "chunkId": "4bf5e71f-2b9b-41e8-9047-e69aea9cd876",
+        "title": "Hóa đơn, thanh toán và yêu cầu hoàn tiền",
+        "content": "Quay lại trang thành công có nghĩa là đã thanh toán chưa? Trang chuyển về chỉ hiển thị kết quả. Cần kiểm tra trạng thái đã được hệ thống xác minh từ thông báo hợp lệ của cổng thanh toán. Không dựa riêng vào địa chỉ trang hoặc ảnh chụp để kết luận hóa đơn đã được trả.\nThông báo thanh toán gửi lặp có bị thu tiền hai lần không? Hệ thống kiểm tra giao dịch và trạng thái đã xử lý để hạn chế cập nhật trùng. Thông báo lặp không phải yêu cầu bạn trả lại tiền. Nếu có hai khoản tiền bị trừ thực tế, cần nhờ bộ phận phụ trách đối chiếu từng giao dịch.\nThanh toán qua SePay dùng trong trường hợp nào? Luồng đặt chỗ công khai hiện có SePay cho khoản dưới ngưỡng VNPay của giao diện, hiện là mười nghìn đồng. Chỉ sử dụng khi hệ thống hiển thị phương thức này và tích hợp đã được cấu hình; không coi SePay là phương thức dùng cho mọi hóa đơn.\nThanh toán vé tháng bằng ví như thế nào? Trong Vé tháng, mở hóa đơn chờ thanh toán, chọn thanh toán bằng ví nếu giao diện cho phép, kiểm tra số tiền và xác nhận. Hệ thống kiểm tra quyền, số dư và trạng thái hóa đơn; không gửi mật khẩu hoặc yêu cầu trợ lý trừ ví trực tiếp.\nKhông dùng VNPay thì thanh toán vé tháng tại quầy thế nào? Chọn phương thức thanh toán tại quầy khi giao diện Vé tháng cho phép, rồi làm theo hướng dẫn của bãi. Việc chọn tại quầy chưa có nghĩa hóa đơn đã được trả; nhân sự có quyền cần ghi nhận khoản thanh toán thực tế.\nMuốn hoàn tiền hóa đơn thì cần làm gì? Liên hệ bộ phận phụ trách giao dịch để kiểm tra điều kiện và đối soát. Chatbot hiện chưa có chức năng hoàn tiền và không cam kết thời hạn hay chắc chắn được hoàn. Với đặt chỗ đã thanh toán, giao diện hiện yêu cầu chấp nhận quy định hủy hoặc không đến thì không hoàn tiền.\nVì sao hóa đơn đã thanh toán mà vé chưa có hiệu lực? Trạng thái hóa đơn và hiệu lực vé là hai việc khác nhau. Kiểm tra kết quả thanh toán cùng ngày bắt đầu, tình trạng xử lý vé và điều kiện liên quan trên Vé tháng. Nếu chưa rõ, nhờ bộ phận phụ trách kiểm tra; không trả tiền thêm chỉ để kích hoạt lại.\nĐiều chatbot được phép trả lời"
+      }
+    ]
+  },
+  {
+    "attempts": [
+      {
+        "model": "gemini-3.5-flash-lite",
+        "credential": "primary",
+        "ms": 10005,
+        "success": false,
+        "failure": "TIMEOUT",
+        "inputTokens": null,
+        "outputTokens": null,
+        "rawResponse": null
+      },
+      {
+        "model": "gemini-3.1-flash-lite",
+        "credential": "primary",
+        "ms": 2003,
+        "success": false,
+        "failure": "GEMINI_REQUEST_BUDGET_EXHAUSTED",
+        "inputTokens": null,
+        "outputTokens": null,
+        "rawResponse": null
+      },
+      {
+        "model": "gemini-3.1-flash-lite",
+        "credential": "backup-1",
+        "ms": 0,
+        "success": false,
+        "failure": "GEMINI_CANDIDATE_UNAVAILABLE",
+        "inputTokens": null,
+        "outputTokens": null,
+        "rawResponse": null
+      },
+      {
+        "model": "gemini-3.5-flash-lite",
+        "credential": "backup-1",
+        "ms": 0,
+        "success": false,
+        "failure": "GEMINI_CANDIDATE_UNAVAILABLE",
+        "inputTokens": null,
+        "outputTokens": null,
+        "rawResponse": null
+      },
+      {
+        "model": "gemini-3.1-flash-lite",
+        "credential": "backup-2",
+        "ms": 0,
+        "success": false,
+        "failure": "GEMINI_CANDIDATE_UNAVAILABLE",
+        "inputTokens": null,
+        "outputTokens": null,
+        "rawResponse": null
+      },
+      {
+        "model": "gemini-3.5-flash-lite",
+        "credential": "backup-2",
+        "ms": 0,
+        "success": false,
+        "failure": "GEMINI_CANDIDATE_UNAVAILABLE",
+        "inputTokens": null,
+        "outputTokens": null,
+        "rawResponse": null
+      },
+      {
+        "model": "gemini-3.1-flash-lite",
+        "credential": "backup-3",
+        "ms": 0,
+        "success": false,
+        "failure": "GEMINI_CANDIDATE_UNAVAILABLE",
+        "inputTokens": null,
+        "outputTokens": null,
+        "rawResponse": null
+      },
+      {
+        "model": "gemini-3.5-flash-lite",
+        "credential": "backup-3",
+        "ms": 0,
+        "success": false,
+        "failure": "GEMINI_CANDIDATE_UNAVAILABLE",
+        "inputTokens": null,
+        "outputTokens": null,
+        "rawResponse": null
+      },
+      {
+        "model": "gemini-3.1-flash-lite",
+        "credential": "backup-4",
+        "ms": 0,
+        "success": false,
+        "failure": "GEMINI_CANDIDATE_UNAVAILABLE",
+        "inputTokens": null,
+        "outputTokens": null,
+        "rawResponse": null
+      },
+      {
+        "model": "gemini-3.5-flash-lite",
+        "credential": "backup-4",
+        "ms": 0,
+        "success": false,
+        "failure": "GEMINI_CANDIDATE_UNAVAILABLE",
+        "inputTokens": null,
+        "outputTokens": null,
+        "rawResponse": null
+      },
+      {
+        "model": "gemini-3.1-flash-lite",
+        "credential": "primary",
+        "ms": 1103,
+        "success": true,
+        "failure": null,
+        "inputTokens": 1347,
+        "outputTokens": 81,
+        "rawResponse": "{\n  \"responseText\": \"Để thanh toán vé tháng bằng ví, bạn thực hiện các bước sau: 1. Truy cập mục Vé tháng. 2. Mở hóa đơn đang chờ thanh toán. 3. Chọn thanh toán bằng ví nếu giao diện cho phép. 4. Kiểm tra số tiền và xác nhận yêu cầu.\",\n  \"citations\": [\"C1\"]\n}"
+      }
+    ],
+    "queryVectorMode": "LIVE_PROVIDER_OR_RECORDED_REAL_VECTOR",
+    "caseId": "B3-PAY07-3",
+    "batch": "batch-03-questions.jsonl",
+    "split": "acceptance",
+    "question": "Làm sao dùng số dư ví để trả hóa đơn vé tháng?",
+    "expectedDocument": "invoice-vnpay-payment-refund",
+    "personalProbe": false,
+    "retrievalMs": 33,
+    "citations": [
+      {
+        "citationId": "1f3de936-089c-4f11-8749-6d1acac09849",
+        "messageId": "b359705b-987e-4f37-b6bd-20da0951cf8e",
+        "documentId": "3e870a51-738f-410e-88ae-c26919ab4777",
+        "chunkId": "4bf5e71f-2b9b-41e8-9047-e69aea9cd876",
+        "label": "C1",
+        "title": "Hóa đơn, thanh toán và yêu cầu hoàn tiền",
+        "sourcePage": null,
+        "sourceSection": "Câu hỏi khách hàng thường gặp",
+        "retrievalScore": 0.0162348,
+        "retrievalAuditId": "e98bbad2-d513-43ad-b241-095ae2fd215d",
+        "indexVersionId": "a5b5a3a2-25ac-431b-a745-418a83b94ab1",
+        "citationOrder": 0
+      }
+    ],
+    "retryEvents": [
+      {
+        "attempt": 1,
+        "waitMs": 20000,
+        "failure": "GEMINI_CANDIDATE_UNAVAILABLE"
+      }
+    ],
+    "attemptCount": 2,
+    "jobStatus": "COMPLETED",
+    "jobError": null,
+    "answer": "Để thanh toán vé tháng bằng ví, bạn thực hiện các bước sau:\n1. Truy cập mục Vé tháng.\n2. Mở hóa đơn đang chờ thanh toán.\n3. Chọn thanh toán bằng ví nếu giao diện cho phép.\n4. Kiểm tra số tiền và xác nhận yêu cầu.",
+    "totalMs": 33260,
+    "evidenceSufficient": true,
+    "groundedConfidence": 0.911,
+    "diagnostic": null,
+    "hitAt5": true,
+    "citedEvidence": [
+      {
+        "documentId": "3e870a51-738f-410e-88ae-c26919ab4777",
+        "chunkId": "4bf5e71f-2b9b-41e8-9047-e69aea9cd876",
+        "title": "Hóa đơn, thanh toán và yêu cầu hoàn tiền",
+        "content": "Quay lại trang thành công có nghĩa là đã thanh toán chưa? Trang chuyển về chỉ hiển thị kết quả. Cần kiểm tra trạng thái đã được hệ thống xác minh từ thông báo hợp lệ của cổng thanh toán. Không dựa riêng vào địa chỉ trang hoặc ảnh chụp để kết luận hóa đơn đã được trả.\nThông báo thanh toán gửi lặp có bị thu tiền hai lần không? Hệ thống kiểm tra giao dịch và trạng thái đã xử lý để hạn chế cập nhật trùng. Thông báo lặp không phải yêu cầu bạn trả lại tiền. Nếu có hai khoản tiền bị trừ thực tế, cần nhờ bộ phận phụ trách đối chiếu từng giao dịch.\nThanh toán qua SePay dùng trong trường hợp nào? Luồng đặt chỗ công khai hiện có SePay cho khoản dưới ngưỡng VNPay của giao diện, hiện là mười nghìn đồng. Chỉ sử dụng khi hệ thống hiển thị phương thức này và tích hợp đã được cấu hình; không coi SePay là phương thức dùng cho mọi hóa đơn.\nThanh toán vé tháng bằng ví như thế nào? Trong Vé tháng, mở hóa đơn chờ thanh toán, chọn thanh toán bằng ví nếu giao diện cho phép, kiểm tra số tiền và xác nhận. Hệ thống kiểm tra quyền, số dư và trạng thái hóa đơn; không gửi mật khẩu hoặc yêu cầu trợ lý trừ ví trực tiếp.\nKhông dùng VNPay thì thanh toán vé tháng tại quầy thế nào? Chọn phương thức thanh toán tại quầy khi giao diện Vé tháng cho phép, rồi làm theo hướng dẫn của bãi. Việc chọn tại quầy chưa có nghĩa hóa đơn đã được trả; nhân sự có quyền cần ghi nhận khoản thanh toán thực tế.\nMuốn hoàn tiền hóa đơn thì cần làm gì? Liên hệ bộ phận phụ trách giao dịch để kiểm tra điều kiện và đối soát. Chatbot hiện chưa có chức năng hoàn tiền và không cam kết thời hạn hay chắc chắn được hoàn. Với đặt chỗ đã thanh toán, giao diện hiện yêu cầu chấp nhận quy định hủy hoặc không đến thì không hoàn tiền.\nVì sao hóa đơn đã thanh toán mà vé chưa có hiệu lực? Trạng thái hóa đơn và hiệu lực vé là hai việc khác nhau. Kiểm tra kết quả thanh toán cùng ngày bắt đầu, tình trạng xử lý vé và điều kiện liên quan trên Vé tháng. Nếu chưa rõ, nhờ bộ phận phụ trách kiểm tra; không trả tiền thêm chỉ để kích hoạt lại.\nĐiều chatbot được phép trả lời"
+      }
+    ]
+  },
+  {
+    "attempts": [
+      {
+        "model": "gemini-3.1-flash-lite",
+        "credential": "primary",
+        "ms": 5710,
+        "success": true,
+        "failure": null,
+        "inputTokens": 1551,
+        "outputTokens": 83,
+        "rawResponse": "{\n  \"responseText\": \"Voucher hết hạn nghĩa là đã qua thời gian hiệu lực sử dụng đã được cấu hình. Bạn cần kiểm tra lại thời gian bắt đầu và kết thúc của mã. Lưu ý rằng việc xem trước mã không bảo đảm mã vẫn còn hiệu lực hoặc còn lượt tại thời điểm bạn xác nhận đăng ký.\",\n  \"citations\": [\"C2\", \"C3\"]\n}"
+      }
+    ],
+    "queryVectorMode": "LIVE_PROVIDER_OR_RECORDED_REAL_VECTOR",
+    "caseId": "B3-VOU02-5",
+    "batch": "batch-03-questions.jsonl",
+    "split": "acceptance",
+    "question": "Lỗi voucher hết hạn",
+    "expectedDocument": "voucher-and-promotions",
+    "personalProbe": false,
+    "retrievalMs": 18,
+    "citations": [
+      {
+        "citationId": "b560b948-842d-47e1-802f-b5c7138da738",
+        "messageId": "60b80a64-e7ac-486b-8c89-60796b402845",
+        "documentId": "3b0f1174-f3b0-45f9-b0d6-d1c8884efc31",
+        "chunkId": "5469e263-a0f5-47fd-936e-b9d84b29986f",
+        "label": "C2",
+        "title": "Mã ưu đãi và khuyến mãi vé tháng",
+        "sourcePage": null,
+        "sourceSection": "Các bước áp dụng mã",
+        "retrievalScore": 0.01608119,
+        "retrievalAuditId": "0eecf9a0-99d5-489f-8789-728b6c17d4e4",
+        "indexVersionId": "a5b5a3a2-25ac-431b-a745-418a83b94ab1",
+        "citationOrder": 0
+      },
+      {
+        "citationId": "f0cb5e18-a87a-43e9-ab31-5148db9898c8",
+        "messageId": "60b80a64-e7ac-486b-8c89-60796b402845",
+        "documentId": "3b0f1174-f3b0-45f9-b0d6-d1c8884efc31",
+        "chunkId": "0cf9927e-a9df-4040-b92d-e2f2f836936d",
+        "label": "C3",
+        "title": "Mã ưu đãi và khuyến mãi vé tháng",
+        "sourcePage": null,
+        "sourceSection": "Mã ưu đãi và khuyến mãi vé tháng",
+        "retrievalScore": 0.00983607,
+        "retrievalAuditId": "0eecf9a0-99d5-489f-8789-728b6c17d4e4",
+        "indexVersionId": "a5b5a3a2-25ac-431b-a745-418a83b94ab1",
+        "citationOrder": 1
+      }
+    ],
+    "retryEvents": [],
+    "attemptCount": 1,
+    "jobStatus": "COMPLETED",
+    "jobError": null,
+    "answer": "Voucher hết hạn nghĩa là đã qua thời gian hiệu lực sử dụng đã được cấu hình. Bạn cần kiểm tra lại thời gian bắt đầu và kết thúc của mã. Lưu ý rằng việc xem trước mã không bảo đảm mã vẫn còn hiệu lực hoặc còn lượt tại thời điểm bạn xác nhận đăng ký.",
+    "totalMs": 5757,
+    "evidenceSufficient": true,
+    "groundedConfidence": 0.681,
+    "diagnostic": null,
+    "hitAt5": true,
+    "citedEvidence": [
+      {
+        "documentId": "3b0f1174-f3b0-45f9-b0d6-d1c8884efc31",
+        "chunkId": "5469e263-a0f5-47fd-936e-b9d84b29986f",
+        "title": "Mã ưu đãi và khuyến mãi vé tháng",
+        "content": "Các bước áp dụng mã\nMở Vé tháng và chọn bãi, phương tiện, loại vé, ngày bắt đầu.\nNhập mã ưu đãi và xem kết quả kiểm tra.\nKiểm tra số tiền cuối cùng, rồi gửi đăng ký theo giao diện.\nHệ thống kiểm tra lại điều kiện và giữ lượt khi tạo đăng ký/hóa đơn; thanh toán thành công mới hoàn tất việc sử dụng.\nLuồng thay thế và lỗi\nMã không tồn tại, tạm dừng, hết hạn, sai bãi, chưa đủ giá trị hoặc hết lượt đều có thể không áp dụng được. Xem thông báo cụ thể; không nhập lặp để vượt giới hạn.\nTrạng thái và giới hạn\nMã chưa được phát hành, đang dùng và tạm dừng khác với lượt mã đang giữ, đã dùng và đã giải phóng. Chưa có căn cứ áp mã cho mọi dịch vụ hoặc cộng dồn nhiều mã trên cùng vé.\nGiải phóng lượt voucher khi hủy đăng ký chưa thanh toán\nKhi hủy đăng ký chưa thanh toán theo luồng được phép, hệ thống có thể giải phóng lượt voucher còn đang giữ. Mã đã sử dụng thành công không tự được trả lượt theo cách này. Kiểm tra kết quả hủy và trạng thái đăng ký; nếu chưa rõ lượt đã được giải phóng, nhờ bộ phận phụ trách kiểm tra, không gửi đăng ký lặp hoặc tự cho rằng mã chắc chắn dùng lại được.\nCâu hỏi khách hàng thường gặp\nDùng mã giảm giá vé tháng như thế nào? Trong Vé tháng, chọn bãi, phương tiện, loại vé và ngày bắt đầu, nhập mã ưu đãi rồi xem kết quả áp dụng trước khi gửi đăng ký. Kiểm tra số tiền cuối cùng do hệ thống trả về; chatbot chưa tự áp mã thay bạn.\nMã giảm giá hết hạn thì phải làm sao? Kiểm tra thời gian bắt đầu và kết thúc của mã. Mã chỉ được dùng trong thời gian có hiệu lực và khi đang được cho phép sử dụng; không thể tự gia hạn mã bằng cách nhập lại. Nếu nghi ngờ hiển thị sai, nhờ bộ phận phụ trách kiểm tra.\nĐơn vé tháng chưa đủ điều kiện mã giảm giá thì làm sao? Kiểm tra giá trị vé trước giảm và điều kiện tối thiểu của mã. Chọn đúng bãi và loại vé rồi xem lại kết quả áp dụng. Không tự sửa số tiền hoặc giả định mọi mã đều áp dụng cho mọi vé.\nVì sao mã ưu đãi không dùng được ở bãi khác? Mã có thể áp dụng toàn hệ thống, cho một đối tác hoặc chỉ một bãi. Hãy kiểm tra phạm vi của mã và bãi đang đăng ký. Mã thuộc bãi hoặc đối tác khác có thể không được áp dụng."
+      },
+      {
+        "documentId": "3b0f1174-f3b0-45f9-b0d6-d1c8884efc31",
+        "chunkId": "0cf9927e-a9df-4040-b92d-e2f2f836936d",
+        "title": "Mã ưu đãi và khuyến mãi vé tháng",
+        "content": "Mã ưu đãi và khuyến mãi vé tháng\nMục đích\nGiải thích cách dùng và điều kiện mã ưu đãi trong luồng vé tháng hiện có.\nĐối tượng và phạm vi\nThông tin hướng dẫn công khai. Đăng ký, áp dụng mã và xem kết quả cá nhân vẫn cần truy cập giao diện nghiệp vụ với quyền phù hợp. Không chứa hướng dẫn tạo hoặc quản trị ưu đãi nội bộ.\nĐiều kiện trước\nMã còn hiệu lực, được cho phép sử dụng, đúng bãi hoặc đối tác, đủ giá trị tối thiểu và còn lượt cho khách hàng. Không coi việc thấy banner là bảo đảm chắc chắn áp dụng thành công.\nLuồng chính\nHiệu lực và hạn sử dụng voucher\nMã giảm giá, còn gọi là voucher hoặc mã ưu đãi, chỉ sử dụng được từ thời điểm bắt đầu và trước thời điểm kết thúc đã cấu hình. Voucher hết hạn là hết thời gian hiệu lực, khác với hết lượt sử dụng. Voucher không còn trong thời gian sử dụng sẽ bị từ chối; mã chưa đến ngày bắt đầu hoặc đang tạm dừng cũng không dùng được. Kiểm tra thời hạn và thông báo cụ thể, không gửi đăng ký nhiều lần để vượt điều kiện. Việc thấy mã trên banner hoặc đã xem thử trước đó không bảo đảm mã còn hiệu lực lúc tạo hóa đơn.\nKiểm tra voucher và thời điểm giữ lượt\nKiểm tra hoặc xem thử voucher trước khi đăng ký chỉ cho biết điều kiện và số tiền dự kiến; bước này không tiêu thụ hay giữ lượt sử dụng mã. Khi gửi đăng ký tạo hóa đơn, hệ thống mới kiểm tra lại và giữ lượt. Vì vậy xem thử thành công chưa bảo đảm mã còn lượt lúc xác nhận đăng ký; lượt đang giữ cho hóa đơn chờ cũng được tính vào giới hạn. Không gửi đăng ký lặp để vượt số lượt.\nĐiều kiện giá trị vé tối thiểu\nVoucher có thể yêu cầu giá trị vé tối thiểu trước khi giảm. Nếu chưa đạt giá trị này, kiểm tra đúng bãi, loại vé và điều kiện của mã; không tự sửa giá trị hóa đơn để áp dụng. Đủ thời gian hiệu lực hoặc còn lượt không thay thế điều kiện về giá trị vé. Hãy xem thông báo kiểm tra mã trong Vé tháng để biết điều kiện chưa đạt.\nCạnh tranh lượt voucher cuối\nHai khách hàng có thể cùng xem thử một mã còn lượt, nhưng kết quả xem thử chưa giữ lượt voucher cuối cho cả hai. Khi tạo đăng ký và hóa đơn, hệ thống kiểm tra lại tổng lượt và giới hạn mỗi khách trước khi giữ lượt. Nếu một người đã giữ lượt cuối, yêu cầu của người còn lại có thể báo hết lượt. Không gửi nhiều đăng ký lặp để tranh hoặc vượt lượt mã."
+      }
+    ]
+  },
+  {
+    "attempts": [
+      {
+        "model": "gemini-3.1-flash-lite",
+        "credential": "primary",
+        "ms": 5745,
+        "success": true,
+        "failure": null,
+        "inputTokens": 1615,
+        "outputTokens": 88,
+        "rawResponse": "{\n  \"responseText\": \"Việc cả hai người cùng xem thử mã giảm giá không đảm bảo giữ lượt cho cả hai. Hệ thống chỉ thực hiện kiểm tra lại và giữ lượt khi đăng ký được xử lý chính thức. Nếu một người đã hoàn tất đăng ký và chiếm lượt cuối, yêu cầu của người còn lại có thể bị báo hết lượt.\",\n  \"citations\": [\"C1\", \"C2\"]\n}"
+      }
+    ],
+    "queryVectorMode": "LIVE_PROVIDER_OR_RECORDED_REAL_VECTOR",
+    "caseId": "B3-VOU09-3",
+    "batch": "batch-03-questions.jsonl",
+    "split": "acceptance",
+    "question": "Lượt mã giảm giá cuối có bảo đảm cho cả hai người đang xem thử không?",
+    "expectedDocument": "voucher-and-promotions",
+    "personalProbe": false,
+    "retrievalMs": 16,
+    "citations": [
+      {
+        "citationId": "d03700c8-ab5a-4855-af49-a369fb2f68c1",
+        "messageId": "9cc7081b-1cdd-469e-af47-9646c53bde1f",
+        "documentId": "3b0f1174-f3b0-45f9-b0d6-d1c8884efc31",
+        "chunkId": "b229bbcd-6cd7-4c64-91f8-3a03b021d992",
+        "label": "C1",
+        "title": "Mã ưu đãi và khuyến mãi vé tháng",
+        "sourcePage": null,
+        "sourceSection": "Câu hỏi khách hàng thường gặp",
+        "retrievalScore": 0.01628768,
+        "retrievalAuditId": "258adaf7-cfd2-4f5f-a32b-ba76c1045813",
+        "indexVersionId": "a5b5a3a2-25ac-431b-a745-418a83b94ab1",
+        "citationOrder": 0
+      },
+      {
+        "citationId": "93085acc-a65f-4725-9734-bcee8914c36c",
+        "messageId": "9cc7081b-1cdd-469e-af47-9646c53bde1f",
+        "documentId": "3b0f1174-f3b0-45f9-b0d6-d1c8884efc31",
+        "chunkId": "0cf9927e-a9df-4040-b92d-e2f2f836936d",
+        "label": "C2",
+        "title": "Mã ưu đãi và khuyến mãi vé tháng",
+        "sourcePage": null,
+        "sourceSection": "Mã ưu đãi và khuyến mãi vé tháng",
+        "retrievalScore": 0.0162348,
+        "retrievalAuditId": "258adaf7-cfd2-4f5f-a32b-ba76c1045813",
+        "indexVersionId": "a5b5a3a2-25ac-431b-a745-418a83b94ab1",
+        "citationOrder": 1
+      }
+    ],
+    "retryEvents": [],
+    "attemptCount": 1,
+    "jobStatus": "COMPLETED",
+    "jobError": null,
+    "answer": "Việc cả hai người cùng xem thử mã giảm giá không đảm bảo giữ lượt cho cả hai. Hệ thống chỉ thực hiện kiểm tra lại và giữ lượt khi đăng ký được xử lý chính thức. Nếu một người đã hoàn tất đăng ký và chiếm lượt cuối, yêu cầu của người còn lại có thể bị báo hết lượt.",
+    "totalMs": 5790,
+    "evidenceSufficient": true,
+    "groundedConfidence": 0.782,
+    "diagnostic": null,
+    "hitAt5": true,
+    "citedEvidence": [
+      {
+        "documentId": "3b0f1174-f3b0-45f9-b0d6-d1c8884efc31",
+        "chunkId": "b229bbcd-6cd7-4c64-91f8-3a03b021d992",
+        "title": "Mã ưu đãi và khuyến mãi vé tháng",
+        "content": "Vì sao mã ưu đãi không dùng được ở bãi khác? Mã có thể áp dụng toàn hệ thống, cho một đối tác hoặc chỉ một bãi. Hãy kiểm tra phạm vi của mã và bãi đang đăng ký. Mã thuộc bãi hoặc đối tác khác có thể không được áp dụng.\nMã giảm theo phần trăm có giới hạn tiền giảm không? Số tiền giảm phụ thuộc phần trăm, mức giảm tối đa nếu được cấu hình và giá trị vé. Tiền giảm không vượt quá giá trị vé. Hãy xem kết quả áp dụng mã từ hệ thống để biết số tiền chính xác.\nVoucher báo hết lượt sử dụng thì cần làm gì? Mã có thể giới hạn tổng lượt hoặc số lượt của mỗi khách hàng. Lượt đang được giữ cho hóa đơn chờ xử lý cũng được tính khi kiểm tra giới hạn. Xem lại các đăng ký liên quan hoặc nhờ bộ phận phụ trách kiểm tra, không gửi lặp để vượt giới hạn.\nXem thử mã ưu đãi có giữ lượt sử dụng không? Xem kết quả áp dụng mã là bước kiểm tra, chưa giữ lượt. Lượt được giữ khi đăng ký tạo hóa đơn với mã và hệ thống kiểm tra lại điều kiện. Vì vậy kết quả xem thử không bảo đảm mã vẫn còn lượt lúc bạn gửi đăng ký.\nHủy vé đang chờ thì lượt mã ưu đãi có được trả lại không? Với lượt mã còn đang được giữ, luồng hủy đăng ký phù hợp có thể giải phóng lượt đó. Mã đã dùng thành công không được coi là lượt đang giữ để tự hoàn lại. Kết quả phải kiểm tra trên đăng ký và giao dịch thực tế.\nHai người cùng dùng lượt voucher cuối thì sao? Hệ thống kiểm tra lại và giữ lượt khi đăng ký được xử lý. Hai người cùng xem thử không có nghĩa cả hai đã giữ được lượt cuối; một yêu cầu có thể nhận thông báo hết lượt. Kiểm tra kết quả và không gửi đăng ký lặp.\nCó thể dùng nhiều mã giảm giá cho một vé không? Luồng đăng ký hiện nhận một mã ưu đãi cho mỗi yêu cầu và gắn lượt mã với hóa đơn. Chưa có căn cứ để cam kết cộng dồn nhiều mã trên cùng vé. Kiểm tra số tiền cuối cùng trước khi xác nhận đăng ký.\nĐiều chatbot được phép trả lời\nGiải thích hướng dẫn, điều kiện và giới hạn đã được kiểm chứng. Trả lời bằng từ ngữ dễ hiểu; không đưa tên trạng thái kỹ thuật vào câu trả lời.\nĐiều chatbot phải dùng business tool\nThông tin cá nhân, giá hiện hành, số tiền hoặc trạng thái cụ thể chỉ được xác nhận bằng nguồn dữ liệu có thẩm quyền và đúng quyền. Nếu chưa có tool phù hợp, hướng dẫn mở module nghiệp vụ hoặc liên hệ bộ phận phụ trách; không giả lập kết quả."
+      },
+      {
+        "documentId": "3b0f1174-f3b0-45f9-b0d6-d1c8884efc31",
+        "chunkId": "0cf9927e-a9df-4040-b92d-e2f2f836936d",
+        "title": "Mã ưu đãi và khuyến mãi vé tháng",
+        "content": "Mã ưu đãi và khuyến mãi vé tháng\nMục đích\nGiải thích cách dùng và điều kiện mã ưu đãi trong luồng vé tháng hiện có.\nĐối tượng và phạm vi\nThông tin hướng dẫn công khai. Đăng ký, áp dụng mã và xem kết quả cá nhân vẫn cần truy cập giao diện nghiệp vụ với quyền phù hợp. Không chứa hướng dẫn tạo hoặc quản trị ưu đãi nội bộ.\nĐiều kiện trước\nMã còn hiệu lực, được cho phép sử dụng, đúng bãi hoặc đối tác, đủ giá trị tối thiểu và còn lượt cho khách hàng. Không coi việc thấy banner là bảo đảm chắc chắn áp dụng thành công.\nLuồng chính\nHiệu lực và hạn sử dụng voucher\nMã giảm giá, còn gọi là voucher hoặc mã ưu đãi, chỉ sử dụng được từ thời điểm bắt đầu và trước thời điểm kết thúc đã cấu hình. Voucher hết hạn là hết thời gian hiệu lực, khác với hết lượt sử dụng. Voucher không còn trong thời gian sử dụng sẽ bị từ chối; mã chưa đến ngày bắt đầu hoặc đang tạm dừng cũng không dùng được. Kiểm tra thời hạn và thông báo cụ thể, không gửi đăng ký nhiều lần để vượt điều kiện. Việc thấy mã trên banner hoặc đã xem thử trước đó không bảo đảm mã còn hiệu lực lúc tạo hóa đơn.\nKiểm tra voucher và thời điểm giữ lượt\nKiểm tra hoặc xem thử voucher trước khi đăng ký chỉ cho biết điều kiện và số tiền dự kiến; bước này không tiêu thụ hay giữ lượt sử dụng mã. Khi gửi đăng ký tạo hóa đơn, hệ thống mới kiểm tra lại và giữ lượt. Vì vậy xem thử thành công chưa bảo đảm mã còn lượt lúc xác nhận đăng ký; lượt đang giữ cho hóa đơn chờ cũng được tính vào giới hạn. Không gửi đăng ký lặp để vượt số lượt.\nĐiều kiện giá trị vé tối thiểu\nVoucher có thể yêu cầu giá trị vé tối thiểu trước khi giảm. Nếu chưa đạt giá trị này, kiểm tra đúng bãi, loại vé và điều kiện của mã; không tự sửa giá trị hóa đơn để áp dụng. Đủ thời gian hiệu lực hoặc còn lượt không thay thế điều kiện về giá trị vé. Hãy xem thông báo kiểm tra mã trong Vé tháng để biết điều kiện chưa đạt.\nCạnh tranh lượt voucher cuối\nHai khách hàng có thể cùng xem thử một mã còn lượt, nhưng kết quả xem thử chưa giữ lượt voucher cuối cho cả hai. Khi tạo đăng ký và hóa đơn, hệ thống kiểm tra lại tổng lượt và giới hạn mỗi khách trước khi giữ lượt. Nếu một người đã giữ lượt cuối, yêu cầu của người còn lại có thể báo hết lượt. Không gửi nhiều đăng ký lặp để tranh hoặc vượt lượt mã."
+      }
+    ]
+  },
+  {
+    "attempts": [
+      {
+        "model": "gemini-3.1-flash-lite",
+        "credential": "primary",
+        "ms": 4649,
+        "success": true,
+        "failure": null,
+        "inputTokens": 1288,
+        "outputTokens": 61,
+        "rawResponse": "{\"responseText\":\"Sau khi thanh toán đặt chỗ thành công, bạn cần vào bãi trong vòng sáu mươi phút. Vui lòng kiểm tra hạn vào bãi được hiển thị trên ứng dụng. Nếu quá thời hạn này, chỗ của bạn sẽ được giải phóng.\",\"citations\":[\"C1\"]}"
+      }
+    ],
+    "queryVectorMode": "LIVE_PROVIDER_OR_RECORDED_REAL_VECTOR",
+    "caseId": "B3-RES04-3",
+    "batch": "batch-03-questions.jsonl",
+    "split": "acceptance",
+    "question": "Thanh toán đặt chỗ thành công thì hạn vào bãi là bao lâu?",
+    "expectedDocument": "reservations-and-holds",
+    "personalProbe": false,
+    "retrievalMs": 20,
+    "citations": [
+      {
+        "citationId": "26d363fa-67ca-4bcb-9666-142cd9bb4b84",
+        "messageId": "c9c88c36-b5a3-482d-acc3-512fa926a372",
+        "documentId": "3701bb97-f6d0-4a38-a88d-bb728bd8b199",
+        "chunkId": "e847d2fd-1651-43cb-bd9c-f82fb8f46a6b",
+        "label": "C1",
+        "title": "Đặt chỗ trước và thời gian giữ chỗ",
+        "sourcePage": null,
+        "sourceSection": "Trạng thái và giới hạn",
+        "retrievalScore": 0.01639344,
+        "retrievalAuditId": "e136e0fa-0bfd-4e4c-b4c2-1dd725896a7b",
+        "indexVersionId": "a5b5a3a2-25ac-431b-a745-418a83b94ab1",
+        "citationOrder": 0
+      }
+    ],
+    "retryEvents": [],
+    "attemptCount": 1,
+    "jobStatus": "COMPLETED",
+    "jobError": null,
+    "answer": "Sau khi thanh toán đặt chỗ thành công, bạn cần vào bãi trong vòng sáu mươi phút. Vui lòng kiểm tra hạn vào bãi được hiển thị trên ứng dụng. Nếu quá thời hạn này, chỗ của bạn sẽ được giải phóng.",
+    "totalMs": 4711,
+    "evidenceSufficient": true,
+    "groundedConfidence": 0.773,
+    "diagnostic": null,
+    "hitAt5": true,
+    "citedEvidence": [
+      {
+        "documentId": "3701bb97-f6d0-4a38-a88d-bb728bd8b199",
+        "chunkId": "e847d2fd-1651-43cb-bd9c-f82fb8f46a6b",
+        "title": "Đặt chỗ trước và thời gian giữ chỗ",
+        "content": "Trạng thái và giới hạn\nChờ thanh toán chưa phải đã thanh toán giữ chỗ. Đã thanh toán còn giữ, đã vào bãi, hết hạn, đã hủy và cần đối soát là các trạng thái khác nhau. Cần đối soát không bảo đảm còn chỗ. Hủy sau thanh toán hoặc không đến không được hoàn tiền theo quy định hiện hiển thị.\nĐã trả tiền nhưng không đến bãi\nĐặt chỗ đã trả tiền nhưng khách không đến trong thời hạn thì không tự nhận lại tiền. Quy định hiện hiển thị là không hoàn tiền khi hủy sau thanh toán hoặc không đến. Nếu nghi ngờ giao dịch có lỗi, liên hệ bộ phận phụ trách kiểm tra; chatbot không hứa được hoàn, không tự thanh toán lại hoặc khôi phục chỗ.\nCâu hỏi khách hàng thường gặp\nĐặt chỗ gửi xe trước như thế nào? Mở Đặt chỗ trước, chọn bãi, loại xe, khu vực và chỗ cụ thể nếu hệ thống cho chọn, nhập đúng biển số. Đọc quy định tính phí, thời hạn và không hoàn tiền, đồng ý rồi chọn Xác nhận và thanh toán. Chờ kết quả thanh toán đã được xác minh.\nCó phải đăng nhập mới được đặt chỗ không? Có luồng đặt chỗ công khai cho khách chưa đăng nhập. Hãy dùng cùng trình duyệt để mở lại thông tin được lưu và giữ bí mật mã truy cập. Khách đã đăng nhập xem các đặt chỗ của mình theo quyền; không chia sẻ mã QR hoặc mã truy cập cho người khác.\nĐặt chỗ phải thanh toán trong bao lâu? Luồng hiện tại giữ chỗ chờ thanh toán trong mười phút kể từ khi tạo đặt chỗ. Xem đồng hồ và thời hạn hiển thị trên trang. Quá hạn thì chỗ có thể được giải phóng; nếu tiền đã chuyển mà chưa xác nhận, cần đối soát trước khi đặt hoặc trả tiền lại.\nTrả tiền đặt chỗ xong phải đến bãi trong bao lâu? Bạn cần vào bãi trong sáu mươi phút tính từ thời điểm thanh toán thành công theo luồng hiện tại. Kiểm tra hạn hiển thị; quá hạn chỗ được giải phóng theo xử lý hết hạn. Hủy hoặc không đến sau khi đã trả tiền không tự được hoàn tiền.\nTiền gửi xe đặt chỗ bắt đầu tính từ khi nào? Với đặt chỗ đã thanh toán, thời gian tính phí bắt đầu khi thanh toán thành công, không đợi đến lúc xe vào bãi. Khi ra, hệ thống tính toàn bộ khoảng thời gian đến lúc ra và trừ khoản đã trả trước.\nHủy đặt chỗ đã thanh toán có được hoàn tiền không? Theo quy định hiện hiển thị và được yêu cầu đồng ý, hủy sau thanh toán hoặc không đến sẽ không được hoàn tiền. Chức năng hủy chỉ áp dụng cho đặt chỗ đã thanh toán còn giữ và chưa sử dụng; hủy sẽ giải phóng chỗ. Nếu có giao dịch bất thường, liên hệ bộ phận phụ trách đối soát."
+      }
+    ]
+  },
+  {
+    "attempts": [
+      {
+        "model": "gemini-3.1-flash-lite",
+        "credential": "primary",
+        "ms": 11397,
+        "success": true,
+        "failure": null,
+        "inputTokens": 1452,
+        "outputTokens": 106,
+        "rawResponse": "{\"responseText\":\"Với các giao dịch thanh toán chậm hoặc bất thường, bạn cần thực hiện các bước sau: 1. Liên hệ bộ phận phụ trách để kiểm tra thời điểm, số tiền và giao dịch thực tế. 2. Lưu ý rằng việc đối soát không đồng nghĩa với việc khôi phục lại chỗ cũ hoặc đảm bảo được hoàn tiền tự động. 3. Không trả thêm tiền cho đến khi quá trình kiểm tra hoàn tất.\",\"citations\":[\"C1\",\"C2\",\"C3\",\"C4\"]}"
+      }
+    ],
+    "queryVectorMode": "LIVE_PROVIDER_OR_RECORDED_REAL_VECTOR",
+    "caseId": "B3-RES09-3",
+    "batch": "batch-03-questions.jsonl",
+    "split": "acceptance",
+    "question": "Đặt chỗ nhận tiền trễ và cần kiểm tra thì phải làm gì?",
+    "expectedDocument": "reservations-and-holds",
+    "personalProbe": false,
+    "retrievalMs": 20,
+    "citations": [
+      {
+        "citationId": "58e3f8d3-9d6d-417e-a581-bcb629d94bfe",
+        "messageId": "038adccd-e28c-41ba-b1bb-e9ea6759c791",
+        "documentId": "3701bb97-f6d0-4a38-a88d-bb728bd8b199",
+        "chunkId": "78aa2d78-40d7-4408-918b-3d28a360dfda",
+        "label": "C1",
+        "title": "Đặt chỗ trước và thời gian giữ chỗ",
+        "sourcePage": null,
+        "sourceSection": "Đặt chỗ trước và thời gian giữ chỗ",
+        "retrievalScore": 0.01593238,
+        "retrievalAuditId": "62a4a864-db95-442e-a7aa-842b1c4a1a0a",
+        "indexVersionId": "a5b5a3a2-25ac-431b-a745-418a83b94ab1",
+        "citationOrder": 0
+      },
+      {
+        "citationId": "316bf6da-0bde-481e-b471-5b4fae80908f",
+        "messageId": "038adccd-e28c-41ba-b1bb-e9ea6759c791",
+        "documentId": "3701bb97-f6d0-4a38-a88d-bb728bd8b199",
+        "chunkId": "94e367bd-2f80-4b0b-afca-c6110e124168",
+        "label": "C2",
+        "title": "Đặt chỗ trước và thời gian giữ chỗ",
+        "sourcePage": null,
+        "sourceSection": "Câu hỏi khách hàng thường gặp",
+        "retrievalScore": 0.00983607,
+        "retrievalAuditId": "62a4a864-db95-442e-a7aa-842b1c4a1a0a",
+        "indexVersionId": "a5b5a3a2-25ac-431b-a745-418a83b94ab1",
+        "citationOrder": 1
+      },
+      {
+        "citationId": "f7e742d3-662b-4a6d-a8b0-0f2e419db79c",
+        "messageId": "038adccd-e28c-41ba-b1bb-e9ea6759c791",
+        "documentId": "3701bb97-f6d0-4a38-a88d-bb728bd8b199",
+        "chunkId": "c4a084ca-bd67-4e2d-9f0e-922320c18c5b",
+        "label": "C3",
+        "title": "Đặt chỗ trước và thời gian giữ chỗ",
+        "sourcePage": null,
+        "sourceSection": "Khi nào chuyển nhân viên",
+        "retrievalScore": 0.00967742,
+        "retrievalAuditId": "62a4a864-db95-442e-a7aa-842b1c4a1a0a",
+        "indexVersionId": "a5b5a3a2-25ac-431b-a745-418a83b94ab1",
+        "citationOrder": 2
+      },
+      {
+        "citationId": "0909bb7a-5a34-457d-9286-a0ccc58544ab",
+        "messageId": "038adccd-e28c-41ba-b1bb-e9ea6759c791",
+        "documentId": "192442df-1213-43d7-bfbf-07e12cbde612",
+        "chunkId": "2d1bf30c-b11f-4219-8546-50507880e574",
+        "label": "C4",
+        "title": "Bảng giá và cách tính phí",
+        "sourcePage": null,
+        "sourceSection": "Câu hỏi khách hàng thường gặp",
+        "retrievalScore": 0.00923077,
+        "retrievalAuditId": "62a4a864-db95-442e-a7aa-842b1c4a1a0a",
+        "indexVersionId": "a5b5a3a2-25ac-431b-a745-418a83b94ab1",
+        "citationOrder": 3
+      }
+    ],
+    "retryEvents": [],
+    "attemptCount": 1,
+    "jobStatus": "COMPLETED",
+    "jobError": null,
+    "answer": "Với các giao dịch thanh toán chậm hoặc bất thường, bạn cần thực hiện các bước sau:\n1. Liên hệ bộ phận phụ trách để kiểm tra thời điểm, số tiền và giao dịch thực tế.\n2. Lưu ý rằng việc đối soát không đồng nghĩa với việc khôi phục lại chỗ cũ hoặc đảm bảo được hoàn tiền tự động.\n3. Không trả thêm tiền cho đến khi quá trình kiểm tra hoàn tất.",
+    "totalMs": 11447,
+    "evidenceSufficient": true,
+    "groundedConfidence": 0.748,
+    "diagnostic": null,
+    "hitAt5": true,
+    "citedEvidence": [
+      {
+        "documentId": "3701bb97-f6d0-4a38-a88d-bb728bd8b199",
+        "chunkId": "78aa2d78-40d7-4408-918b-3d28a360dfda",
+        "title": "Đặt chỗ trước và thời gian giữ chỗ",
+        "content": "Đặt chỗ trước và thời gian giữ chỗ\nMục đích\nHướng dẫn đặt chỗ thực có, thời hạn thanh toán, hạn vào bãi và quy định tiền đã trả.\nĐối tượng và phạm vi\nCó luồng công khai và luồng khách đăng nhập. Đây là đặt chỗ cho lượt gửi xe; không phải mua vé tháng và không bảo đảm giữ vô thời hạn hoặc đặt một khung giờ tương lai tùy ý.\nĐiều kiện trước\nBãi và khu vực đang phục vụ, phù hợp loại xe, còn chỗ, biển số hợp lệ và không có yêu cầu/lượt gửi xung đột. Cần đồng ý quy định tính phí, hạn vào bãi và không hoàn tiền đang hiển thị.\nLuồng chính\nMở Đặt chỗ trước, chọn bãi, loại xe, khu vực và ô nếu được chọn.\nNhập biển số thật, đọc và đồng ý quy định.\nChọn Xác nhận và thanh toán; hoàn tất trong mười phút theo thời hạn trang hiển thị.\nChờ hệ thống xác minh thanh toán, rồi vào bãi trước hạn sáu mươi phút tính từ thanh toán thành công.\nKhi ra bãi, hệ thống tính phí từ thời điểm trả tiền và trừ phần đã trả trước.\nLuồng thay thế và lỗi\nChỗ cuối và thay đổi số chỗ trống\nVừa thấy còn chỗ trên màn hình không bảo đảm đặt chỗ cuối sẽ thành công. Nhiều người có thể đang chọn cùng lúc; hệ thống kiểm tra lại chỗ trống khi xác nhận giữ. Nếu người khác vừa giữ chỗ cuối hoặc chỗ không còn phù hợp, hãy chọn lại vị trí hay khu vực còn trống. Chỉ thanh toán cho đặt chỗ được tạo hợp lệ; không đổi biển số giả để tránh kiểm tra trùng.\nNhận tiền trễ và thanh toán cần đối soát\nVới đặt chỗ nhận tiền trễ, hệ thống cần kiểm tra lại giao dịch vì thời gian giữ chỗ có thể đã hết và chỗ đã được giải phóng. Khoản thanh toán cần nhân viên đối soát chưa xác nhận có chỗ cho khách. Hãy liên hệ bộ phận phụ trách để kiểm tra thời điểm, số tiền và giao dịch thực tế; không trả thêm tiền hoặc mặc định được hoàn tiền tự động. Đối soát không đồng nghĩa khôi phục lại chỗ cũ.\nChọn phương thức thanh toán\nLuồng công khai hiện chọn SePay cho khoản dưới mười nghìn đồng và VNPay từ ngưỡng đó theo giao diện/code đã đối chiếu. Phương thức chỉ dùng được khi có cấu hình hợp lệ; luồng tài khoản có thể khác, hãy theo giao diện thực tế.Với khách chưa đăng nhập, thông tin truy cập được lưu theo trình duyệt. Mất thông tin thì nhờ nhân viên kiểm tra với biển số; không gửi mã truy cập hoặc QR vào chat công khai."
+      },
+      {
+        "documentId": "3701bb97-f6d0-4a38-a88d-bb728bd8b199",
+        "chunkId": "94e367bd-2f80-4b0b-afca-c6110e124168",
+        "title": "Đặt chỗ trước và thời gian giữ chỗ",
+        "content": "Hai người cùng đặt chỗ cuối cùng thì sao? Số chỗ hiển thị có thể thay đổi trước khi bạn xác nhận. Hệ thống kiểm tra lại khi giữ chỗ; nếu chỗ cuối vừa được người khác giữ, yêu cầu có thể bị từ chối. Chọn lại chỗ hoặc khu vực khác, không thanh toán cho một đặt chỗ chưa được tạo hợp lệ.\nĐặt chỗ báo biển số đã có yêu cầu còn hiệu lực thì làm sao? Kiểm tra đặt chỗ đang còn hiệu lực của biển số trong khu vực và xem xe có lượt gửi chưa kết thúc tại bãi không. Hệ thống chặn các trường hợp trùng đang hoạt động; không đổi biển số giả để tạo thêm yêu cầu.\nThanh toán đặt chỗ bị báo cần nhân viên đối soát thì sao? Khoản thanh toán có thể đến khi thời gian giữ chỗ đã hết hoặc không còn đủ điều kiện xác nhận. Trạng thái cần nhân viên đối soát chưa bảo đảm có chỗ đã được giữ. Liên hệ bộ phận phụ trách với thông tin giao dịch cần thiết; không tự trả thêm hoặc mặc định đã có chỗ.\nĐặt chỗ chọn vị trí cụ thể khác giữ số lượng thế nào? Khu vực quản lý từng ô cho chọn chỗ cụ thể còn phù hợp. Khu vực quản lý theo sức chứa chỉ giữ số lượng chỗ, không chọn một ô riêng. Cả hai đều phải còn chỗ và phù hợp loại xe tại thời điểm xác nhận.\nĐiều chatbot được phép trả lời\nGiải thích hướng dẫn, điều kiện và giới hạn đã được kiểm chứng. Trả lời bằng từ ngữ dễ hiểu; không đưa tên trạng thái kỹ thuật vào câu trả lời.\nĐiều chatbot phải dùng business tool\nThông tin cá nhân, giá hiện hành, số tiền hoặc trạng thái cụ thể chỉ được xác nhận bằng nguồn dữ liệu có thẩm quyền và đúng quyền. Nếu chưa có tool phù hợp, hướng dẫn mở module nghiệp vụ hoặc liên hệ bộ phận phụ trách; không giả lập kết quả.\nĐiều chatbot phải từ chối\nKhông tự thực hiện thanh toán, hoàn tiền, đặt/hủy chỗ, áp mã hay sửa hóa đơn. Không yêu cầu mật khẩu, mã xác minh, thông tin thẻ bí mật, mã truy cập đặt chỗ hoặc QR riêng tư. Không hứa chắc số tiền, hiệu lực hoặc thời hạn chưa có nguồn.\nKhi nào chuyển nhân viên\nGiao dịch bất thường, tiền đã trừ chưa rõ kết quả, tranh chấp hoặc cần kiểm tra dữ liệu riêng ngoài khả năng tra cứu được cấp. Phân biệt liên hệ bãi xử lý nghiệp vụ với báo lỗi chức năng hệ thống; không tự tạo phiếu thay cho mọi yêu cầu tài chính."
+      },
+      {
+        "documentId": "3701bb97-f6d0-4a38-a88d-bb728bd8b199",
+        "chunkId": "c4a084ca-bd67-4e2d-9f0e-922320c18c5b",
+        "title": "Đặt chỗ trước và thời gian giữ chỗ",
+        "content": "Khi nào chuyển nhân viên\nGiao dịch bất thường, tiền đã trừ chưa rõ kết quả, tranh chấp hoặc cần kiểm tra dữ liệu riêng ngoài khả năng tra cứu được cấp. Phân biệt liên hệ bãi xử lý nghiệp vụ với báo lỗi chức năng hệ thống; không tự tạo phiếu thay cho mọi yêu cầu tài chính.\nNguồn đối chiếu\nĐường dẫn code, quyền, API, UI và bằng chứng kiểm thử được lưu ở hồ sơ traceability đợt 3 ngoài bản tri thức xuất. Không nhúng chi tiết quản trị hoặc bí mật vào nội dung người dùng.\nNội dung TBD\nChưa nghiệm thu/publish trên corpus DB dev. Cấu hình cổng thanh toán và số tiền hiện hành cần kiểm tra tại môi trường thực tế. Xem báo cáo đợt 3 để biết giới hạn kiểm chứng.\nLịch sử phiên bản\n2.0.0: rà soát code ngày 20/11/2026; giữ DRAFT, không thay chính sách nghiệp vụ."
+      },
+      {
+        "documentId": "192442df-1213-43d7-bfbf-07e12cbde612",
+        "chunkId": "2d1bf30c-b11f-4219-8546-50507880e574",
+        "title": "Bảng giá và cách tính phí",
+        "content": "Đặt chỗ đã trả trước thì khi ra bãi tính phí thế nào? Với lượt gửi xe gắn đặt chỗ, thời gian tính phí bắt đầu khi thanh toán thành công và kết thúc khi ra bãi. Hệ thống dùng bảng giá đã ghi nhận khi đặt, trừ khoản trả trước và chỉ thu phần phát sinh thêm; không thu lại toàn bộ lần nữa.\nĐiều chatbot được phép trả lời\nGiải thích hướng dẫn, điều kiện và giới hạn đã được kiểm chứng. Trả lời bằng từ ngữ dễ hiểu; không đưa tên trạng thái kỹ thuật vào câu trả lời.\nĐiều chatbot phải dùng business tool\nThông tin cá nhân, giá hiện hành, số tiền hoặc trạng thái cụ thể chỉ được xác nhận bằng nguồn dữ liệu có thẩm quyền và đúng quyền. Nếu chưa có tool phù hợp, hướng dẫn mở module nghiệp vụ hoặc liên hệ bộ phận phụ trách; không giả lập kết quả.\nĐiều chatbot phải từ chối\nKhông tự thực hiện thanh toán, hoàn tiền, đặt/hủy chỗ, áp mã hay sửa hóa đơn. Không yêu cầu mật khẩu, mã xác minh, thông tin thẻ bí mật, mã truy cập đặt chỗ hoặc QR riêng tư. Không hứa chắc số tiền, hiệu lực hoặc thời hạn chưa có nguồn.\nKhi nào chuyển nhân viên\nGiao dịch bất thường, tiền đã trừ chưa rõ kết quả, tranh chấp hoặc cần kiểm tra dữ liệu riêng ngoài khả năng tra cứu được cấp. Phân biệt liên hệ bãi xử lý nghiệp vụ với báo lỗi chức năng hệ thống; không tự tạo phiếu thay cho mọi yêu cầu tài chính.\nNguồn đối chiếu\nĐường dẫn code, quyền, API, UI và bằng chứng kiểm thử được lưu ở hồ sơ traceability đợt 3 ngoài bản tri thức xuất. Không nhúng chi tiết quản trị hoặc bí mật vào nội dung người dùng.\nNội dung TBD\nChưa nghiệm thu/publish trên corpus DB dev. Cấu hình cổng thanh toán và số tiền hiện hành cần kiểm tra tại môi trường thực tế. Xem báo cáo đợt 3 để biết giới hạn kiểm chứng.\nLịch sử phiên bản\n2.0.0: rà soát code ngày 20/11/2026; giữ DRAFT, không thay chính sách nghiệp vụ."
+      }
+    ]
+  }
+]

@@ -1,0 +1,21 @@
+{
+  "mode" : {
+    "changedAt" : "2026-11-24T08:12:38.091502Z",
+    "epoch" : 2,
+    "status" : "READY",
+    "mode" : "QWEN_LOCAL"
+  },
+  "chatModel" : "qwen3.5-4b",
+  "embeddingModel" : "text-embedding-qwen3-embedding-0.6b",
+  "backendHttpPort" : 56685,
+  "manifestHash" : "6c2a09228e4566302509d941a0023456cf4e133f9f06736d08ea94d2b6b84980",
+  "harnessHash" : "e3eb35d630b86724bbbb467479c24add9e84b9b8dcca97d360834bf913459394",
+  "documents" : 16,
+  "chunks" : 61,
+  "plannedCases" : 50,
+  "contextTokens" : 2048,
+  "maxInputBytes" : 1200,
+  "schemaHash" : "89d429294a9012d87d5db89d32e544e276efd11e6bad55c1c6aedcf5486a08d5",
+  "profile" : "local-grounded-v1",
+  "fixtureNote" : "source_section display metadata capped at schema limit200; full content/title retained"
+}

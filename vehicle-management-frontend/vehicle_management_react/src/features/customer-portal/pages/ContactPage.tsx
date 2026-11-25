@@ -31,8 +31,8 @@ export function ContactPage() {
             </div>
             <div className="vm-contact-map">
               <iframe
-                title="Bản đồ Số 1 Võ Văn Ngân, phường Thủ Đức, TP. Hồ Chí Minh"
-                src="https://www.google.com/maps?q=10.8499,106.7717&z=17&output=embed"
+                title="Bản đồ trụ sở CoParking"
+                src={`https://www.google.com/maps?q=${encodeURIComponent(publicContactItems.find((item) => item.title === "Địa chỉ")?.value ?? "")}&output=embed`}
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
               />
@@ -41,14 +41,15 @@ export function ContactPage() {
 
           <article className="vm-public-card">
             <h2>Gửi yêu cầu liên hệ</h2>
-            <div className="vm-contact-form">
+            <p id="contact-form-unavailable">Biểu mẫu liên hệ hiện chưa nhận yêu cầu. Bạn có thể gọi hotline hoặc gửi email theo thông tin bên cạnh. Nếu đang ở bãi và gặp lỗi vào/ra, hãy báo nhân viên tại bãi.</p>
+            <fieldset className="vm-contact-form" disabled aria-describedby="contact-form-unavailable" style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
               <label>Họ và tên<input placeholder="Nguyễn Văn A" /></label>
               <label>Email<input placeholder="email@example.com" /></label>
               <label>Số điện thoại<input placeholder="0901 234 567" /></label>
               <div><span>Chủ đề</span><SelectMenu ariaLabel="Chọn chủ đề liên hệ" options={[{ label: "Tư vấn đăng ký vé", value: "subscription" }]} searchable={false} value="subscription" onChange={() => undefined} /></div>
               <label>Nội dung<textarea placeholder="Nhập nội dung cần hỗ trợ..." /></label>
-              <button type="button">Gửi liên hệ</button>
-            </div>
+              <button type="button" disabled>Chưa nhận yêu cầu qua biểu mẫu</button>
+            </fieldset>
           </article>
         </section>
 
@@ -60,7 +61,7 @@ export function ContactPage() {
                 <i className={icon} />
                 <h3>{title}</h3>
                 <p>{text}</p>
-                <a href="#">Xem thêm <i className="fas fa-arrow-right" /></a>
+                <a href="mailto:support@coparking.vn">Liên hệ qua email <i className="fas fa-arrow-right" /></a>
               </article>
             ))}
           </div>

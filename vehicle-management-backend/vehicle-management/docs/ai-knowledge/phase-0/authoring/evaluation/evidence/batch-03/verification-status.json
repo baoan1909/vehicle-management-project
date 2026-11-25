@@ -1,0 +1,70 @@
+{
+  "status": "IMPLEMENTED_DRAFT_NOT_APPROVED",
+  "localTests": "Tests run: 3768, Failures: 0, Errors: 0, Skipped: 0",
+  "fullSuiteBeforeFinalGuardFix": true,
+  "aiGate": "Tests run: 1130, Failures: 0, Errors: 0, Skipped: 1",
+  "finalGuard": "output-validation-v3",
+  "currentGuardCoverage": "All AI-related tests, 136 recorded provider response claim checks, adversarial financial claim tests, SQL scope tests and 8-case real-provider recheck.",
+  "route": {
+    "batchCases": 720,
+    "passed": 720,
+    "baselineRuntimeNotClaimed": true
+  },
+  "retrieval": {
+    "n": 552,
+    "hitAt5": 551,
+    "sufficient": 549
+  },
+  "answers": {
+    "n": 216,
+    "semanticPass": 211
+  },
+  "repeats": {
+    "repeat-2": {
+      "cases": 8,
+      "statuses": {
+        "COMPLETED": 8
+      },
+      "status": "RECORDED",
+      "semanticPass": 8
+    },
+    "repeat-3": {
+      "cases": 8,
+      "statuses": {
+        "COMPLETED": 8
+      },
+      "status": "RECORDED",
+      "semanticPass": 7
+    },
+    "repeat-3-fixed": {
+      "cases": 8,
+      "statuses": {
+        "COMPLETED": 8
+      },
+      "status": "RECORDED",
+      "semanticPass": 8
+    }
+  },
+  "devDatabaseTouched": false,
+  "published": false,
+  "financialOperationsCalled": false,
+  "openIssues": [
+    "Truy xuất: CHAT06-1/2 và B3-VOU08-5 chưa đủ bằng chứng; CHAT03-3 không có expectedDocument trong top 5. Không hạ threshold hoặc đổi đáp án để nâng điểm.",
+    "Năm câu hướng dẫn cũ AUTH09-3/4, B2-CARD04-4, B2-CARD05-5, B2-HIST04-3 chưa đạt đúng/đủ; một số tài liệu cũ chưa đạt ngưỡng 95% trên mẫu nghiệm thu.",
+    "Chưa có UAT guest/nhân sự qua UI đang chạy, callback/thanh toán/hoàn tiền/đặt chỗ thật, cạnh tranh nghiệp vụ tài chính trên DB thật hoặc limiter nhiều replica.",
+    "Chưa đo warm-cache/cold-cache production; thời gian truy xuất có tái sử dụng vector thật của harness.",
+    "Độ trễ khi provider lỗi: một câu trong recheck sau sửa mất khoảng 39 giây; p95 nhỏ của lượt tích lũy không chứng minh ổn định <=10 giây dưới lỗi hoặc tải."
+  ],
+  "unverified": [
+    "Full baseline runtime",
+    "Live guest/partner UI UAT",
+    "Real financial callbacks/concurrency",
+    "Multi-replica quota coordination",
+    "Production cold/warm cache latency"
+  ],
+  "staticVerification": {
+    "changedTextFilesChecked": 232,
+    "configuredSecretMatches": 0,
+    "reportScaffoldingRemaining": false
+  }
+}

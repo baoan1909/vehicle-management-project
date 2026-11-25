@@ -16,12 +16,14 @@ import java.util.concurrent.Future;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
 @Testcontainers(disabledWithoutDocker = true)
+@Isolated("Fresh-database migration loads the full GIS dataset and must not overlap other test classes")
 class SpatialFreshDatabaseContainerTest {
 
     private static final String IMAGE = System.getenv().getOrDefault(

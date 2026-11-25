@@ -1,0 +1,9 @@
+test_empty_input_has_no_accuracy_or_latency_claim (test_summarize_qwen_runtime.QwenRuntimeSummaryTest.test_empty_input_has_no_accuracy_or_latency_claim) ... ok
+test_faq_and_generation_have_separate_counts_citations_and_latency (test_summarize_qwen_runtime.QwenRuntimeSummaryTest.test_faq_and_generation_have_separate_counts_citations_and_latency) ... ok
+test_non_object_json_does_not_crash_or_count_as_valid_citations (test_summarize_qwen_runtime.QwenRuntimeSummaryTest.test_non_object_json_does_not_crash_or_count_as_valid_citations) ... ok
+test_old_retrieval_failure_is_preserved_without_inventing_a_model_call (test_summarize_qwen_runtime.QwenRuntimeSummaryTest.test_old_retrieval_failure_is_preserved_without_inventing_a_model_call) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.000s
+
+OK

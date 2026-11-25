@@ -171,7 +171,7 @@ export function KnowledgeSourcesTab() {
   return (
     <section className="tw-grid tw-gap-4">
       <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3">
-        <p className="tw-m-0 tw-text-sm tw-font-semibold tw-text-slate-500">Quản lý nguồn kiến thức: tạo nguồn, chọn phạm vi truy cập và xem tài liệu đã tải lên.</p>
+        <p className="tw-m-0 tw-max-w-3xl tw-text-sm tw-leading-6 tw-text-slate-500">Nhóm các tài liệu có cùng quyền xem vào một nguồn. Ví dụ: hướng dẫn công khai cho khách hàng, hoặc quy trình riêng cho nhân sự.</p>
         {canManage ? (
           <Button onClick={openCreate} variant="primary">Tạo nguồn mới</Button>
         ) : null}
@@ -189,7 +189,7 @@ export function KnowledgeSourcesTab() {
               {loading ? (
                 <tr><td className="tw-p-6 tw-text-center tw-font-bold tw-text-slate-500" colSpan={6}>Đang tải...</td></tr>
               ) : sources.length === 0 ? (
-                <tr><td className="tw-p-6 tw-text-center tw-font-bold tw-text-slate-500" colSpan={6}>Chưa có nguồn kiến thức nào.</td></tr>
+                <tr><td className="tw-p-8 tw-text-center tw-text-slate-500" colSpan={6}>Chưa có nguồn tài liệu. Tạo nguồn đầu tiên, chọn quyền xem, rồi sang bước 2 để tải tệp.</td></tr>
               ) : sources.map((source) => {
                 const expanded = expandedId === source.sourceId;
                 const busy = actingId === source.sourceId;

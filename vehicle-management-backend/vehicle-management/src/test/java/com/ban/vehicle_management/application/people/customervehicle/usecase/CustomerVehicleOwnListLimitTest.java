@@ -32,7 +32,7 @@ class CustomerVehicleOwnListLimitTest {
 
     @Test
     void shouldDefaultOwnVehicleLimitTo100() {
-        when(customerVehicleAccessGuard.resolveCustomerIdForRead(null)).thenReturn(CUSTOMER_ID);
+        when(customerVehicleAccessGuard.resolveOwnCustomerId()).thenReturn(CUSTOMER_ID);
         when(customerVehiclePortOut.findOwnVehicles(eq(CUSTOMER_ID), eq(100))).thenReturn(List.of());
 
         assertEquals(List.of(), useCase.getMyCustomerVehicles(null));
@@ -40,7 +40,7 @@ class CustomerVehicleOwnListLimitTest {
 
     @Test
     void shouldClampOwnVehicleLimit() {
-        when(customerVehicleAccessGuard.resolveCustomerIdForRead(null)).thenReturn(CUSTOMER_ID);
+        when(customerVehicleAccessGuard.resolveOwnCustomerId()).thenReturn(CUSTOMER_ID);
         when(customerVehiclePortOut.findOwnVehicles(eq(CUSTOMER_ID), eq(200)))
                 .thenReturn(List.of(new CustomerVehicle()));
 

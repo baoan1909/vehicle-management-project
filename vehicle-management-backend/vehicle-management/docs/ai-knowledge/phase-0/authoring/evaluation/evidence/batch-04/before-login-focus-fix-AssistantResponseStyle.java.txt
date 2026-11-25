@@ -1,0 +1,71 @@
+package com.ban.vehicle_management.domain.ai.model;
+
+import java.util.regex.Pattern;
+
+/** Presentation contract shared by authenticated and public answers; never rewrites tool arguments. */
+public final class AssistantResponseStyle {
+    public static final String VERSION = "plain-vietnamese-v5";
+    public static final String CONTEXTUAL_VERSION = "contextual-response-v7";
+    public static String contextualInstruction(String question) {
+        String focus = AssistantGuideFocus.from(question).instruction();
+        if (!VietnameseQueryNormalizer.isContextualFollowUp(question)) return focus;
+        String folded = VietnameseQueryNormalizer.fold(question);
+        if (folded.contains("cai do o dau") && folded.contains("tim bai"))
+            return focus + "\nNgười dùng hỏi nơi mở chức năng tìm bãi. Chỉ vị trí màn hình và cách mở theo bằng chứng; không hỏi lại lỗi khi họ chưa báo lỗi.";
+        return focus + "\nĐây là câu hỏi nối tiếp chưa nêu bước hiện tại. Chỉ nhắc đúng chức năng và hỏi người dùng đang ở bước nào, thông báo lỗi cụ thể là gì. "
+                + "Không liệt kê lại cả quy trình hoặc tự đoán bước tiếp theo. Nếu đang nói về tạo phiếu, hỏi họ dùng biểu mẫu hay thẻ yêu cầu trong chat; "
+                + "không gộp nút Gửi của biểu mẫu với nút Xác nhận trên thẻ chat. Dùng citation từ phần hướng dẫn liên quan.";
+    }
+    public static final String RETRIEVAL_UNAVAILABLE_TEXT = "Trợ lý tạm thời chưa tra cứu được tài liệu vì dịch vụ tìm kiếm đang gặp lỗi hoặc giới hạn sử dụng. Bạn vui lòng thử lại sau.";
+    public static final String INSTRUCTION = """
+            Trả lời bằng tiếng Việt dễ hiểu cho người dùng thông thường. Đi thẳng vào câu hỏi, câu ngắn.
+            Giữ đúng điều kiện phủ định và luồng người dùng đang hỏi. Không tự chuyển hướng dẫn gửi xe vãng lai thành đăng ký vé hoặc đặt chỗ trước.
+            Khách vãng lai dùng thẻ theo quy trình hiện có; không gợi ý QR của vé đăng ký cho khách chưa có vé. Phân biệt QR vé đăng ký với QR đặt chỗ.
+            Hướng dẫn theo tên màn hình và nút thực tế trong bằng chứng, thường 3–5 bước khi cần.
+            Mỗi bước xuống một dòng, không dồn các bước đánh số vào một đoạn.
+            Gọi widget là khung chat hỗ trợ, subscription là vé tháng; không dùng những từ nội bộ này.
+            Gọi action card là thẻ xác nhận yêu cầu; tránh chép thuật ngữ kỹ thuật từ tài liệu.
+            Nếu người dùng nói làm rồi nhưng chưa được, hỏi bước và thông báo lỗi, không suy đoán đã gửi thành công.
+            Xác minh email là bước kiểm tra tài khoản, không phải một cách đăng nhập.
+            Chỉ nêu điều kiện liên quan; thiếu thông tin thì hỏi một câu cụ thể, không tự đoán.
+            Diễn đạt trạng thái bằng tiếng Việt, không chép enum/type, mã quyền, tên field/class/bảng,
+            UUID, raw JSON hay đường dẫn API vào responseText. Không dùng thuật ngữ kỹ thuật khó hiểu.
+            Thanh toán, kết thúc lượt gửi và mở cổng là các bước riêng. Không hứa cổng sẽ mở chỉ vì đã trả tiền; nhân viên còn kiểm tra điều kiện lượt gửi và cổng.
+            Giữ nguyên ngày, số tiền và ý phủ định; không gộp các trạng thái khác nghĩa.
+            Không lược bỏ giới hạn quan trọng trong bằng chứng: chức năng chưa có, cần đối soát,
+            chưa giữ lượt/chỗ hoặc chưa bảo đảm kết quả. Khi hướng dẫn yêu cầu hoàn tiền,
+            giữ rõ giới hạn khả năng của trợ lý và việc không cam kết kết quả/thời hạn nếu nguồn đã nêu.
+            Không suy đoán dữ liệu riêng, không khẳng định đã thực hiện thao tác khi chưa được xác nhận.
+            Chỉ giải thích kỹ thuật nếu người dùng hỏi rõ và thông tin được phép cung cấp.
+            """;
+    private static final Pattern TECHNICAL_QUESTION = Pattern.compile(
+            "\\b(?:api|enum|json|class|sql|backend|frontend|type|lap trinh|ma nguon)\\b");
+    private static final Pattern INTERNAL_DETAIL = Pattern.compile(
+            "\\b(?:PENDING(?:_PAYMENT|_CARD|_SPACE)?|ACTIVE|INACTIVE|BLOCKED|EXPIRED|TERMINATED|"
+                    + "CANCELLED|REJECTED|RESOLVED|OPEN|CLOSED|LOST_CARD|CUSTOMER_DIRECT|ASSISTANT_SUPPORT|"
+                    + "SUPPORT_REQUESTER_DIRECT|READ_OWN|READ_ALL|[A-Z]+(?:_[A-Z]+)+|"
+                    + "subscriptionId|customerId|customerVehicleId|parkingSessionId|cardUid|qrAccessToken|(?i:widget|subscription)|OWN|ALL)\\b"
+                    + "|/api/|\\b[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}\\b");
+    private static final Pattern ORDERED_STEP = Pattern.compile("(?<!\\S)([1-9])[.)][ \\t]+\\p{L}");
+    private static final Pattern INLINE_STEP = Pattern.compile("(?<=\\S)[ \\t]+(?=[1-9][.)][ \\t]+\\p{L})");
+
+    private AssistantResponseStyle() { }
+
+    /** Whitespace-only presentation: never renumber steps or rewrite dates, amounts or instructions. */
+    public static String formatForDisplay(String answer) {
+        if (answer == null) return null;
+        var steps = ORDERED_STEP.matcher(answer);
+        int expected = 1;
+        while (steps.find()) {
+            if (Integer.parseInt(steps.group(1)) != expected++) return answer;
+        }
+        return expected > 2 ? INLINE_STEP.matcher(answer).replaceAll("\n") : answer;
+    }
+
+    public static boolean containsUnnecessaryInternalDetail(String answer, String question) {
+        if (answer == null) return false;
+        boolean technical = question != null
+                && TECHNICAL_QUESTION.matcher(AssistantIntentRouter.matching(question)).find();
+        return !technical && INTERNAL_DETAIL.matcher(answer).find();
+    }
+}

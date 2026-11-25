@@ -1,0 +1,4 @@
+loi tao phieu|WRITE_ACTION
+tao phieu bi loi|WRITE_ACTION
+toi bi loi khi tao phieu|WRITE_ACTION
+tao giup toi phieu bao loi dang nhap|WRITE_ACTION

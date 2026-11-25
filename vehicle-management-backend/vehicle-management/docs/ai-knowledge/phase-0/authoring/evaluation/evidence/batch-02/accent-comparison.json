@@ -1,0 +1,16 @@
+{
+  "ACCENTED": {
+    "retrievalCases": 52,
+    "hitsAt5": 52,
+    "sufficientEvidence": 51,
+    "reviewedAnswers": 20,
+    "semanticPass": 19
+  },
+  "UNACCENTED": {
+    "retrievalCases": 52,
+    "hitsAt5": 52,
+    "sufficientEvidence": 51,
+    "reviewedAnswers": 20,
+    "semanticPass": 19
+  }
+}

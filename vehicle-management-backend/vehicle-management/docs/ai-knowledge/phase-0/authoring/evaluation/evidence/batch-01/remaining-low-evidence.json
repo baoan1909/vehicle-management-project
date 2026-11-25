@@ -1,0 +1,202 @@
+[
+  {
+    "caseId": "AUTH01-3",
+    "question": "Làm sao đăng ký CoParking?",
+    "query": "Làm sao đăng ký CoParking?",
+    "document": "authentication-and-profile",
+    "status": "REVIEW_REQUIRED",
+    "note": "Có đúng tài liệu trong top 5 nhưng confidence dưới ngưỡng. Chưa kết luận handoff không cần thiết khi chưa chấm semantic evidence/câu trả lời thật."
+  },
+  {
+    "caseId": "AUTH02-6",
+    "question": "Hướng dẫn đặt lại mật khẩu",
+    "query": "Hướng dẫn đặt lại mật khẩu",
+    "document": "authentication-and-profile",
+    "status": "REVIEW_REQUIRED",
+    "note": "Có đúng tài liệu trong top 5 nhưng confidence dưới ngưỡng. Chưa kết luận handoff không cần thiết khi chưa chấm semantic evidence/câu trả lời thật."
+  },
+  {
+    "caseId": "AUTH04-6",
+    "question": "Cần làm gì khi Google login không thành công?",
+    "query": "Cần làm gì khi Google login không thành công?",
+    "document": "authentication-and-profile",
+    "status": "REVIEW_REQUIRED",
+    "note": "Có đúng tài liệu trong top 5 nhưng confidence dưới ngưỡng. Chưa kết luận handoff không cần thiết khi chưa chấm semantic evidence/câu trả lời thật."
+  },
+  {
+    "caseId": "AUTH05-6",
+    "question": "Hướng dẫn xem trạng thái hồ sơ trên giao diện",
+    "query": "Hướng dẫn xem trạng thái hồ sơ trên giao diện",
+    "document": "authentication-and-profile",
+    "status": "REVIEW_REQUIRED",
+    "note": "Có đúng tài liệu trong top 5 nhưng confidence dưới ngưỡng. Chưa kết luận handoff không cần thiết khi chưa chấm semantic evidence/câu trả lời thật."
+  },
+  {
+    "caseId": "AUTH06-3",
+    "question": "Làm sao cập nhật hồ sơ?",
+    "query": "Làm sao cập nhật hồ sơ?",
+    "document": "authentication-and-profile",
+    "status": "REVIEW_REQUIRED",
+    "note": "Có đúng tài liệu trong top 5 nhưng confidence dưới ngưỡng. Chưa kết luận handoff không cần thiết khi chưa chấm semantic evidence/câu trả lời thật."
+  },
+  {
+    "caseId": "AUTH06-4",
+    "question": "ho so can sua thi lam sao",
+    "query": "ho so can sua thi lam sao",
+    "document": "authentication-and-profile",
+    "status": "REVIEW_REQUIRED",
+    "note": "Có đúng tài liệu trong top 5 nhưng confidence dưới ngưỡng. Chưa kết luận handoff không cần thiết khi chưa chấm semantic evidence/câu trả lời thật."
+  },
+  {
+    "caseId": "AUTH06-5",
+    "question": "Hướng dẫn cập nhật hồ sơ cá nhân",
+    "query": "Hướng dẫn cập nhật hồ sơ cá nhân",
+    "document": "authentication-and-profile",
+    "status": "REVIEW_REQUIRED",
+    "note": "Có đúng tài liệu trong top 5 nhưng confidence dưới ngưỡng. Chưa kết luận handoff không cần thiết khi chưa chấm semantic evidence/câu trả lời thật."
+  },
+  {
+    "caseId": "AUTH10-3",
+    "question": "Bước tiếp theo?",
+    "query": "Về quên mật khẩu. Bước tiếp theo?",
+    "document": "authentication-and-profile",
+    "status": "REVIEW_REQUIRED",
+    "note": "Có đúng tài liệu trong top 5 nhưng confidence dưới ngưỡng. Chưa kết luận handoff không cần thiết khi chưa chấm semantic evidence/câu trả lời thật."
+  },
+  {
+    "caseId": "AUTH10-4",
+    "question": "buoc tiep theo",
+    "query": "Về quên mật khẩu. buoc tiep theo",
+    "document": "authentication-and-profile",
+    "status": "REVIEW_REQUIRED",
+    "note": "Có đúng tài liệu trong top 5 nhưng confidence dưới ngưỡng. Chưa kết luận handoff không cần thiết khi chưa chấm semantic evidence/câu trả lời thật."
+  },
+  {
+    "caseId": "AUTH10-5",
+    "question": "Cái đó ở đâu?",
+    "query": "Về quên mật khẩu. Cái đó ở đâu?",
+    "document": "authentication-and-profile",
+    "status": "REVIEW_REQUIRED",
+    "note": "Có đúng tài liệu trong top 5 nhưng confidence dưới ngưỡng. Chưa kết luận handoff không cần thiết khi chưa chấm semantic evidence/câu trả lời thật."
+  },
+  {
+    "caseId": "AUTH10-6",
+    "question": "Tôi làm rồi nhưng chưa được",
+    "query": "Về quên mật khẩu. Tôi làm rồi nhưng chưa được",
+    "document": "authentication-and-profile",
+    "status": "REVIEW_REQUIRED",
+    "note": "Có đúng tài liệu trong top 5 nhưng confidence dưới ngưỡng. Chưa kết luận handoff không cần thiết khi chưa chấm semantic evidence/câu trả lời thật."
+  },
+  {
+    "caseId": "PRIV06-5",
+    "question": "Hướng dẫn đặt lại mật khẩu không chia sẻ bí mật",
+    "query": "Hướng dẫn đặt lại mật khẩu không chia sẻ bí mật",
+    "document": "chatbot-privacy-and-prohibited-data",
+    "status": "REVIEW_REQUIRED",
+    "note": "Có đúng tài liệu trong top 5 nhưng confidence dưới ngưỡng. Chưa kết luận handoff không cần thiết khi chưa chấm semantic evidence/câu trả lời thật."
+  },
+  {
+    "caseId": "PRIV07-5",
+    "question": "Có nên chia sẻ access token không?",
+    "query": "Có nên chia sẻ access token không?",
+    "document": "chatbot-privacy-and-prohibited-data",
+    "status": "REVIEW_REQUIRED",
+    "note": "Có đúng tài liệu trong top 5 nhưng confidence dưới ngưỡng. Chưa kết luận handoff không cần thiết khi chưa chấm semantic evidence/câu trả lời thật."
+  },
+  {
+    "caseId": "CHAT05-4",
+    "question": "chat ko hien don hang thi lam sao",
+    "query": "chat ko hien don hang thi lam sao",
+    "document": "chat-conversations-and-support-boundaries",
+    "status": "REVIEW_REQUIRED",
+    "note": "Có đúng tài liệu trong top 5 nhưng confidence dưới ngưỡng. Chưa kết luận handoff không cần thiết khi chưa chấm semantic evidence/câu trả lời thật."
+  },
+  {
+    "caseId": "SUP03-3",
+    "question": "Không tạo phiếu nhé, tôi chỉ muốn biết cách làm",
+    "query": "Không tạo phiếu nhé, tôi chỉ muốn biết cách làm",
+    "document": "support-ticket-and-escalation",
+    "status": "REVIEW_REQUIRED",
+    "note": "Có đúng tài liệu trong top 5 nhưng confidence dưới ngưỡng. Chưa kết luận handoff không cần thiết khi chưa chấm semantic evidence/câu trả lời thật."
+  },
+  {
+    "caseId": "SUP03-4",
+    "question": "khong tao phieu toi chi muon biet cach lam",
+    "query": "khong tao phieu toi chi muon biet cach lam",
+    "document": "support-ticket-and-escalation",
+    "status": "REVIEW_REQUIRED",
+    "note": "Có đúng tài liệu trong top 5 nhưng confidence dưới ngưỡng. Chưa kết luận handoff không cần thiết khi chưa chấm semantic evidence/câu trả lời thật."
+  },
+  {
+    "caseId": "SUP03-5",
+    "question": "Chưa muốn tạo phiếu, hướng dẫn trước",
+    "query": "Chưa muốn tạo phiếu, hướng dẫn trước",
+    "document": "support-ticket-and-escalation",
+    "status": "REVIEW_REQUIRED",
+    "note": "Có đúng tài liệu trong top 5 nhưng confidence dưới ngưỡng. Chưa kết luận handoff không cần thiết khi chưa chấm semantic evidence/câu trả lời thật."
+  },
+  {
+    "caseId": "SUP03-6",
+    "question": "chua muon tao phieu huong dan truoc",
+    "query": "chua muon tao phieu huong dan truoc",
+    "document": "support-ticket-and-escalation",
+    "status": "REVIEW_REQUIRED",
+    "note": "Có đúng tài liệu trong top 5 nhưng confidence dưới ngưỡng. Chưa kết luận handoff không cần thiết khi chưa chấm semantic evidence/câu trả lời thật."
+  },
+  {
+    "caseId": "SUP06-4",
+    "question": "phieu resolved nghia la gi",
+    "query": "phieu resolved nghia la gi",
+    "document": "support-ticket-and-escalation",
+    "status": "REVIEW_REQUIRED",
+    "note": "Có đúng tài liệu trong top 5 nhưng confidence dưới ngưỡng. Chưa kết luận handoff không cần thiết khi chưa chấm semantic evidence/câu trả lời thật."
+  },
+  {
+    "caseId": "SUP06-6",
+    "question": "Phiếu đóng rồi cần làm gì?",
+    "query": "Phiếu đóng rồi cần làm gì?",
+    "document": "support-ticket-and-escalation",
+    "status": "REVIEW_REQUIRED",
+    "note": "Có đúng tài liệu trong top 5 nhưng confidence dưới ngưỡng. Chưa kết luận handoff không cần thiết khi chưa chấm semantic evidence/câu trả lời thật."
+  },
+  {
+    "caseId": "SUP07-5",
+    "question": "Vì sao danh mục hỗ trợ bị ẩn?",
+    "query": "Vì sao danh mục hỗ trợ bị ẩn?",
+    "document": "support-ticket-and-escalation",
+    "status": "REVIEW_REQUIRED",
+    "note": "Có đúng tài liệu trong top 5 nhưng confidence dưới ngưỡng. Chưa kết luận handoff không cần thiết khi chưa chấm semantic evidence/câu trả lời thật."
+  },
+  {
+    "caseId": "SUP08-3",
+    "question": "Làm sao hủy xác nhận tạo phiếu?",
+    "query": "Làm sao hủy xác nhận tạo phiếu?",
+    "document": "support-ticket-and-escalation",
+    "status": "REVIEW_REQUIRED",
+    "note": "Có đúng tài liệu trong top 5 nhưng confidence dưới ngưỡng. Chưa kết luận handoff không cần thiết khi chưa chấm semantic evidence/câu trả lời thật."
+  },
+  {
+    "caseId": "SUP08-5",
+    "question": "Hướng dẫn xác nhận action card tạo phiếu",
+    "query": "Hướng dẫn xác nhận action card tạo phiếu",
+    "document": "support-ticket-and-escalation",
+    "status": "REVIEW_REQUIRED",
+    "note": "Có đúng tài liệu trong top 5 nhưng confidence dưới ngưỡng. Chưa kết luận handoff không cần thiết khi chưa chấm semantic evidence/câu trả lời thật."
+  },
+  {
+    "caseId": "SUP09-1",
+    "question": "Tôi làm rồi nhưng chưa được",
+    "query": "Về phiếu hỗ trợ. Tôi làm rồi nhưng chưa được",
+    "document": "support-ticket-and-escalation",
+    "status": "REVIEW_REQUIRED",
+    "note": "Có đúng tài liệu trong top 5 nhưng confidence dưới ngưỡng. Chưa kết luận handoff không cần thiết khi chưa chấm semantic evidence/câu trả lời thật."
+  },
+  {
+    "caseId": "SUP09-2",
+    "question": "toi lam roi nhung chua duoc",
+    "query": "Về phiếu hỗ trợ. toi lam roi nhung chua duoc",
+    "document": "support-ticket-and-escalation",
+    "status": "REVIEW_REQUIRED",
+    "note": "Có đúng tài liệu trong top 5 nhưng confidence dưới ngưỡng. Chưa kết luận handoff không cần thiết khi chưa chấm semantic evidence/câu trả lời thật."
+  }
+]

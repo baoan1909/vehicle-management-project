@@ -1,0 +1,7 @@
+{
+  "status": "STOPPED_INFRASTRUCTURE_RESOURCE_PRESSURE",
+  "plannedCases": 50,
+  "recordedCases": 11,
+  "qualityAccepted": false,
+  "reason": "Observed physical free RAM min1.9MB, generation timedout, retrieval pool errors; owned test JVM stopped; later Docker API unavailable and LMStudio reported no loaded model. No new heavy run started."
+}

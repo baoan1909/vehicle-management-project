@@ -405,3 +405,46 @@ test("sign-in discards an in-flight guest answer and sign-out starts a clean cha
   await expect(page.getByText("Trợ lý đang xử lý...")).toHaveCount(0);
   await expect(page.getByLabel("Nhập tin nhắn hỗ trợ")).toHaveValue("");
 });
+
+
+test("guest followup carries only the previous question and clears it after reload", async ({ page }) => {
+  await mockBootstrap(page);
+  const payloads: Array<{ message: string; contextQuestion?: string }> = [];
+  await page.route(`${apiBase}/public/support/assistant/messages`, async route => {
+    expectNoAuthorization(route.request());
+    payloads.push(route.request().postDataJSON());
+    await route.fulfill({ json: envelope({ answer: "Hướng dẫn kiểm tra email.", citations: [], handoffRecommended: false, diagnosticCode: null }) });
+  });
+  await openGuestWidget(page);
+  await ask(page, "quen mat khau phai lam sao");
+  await expect(page.getByText("Trợ lý đang xử lý...")).toHaveCount(0);
+  await ask(page, "van loi");
+  await expect.poll(() => payloads.length).toBe(2);
+  expect(payloads[0].contextQuestion).toBeUndefined();
+  expect(payloads[1]).toMatchObject({ message: "van loi", contextQuestion: "quen mat khau phai lam sao" });
+  await page.reload();
+  await page.getByRole("button", { name: "Mở Trợ lý hỗ trợ CoParking", exact: true }).click();
+  await ask(page, "loi");
+  await expect.poll(() => payloads.length).toBe(3);
+  expect(payloads[2].contextQuestion).toBeUndefined();
+});
+
+test("clarification answer renders without ticket handoff or stale context after sign-out", async ({ page }) => {
+  await mockBootstrap(page);
+  const payloads: Array<{ message: string; contextQuestion?: string }> = [];
+  await page.route(`${apiBase}/public/support/assistant/messages`, async route => {
+    payloads.push(route.request().postDataJSON());
+    await route.fulfill({ json: envelope({ answer: "Bạn gặp lỗi ở chức năng nào?", citations: [], handoffRecommended: false, diagnosticCode: "CLARIFICATION_REQUIRED" }) });
+  });
+  await page.goto("/tests/support-widget-harness.html");
+  await page.getByRole("button", { name: "Open support", exact: true }).click();
+  await ask(page, "loi");
+  await expect(page.getByText("Bạn gặp lỗi ở chức năng nào?", { exact: true })).toBeVisible();
+  await expect(page.getByRole("log").getByRole("button", { name: "Tạo phiếu hỗ trợ", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Sign in without permission", exact: true }).click();
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await page.getByRole("button", { name: "Open support", exact: true }).click();
+  await ask(page, "van loi");
+  await expect.poll(() => payloads.length).toBe(2);
+  expect(payloads[1].contextQuestion).toBeUndefined();
+});

@@ -221,7 +221,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
     @Override
     @Transactional(readOnly = true)
     public List<Subscription> getMySubscriptions(Integer limit) {
-        UUID customerId = subscriptionAccessGuard.resolveCustomerIdForList(null);
+        UUID customerId = java.util.Objects.requireNonNull(subscriptionAccessGuard.resolveOwnCustomerId());
         int resolvedLimit = limit == null ? DEFAULT_OWN_LIST_LIMIT : Math.min(Math.max(limit, 1), MAX_OWN_LIST_LIMIT);
         return subscriptionPortOut.findOwnSubscriptions(customerId, resolvedLimit);
     }

@@ -1,9 +1,15 @@
 spring:
+  jpa:
+    show-sql: false
   security:
     oauth2:
       resourceserver:
         jwt:
           jwk-set-uri: http://127.0.0.1/__test__/jwks
+
+logging:
+  level:
+    org.hibernate.SQL: "OFF"
 
 app:
   rabbitmq:

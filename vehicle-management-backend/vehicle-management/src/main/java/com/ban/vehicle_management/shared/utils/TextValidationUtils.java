@@ -21,6 +21,16 @@ public final class TextValidationUtils {
         return normalizedValue;
     }
 
+    /** Chat paragraphs may contain line breaks; other text fields remain single-line. */
+    public static String normalizeRequiredMultilineText(String value, String fieldName, int maxLength) {
+        if (value == null || value.isBlank()) {
+            throw new BadRequestException(fieldName + " must not be blank");
+        }
+        String normalizedValue = value.replace("\r\n", "\n").replace('\r', '\n').strip();
+        validateCommonText(normalizedValue, fieldName, maxLength, true);
+        return normalizedValue;
+    }
+
     public static String normalizeNullableText(String value, String fieldName, int maxLength) {
         if (value == null) {
             return null;
@@ -66,13 +76,18 @@ public final class TextValidationUtils {
     }
 
     private static void validateCommonText(String value, String fieldName, int maxLength) {
+        validateCommonText(value, fieldName, maxLength, false);
+    }
+
+    private static void validateCommonText(String value, String fieldName, int maxLength, boolean allowLineBreaks) {
         if (maxLength > 0 && value.length() > maxLength) {
             throw new BadRequestException(fieldName + " must not exceed " + maxLength + " characters");
         }
 
         for (int index = 0; index < value.length(); index++) {
             char character = value.charAt(index);
-            if (Character.isISOControl(character) || character == '<' || character == '>') {
+            if ((Character.isISOControl(character) && !(allowLineBreaks && character == '\n'))
+                    || character == '<' || character == '>') {
                 throw new BadRequestException(fieldName + " contains unsupported characters");
             }
         }

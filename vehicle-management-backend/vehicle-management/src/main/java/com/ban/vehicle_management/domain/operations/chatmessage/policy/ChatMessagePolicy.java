@@ -14,7 +14,7 @@ public class ChatMessagePolicy {
             throw new BadRequestException("message must not be null");
         }
         message.setMessageType(ChatMessageType.TEXT);
-        message.setContent(TextValidationUtils.normalizeRequiredText(
+        message.setContent(TextValidationUtils.normalizeRequiredMultilineText(
                 message.getContent(),
                 "content",
                 MAX_TEXT_CONTENT_LENGTH
@@ -79,7 +79,7 @@ public class ChatMessagePolicy {
             throw new BadRequestException("message must not be null");
         }
         message.setMessageType(ChatMessageType.ASSISTANT_TEXT);
-        message.setContent(TextValidationUtils.normalizeRequiredText(
+        message.setContent(TextValidationUtils.normalizeRequiredMultilineText(
                 message.getContent(),
                 "content",
                 MAX_TEXT_CONTENT_LENGTH

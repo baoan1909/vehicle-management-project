@@ -14,6 +14,9 @@ import java.util.List;
 import java.util.UUID;
 
 public interface ParkingSessionPortIn {
+    /** Own-account summaries without resolving private evidence image URLs. */
+    List<ParkingSessionManagementResult> getOwnSessionSummaries(ParkingSessionStatus status, Integer limit);
+
 
     List<ParkingSessionManagementResult> getSessions(
             ParkingSessionStatus status,

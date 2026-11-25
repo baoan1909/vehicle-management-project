@@ -1,0 +1,207 @@
+[
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\test\\java\\com\\ban\\vehicle_management\\infrastructure\\persistence\\CommonKnowledgePersistenceTest.java",
+    "sha256": "9a663d05b0c922068a329dba4e7334779e3d8f17144a8971e4f30dd43b26f28e",
+    "new": true
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\test\\java\\com\\ban\\vehicle_management\\infrastructure\\mapper\\ai\\CommonRetrievalProvenanceMapperTest.java",
+    "sha256": "d613692ff1290d3f97f20722410f54a32577de0fefb8b8e9a0f563c614f055fb",
+    "new": true
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\test\\java\\com\\ban\\vehicle_management\\domain\\ai\\model\\CanonicalFaqTest.java",
+    "sha256": "321cff5d553ce613cc79f8e37f259a867f496c044b50f243c1eea9ecf4ae019a",
+    "new": true
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\test\\java\\com\\ban\\vehicle_management\\domain\\ai\\model\\CompanyContactFaqLookupTest.java",
+    "sha256": "6257e9a95421e3e347d36c0c9999998908e8eed22194590c30d99b5d9cf35e83",
+    "new": false
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\test\\java\\com\\ban\\vehicle_management\\application\\operations\\guestsupport\\service\\GuestPublicAssistantServiceTest.java",
+    "sha256": "c20669506d81a7a78e264eaae8a1f202cc75f5a7c63a53833b5f0b39ca9a0a22",
+    "new": false
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\test\\java\\com\\ban\\vehicle_management\\application\\ai\\service\\AssistantOrchestratorTest.java",
+    "sha256": "c1590af7dbd077f2cecceaefa6b35bf093b1169cf1aaf62d0273613f865498fa",
+    "new": false
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\test\\java\\com\\ban\\vehicle_management\\application\\ai\\service\\CommonKnowledgeSchedulerTest.java",
+    "sha256": "1f1e19427bdda90c436c56729589af588dfa6f977602c31fab00d6bd1e017864",
+    "new": true
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\test\\java\\com\\ban\\vehicle_management\\application\\ai\\service\\CommonKnowledgeServiceTest.java",
+    "sha256": "9bc744732e737d3a198796dc7fbcc734d7192483ec7d78c1916cb78a9bb08d60",
+    "new": true
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\test\\java\\com\\ban\\vehicle_management\\application\\ai\\service\\KnowledgeRetrievalServiceTest.java",
+    "sha256": "e61f06924c85be1429e465bd46942c760161c7736b6c79d06bb3f42d416c4e2c",
+    "new": false
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\test\\java\\com\\ban\\vehicle_management\\ai\\golden\\CommonKnowledgeCorpusTest.java",
+    "sha256": "67bbc1d83513c45add3b70e5f8b4b452462a3690468e6a38508a5ec6671f21bc",
+    "new": true
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\main\\resources\\application.yaml",
+    "sha256": "a11d5ab2c505f2d06f57efb00a6777a089f7d27c564719ae3280af7fc668ee52",
+    "new": false
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\main\\resources\\db\\migration\\V20261124170000__shared_reviewed_faq_audit.sql",
+    "sha256": "4e685a853b278309aaf4535ace0a3b40bf9268945207a25c2f600207551231f5",
+    "new": true
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\main\\java\\com\\ban\\vehicle_management\\infrastructure\\persistence\\database\\repository\\ai\\KnowledgeChunkRepository.java",
+    "sha256": "26c8ec15ba559e55f6116d0fe72dd1cdfcf05ca8f5cf57b977917bc178ed19de",
+    "new": false
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\main\\java\\com\\ban\\vehicle_management\\infrastructure\\persistence\\database\\entity\\ai\\RetrievalAuditEntity.java",
+    "sha256": "85ad471ec8f6a0601db38dee38b3e39899247b789e2fd5f003717837b22391d0",
+    "new": false
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\main\\java\\com\\ban\\vehicle_management\\infrastructure\\persistence\\adapter\\ai\\CommonKnowledgePersistenceAdapter.java",
+    "sha256": "07553d8bd683cd0c00234f27e9c8064d7f102dc106378aa536025334853df770",
+    "new": true
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\main\\java\\com\\ban\\vehicle_management\\infrastructure\\mapper\\ai\\CommonKnowledgePersistenceMapper.java",
+    "sha256": "196a8c45eea5d83bc7e921afbfa242c2f3f8e2d2ba988e34eb4ff20d278997bf",
+    "new": true
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\main\\java\\com\\ban\\vehicle_management\\infrastructure\\mapper\\ai\\RetrievalAuditPersistenceMapper.java",
+    "sha256": "12240749c613b7d80b4e4dd333896045036b7104efa1ee21d08519bdf5c25135",
+    "new": false
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\main\\java\\com\\ban\\vehicle_management\\entrypoint\\dto\\ai\\knowledge\\response\\KnowledgeRetrievalTestResponse.java",
+    "sha256": "b10a3f6c4e6b6dfbecaf38b8647dacc3bca3d7060672f60a845628b3f3a6f032",
+    "new": false
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\main\\java\\com\\ban\\vehicle_management\\domain\\ai\\model\\CanonicalQuestionKey.java",
+    "sha256": "72651f3b9cab349816c547ac450ec7ca0bec63bdd1f8b10fbcd01b4b7e5147f8",
+    "new": true
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\main\\java\\com\\ban\\vehicle_management\\domain\\ai\\model\\CommonKnowledgeCandidate.java",
+    "sha256": "5de20423fc37c218c486e49ffe892375bf090d7817d767dd65d7fdf2c096705f",
+    "new": true
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\main\\java\\com\\ban\\vehicle_management\\domain\\ai\\model\\GroundedContextPack.java",
+    "sha256": "35033443e42e5b7a28f63f8faf98af5ff47e9122fa952a76dedaa12da9f38689",
+    "new": false
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\main\\java\\com\\ban\\vehicle_management\\domain\\ai\\model\\GroundedFaqLookup.java",
+    "sha256": "13fbf12bf9a5d353ae2b6eb0197211f7126af43fecad42d478d790ef872df072",
+    "new": false
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\main\\java\\com\\ban\\vehicle_management\\domain\\ai\\model\\KnowledgeRetrievalResult.java",
+    "sha256": "1c7e89fa4f418dc410f8ee494ade0b7dfb54da0a3c0dc88929e5b094962ed761",
+    "new": false
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\main\\java\\com\\ban\\vehicle_management\\domain\\ai\\model\\RetrievalAudit.java",
+    "sha256": "2f63a579848729d5d0c8189eb5cc879ec1e4fe21da6fd07d7ecaa28747602684",
+    "new": false
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\main\\java\\com\\ban\\vehicle_management\\application\\operations\\guestsupport\\service\\GuestPublicAssistantService.java",
+    "sha256": "ad105ed9a6c3b1a16c5da0e8f8134a16c73dd837357ec683b0e15efc81a3ed41",
+    "new": false
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\main\\java\\com\\ban\\vehicle_management\\application\\ai\\mapper\\KnowledgeRetrievalApiMapper.java",
+    "sha256": "b51ef71e20bf4f0c2beb6e0bc6a6895ac0a5703174dc4eae313999e99b03d272",
+    "new": false
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\main\\java\\com\\ban\\vehicle_management\\application\\ai\\service\\AssistantOrchestrator.java",
+    "sha256": "c56394e54103698980b83ab238e0e054c1822b95f1de4cabf08dc7586233cd83",
+    "new": false
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\main\\java\\com\\ban\\vehicle_management\\application\\ai\\service\\CommonKnowledgeService.java",
+    "sha256": "ebf82ffddc454b2ebaa4f1fb1aa575adb3573e7f1ffce24f2485cc24dfc4ef25",
+    "new": true
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\main\\java\\com\\ban\\vehicle_management\\application\\ai\\service\\KnowledgeRetrievalService.java",
+    "sha256": "0d6fee77e7219b8f60bcb1cfb0c94ecef6511f8f38805385bab93352a149d322",
+    "new": false
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\src\\main\\java\\com\\ban\\vehicle_management\\application\\ai\\port\\out\\CommonKnowledgePortOut.java",
+    "sha256": "963a9f04c09aeda4769e268046d8709ea747c1a04af24b83bfa3e42caba424b3",
+    "new": true
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\docs\\ai-knowledge\\COMMON_KNOWLEDGE_IMPLEMENTATION_REPORT.vi.md",
+    "sha256": "deec67b1dfcec3878f7ebbed83552e9c3564db34c46dcefb4f1bcb1cddeaa372",
+    "new": true
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\docs\\ai-knowledge\\COMMON_KNOWLEDGE_RUNTIME.vi.md",
+    "sha256": "3418600e05565665e9b28555acb2496aeb53072ca01d69608e8b0eb608574bc8",
+    "new": true
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\docs\\ai-knowledge\\QWEN_GOOGLE_RUNTIME_MODES.vi.md",
+    "sha256": "656123de46c012f4a4cc0781f6099874d5842dfdd9be94f1347788ac3fcb8fbc",
+    "new": false
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\docs\\ai-knowledge\\README.md",
+    "sha256": "77046c7ee63443a78d1ac51028031e39d25aa4f733cdf80af19df5e2ccc9a3f2",
+    "new": true
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\docs\\ai-knowledge\\phase-0\\authoring\\assistant-response-contract.md",
+    "sha256": "0b5c6eda3b1095969f1730b0eae88a6393cce9c81aff6789ad2b91a3a9702812",
+    "new": false
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\scripts\\ai-knowledge\\summarize-common-knowledge.py",
+    "sha256": "0eaf9e20c5570c2a54570c72f18a816a93ed88a93576d1171dc2f03e0b4232eb",
+    "new": true
+  },
+  {
+    "path": "vehicle-management-frontend\\vehicle_management_react\\src\\features\\ai\\api\\aiKnowledgeAdminApi.ts",
+    "sha256": "5e709c6fc05845fa32c22e87f4d64717f03b29a4f1f75b0cb65189ebcd147fb4",
+    "new": false
+  },
+  {
+    "path": "vehicle-management-frontend\\vehicle_management_react\\src\\features\\ai\\pages\\components\\AiRuntimeModePanel.tsx",
+    "sha256": "91d1ff492b233ac26f110ab50db135bf789fee5bc2d44facf3b198809cbd07b8",
+    "new": false
+  },
+  {
+    "path": "vehicle-management-frontend\\vehicle_management_react\\src\\features\\ai\\pages\\components\\KnowledgeTestsTab.tsx",
+    "sha256": "48d345ce5e8165c58eac066e3b1ba2ca54b038bac58e71b36a1b49e149b11ec0",
+    "new": false
+  },
+  {
+    "path": "vehicle-management-frontend\\vehicle_management_react\\tests\\qwen-runtime.behavior.spec.ts",
+    "sha256": "3e551f23c62eab10774a985261e8d7f2b29e1a760a6fca579b536a640852b5a8",
+    "new": false
+  },
+  {
+    "path": "vehicle-management-backend\\vehicle-management\\.env.example",
+    "sha256": "0dcc8d2d05b0d78cf44c6473ff3e1908b8e38b1aaf4424a652c62ba9584eeaed",
+    "new": false
+  }
+]

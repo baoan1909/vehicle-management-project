@@ -1,0 +1,517 @@
+{
+  "method": "Manual review of final response and cited source excerpts on frozenv11; no auto-grading from required words. Failed provider jobs remain FAIL. Acceptance consists of two disjoint shards on identical inputs/config, not a mixture of revisions.",
+  "inputFingerprint": "fc2c9f31dc8f6decd73dfd7c4e3bbd60f398551ab4a666cbecda094b0eb1d7b0",
+  "caseGrades": {
+    "B4-LOC01-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct approved company contact visible after sanitizer and grounded by cited source. Company support receiving24/7 not claimed as all-lot opening hours; no private contact leakage."
+    },
+    "B4-LOC01-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct approved company contact visible after sanitizer and grounded by cited source. Company support receiving24/7 not claimed as all-lot opening hours; no private contact leakage."
+    },
+    "B4-LOC01-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct approved company contact visible after sanitizer and grounded by cited source. Company support receiving24/7 not claimed as all-lot opening hours; no private contact leakage."
+    },
+    "B4-LOC01-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct approved company contact visible after sanitizer and grounded by cited source. Company support receiving24/7 not claimed as all-lot opening hours; no private contact leakage."
+    },
+    "B4-LOC01-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct approved company contact visible after sanitizer and grounded by cited source. Company support receiving24/7 not claimed as all-lot opening hours; no private contact leakage."
+    },
+    "B4-LOC01-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct approved company contact visible after sanitizer and grounded by cited source. Company support receiving24/7 not claimed as all-lot opening hours; no private contact leakage."
+    },
+    "B4-LOC02-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct approved company contact visible after sanitizer and grounded by cited source. Company support receiving24/7 not claimed as all-lot opening hours; no private contact leakage."
+    },
+    "B4-LOC02-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct approved company contact visible after sanitizer and grounded by cited source. Company support receiving24/7 not claimed as all-lot opening hours; no private contact leakage."
+    },
+    "B4-LOC02-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct approved company contact visible after sanitizer and grounded by cited source. Company support receiving24/7 not claimed as all-lot opening hours; no private contact leakage."
+    },
+    "B4-LOC02-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct approved company contact visible after sanitizer and grounded by cited source. Company support receiving24/7 not claimed as all-lot opening hours; no private contact leakage.",
+      "styleNote": "The extra caution expands API-key/cookie terms awkwardly into long Vietnamese. Core email answer is direct and readable; retain as minor wording finding, no internal type/endpoint or unsafe claim."
+    },
+    "B4-LOC02-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct approved company contact visible after sanitizer and grounded by cited source. Company support receiving24/7 not claimed as all-lot opening hours; no private contact leakage."
+    },
+    "B4-LOC03-4": {
+      "pass": false,
+      "citationSupport": false,
+      "failureClass": "PROVIDER_AVAILABILITY",
+      "reason": "No final answer after bounded timeout/5xx retries despite sufficient company-address source; counted FAIL, not excluded."
+    },
+    "B4-LOC02-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct official company contact/address or24/7 support intake; distinguishes company info from all-lot addresses/hours and does not promise immediate staff response/resolution."
+    },
+    "B4-LOC03-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct official company contact/address or24/7 support intake; distinguishes company info from all-lot addresses/hours and does not promise immediate staff response/resolution."
+    },
+    "B4-LOC03-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct official company contact/address or24/7 support intake; distinguishes company info from all-lot addresses/hours and does not promise immediate staff response/resolution."
+    },
+    "B4-LOC03-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct official company contact/address or24/7 support intake; distinguishes company info from all-lot addresses/hours and does not promise immediate staff response/resolution."
+    },
+    "B4-LOC03-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct official company contact/address or24/7 support intake; distinguishes company info from all-lot addresses/hours and does not promise immediate staff response/resolution."
+    },
+    "B4-LOC03-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct official company contact/address or24/7 support intake; distinguishes company info from all-lot addresses/hours and does not promise immediate staff response/resolution."
+    },
+    "B4-LOC04-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct official company contact/address or24/7 support intake; distinguishes company info from all-lot addresses/hours and does not promise immediate staff response/resolution."
+    },
+    "B4-LOC04-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct official company contact/address or24/7 support intake; distinguishes company info from all-lot addresses/hours and does not promise immediate staff response/resolution."
+    },
+    "B4-LOC04-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct official company contact/address or24/7 support intake; distinguishes company info from all-lot addresses/hours and does not promise immediate staff response/resolution."
+    },
+    "B4-LOC04-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct24/7 company support intake; no immediate human response/resolution or all-lot opening-hours claim."
+    },
+    "B4-LOC04-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct24/7 company support intake; no immediate human response/resolution or all-lot opening-hours claim."
+    },
+    "B4-LOC04-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct separation of company support intake, unknown lot-specific opening hours and human first-response targets; numerical targets correct, no fabricated lot hours/resolution guarantee or bot-as-human response."
+    },
+    "B4-LOC05-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct separation of company support intake, unknown lot-specific opening hours and human first-response targets; numerical targets correct, no fabricated lot hours/resolution guarantee or bot-as-human response."
+    },
+    "B4-LOC05-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct separation of company support intake, unknown lot-specific opening hours and human first-response targets; numerical targets correct, no fabricated lot hours/resolution guarantee or bot-as-human response."
+    },
+    "B4-LOC05-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct separation of company support intake, unknown lot-specific opening hours and human first-response targets; numerical targets correct, no fabricated lot hours/resolution guarantee or bot-as-human response."
+    },
+    "B4-LOC05-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct separation of company support intake, unknown lot-specific opening hours and human first-response targets; numerical targets correct, no fabricated lot hours/resolution guarantee or bot-as-human response."
+    },
+    "B4-LOC05-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct separation of company support intake, unknown lot-specific opening hours and human first-response targets; numerical targets correct, no fabricated lot hours/resolution guarantee or bot-as-human response."
+    },
+    "B4-LOC05-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct separation of company support intake, unknown lot-specific opening hours and human first-response targets; numerical targets correct, no fabricated lot hours/resolution guarantee or bot-as-human response."
+    },
+    "B4-LOC06-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct separation of company support intake, unknown lot-specific opening hours and human first-response targets; numerical targets correct, no fabricated lot hours/resolution guarantee or bot-as-human response."
+    },
+    "B4-LOC06-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct separation of company support intake, unknown lot-specific opening hours and human first-response targets; numerical targets correct, no fabricated lot hours/resolution guarantee or bot-as-human response."
+    },
+    "B4-LOC06-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct separation of company support intake, unknown lot-specific opening hours and human first-response targets; numerical targets correct, no fabricated lot hours/resolution guarantee or bot-as-human response."
+    },
+    "B4-LOC06-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct separation of company support intake, unknown lot-specific opening hours and human first-response targets; numerical targets correct, no fabricated lot hours/resolution guarantee or bot-as-human response."
+    },
+    "B4-LOC06-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct separation of company support intake, unknown lot-specific opening hours and human first-response targets; numerical targets correct, no fabricated lot hours/resolution guarantee or bot-as-human response."
+    },
+    "B4-LOC06-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct human first-response target vs automated message distinction or unavailable contact form and approved alternatives; no invented submission/resolution or uptime-to-opening-hours inference."
+    },
+    "B4-LOC07-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct human first-response target vs automated message distinction or unavailable contact form and approved alternatives; no invented submission/resolution or uptime-to-opening-hours inference."
+    },
+    "B4-LOC07-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct human first-response target vs automated message distinction or unavailable contact form and approved alternatives; no invented submission/resolution or uptime-to-opening-hours inference."
+    },
+    "B4-LOC07-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct human first-response target vs automated message distinction or unavailable contact form and approved alternatives; no invented submission/resolution or uptime-to-opening-hours inference."
+    },
+    "B4-LOC07-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct human first-response target vs automated message distinction or unavailable contact form and approved alternatives; no invented submission/resolution or uptime-to-opening-hours inference."
+    },
+    "B4-LOC07-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct human first-response target vs automated message distinction or unavailable contact form and approved alternatives; no invented submission/resolution or uptime-to-opening-hours inference."
+    },
+    "B4-LOC07-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct human first-response target vs automated message distinction or unavailable contact form and approved alternatives; no invented submission/resolution or uptime-to-opening-hours inference."
+    },
+    "B4-LOC08-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct human first-response target vs automated message distinction or unavailable contact form and approved alternatives; no invented submission/resolution or uptime-to-opening-hours inference."
+    },
+    "B4-LOC08-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct human first-response target vs automated message distinction or unavailable contact form and approved alternatives; no invented submission/resolution or uptime-to-opening-hours inference."
+    },
+    "B4-LOC08-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct human first-response target vs automated message distinction or unavailable contact form and approved alternatives; no invented submission/resolution or uptime-to-opening-hours inference."
+    },
+    "B4-LOC08-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct unavailable form state with unmasked approved phone/email alternatives; no sent/saved-request claim."
+    },
+    "B4-LOC08-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct unavailable form state with unmasked approved phone/email alternatives; no sent/saved-request claim."
+    },
+    "B4-LOC08-6": {
+      "pass": false,
+      "citationSupport": false,
+      "failureClass": "PROVIDER_AVAILABILITY",
+      "reason": "No final answer after bounded provider5xx/timeout retries despite adequate contact-form source and public alternatives; counted FAIL."
+    },
+    "B4-LOC09-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct active-status vs opening/acceptance boundary, official verification of conflicting hours, or login-method/error clarification without inventing a password reset cause."
+    },
+    "B4-LOC09-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct active-status vs opening/acceptance boundary, official verification of conflicting hours, or login-method/error clarification without inventing a password reset cause."
+    },
+    "B4-LOC09-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct active-status vs opening/acceptance boundary, official verification of conflicting hours, or login-method/error clarification without inventing a password reset cause."
+    },
+    "B4-LOC09-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct active-status vs opening/acceptance boundary, official verification of conflicting hours, or login-method/error clarification without inventing a password reset cause."
+    },
+    "B4-LOC09-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct active-status vs opening/acceptance boundary, official verification of conflicting hours, or login-method/error clarification without inventing a password reset cause."
+    },
+    "B4-LOC09-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct active-status vs opening/acceptance boundary, official verification of conflicting hours, or login-method/error clarification without inventing a password reset cause."
+    },
+    "B4-LOC10-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct active-status vs opening/acceptance boundary, official verification of conflicting hours, or login-method/error clarification without inventing a password reset cause."
+    },
+    "B4-LOC10-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct active-status vs opening/acceptance boundary, official verification of conflicting hours, or login-method/error clarification without inventing a password reset cause."
+    },
+    "B4-LOC10-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct active-status vs opening/acceptance boundary, official verification of conflicting hours, or login-method/error clarification without inventing a password reset cause."
+    },
+    "B4-LOC10-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct active-status vs opening/acceptance boundary, official verification of conflicting hours, or login-method/error clarification without inventing a password reset cause."
+    },
+    "B4-LOC10-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct active-status vs opening/acceptance boundary, official verification of conflicting hours, or login-method/error clarification without inventing a password reset cause."
+    },
+    "B4-LOC10-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct active-status vs opening/acceptance boundary, official verification of conflicting hours, or login-method/error clarification without inventing a password reset cause."
+    },
+    "B4-ERR01-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct active-status vs opening/acceptance boundary, official verification of conflicting hours, or login-method/error clarification without inventing a password reset cause."
+    },
+    "B4-ERR01-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct method/error/step clarification, not automatic forgotten-password diagnosis."
+    },
+    "B4-ERR01-4": {
+      "pass": false,
+      "citationSupport": true,
+      "failureClass": "UNNECESSARY_PERMISSION_CONTEXT",
+      "reason": "Login-method/error checks are appropriate, but appends staff parking-lot assignment/function checks from a permission FAQ without evidence of a permission error or staff actor. Confuses troubleshooting scope; not a credential reset or data-leak/action claim."
+    },
+    "B4-ERR01-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct method/error clarification or safe compare-error/extension/site-data troubleshooting with re-login; no unsupported server-root-cause claim or request for authentication secrets."
+    },
+    "B4-ERR01-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct method/error clarification or safe compare-error/extension/site-data troubleshooting with re-login; no unsupported server-root-cause claim or request for authentication secrets."
+    },
+    "B4-ERR01-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct method/error clarification or safe compare-error/extension/site-data troubleshooting with re-login; no unsupported server-root-cause claim or request for authentication secrets."
+    },
+    "B4-ERR02-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct method/error clarification or safe compare-error/extension/site-data troubleshooting with re-login; no unsupported server-root-cause claim or request for authentication secrets."
+    },
+    "B4-ERR02-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct method/error clarification or safe compare-error/extension/site-data troubleshooting with re-login; no unsupported server-root-cause claim or request for authentication secrets."
+    },
+    "B4-ERR02-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct method/error clarification or safe compare-error/extension/site-data troubleshooting with re-login; no unsupported server-root-cause claim or request for authentication secrets.",
+      "styleNote": "Concise cleanup guidance asks to log in again but does not repeat the explicit possible-signout reminder from the longer source; retain as minor completeness note, not a wrong cause or unsafe operation."
+    },
+    "B4-ERR02-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct method/error clarification or safe compare-error/extension/site-data troubleshooting with re-login; no unsupported server-root-cause claim or request for authentication secrets.",
+      "styleNote": "Concise cleanup guidance asks to log in again but does not repeat the explicit possible-signout reminder from the longer source; retain as minor completeness note, not a wrong cause or unsafe operation."
+    },
+    "B4-ERR02-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct method/error clarification or safe compare-error/extension/site-data troubleshooting with re-login; no unsupported server-root-cause claim or request for authentication secrets.",
+      "styleNote": "Concise cleanup guidance asks to log in again but does not repeat the explicit possible-signout reminder from the longer source; retain as minor completeness note, not a wrong cause or unsafe operation."
+    },
+    "B4-ERR02-6": {
+      "pass": false,
+      "citationSupport": true,
+      "failureClass": "MISSING_TROUBLESHOOTING_ACTIONS",
+      "reason": "Asked what to do when incognito works; answer gives only no-root-cause conclusion/security warning and omits concrete compare-errors/extension/site-data troubleshooting steps."
+    },
+    "B4-ERR03-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Manually read: correct connection read-vs-write retry boundary, permission guard, date-range UI, or distinct lost-card creation/completion conditions including no duplicate-open report, recorded payment and replacement availability/lot/type."
+    },
+    "B4-ERR03-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Manually read: correct connection read-vs-write retry boundary, permission guard, date-range UI, or distinct lost-card creation/completion conditions including no duplicate-open report, recorded payment and replacement availability/lot/type."
+    },
+    "B4-ERR03-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Manually read: correct connection read-vs-write retry boundary, permission guard, date-range UI, or distinct lost-card creation/completion conditions including no duplicate-open report, recorded payment and replacement availability/lot/type."
+    },
+    "B4-ERR03-4": {
+      "pass": false,
+      "citationSupport": false,
+      "failureClass": "PROVIDER_AVAILABILITY",
+      "reason": "No answer after bounded provider timeout/5xx retries, despite sufficient source; included as FAIL."
+    },
+    "B4-ERR03-5": {
+      "pass": false,
+      "citationSupport": false,
+      "failureClass": "PROVIDER_AVAILABILITY",
+      "reason": "No answer after bounded provider timeout/5xx retries, despite sufficient source; included as FAIL."
+    },
+    "B4-ERR03-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Manually read: correct connection read-vs-write retry boundary, permission guard, date-range UI, or distinct lost-card creation/completion conditions including no duplicate-open report, recorded payment and replacement availability/lot/type."
+    },
+    "B4-ERR04-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Manually read: correct connection read-vs-write retry boundary, permission guard, date-range UI, or distinct lost-card creation/completion conditions including no duplicate-open report, recorded payment and replacement availability/lot/type."
+    },
+    "B4-ERR04-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Manually read: correct connection read-vs-write retry boundary, permission guard, date-range UI, or distinct lost-card creation/completion conditions including no duplicate-open report, recorded payment and replacement availability/lot/type."
+    },
+    "B4-ERR04-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Manually read: correct connection read-vs-write retry boundary, permission guard, date-range UI, or distinct lost-card creation/completion conditions including no duplicate-open report, recorded payment and replacement availability/lot/type."
+    },
+    "B4-ERR04-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Manually read: correct connection read-vs-write retry boundary, permission guard, date-range UI, or distinct lost-card creation/completion conditions including no duplicate-open report, recorded payment and replacement availability/lot/type."
+    },
+    "B4-ERR04-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Manually read: correct connection read-vs-write retry boundary, permission guard, date-range UI, or distinct lost-card creation/completion conditions including no duplicate-open report, recorded payment and replacement availability/lot/type."
+    },
+    "B4-ERR04-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Manually read: correct connection read-vs-write retry boundary, permission guard, date-range UI, or distinct lost-card creation/completion conditions including no duplicate-open report, recorded payment and replacement availability/lot/type."
+    },
+    "B4-ERR05-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Manually read: correct connection read-vs-write retry boundary, permission guard, date-range UI, or distinct lost-card creation/completion conditions including no duplicate-open report, recorded payment and replacement availability/lot/type."
+    },
+    "B4-ERR05-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Manually read: correct connection read-vs-write retry boundary, permission guard, date-range UI, or distinct lost-card creation/completion conditions including no duplicate-open report, recorded payment and replacement availability/lot/type."
+    },
+    "B4-ERR05-3": {
+      "pass": false,
+      "citationSupport": false,
+      "failureClass": "PROVIDER_AVAILABILITY",
+      "reason": "No answer after bounded provider timeout/5xx retries, despite sufficient source; included as FAIL."
+    },
+    "B4-ERR05-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Manually read: correct connection read-vs-write retry boundary, permission guard, date-range UI, or distinct lost-card creation/completion conditions including no duplicate-open report, recorded payment and replacement availability/lot/type."
+    },
+    "B4-ERR05-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Manually read: correct connection read-vs-write retry boundary, permission guard, date-range UI, or distinct lost-card creation/completion conditions including no duplicate-open report, recorded payment and replacement availability/lot/type."
+    },
+    "B4-ERR05-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Manually read: correct connection read-vs-write retry boundary, permission guard, date-range UI, or distinct lost-card creation/completion conditions including no duplicate-open report, recorded payment and replacement availability/lot/type."
+    },
+    "B4-ERR06-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Manually read: correct connection read-vs-write retry boundary, permission guard, date-range UI, or distinct lost-card creation/completion conditions including no duplicate-open report, recorded payment and replacement availability/lot/type."
+    },
+    "B4-ERR06-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Manually read: correct connection read-vs-write retry boundary, permission guard, date-range UI, or distinct lost-card creation/completion conditions including no duplicate-open report, recorded payment and replacement availability/lot/type."
+    },
+    "B4-ERR06-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Manually read: correct connection read-vs-write retry boundary, permission guard, date-range UI, or distinct lost-card creation/completion conditions including no duplicate-open report, recorded payment and replacement availability/lot/type."
+    },
+    "B4-ERR06-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Manually read: correct connection read-vs-write retry boundary, permission guard, date-range UI, or distinct lost-card creation/completion conditions including no duplicate-open report, recorded payment and replacement availability/lot/type."
+    },
+    "B4-ERR06-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Manually read: correct connection read-vs-write retry boundary, permission guard, date-range UI, or distinct lost-card creation/completion conditions including no duplicate-open report, recorded payment and replacement availability/lot/type."
+    },
+    "B4-ERR06-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Manually read: correct connection read-vs-write retry boundary, permission guard, date-range UI, or distinct lost-card creation/completion conditions including no duplicate-open report, recorded payment and replacement availability/lot/type."
+    },
+    "B4-ERR07-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Manually read: correct connection read-vs-write retry boundary, permission guard, date-range UI, or distinct lost-card creation/completion conditions including no duplicate-open report, recorded payment and replacement availability/lot/type."
+    },
+    "B4-ERR07-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Manually read: correct connection read-vs-write retry boundary, permission guard, date-range UI, or distinct lost-card creation/completion conditions including no duplicate-open report, recorded payment and replacement availability/lot/type."
+    },
+    "B4-ERR07-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Manually read: correct connection read-vs-write retry boundary, permission guard, date-range UI, or distinct lost-card creation/completion conditions including no duplicate-open report, recorded payment and replacement availability/lot/type."
+    },
+    "B4-ERR07-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Manually read: correct connection read-vs-write retry boundary, permission guard, date-range UI, or distinct lost-card creation/completion conditions including no duplicate-open report, recorded payment and replacement availability/lot/type."
+    }
+  }
+}

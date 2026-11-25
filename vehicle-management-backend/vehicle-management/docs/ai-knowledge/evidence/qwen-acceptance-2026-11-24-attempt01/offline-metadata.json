@@ -1,0 +1,32 @@
+{
+  "kind" : "OFFLINE_DRAFT_FIXTURE_MATCHER_AND_ROUTE",
+  "noProviderHttp" : true,
+  "dbQueryEvaluated" : false,
+  "qualityAccepted" : false,
+  "note" : "In-memory scope fixture and domain matching only. No production publication, SQL ranking, synthesis, or provider acceptance is inferred.",
+  "sourceHashes" : {
+    "authentication-and-profile.md" : "4b4b831f3c87f21582c46b43fe456a030047ba13574a78d2a6d2eb5faaa28985",
+    "batch-01-questions.jsonl" : "c52428079ce9ada180f89aef76821f34ca070198d5f4e8ba758bf99d4ee7704a",
+    "batch-02-questions.jsonl" : "a6cca7271a2b406f1600fcb5998351aaa5360112b736152c6fb8812e73ca7654",
+    "batch-03-questions.jsonl" : "173c8d0480d2be7d916f2d33d6d3cbc2dd6963f35c8f1dd3433dd9f61edac500",
+    "batch-04-questions.jsonl" : "82644eb7048f994833b5f7ab01706a2a8c78c3e98b89b119c04acb284e4826c9",
+    "cards-and-lost-card.md" : "9060006f293b2f1825164b9eabdb06fa6c4945d20f0e06fa7a76a4bb333c9b69",
+    "chat-conversations-and-support-boundaries.md" : "b07698715d880aa7dc12fea22a402f8664fbbab9e3554a7a43bf40b246b2bad0",
+    "chatbot-privacy-and-prohibited-data.md" : "184cebdd9a8364195ff18c28aae2462299fa093e6983e9a7ddc4031f9b387b00",
+    "common-errors-and-troubleshooting.md" : "ca1b4f9af75cef61726605fb43d61f19448c3a845ce409cae4b57de190934086",
+    "customer-vehicle-management.md" : "7f682655dd8c3f4a9110254b1c86cda3ef29eb0a28e264e3d52bde0f0b6efc04",
+    "invoice-vnpay-payment-refund.md" : "af4f74b1481a17d505e9d8004736320988873ac3179fd84ec617d3c6e481db7b",
+    "locations-hours-sla-contact.md" : "6df4a1e6fd66aa1dbfe5e7f6d54760a16814d83945d8ce3988cf98b9619c4bc7",
+    "parking-entry-exit.md" : "cb842888810b4495f45b83d30b46d52e6affcf5f0870079c1b9a672876154862",
+    "parking-history.md" : "302e95a7e36948e9fee15689d11a361a1129706b447c41967b9d5d9c7046add5",
+    "parking-search-and-map.md" : "368ff9ce9c6c955e43efb8b07ce1b4178f42e3e5f21d358433bc44043e86c700",
+    "pricing-and-fee-calculation.md" : "c78a5d94ec48bcc1b04e33cb906c23902a1892a213919d6d10c4e14223261a9b",
+    "reservations-and-holds.md" : "cdd065320e11f11eda4b355a77d16e0453db9ada604e029f127c11ecbbf151db",
+    "subscription-lifecycle.md" : "b0d50e4f3ac065d2e0e375f4c2e0996027b92e42550674d9bc94a24baac1090d",
+    "support-ticket-and-escalation.md" : "56c69878967e9e24be532b0e3d885cd32df107529bf1ccaa70aaa914ae20f90d",
+    "voucher-and-promotions.md" : "1c3a853dd0c52e34feba0cf46c240f1fbd4efb2337b3b2af34c4f50da3be65ef"
+  },
+  "documents" : 16,
+  "faqChunkProjections" : 39,
+  "cases" : 984
+}

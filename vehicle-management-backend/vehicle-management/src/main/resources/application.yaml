@@ -157,12 +157,17 @@ app:
       webhook-timestamp-tolerance: ${SEPAY_WEBHOOK_TIMESTAMP_TOLERANCE:5m}
       monthly-transaction-limit: ${SEPAY_MONTHLY_TRANSACTION_LIMIT:50}
   ai:
+    # Approved company contacts (DEC-015), preserved only when supported by cited evidence.
+    public-contact-values: ["0912345678", "support@coparking.vn"]
     assistant-enabled: ${AI_ASSISTANT_ENABLED:false}
     data-mode: ${AI_GEMINI_DATA_MODE:UNPAID}
     allow-unpaid-support-data: ${AI_ALLOW_UNPAID_SUPPORT_DATA:false}
     recent-message-limit: ${AI_ASSISTANT_RECENT_MESSAGE_LIMIT:8}
     max-attempts: ${AI_ASSISTANT_MAX_ATTEMPTS:3}
-    prompt-version: ${AI_ASSISTANT_PROMPT_VERSION:support-assistant-v1}
+    prompt-version: ${AI_ASSISTANT_PROMPT_VERSION:support-assistant-v3}
+    generation-timeout: ${AI_ASSISTANT_GENERATION_TIMEOUT:4s}
+    assistant-job-concurrency: ${AI_ASSISTANT_JOB_CONCURRENCY:2}
+    assistant-job-fixed-delay-ms: ${AI_ASSISTANT_JOB_FIXED_DELAY_MS:500}
     embedding:
       enabled: ${AI_EMBEDDING_ENABLED:false}
       vector-search-enabled: ${AI_EMBEDDING_VECTOR_SEARCH_ENABLED:true}
@@ -183,7 +188,7 @@ app:
       minimum-lexical-score: ${AI_RETRIEVAL_MINIMUM_LEXICAL_SCORE:0.01}
       grounded-confidence-threshold: ${AI_RETRIEVAL_GROUNDED_CONFIDENCE_THRESHOLD:0.80}
       caution-confidence-threshold: ${AI_RETRIEVAL_CAUTION_CONFIDENCE_THRESHOLD:0.55}
-      policy-version: ${AI_RETRIEVAL_POLICY_VERSION:retrieval-policy-v1}
+      policy-version: ${AI_RETRIEVAL_POLICY_VERSION:retrieval-policy-v4}
       threshold-version: ${AI_RETRIEVAL_THRESHOLD_VERSION:retrieval-threshold-v1}
       unaccent-required: ${AI_RETRIEVAL_UNACCENT_REQUIRED:false}
     ingestion:
@@ -191,9 +196,28 @@ app:
       claim-limit: ${AI_INGESTION_CLAIM_LIMIT:3}
       worker-id-prefix: ${AI_INGESTION_WORKER_ID_PREFIX:kd-worker}
       max-attempts: ${AI_INGESTION_MAX_ATTEMPTS:3}
+    common-faq:
+      enabled: ${AI_COMMON_FAQ_ENABLED:true}
+    lm-studio:
+      base-url: ${LM_STUDIO_BASE_URL:http://127.0.0.1:1234/v1}
+      api-key: ${LM_STUDIO_API_KEY:}
+      chat-model: ${LM_STUDIO_CHAT_MODEL:qwen3.5-4b}
+      embedding-model: ${LM_STUDIO_EMBEDDING_MODEL:text-embedding-qwen3-embedding-0.6b}
+      connect-timeout: ${LM_STUDIO_CONNECT_TIMEOUT:2s}
+      generation-timeout: ${LM_STUDIO_GENERATION_TIMEOUT:30s}
+      embedding-timeout: ${LM_STUDIO_EMBEDDING_TIMEOUT:15s}
+      context-tokens: ${LM_STUDIO_CONTEXT_TOKENS:2048}
+      max-output-tokens: ${LM_STUDIO_MAX_OUTPUT_TOKENS:512}
+      max-input-bytes: ${LM_STUDIO_MAX_INPUT_BYTES:1200}
+      allow-qwen-matryoshka768: ${LM_STUDIO_ALLOW_QWEN_MATRYOSHKA_768:true}
     gemini:
       api-key: ${GEMINI_API_KEY:}
+      project-id: ${GEMINI_PROJECT_ID:}
       base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com}
+      max-attempts: ${GEMINI_MAX_ATTEMPTS:20}
+      call-budget: ${GEMINI_CALL_BUDGET:12s}
+      generation-min-interval: ${GEMINI_GENERATION_MIN_INTERVAL:5s}
+      embedding-min-interval: ${GEMINI_EMBEDDING_MIN_INTERVAL:650ms}
     cache:
       enabled: ${AI_CACHE_ENABLED:true}
       max-models-per-job-attempt: ${AI_MAX_MODELS_PER_JOB_ATTEMPT:3}

@@ -50,6 +50,12 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class KnowledgeRetrievalService implements KnowledgeRetrievalPortIn {
+    public static boolean isInfrastructureFailure(KnowledgeRetrievalResult result) {
+        return result != null && (DIAG_EMBEDDING_FAILED.equals(result.diagnosticCode())
+                || DIAG_RETRIEVAL_FAILED.equals(result.diagnosticCode())
+                || DIAG_INDEX_CONFIG_INVALID.equals(result.diagnosticCode()));
+    }
+
 
     public static final String DIAG_FEATURE_DISABLED = "FEATURE_DISABLED";
     public static final String DIAG_NO_ACTIVE_KNOWLEDGE_INDEX = "NO_ACTIVE_KNOWLEDGE_INDEX";
@@ -57,6 +63,11 @@ public class KnowledgeRetrievalService implements KnowledgeRetrievalPortIn {
     public static final String DIAG_EMBEDDING_FAILED = "EMBEDDING_FAILED";
     public static final String DIAG_RETRIEVAL_FAILED = "RETRIEVAL_FAILED";
     public static final String DIAG_INSUFFICIENT_EVIDENCE = "INSUFFICIENT_EVIDENCE";
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private CommonKnowledgeService commonKnowledge;
+    @org.springframework.beans.factory.annotation.Value("${app.ai.common-faq.enabled:true}")
+    private boolean commonFaqEnabled = true;
 
     private static final Logger log = LoggerFactory.getLogger(KnowledgeRetrievalService.class);
 
@@ -146,7 +157,7 @@ public class KnowledgeRetrievalService implements KnowledgeRetrievalPortIn {
         KnowledgeRetrievalContext context = retrievalContext == null
                 ? KnowledgeRetrievalContext.global()
                 : retrievalContext;
-        if (query == null || query.isBlank() || !properties.isEnabled()) {
+        if (query == null || query.isBlank()) {
             return auditedEmpty(context, null, query, accessScopes, limit, startedAt, DIAG_FEATURE_DISABLED);
         }
         List<String> scopes = accessScopes == null ? List.of() : List.copyOf(accessScopes);
@@ -160,6 +171,29 @@ public class KnowledgeRetrievalService implements KnowledgeRetrievalPortIn {
         } catch (IllegalArgumentException exception) {
             return auditedEmpty(context, null, redactedQuery, scopes, limit, startedAt, DIAG_FEATURE_DISABLED);
         }
+        if (commonFaqEnabled && commonKnowledge != null) {
+            try {
+                var common = commonKnowledge.lookup(context, redactedQuery, scopes);
+                if (common.isPresent()) {
+                    var resolution = common.get();
+                    String method = resolution.conflict() ? "COMMON_CONFLICT" : CommonKnowledgeService.METHOD;
+                    String diagnostic = resolution.conflict() ? "COMMON_ANSWER_CONFLICT" : null;
+                    var source = resolution.source();
+                    List<HybridSearchRow> rows = source == null ? List.of() : List.of(new HybridSearchRow(
+                            source.documentId(),source.chunkId(),source.title(),source.content(),source.summary(),
+                            source.sourcePage(),source.sourceSection(),null,1,null,source.score(),null,1));
+                    var audit = persistAudit(context, redactedQuery, normalized.normalized(), null, scopes,
+                            rows, rows.size(), limit, source == null ? 0.0 : 1.0, diagnostic, startedAt, method, resolution.snapshot());
+                    return new KnowledgeRetrievalResult(diagnostic,null,source == null ? List.of() : List.of(source.evidence()),
+                            audit.retrievalAuditId(),source == null ? BigDecimal.ZERO : BigDecimal.ONE,source != null,
+                            normalized.normalized(),CommonKnowledgeService.POLICY,method,resolution.snapshot(),resolution.answer());
+                }
+            } catch (RuntimeException exception) {
+                log.warn("Reviewed FAQ retrieval unavailable error={}", exception.getClass().getSimpleName());
+                return auditedEmpty(context,null,redactedQuery,scopes,limit,startedAt,DIAG_RETRIEVAL_FAILED);
+            }
+        }
+        if (!properties.isEnabled()) return auditedEmpty(context,null,redactedQuery,scopes,limit,startedAt,DIAG_FEATURE_DISABLED);
         KnowledgeIndexVersion active = indexVersionPortOut.findActive().orElse(null);
         if (active == null) {
             return auditedEmpty(context, null, redactedQuery, scopes, limit, startedAt,
@@ -178,8 +212,9 @@ public class KnowledgeRetrievalService implements KnowledgeRetrievalPortIn {
             CachedRetrievalPayload cachedHit = readRetrievalCache(
                     context, active, scopes, normalized.normalized(), effectiveTopKForKey);
             if (cachedHit != null) {
-                return materializeCachedHit(context, redactedQuery, normalized.normalized(),
+                KnowledgeRetrievalResult materialized = materializeCachedHit(context, redactedQuery, normalized.normalized(),
                         active, scopes, cachedHit, effectiveTopKForKey, startedAt);
+                if (materialized != null) return materialized;
             }
             if (queryEmbeddingService != null) {
                 result = queryEmbeddingService.embedQuery(formatted, redactedQuery, configuration,
@@ -203,7 +238,7 @@ public class KnowledgeRetrievalService implements KnowledgeRetrievalPortIn {
                     context.tenantId(),
                     active.getIndexVersionId(),
                     result.getVector(),
-                    normalized.normalized(),
+                    VietnameseQueryNormalizer.forLexicalSearch(redactedQuery),
                     scopes,
                     retrievalProperties.getVectorCandidateLimit(),
                     retrievalProperties.getLexicalCandidateLimit(),
@@ -282,11 +317,21 @@ public class KnowledgeRetrievalService implements KnowledgeRetrievalPortIn {
                 retrievalProperties.getPolicyVersion());
     }
 
+    public boolean verifyCommonEvidence(KnowledgeRetrievalContext context, List<String> scopes, KnowledgeRetrievalResult result) {
+        return !result.isCommonFaq() || (commonKnowledge != null && commonKnowledge.verify(context, scopes, result));
+    }
+
+    private RetrievalAudit persistAudit(KnowledgeRetrievalContext context, String rawQuery, String normalizedQuery,
+            UUID index, List<String> scopes, List<HybridSearchRow> rows, int count, int limit, double confidence,
+            String diagnostic, Instant started) {
+        return persistAudit(context,rawQuery,normalizedQuery,index,scopes,rows,count,limit,confidence,diagnostic,started,"HYBRID",null);
+    }
+
     private RetrievalAudit persistAudit(
             KnowledgeRetrievalContext context,
             String rawQuery, String normalizedQuery, UUID activeIndexVersionId, List<String> scopes,
             List<HybridSearchRow> rows, int finalCount, int limit, double confidence,
-            String diagnostic, Instant startedAt) {
+            String diagnostic, Instant startedAt, String retrievalMethod, String sourceSnapshot) {
         Instant now = Instant.now();
         String redacted = "";
         try {
@@ -313,7 +358,7 @@ public class KnowledgeRetrievalService implements KnowledgeRetrievalPortIn {
                 BigDecimal.valueOf(confidence).setScale(3, RoundingMode.HALF_UP),
                 diagnostic,
                 Math.max(0, now.toEpochMilli() - startedAt.toEpochMilli()),
-                now, results);
+                now, results, retrievalMethod, sourceSnapshot);
         return auditPortOut.save(audit);
     }
 
@@ -395,6 +440,10 @@ public class KnowledgeRetrievalService implements KnowledgeRetrievalPortIn {
             }
         } catch (Exception exception) {
             log.debug("Cached retrieval mapping failed error={}", exception.getClass().getSimpleName());
+            return null;
+        }
+        if (!rows.isEmpty() && !retrievalPortOut.areChunksEligible(context.tenantId(), active.getIndexVersionId(),
+                scopes, rows.stream().map(HybridSearchRow::chunkId).distinct().toList())) {
             return null;
         }
         List<KnowledgeSearchResult> fused = rows.stream()

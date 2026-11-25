@@ -1,0 +1,403 @@
+{
+  "records": 110,
+  "answerJobs": 110,
+  "jobStatuses": {
+    "COMPLETED": 105,
+    "FAILED": 5
+  },
+  "retrieval": {
+    "n": 104,
+    "hitAt5": 104,
+    "sufficient": 104,
+    "misses": [],
+    "insufficient": []
+  },
+  "citationIds": {
+    "issued": 112,
+    "invalidOrDuplicateCases": [],
+    "semanticSupportNotGraded": true
+  },
+  "generationJobs": 68,
+  "faqJobsWithoutGeneration": 36,
+  "providerAttemptsCaptured": 367,
+  "modelsAttempted": {
+    "gemini-3.1-flash-lite": 151,
+    "gemini-3.5-flash-lite": 216
+  },
+  "providerFailuresCaptured": {
+    "TIMEOUT": 12,
+    "HTTP_5XX": 88,
+    "GEMINI_REQUEST_BUDGET_EXHAUSTED": 36,
+    "GEMINI_CANDIDATE_UNAVAILABLE": 168
+  },
+  "latencyMs": {
+    "retrievalIncludingQueryVectorLookup": {
+      "n": 104,
+      "p50": 68,
+      "p95": 140,
+      "max": 595
+    },
+    "faqJob": {
+      "n": 36,
+      "p50": 92,
+      "p95": 206,
+      "max": 215
+    },
+    "generationJobIncludingRetries": {
+      "n": 68,
+      "p50": 7096,
+      "p95": 38346,
+      "max": 38630
+    },
+    "providerAttempt": {
+      "n": 367,
+      "p50": 1279,
+      "p95": 10001,
+      "max": 12027
+    },
+    "allAnswerJobs": {
+      "n": 110,
+      "p50": 4615,
+      "p95": 37774,
+      "max": 38630
+    }
+  },
+  "tokensCaptured": {
+    "input": 102236,
+    "output": 4097
+  },
+  "notes": [
+    "Percentiles use nearest rank.",
+    "Provider attempts are not assumed to equal HTTP calls.",
+    "Fixture, recorded-vector and live modes must be declared separately by the report.",
+    "COMPLETED and valid citation IDs do not establish semantic correctness.",
+    "Failed provider jobs remain semantic FAIL; no substitution from later repeated runs. Group rates on partial runs do not establish acceptance."
+  ],
+  "runs": [
+    "target\\chatbox-phase4\\final-acceptance-v10"
+  ],
+  "expected": 264,
+  "unrun": [
+    "B4-MAP09-3",
+    "B4-MAP09-4",
+    "B4-MAP09-5",
+    "B4-MAP09-6",
+    "B4-MAP10-1",
+    "B4-MAP10-2",
+    "B4-MAP10-3",
+    "B4-MAP10-4",
+    "B4-MAP10-5",
+    "B4-MAP10-6",
+    "B4-LOC01-1",
+    "B4-LOC01-2",
+    "B4-LOC01-3",
+    "B4-LOC01-4",
+    "B4-LOC01-5",
+    "B4-LOC01-6",
+    "B4-LOC02-1",
+    "B4-LOC02-2",
+    "B4-LOC02-3",
+    "B4-LOC02-4",
+    "B4-LOC02-5",
+    "B4-LOC02-6",
+    "B4-LOC03-1",
+    "B4-LOC03-2",
+    "B4-LOC03-3",
+    "B4-LOC03-4",
+    "B4-LOC03-5",
+    "B4-LOC03-6",
+    "B4-LOC04-1",
+    "B4-LOC04-2",
+    "B4-LOC04-3",
+    "B4-LOC04-4",
+    "B4-LOC04-5",
+    "B4-LOC04-6",
+    "B4-LOC05-1",
+    "B4-LOC05-2",
+    "B4-LOC05-3",
+    "B4-LOC05-4",
+    "B4-LOC05-5",
+    "B4-LOC05-6",
+    "B4-LOC06-1",
+    "B4-LOC06-2",
+    "B4-LOC06-3",
+    "B4-LOC06-4",
+    "B4-LOC06-5",
+    "B4-LOC06-6",
+    "B4-LOC07-1",
+    "B4-LOC07-2",
+    "B4-LOC07-3",
+    "B4-LOC07-4",
+    "B4-LOC07-5",
+    "B4-LOC07-6",
+    "B4-LOC08-1",
+    "B4-LOC08-2",
+    "B4-LOC08-3",
+    "B4-LOC08-4",
+    "B4-LOC08-5",
+    "B4-LOC08-6",
+    "B4-LOC09-1",
+    "B4-LOC09-2",
+    "B4-LOC09-3",
+    "B4-LOC09-4",
+    "B4-LOC09-5",
+    "B4-LOC09-6",
+    "B4-LOC10-1",
+    "B4-LOC10-2",
+    "B4-LOC10-3",
+    "B4-LOC10-4",
+    "B4-LOC10-5",
+    "B4-LOC10-6",
+    "B4-ERR01-1",
+    "B4-ERR01-2",
+    "B4-ERR01-3",
+    "B4-ERR01-4",
+    "B4-ERR01-5",
+    "B4-ERR01-6",
+    "B4-ERR02-1",
+    "B4-ERR02-2",
+    "B4-ERR02-3",
+    "B4-ERR02-4",
+    "B4-ERR02-5",
+    "B4-ERR02-6",
+    "B4-ERR03-1",
+    "B4-ERR03-2",
+    "B4-ERR03-3",
+    "B4-ERR03-4",
+    "B4-ERR03-5",
+    "B4-ERR03-6",
+    "B4-ERR04-1",
+    "B4-ERR04-2",
+    "B4-ERR04-3",
+    "B4-ERR04-4",
+    "B4-ERR04-5",
+    "B4-ERR04-6",
+    "B4-ERR05-1",
+    "B4-ERR05-2",
+    "B4-ERR05-3",
+    "B4-ERR05-4",
+    "B4-ERR05-5",
+    "B4-ERR05-6",
+    "B4-ERR06-1",
+    "B4-ERR06-2",
+    "B4-ERR06-3",
+    "B4-ERR06-4",
+    "B4-ERR06-5",
+    "B4-ERR06-6",
+    "B4-ERR07-1",
+    "B4-ERR07-2",
+    "B4-ERR07-3",
+    "B4-ERR07-4",
+    "B4-ERR07-5",
+    "B4-ERR07-6",
+    "B4-ERR08-1",
+    "B4-ERR08-2",
+    "B4-ERR08-3",
+    "B4-ERR08-4",
+    "B4-ERR08-5",
+    "B4-ERR08-6",
+    "B4-ERR09-1",
+    "B4-ERR09-2",
+    "B4-ERR09-3",
+    "B4-ERR09-4",
+    "B4-ERR09-5",
+    "B4-ERR09-6",
+    "B4-ERR10-1",
+    "B4-ERR10-2",
+    "B4-ERR10-3",
+    "B4-ERR10-4",
+    "B4-ERR10-5",
+    "B4-ERR10-6",
+    "B4-ENT11-1",
+    "B4-ENT11-2",
+    "B4-ENT11-3",
+    "B4-ENT11-4",
+    "B4-ENT11-5",
+    "B4-ENT11-6",
+    "B4-MAP11-1",
+    "B4-MAP11-2",
+    "B4-MAP11-3",
+    "B4-MAP11-4",
+    "B4-MAP11-5",
+    "B4-MAP11-6",
+    "B4-LOC11-1",
+    "B4-LOC11-2",
+    "B4-LOC11-3",
+    "B4-LOC11-4",
+    "B4-LOC11-5",
+    "B4-LOC11-6",
+    "B4-ERR11-1",
+    "B4-ERR11-2",
+    "B4-ERR11-3",
+    "B4-ERR11-4",
+    "B4-ERR11-5",
+    "B4-ERR11-6"
+  ],
+  "unreviewed": [],
+  "semantic": {
+    "reviewed": 110,
+    "pass": 104,
+    "failures": [
+      {
+        "caseId": "B4-ENT03-3",
+        "pass": false,
+        "citationSupport": false,
+        "failureClass": "PROVIDER_AVAILABILITY",
+        "reason": "No final answer: all attempts within three bounded jobs exhausted deadline during upstream timeout/5xx; retrieval sufficient. Counted FAIL, not excluded from semantic denominator."
+      },
+      {
+        "caseId": "B4-ENT08-4",
+        "pass": false,
+        "citationSupport": false,
+        "failureClass": "PROVIDER_AVAILABILITY",
+        "reason": "No final answer after bounded retries during upstream timeout/5xx, despite sufficient correct evidence. Counted FAIL, not removed from denominator."
+      },
+      {
+        "caseId": "B4-ENT09-3",
+        "pass": false,
+        "citationSupport": false,
+        "failureClass": "PROVIDER_AVAILABILITY",
+        "reason": "No final answer after bounded retries during upstream timeout/5xx, despite sufficient correct evidence. Counted FAIL, not removed from denominator."
+      },
+      {
+        "caseId": "B4-MAP01-3",
+        "pass": false,
+        "citationSupport": false,
+        "failureClass": "PROVIDER_AVAILABILITY",
+        "reason": "No final answer after three bounded retries during upstream timeout/5xx, despite sufficient expected source. Kept in semantic denominator."
+      },
+      {
+        "caseId": "B4-MAP01-6",
+        "pass": false,
+        "citationSupport": false,
+        "failureClass": "PROVIDER_AVAILABILITY",
+        "reason": "No final answer: bounded provider timeout retries exhausted while expected source was sufficient. Context was resolved; not scored as a successful answer."
+      },
+      {
+        "caseId": "B4-MAP04-6",
+        "pass": false,
+        "citationSupport": true,
+        "failureClass": "CONTEXT_TOPIC_LOSS",
+        "reason": "Asked how to enter an address, but response starts nearby/GPS flow and omits address entry minimum/result selection. History resolver retains generic nearby-search topic instead of address-search mode; cited source supports those generic steps but not a complete answer to this request."
+      }
+    ]
+  },
+  "byDocument": {
+    "common-errors-and-troubleshooting": {
+      "expected": 66,
+      "run": 0,
+      "reviewed": 0,
+      "pass": 0,
+      "rate": null,
+      "staticRun": 0,
+      "staticPass": 0
+    },
+    "locations-hours-sla-contact": {
+      "expected": 66,
+      "run": 0,
+      "reviewed": 0,
+      "pass": 0,
+      "rate": null,
+      "staticRun": 0,
+      "staticPass": 0
+    },
+    "parking-entry-exit": {
+      "expected": 66,
+      "run": 60,
+      "reviewed": 60,
+      "pass": 57,
+      "rate": 95.0,
+      "staticRun": 54,
+      "staticPass": 51
+    },
+    "parking-search-and-map": {
+      "expected": 66,
+      "run": 50,
+      "reviewed": 50,
+      "pass": 47,
+      "rate": 94.0,
+      "staticRun": 50,
+      "staticPass": 47
+    }
+  },
+  "byVariant": {
+    "ACCENTED": {
+      "expected": 44,
+      "run": 19,
+      "reviewed": 19,
+      "pass": 19,
+      "rate": 100.0,
+      "staticRun": 18,
+      "staticPass": 18
+    },
+    "CONTEXTUAL": {
+      "expected": 44,
+      "run": 18,
+      "reviewed": 18,
+      "pass": 16,
+      "rate": 88.889,
+      "staticRun": 17,
+      "staticPass": 15
+    },
+    "PARAPHRASE": {
+      "expected": 44,
+      "run": 18,
+      "reviewed": 18,
+      "pass": 15,
+      "rate": 83.333,
+      "staticRun": 17,
+      "staticPass": 14
+    },
+    "SHORT": {
+      "expected": 44,
+      "run": 18,
+      "reviewed": 18,
+      "pass": 18,
+      "rate": 100.0,
+      "staticRun": 17,
+      "staticPass": 17
+    },
+    "TYPO": {
+      "expected": 44,
+      "run": 18,
+      "reviewed": 18,
+      "pass": 17,
+      "rate": 94.444,
+      "staticRun": 17,
+      "staticPass": 16
+    },
+    "UNACCENTED": {
+      "expected": 44,
+      "run": 19,
+      "reviewed": 19,
+      "pass": 19,
+      "rate": 100.0,
+      "staticRun": 18,
+      "staticPass": 18
+    }
+  },
+  "pairs": {
+    "ACCENTED/UNACCENTED": {
+      "gapPercentagePoints": 0.0,
+      "complete": false
+    },
+    "PARAPHRASE/TYPO": {
+      "gapPercentagePoints": 11.111,
+      "complete": false
+    }
+  },
+  "citationScopeErrors": [],
+  "citationSemantic": {
+    "answersWithCitations": 99,
+    "manuallySupported": 99,
+    "missingCitationsOnStaticAnswers": [
+      "B4-ENT03-3",
+      "B4-ENT08-4",
+      "B4-ENT09-3",
+      "B4-MAP01-3",
+      "B4-MAP01-6"
+    ]
+  },
+  "complete": false,
+  "semanticGatePass": false
+}

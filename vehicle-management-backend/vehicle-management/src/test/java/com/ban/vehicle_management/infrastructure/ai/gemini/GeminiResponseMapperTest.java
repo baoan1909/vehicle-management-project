@@ -105,4 +105,16 @@ class GeminiResponseMapperTest {
         assertEquals("{\"query\":\"ve thang\"}", response.functionCall().argumentsJson());
         assertEquals("STOP", response.finishReason());
     }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"SAFETY","BLOCKLIST","PROHIBITED_CONTENT","SPII","RECITATION","IMAGE_SAFETY","IMAGE_PROHIBITED_CONTENT"})
+    void blockedCandidateIsNotAnEmptySuccessThatCanTriggerFallback(String finishReason) {
+        var response=mapper.toAiResponse(200,"{\"candidates\":[{\"finishReason\":\""+finishReason+"\",\"content\":{\"parts\":[{\"text\":\"blocked content\"}]}}]}");
+        assertFalse(response.success()); assertFalse(response.retryable());
+        assertEquals("SAFETY_BLOCKED",response.failureCode());
+    }
+    @Test void requestTimeoutStatusIsRetryable() {
+        var response=mapper.toAiResponse(408,"{}");
+        assertEquals("HTTP_408",response.failureCode()); assertTrue(response.retryable());
+    }
+
 }

@@ -5,8 +5,8 @@ const accountId = "00000000-0000-0000-0000-0000000000c1";
 const envelope = (data: unknown) => ({ data, success: true, message: "ok", timestamp: new Date().toISOString() });
 const oldVehicle = { customerVehicleId: "vehicle-1", vehicleTypeId: "motorbike", licensePlate: "59A-111.11", brand: "Honda", color: "Trắng", status: "ACTIVE", isDefault: true };
 
-async function setup(page: Page, canCreate = true) {
-  const permissions = ["SUBSCRIPTION_READ_OWN", "SUBSCRIPTION_CREATE_OWN", ...(canCreate ? ["CUSTOMER_VEHICLE_CREATE_OWN"] : [])];
+async function setup(page: Page, canCreate = true, extraPermissions: string[] = []) {
+  const permissions = ["SUBSCRIPTION_READ_OWN", "SUBSCRIPTION_CREATE_OWN", ...(canCreate ? ["CUSTOMER_VEHICLE_CREATE_OWN"] : []), ...extraPermissions];
   await page.addInitScript(({ accountId }) => {
     const authority = "http://localhost:8081/realms/vehicle-management";
     const clientId = "vehicle-management-frontend";
@@ -96,4 +96,32 @@ test("failed vehicle save keeps the form; cancel restores registration without c
 test("a customer without vehicle creation permission keeps registration without the add action", async ({ page }) => {
   const dialog = await setup(page, false);
   await expect(dialog.getByRole("button", { name: "Thêm mới", exact: true })).toHaveCount(0);
+});
+
+for (const [status, label] of [["PENDING_CARD", "Chưa xác định trạng thái"], ["TERMINATED", "Đã chấm dứt"], ["UNKNOWN_INTERNAL_STATE", "Chưa xác định trạng thái"]]) {
+  test(`subscription status ${status} has a readable label instead of an internal type`, async ({ page }) => {
+    await setup(page);
+    await page.route(`${api}/access-control/subscriptions/me`, (route) => route.fulfill({ json: envelope([{
+      subscriptionId: "subscription-status", parkingLotId: "lot-1", customerVehicleId: "vehicle-1",
+      ticketTypeId: "monthly", status, price: 80000, effectiveFrom: "2026-11-19", effectiveTo: "2026-12-18",
+    }]) }));
+    await page.goto("/customer/subscriptions");
+    await expect(page.getByText(label, { exact: true }).first()).toBeVisible();
+    await expect(page.getByText(status, { exact: true })).toHaveCount(0);
+  });
+}
+
+test("cancelled parking history uses a Vietnamese label on a narrow screen", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await setup(page, true, ["PARKING_SESSION_READ_OWN"]);
+  await page.route(`${api}/parking/parking-sessions/me**`, (route) => route.fulfill({ json: envelope([{
+    parkingSessionId: "session-cancelled", customerVehicleId: "vehicle-1", parkingLotId: "lot-1",
+    licensePlateIn: "59A-111.11", checkInTime: "2026-11-19T01:00:00Z", status: "CANCELLED", totalPrice: 0, events: [],
+  }]) }));
+  await page.goto("/customer/parking-history");
+  const history = page.getByRole("list", { name: "Danh sách phiên gửi xe" });
+  await expect(history.getByText("Đã hủy", { exact: true })).toBeVisible();
+  await expect(history).toContainText("Chưa xác định thời lượng");
+  await expect(page.getByText("CANCELLED", { exact: true })).toHaveCount(0);
+  await page.screenshot({ path: testInfo.outputPath("history-readable-status-mobile.png"), fullPage: true });
 });

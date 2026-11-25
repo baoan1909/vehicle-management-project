@@ -1,0 +1,37 @@
+{
+  "files": [
+    {
+      "path": "C:\\DiskD\\VehicleManagementProject\\vehicle-management-backend\\vehicle-management\\src\\test\\resources\\ai\\golden\\phase5-golden-questions.json",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\DiskD\\VehicleManagementProject\\vehicle-management-backend\\vehicle-management\\docs\\ai-knowledge\\phase-0\\authoring\\evaluation\\batch-01-questions.jsonl",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\DiskD\\VehicleManagementProject\\vehicle-management-backend\\vehicle-management\\docs\\ai-knowledge\\phase-0\\authoring\\evaluation\\batch-01-scenarios.json",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\DiskD\\VehicleManagementProject\\vehicle-management-backend\\vehicle-management\\docs\\ai-knowledge\\phase-0\\authoring\\evaluation\\batch-02-questions.jsonl",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\DiskD\\VehicleManagementProject\\vehicle-management-backend\\vehicle-management\\docs\\ai-knowledge\\phase-0\\authoring\\evaluation\\batch-02-scenarios.json",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\DiskD\\VehicleManagementProject\\vehicle-management-backend\\vehicle-management\\docs\\ai-knowledge\\phase-0\\authoring\\evaluation\\batch-03-questions.jsonl",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\DiskD\\VehicleManagementProject\\vehicle-management-backend\\vehicle-management\\docs\\ai-knowledge\\phase-0\\authoring\\evaluation\\batch-03-scenarios.json",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\DiskD\\VehicleManagementProject\\vehicle-management-backend\\vehicle-management\\docs\\ai-knowledge\\phase-0\\authoring\\evaluation\\golden-questions.jsonl",
+      "unchanged": true
+    }
+  ],
+  "changed": []
+}

@@ -1,0 +1,3238 @@
+{
+  "method": "Agent manual review of transcript, source meaning and citations; no model-as-judge or exact-string grading.",
+  "reviewed": 216,
+  "passed": 211,
+  "byDocument": {
+    "authentication-and-profile": {
+      "n": 12,
+      "passed": 10,
+      "failures": [
+        "AUTH09-3",
+        "AUTH09-4"
+      ]
+    },
+    "cards-and-lost-card": {
+      "n": 12,
+      "passed": 10,
+      "failures": [
+        "B2-CARD04-4",
+        "B2-CARD05-5"
+      ]
+    },
+    "chat-conversations-and-support-boundaries": {
+      "n": 12,
+      "passed": 12,
+      "failures": []
+    },
+    "chatbot-privacy-and-prohibited-data": {
+      "n": 12,
+      "passed": 12,
+      "failures": []
+    },
+    "customer-vehicle-management": {
+      "n": 18,
+      "passed": 18,
+      "failures": []
+    },
+    "invoice-vnpay-payment-refund": {
+      "n": 24,
+      "passed": 24,
+      "failures": []
+    },
+    "parking-history": {
+      "n": 18,
+      "passed": 17,
+      "failures": [
+        "B2-HIST04-3"
+      ]
+    },
+    "pricing-and-fee-calculation": {
+      "n": 24,
+      "passed": 24,
+      "failures": []
+    },
+    "reservations-and-holds": {
+      "n": 24,
+      "passed": 24,
+      "failures": []
+    },
+    "subscription-lifecycle": {
+      "n": 18,
+      "passed": 18,
+      "failures": []
+    },
+    "support-ticket-and-escalation": {
+      "n": 18,
+      "passed": 18,
+      "failures": []
+    },
+    "voucher-and-promotions": {
+      "n": 24,
+      "passed": 24,
+      "failures": []
+    }
+  },
+  "byVariant": {
+    "ACCENTED": {
+      "n": 36,
+      "passed": 36
+    },
+    "ALTERNATIVE": {
+      "n": 9,
+      "passed": 9
+    },
+    "CONTEXTUAL": {
+      "n": 25,
+      "passed": 25
+    },
+    "CONVERSATIONAL": {
+      "n": 60,
+      "passed": 57
+    },
+    "KEYWORD": {
+      "n": 16,
+      "passed": 16
+    },
+    "PARAPHRASE": {
+      "n": 9,
+      "passed": 8
+    },
+    "SHORT_OR_TYPO": {
+      "n": 9,
+      "passed": 8
+    },
+    "TYPO": {
+      "n": 16,
+      "passed": 16
+    },
+    "UNACCENTED": {
+      "n": 36,
+      "passed": 36
+    }
+  },
+  "canonicalAccentComparison": {
+    "pairs": 36,
+    "accentedPass": 36,
+    "unaccentedPass": 36,
+    "differencePercentagePoints": 0.0
+  },
+  "notes": [
+    "Rà soát theo nghĩa và nguồn; không chấm PASS chỉ vì API/job hoàn tất, có từ khóa hoặc có citation ID hợp lệ.",
+    "Các câu trả lời ngắn không bắt buộc chép mọi cảnh báo phụ của tài liệu nếu đã trả đúng ý hỏi và không tạo suy luận nguy hiểm. Các ý chính về tiền/thời hạn/chỗ chưa được xác nhận phải giữ nguyên.",
+    "48 câu OWN/deterministic có đầu ra không đổi so với transcript verified-runtime đã được rà soát; OWN vẫn dùng fixture, không có bằng chứng UAT tài khoản thật.",
+    "Các lỗi hướng dẫn cũ được giữ làm backlog tích lũy. Không gán mọi khác biệt cho code mới: lời đáp model có biến thiên giữa các lượt và chưa có thử nghiệm kiểm soát để kết luận nguyên nhân hồi quy.",
+    "Không xác nhận toàn bộ baseline 120 đã được chạy với model thật; các kiểm tra route/corpus là lớp bằng chứng khác.",
+    "Đợt 3: 96/96 câu được rà soát đúng ý chính; ba đợt tổng 216 câu. Không coi câu trả lời ngắn thiếu một cảnh báo phụ là lỗi nếu nghĩa đã đúng và không hứa kết quả.",
+    "Repeat-3 guard v2 có một false positive đã giữ nguyên evidence; v3 qua 136 claim-guard replay và xác nhận live 8/8. Không gọi replay là lượt API mới hoặc 600 ca live cùng bản guard v3."
+  ],
+  "cases": [
+    {
+      "caseId": "AUTH09-1",
+      "document": "authentication-and-profile",
+      "variant": "ACCENTED",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Hỏi cách đăng nhập, bước và thông báo lỗi; không suy đoán quên mật khẩu hoặc tự mở khóa tài khoản.",
+      "citations": 1,
+      "requiredIdeas": [
+        "đăng nhập"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "AUTH09-2",
+      "document": "authentication-and-profile",
+      "variant": "UNACCENTED",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Hỏi cách đăng nhập, bước và thông báo lỗi; không suy đoán quên mật khẩu hoặc tự mở khóa tài khoản.",
+      "citations": 1,
+      "requiredIdeas": [
+        "đăng nhập"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "AUTH09-3",
+      "document": "authentication-and-profile",
+      "variant": "PARAPHRASE",
+      "answerMode": "MODEL",
+      "grade": "FAIL",
+      "reason": "Câu lỗi đăng nhập chung bị chuyển thành hướng dẫn Quên mật khẩu khi chưa biết phương thức/thông báo lỗi; hỏi lại sau đó không sửa được giả định ban đầu.",
+      "citations": 2,
+      "requiredIdeas": [
+        "đăng nhập"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "AUTH09-4",
+      "document": "authentication-and-profile",
+      "variant": "SHORT_OR_TYPO",
+      "answerMode": "MODEL",
+      "grade": "FAIL",
+      "reason": "Suy đoán cần khôi phục mật khẩu từ câu không đăng nhập được, chưa hỏi phương thức và lỗi cụ thể.",
+      "citations": 1,
+      "requiredIdeas": [
+        "đăng nhập"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "AUTH09-5",
+      "document": "authentication-and-profile",
+      "variant": "CONTEXTUAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Hỏi cách đăng nhập, bước và thông báo lỗi; không suy đoán quên mật khẩu hoặc tự mở khóa tài khoản.",
+      "citations": 1,
+      "requiredIdeas": [
+        "đăng nhập"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "AUTH09-6",
+      "document": "authentication-and-profile",
+      "variant": "ALTERNATIVE",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Hỏi cách đăng nhập, bước và thông báo lỗi; không suy đoán quên mật khẩu hoặc tự mở khóa tài khoản.",
+      "citations": 1,
+      "requiredIdeas": [
+        "đăng nhập"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "AUTH10-1",
+      "document": "authentication-and-profile",
+      "variant": "ACCENTED",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Giữ chủ đề quên mật khẩu từ lịch sử; hỏi bước hiện tại, không tự đoán đã hoàn tất.",
+      "citations": 1,
+      "requiredIdeas": [
+        "mật khẩu"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "AUTH10-2",
+      "document": "authentication-and-profile",
+      "variant": "UNACCENTED",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Giữ chủ đề quên mật khẩu từ lịch sử; hỏi bước hiện tại, không tự đoán đã hoàn tất.",
+      "citations": 1,
+      "requiredIdeas": [
+        "mật khẩu"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "AUTH10-3",
+      "document": "authentication-and-profile",
+      "variant": "PARAPHRASE",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Giữ chủ đề quên mật khẩu từ lịch sử; hỏi bước hiện tại, không tự đoán đã hoàn tất.",
+      "citations": 1,
+      "requiredIdeas": [
+        "mật khẩu"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "AUTH10-4",
+      "document": "authentication-and-profile",
+      "variant": "SHORT_OR_TYPO",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Giữ chủ đề quên mật khẩu từ lịch sử; hỏi bước hiện tại, không tự đoán đã hoàn tất.",
+      "citations": 1,
+      "requiredIdeas": [
+        "mật khẩu"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "AUTH10-5",
+      "document": "authentication-and-profile",
+      "variant": "CONTEXTUAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Giữ chủ đề quên mật khẩu từ lịch sử; hỏi bước hiện tại, không tự đoán đã hoàn tất.",
+      "citations": 1,
+      "requiredIdeas": [
+        "mật khẩu"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "AUTH10-6",
+      "document": "authentication-and-profile",
+      "variant": "ALTERNATIVE",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Giữ chủ đề quên mật khẩu từ lịch sử; hỏi bước hiện tại, không tự đoán đã hoàn tất.",
+      "citations": 1,
+      "requiredIdeas": [
+        "mật khẩu"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "PRIV09-1",
+      "document": "chatbot-privacy-and-prohibited-data",
+      "variant": "ACCENTED",
+      "answerMode": "DETERMINISTIC",
+      "grade": "PASS",
+      "reason": "Câu mơ hồ cần hỏi chức năng/bước; không suy ra dữ liệu hoặc hành động riêng.",
+      "citations": 0,
+      "requiredIdeas": [
+        "chức năng",
+        "bước"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "PRIV09-2",
+      "document": "chatbot-privacy-and-prohibited-data",
+      "variant": "UNACCENTED",
+      "answerMode": "DETERMINISTIC",
+      "grade": "PASS",
+      "reason": "Câu mơ hồ cần hỏi chức năng/bước; không suy ra dữ liệu hoặc hành động riêng.",
+      "citations": 0,
+      "requiredIdeas": [
+        "chức năng",
+        "bước"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "PRIV09-3",
+      "document": "chatbot-privacy-and-prohibited-data",
+      "variant": "PARAPHRASE",
+      "answerMode": "DETERMINISTIC",
+      "grade": "PASS",
+      "reason": "Câu mơ hồ cần hỏi chức năng/bước; không suy ra dữ liệu hoặc hành động riêng.",
+      "citations": 0,
+      "requiredIdeas": [
+        "chức năng",
+        "bước"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "PRIV09-4",
+      "document": "chatbot-privacy-and-prohibited-data",
+      "variant": "SHORT_OR_TYPO",
+      "answerMode": "DETERMINISTIC",
+      "grade": "PASS",
+      "reason": "Câu mơ hồ cần hỏi chức năng/bước; không suy ra dữ liệu hoặc hành động riêng.",
+      "citations": 0,
+      "requiredIdeas": [
+        "chức năng",
+        "bước"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "PRIV09-5",
+      "document": "chatbot-privacy-and-prohibited-data",
+      "variant": "CONTEXTUAL",
+      "answerMode": "DETERMINISTIC",
+      "grade": "PASS",
+      "reason": "Câu mơ hồ cần hỏi chức năng/bước; không suy ra dữ liệu hoặc hành động riêng.",
+      "citations": 0,
+      "requiredIdeas": [
+        "chức năng",
+        "bước"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "PRIV09-6",
+      "document": "chatbot-privacy-and-prohibited-data",
+      "variant": "ALTERNATIVE",
+      "answerMode": "DETERMINISTIC",
+      "grade": "PASS",
+      "reason": "Câu mơ hồ cần hỏi chức năng/bước; không suy ra dữ liệu hoặc hành động riêng.",
+      "citations": 0,
+      "requiredIdeas": [
+        "chức năng",
+        "bước"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "PRIV10-1",
+      "document": "chatbot-privacy-and-prohibited-data",
+      "variant": "ACCENTED",
+      "answerMode": "DETERMINISTIC",
+      "grade": "PASS",
+      "reason": "Câu ngoài phạm vi được giới hạn về hỗ trợ CoParking, không giả kiến thức nghiệp vụ.",
+      "citations": 0,
+      "requiredIdeas": [],
+      "limits": null
+    },
+    {
+      "caseId": "PRIV10-2",
+      "document": "chatbot-privacy-and-prohibited-data",
+      "variant": "UNACCENTED",
+      "answerMode": "DETERMINISTIC",
+      "grade": "PASS",
+      "reason": "Câu ngoài phạm vi được giới hạn về hỗ trợ CoParking, không giả kiến thức nghiệp vụ.",
+      "citations": 0,
+      "requiredIdeas": [],
+      "limits": null
+    },
+    {
+      "caseId": "PRIV10-3",
+      "document": "chatbot-privacy-and-prohibited-data",
+      "variant": "PARAPHRASE",
+      "answerMode": "DETERMINISTIC",
+      "grade": "PASS",
+      "reason": "Câu ngoài phạm vi được giới hạn về hỗ trợ CoParking, không giả kiến thức nghiệp vụ.",
+      "citations": 0,
+      "requiredIdeas": [],
+      "limits": null
+    },
+    {
+      "caseId": "PRIV10-4",
+      "document": "chatbot-privacy-and-prohibited-data",
+      "variant": "SHORT_OR_TYPO",
+      "answerMode": "DETERMINISTIC",
+      "grade": "PASS",
+      "reason": "Câu ngoài phạm vi được giới hạn về hỗ trợ CoParking, không giả kiến thức nghiệp vụ.",
+      "citations": 0,
+      "requiredIdeas": [],
+      "limits": null
+    },
+    {
+      "caseId": "PRIV10-5",
+      "document": "chatbot-privacy-and-prohibited-data",
+      "variant": "CONTEXTUAL",
+      "answerMode": "DETERMINISTIC",
+      "grade": "PASS",
+      "reason": "Câu ngoài phạm vi được giới hạn về hỗ trợ CoParking, không giả kiến thức nghiệp vụ.",
+      "citations": 0,
+      "requiredIdeas": [],
+      "limits": null
+    },
+    {
+      "caseId": "PRIV10-6",
+      "document": "chatbot-privacy-and-prohibited-data",
+      "variant": "ALTERNATIVE",
+      "answerMode": "DETERMINISTIC",
+      "grade": "PASS",
+      "reason": "Câu ngoài phạm vi được giới hạn về hỗ trợ CoParking, không giả kiến thức nghiệp vụ.",
+      "citations": 0,
+      "requiredIdeas": [],
+      "limits": null
+    },
+    {
+      "caseId": "CHAT09-1",
+      "document": "chat-conversations-and-support-boundaries",
+      "variant": "ACCENTED",
+      "answerMode": "DETERMINISTIC",
+      "grade": "PASS",
+      "reason": "Thiếu chủ đề nên hỏi chức năng và bước; không dùng lịch sử không liên quan làm lệnh.",
+      "citations": 0,
+      "requiredIdeas": [
+        "chức năng"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "CHAT09-2",
+      "document": "chat-conversations-and-support-boundaries",
+      "variant": "UNACCENTED",
+      "answerMode": "DETERMINISTIC",
+      "grade": "PASS",
+      "reason": "Thiếu chủ đề nên hỏi chức năng và bước; không dùng lịch sử không liên quan làm lệnh.",
+      "citations": 0,
+      "requiredIdeas": [
+        "chức năng"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "CHAT09-3",
+      "document": "chat-conversations-and-support-boundaries",
+      "variant": "PARAPHRASE",
+      "answerMode": "DETERMINISTIC",
+      "grade": "PASS",
+      "reason": "Thiếu chủ đề nên hỏi chức năng và bước; không dùng lịch sử không liên quan làm lệnh.",
+      "citations": 0,
+      "requiredIdeas": [
+        "chức năng"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "CHAT09-4",
+      "document": "chat-conversations-and-support-boundaries",
+      "variant": "SHORT_OR_TYPO",
+      "answerMode": "DETERMINISTIC",
+      "grade": "PASS",
+      "reason": "Thiếu chủ đề nên hỏi chức năng và bước; không dùng lịch sử không liên quan làm lệnh.",
+      "citations": 0,
+      "requiredIdeas": [
+        "chức năng"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "CHAT09-5",
+      "document": "chat-conversations-and-support-boundaries",
+      "variant": "CONTEXTUAL",
+      "answerMode": "DETERMINISTIC",
+      "grade": "PASS",
+      "reason": "Thiếu chủ đề nên hỏi chức năng và bước; không dùng lịch sử không liên quan làm lệnh.",
+      "citations": 0,
+      "requiredIdeas": [
+        "chức năng"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "CHAT09-6",
+      "document": "chat-conversations-and-support-boundaries",
+      "variant": "ALTERNATIVE",
+      "answerMode": "DETERMINISTIC",
+      "grade": "PASS",
+      "reason": "Thiếu chủ đề nên hỏi chức năng và bước; không dùng lịch sử không liên quan làm lệnh.",
+      "citations": 0,
+      "requiredIdeas": [
+        "chức năng"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "CHAT10-1",
+      "document": "chat-conversations-and-support-boundaries",
+      "variant": "ACCENTED",
+      "answerMode": "DETERMINISTIC",
+      "grade": "PASS",
+      "reason": "Câu nối tiếp không có đủ ngữ cảnh chỉ cần làm rõ chức năng/bước.",
+      "citations": 0,
+      "requiredIdeas": [
+        "chức năng"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "CHAT10-2",
+      "document": "chat-conversations-and-support-boundaries",
+      "variant": "UNACCENTED",
+      "answerMode": "DETERMINISTIC",
+      "grade": "PASS",
+      "reason": "Câu nối tiếp không có đủ ngữ cảnh chỉ cần làm rõ chức năng/bước.",
+      "citations": 0,
+      "requiredIdeas": [
+        "chức năng"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "CHAT10-3",
+      "document": "chat-conversations-and-support-boundaries",
+      "variant": "PARAPHRASE",
+      "answerMode": "DETERMINISTIC",
+      "grade": "PASS",
+      "reason": "Câu nối tiếp không có đủ ngữ cảnh chỉ cần làm rõ chức năng/bước.",
+      "citations": 0,
+      "requiredIdeas": [
+        "chức năng"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "CHAT10-4",
+      "document": "chat-conversations-and-support-boundaries",
+      "variant": "SHORT_OR_TYPO",
+      "answerMode": "DETERMINISTIC",
+      "grade": "PASS",
+      "reason": "Câu nối tiếp không có đủ ngữ cảnh chỉ cần làm rõ chức năng/bước.",
+      "citations": 0,
+      "requiredIdeas": [
+        "chức năng"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "CHAT10-5",
+      "document": "chat-conversations-and-support-boundaries",
+      "variant": "CONTEXTUAL",
+      "answerMode": "DETERMINISTIC",
+      "grade": "PASS",
+      "reason": "Câu nối tiếp không có đủ ngữ cảnh chỉ cần làm rõ chức năng/bước.",
+      "citations": 0,
+      "requiredIdeas": [
+        "chức năng"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "CHAT10-6",
+      "document": "chat-conversations-and-support-boundaries",
+      "variant": "ALTERNATIVE",
+      "answerMode": "DETERMINISTIC",
+      "grade": "PASS",
+      "reason": "Câu nối tiếp không có đủ ngữ cảnh chỉ cần làm rõ chức năng/bước.",
+      "citations": 0,
+      "requiredIdeas": [
+        "chức năng"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "SUP04-1",
+      "document": "support-ticket-and-escalation",
+      "variant": "ACCENTED",
+      "answerMode": "OWN_FIXTURE",
+      "grade": "PASS",
+      "reason": "Đọc chính chủ qua tool fixture, che nội dung nhạy cảm và dẫn Lịch sử yêu cầu; không tuyên bố UAT.",
+      "citations": 0,
+      "requiredIdeas": [
+        "quyền"
+      ],
+      "limits": "OWN data uses captured fixture ports, not a real customer account"
+    },
+    {
+      "caseId": "SUP04-2",
+      "document": "support-ticket-and-escalation",
+      "variant": "UNACCENTED",
+      "answerMode": "OWN_FIXTURE",
+      "grade": "PASS",
+      "reason": "Đọc chính chủ qua tool fixture, che nội dung nhạy cảm và dẫn Lịch sử yêu cầu; không tuyên bố UAT.",
+      "citations": 0,
+      "requiredIdeas": [
+        "quyền"
+      ],
+      "limits": "OWN data uses captured fixture ports, not a real customer account"
+    },
+    {
+      "caseId": "SUP04-3",
+      "document": "support-ticket-and-escalation",
+      "variant": "PARAPHRASE",
+      "answerMode": "OWN_FIXTURE",
+      "grade": "PASS",
+      "reason": "Đọc chính chủ qua tool fixture, che nội dung nhạy cảm và dẫn Lịch sử yêu cầu; không tuyên bố UAT.",
+      "citations": 0,
+      "requiredIdeas": [
+        "quyền"
+      ],
+      "limits": "OWN data uses captured fixture ports, not a real customer account"
+    },
+    {
+      "caseId": "SUP04-4",
+      "document": "support-ticket-and-escalation",
+      "variant": "SHORT_OR_TYPO",
+      "answerMode": "OWN_FIXTURE",
+      "grade": "PASS",
+      "reason": "Đọc chính chủ qua tool fixture, che nội dung nhạy cảm và dẫn Lịch sử yêu cầu; không tuyên bố UAT.",
+      "citations": 0,
+      "requiredIdeas": [
+        "quyền"
+      ],
+      "limits": "OWN data uses captured fixture ports, not a real customer account"
+    },
+    {
+      "caseId": "SUP04-5",
+      "document": "support-ticket-and-escalation",
+      "variant": "CONTEXTUAL",
+      "answerMode": "OWN_FIXTURE",
+      "grade": "PASS",
+      "reason": "Đọc chính chủ qua tool fixture, che nội dung nhạy cảm và dẫn Lịch sử yêu cầu; không tuyên bố UAT.",
+      "citations": 0,
+      "requiredIdeas": [
+        "quyền"
+      ],
+      "limits": "OWN data uses captured fixture ports, not a real customer account"
+    },
+    {
+      "caseId": "SUP04-6",
+      "document": "support-ticket-and-escalation",
+      "variant": "ALTERNATIVE",
+      "answerMode": "OWN_FIXTURE",
+      "grade": "PASS",
+      "reason": "Đọc chính chủ qua tool fixture, che nội dung nhạy cảm và dẫn Lịch sử yêu cầu; không tuyên bố UAT.",
+      "citations": 0,
+      "requiredIdeas": [
+        "quyền"
+      ],
+      "limits": "OWN data uses captured fixture ports, not a real customer account"
+    },
+    {
+      "caseId": "SUP09-1",
+      "document": "support-ticket-and-escalation",
+      "variant": "ACCENTED",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Hỏi bước/thông báo lỗi khi tạo phiếu, phân biệt biểu mẫu và thẻ xác nhận; không gộp các nút khác nhau.",
+      "citations": 2,
+      "requiredIdeas": [
+        "phiếu"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "SUP09-2",
+      "document": "support-ticket-and-escalation",
+      "variant": "UNACCENTED",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Hỏi bước/thông báo lỗi khi tạo phiếu, phân biệt biểu mẫu và thẻ xác nhận; không gộp các nút khác nhau.",
+      "citations": 1,
+      "requiredIdeas": [
+        "phiếu"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "SUP09-3",
+      "document": "support-ticket-and-escalation",
+      "variant": "PARAPHRASE",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Hỏi bước/thông báo lỗi khi tạo phiếu, phân biệt biểu mẫu và thẻ xác nhận; không gộp các nút khác nhau.",
+      "citations": 2,
+      "requiredIdeas": [
+        "phiếu"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "SUP09-4",
+      "document": "support-ticket-and-escalation",
+      "variant": "SHORT_OR_TYPO",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Hỏi bước/thông báo lỗi khi tạo phiếu, phân biệt biểu mẫu và thẻ xác nhận; không gộp các nút khác nhau.",
+      "citations": 3,
+      "requiredIdeas": [
+        "phiếu"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "SUP09-5",
+      "document": "support-ticket-and-escalation",
+      "variant": "CONTEXTUAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Hỏi bước/thông báo lỗi khi tạo phiếu, phân biệt biểu mẫu và thẻ xác nhận; không gộp các nút khác nhau.",
+      "citations": 2,
+      "requiredIdeas": [
+        "phiếu"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "SUP09-6",
+      "document": "support-ticket-and-escalation",
+      "variant": "ALTERNATIVE",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Hỏi bước/thông báo lỗi khi tạo phiếu, phân biệt biểu mẫu và thẻ xác nhận; không gộp các nút khác nhau.",
+      "citations": 3,
+      "requiredIdeas": [
+        "phiếu"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "SUP10-1",
+      "document": "support-ticket-and-escalation",
+      "variant": "ACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Nêu tiêu đề, chức năng, bước thực hiện, lỗi thực tế và thông tin cần bảo mật; phiếu hỗ trợ khác báo mất thẻ.",
+      "citations": 1,
+      "requiredIdeas": [
+        "nội dung"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "SUP10-2",
+      "document": "support-ticket-and-escalation",
+      "variant": "UNACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Nêu tiêu đề, chức năng, bước thực hiện, lỗi thực tế và thông tin cần bảo mật; phiếu hỗ trợ khác báo mất thẻ.",
+      "citations": 1,
+      "requiredIdeas": [
+        "nội dung"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "SUP10-3",
+      "document": "support-ticket-and-escalation",
+      "variant": "PARAPHRASE",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Nêu tiêu đề, chức năng, bước thực hiện, lỗi thực tế và thông tin cần bảo mật; phiếu hỗ trợ khác báo mất thẻ.",
+      "citations": 1,
+      "requiredIdeas": [
+        "nội dung"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "SUP10-4",
+      "document": "support-ticket-and-escalation",
+      "variant": "SHORT_OR_TYPO",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Nêu tiêu đề, chức năng, bước thực hiện, lỗi thực tế và thông tin cần bảo mật; phiếu hỗ trợ khác báo mất thẻ.",
+      "citations": 1,
+      "requiredIdeas": [
+        "nội dung"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "SUP10-5",
+      "document": "support-ticket-and-escalation",
+      "variant": "CONTEXTUAL",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Nêu tiêu đề, chức năng, bước thực hiện, lỗi thực tế và thông tin cần bảo mật; phiếu hỗ trợ khác báo mất thẻ.",
+      "citations": 1,
+      "requiredIdeas": [
+        "nội dung"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "SUP10-6",
+      "document": "support-ticket-and-escalation",
+      "variant": "ALTERNATIVE",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Nêu tiêu đề, chức năng, bước thực hiện, lỗi thực tế và thông tin cần bảo mật; phiếu hỗ trợ khác báo mất thẻ.",
+      "citations": 1,
+      "requiredIdeas": [
+        "nội dung"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-VEH04-1",
+      "document": "customer-vehicle-management",
+      "variant": "ACCENTED",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Xóa xe là ngưng dùng, giữ lịch sử; không tuyên bố xóa vĩnh viễn.",
+      "citations": 1,
+      "requiredIdeas": [
+        "ngưng dùng",
+        "không xóa lịch sử"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-VEH04-2",
+      "document": "customer-vehicle-management",
+      "variant": "UNACCENTED",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Xóa xe là ngưng dùng, giữ lịch sử; không tuyên bố xóa vĩnh viễn.",
+      "citations": 1,
+      "requiredIdeas": [
+        "ngưng dùng",
+        "không xóa lịch sử"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-VEH04-3",
+      "document": "customer-vehicle-management",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Xóa xe là ngưng dùng, giữ lịch sử; không tuyên bố xóa vĩnh viễn.",
+      "citations": 2,
+      "requiredIdeas": [
+        "ngưng dùng",
+        "không xóa lịch sử"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-VEH04-4",
+      "document": "customer-vehicle-management",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Xóa xe là ngưng dùng, giữ lịch sử; không tuyên bố xóa vĩnh viễn.",
+      "citations": 1,
+      "requiredIdeas": [
+        "ngưng dùng",
+        "không xóa lịch sử"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-VEH04-5",
+      "document": "customer-vehicle-management",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Xóa xe là ngưng dùng, giữ lịch sử; không tuyên bố xóa vĩnh viễn.",
+      "citations": 1,
+      "requiredIdeas": [
+        "ngưng dùng",
+        "không xóa lịch sử"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-VEH04-6",
+      "document": "customer-vehicle-management",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Xóa xe là ngưng dùng, giữ lịch sử; không tuyên bố xóa vĩnh viễn.",
+      "citations": 1,
+      "requiredIdeas": [
+        "ngưng dùng",
+        "không xóa lịch sử"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-VEH05-1",
+      "document": "customer-vehicle-management",
+      "variant": "ACCENTED",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Trùng biển số cần kiểm tra xe đã có và nhờ nhân viên xác minh, không thêm lặp/né kiểm tra.",
+      "citations": 1,
+      "requiredIdeas": [
+        "kiểm tra biển số",
+        "xe đã đăng ký",
+        "xác minh khi tranh chấp"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-VEH05-2",
+      "document": "customer-vehicle-management",
+      "variant": "UNACCENTED",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Trùng biển số cần kiểm tra xe đã có và nhờ nhân viên xác minh, không thêm lặp/né kiểm tra.",
+      "citations": 3,
+      "requiredIdeas": [
+        "kiểm tra biển số",
+        "xe đã đăng ký",
+        "xác minh khi tranh chấp"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-VEH05-3",
+      "document": "customer-vehicle-management",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Trùng biển số cần kiểm tra xe đã có và nhờ nhân viên xác minh, không thêm lặp/né kiểm tra.",
+      "citations": 1,
+      "requiredIdeas": [
+        "kiểm tra biển số",
+        "xe đã đăng ký",
+        "xác minh khi tranh chấp"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-VEH05-4",
+      "document": "customer-vehicle-management",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Trùng biển số cần kiểm tra xe đã có và nhờ nhân viên xác minh, không thêm lặp/né kiểm tra.",
+      "citations": 1,
+      "requiredIdeas": [
+        "kiểm tra biển số",
+        "xe đã đăng ký",
+        "xác minh khi tranh chấp"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-VEH05-5",
+      "document": "customer-vehicle-management",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Trùng biển số cần kiểm tra xe đã có và nhờ nhân viên xác minh, không thêm lặp/né kiểm tra.",
+      "citations": 1,
+      "requiredIdeas": [
+        "kiểm tra biển số",
+        "xe đã đăng ký",
+        "xác minh khi tranh chấp"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-VEH05-6",
+      "document": "customer-vehicle-management",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Trùng biển số cần kiểm tra xe đã có và nhờ nhân viên xác minh, không thêm lặp/né kiểm tra.",
+      "citations": 1,
+      "requiredIdeas": [
+        "kiểm tra biển số",
+        "xe đã đăng ký",
+        "xác minh khi tranh chấp"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-VEH06-1",
+      "document": "customer-vehicle-management",
+      "variant": "ACCENTED",
+      "answerMode": "OWN_FIXTURE",
+      "grade": "PASS",
+      "reason": "Tool đọc xe chính chủ bằng fixture và che biển số, không phát lộ QR/token.",
+      "citations": 0,
+      "requiredIdeas": [
+        "dữ liệu thật",
+        "che biển số",
+        "giới hạn danh sách"
+      ],
+      "limits": "OWN data uses captured fixture ports, not a real customer account"
+    },
+    {
+      "caseId": "B2-VEH06-2",
+      "document": "customer-vehicle-management",
+      "variant": "UNACCENTED",
+      "answerMode": "OWN_FIXTURE",
+      "grade": "PASS",
+      "reason": "Tool đọc xe chính chủ bằng fixture và che biển số, không phát lộ QR/token.",
+      "citations": 0,
+      "requiredIdeas": [
+        "dữ liệu thật",
+        "che biển số",
+        "giới hạn danh sách"
+      ],
+      "limits": "OWN data uses captured fixture ports, not a real customer account"
+    },
+    {
+      "caseId": "B2-VEH06-3",
+      "document": "customer-vehicle-management",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "OWN_FIXTURE",
+      "grade": "PASS",
+      "reason": "Tool đọc xe chính chủ bằng fixture và che biển số, không phát lộ QR/token.",
+      "citations": 0,
+      "requiredIdeas": [
+        "dữ liệu thật",
+        "che biển số",
+        "giới hạn danh sách"
+      ],
+      "limits": "OWN data uses captured fixture ports, not a real customer account"
+    },
+    {
+      "caseId": "B2-VEH06-4",
+      "document": "customer-vehicle-management",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "OWN_FIXTURE",
+      "grade": "PASS",
+      "reason": "Tool đọc xe chính chủ bằng fixture và che biển số, không phát lộ QR/token.",
+      "citations": 0,
+      "requiredIdeas": [
+        "dữ liệu thật",
+        "che biển số",
+        "giới hạn danh sách"
+      ],
+      "limits": "OWN data uses captured fixture ports, not a real customer account"
+    },
+    {
+      "caseId": "B2-VEH06-5",
+      "document": "customer-vehicle-management",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "OWN_FIXTURE",
+      "grade": "PASS",
+      "reason": "Tool đọc xe chính chủ bằng fixture và che biển số, không phát lộ QR/token.",
+      "citations": 0,
+      "requiredIdeas": [
+        "dữ liệu thật",
+        "che biển số",
+        "giới hạn danh sách"
+      ],
+      "limits": "OWN data uses captured fixture ports, not a real customer account"
+    },
+    {
+      "caseId": "B2-VEH06-6",
+      "document": "customer-vehicle-management",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "OWN_FIXTURE",
+      "grade": "PASS",
+      "reason": "Tool đọc xe chính chủ bằng fixture và che biển số, không phát lộ QR/token.",
+      "citations": 0,
+      "requiredIdeas": [
+        "dữ liệu thật",
+        "che biển số",
+        "giới hạn danh sách"
+      ],
+      "limits": "OWN data uses captured fixture ports, not a real customer account"
+    },
+    {
+      "caseId": "B2-SUB04-1",
+      "document": "subscription-lifecycle",
+      "variant": "ACCENTED",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Không tự hủy vé đang hoạt động để hoàn tiền ngay; liên hệ xem xét, không bảo đảm được hoàn.",
+      "citations": 1,
+      "requiredIdeas": [
+        "không tự hủy vé đang hoạt động",
+        "nhân viên xem xét",
+        "không hứa hoàn tiền"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-SUB04-2",
+      "document": "subscription-lifecycle",
+      "variant": "UNACCENTED",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Không tự hủy vé đang hoạt động để hoàn tiền ngay; liên hệ xem xét, không bảo đảm được hoàn.",
+      "citations": 1,
+      "requiredIdeas": [
+        "không tự hủy vé đang hoạt động",
+        "nhân viên xem xét",
+        "không hứa hoàn tiền"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-SUB04-3",
+      "document": "subscription-lifecycle",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Không tự hủy vé đang hoạt động để hoàn tiền ngay; liên hệ xem xét, không bảo đảm được hoàn.",
+      "citations": 1,
+      "requiredIdeas": [
+        "không tự hủy vé đang hoạt động",
+        "nhân viên xem xét",
+        "không hứa hoàn tiền"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-SUB04-4",
+      "document": "subscription-lifecycle",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Không tự hủy vé đang hoạt động để hoàn tiền ngay; liên hệ xem xét, không bảo đảm được hoàn.",
+      "citations": 2,
+      "requiredIdeas": [
+        "không tự hủy vé đang hoạt động",
+        "nhân viên xem xét",
+        "không hứa hoàn tiền"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-SUB04-5",
+      "document": "subscription-lifecycle",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Không tự hủy vé đang hoạt động để hoàn tiền ngay; liên hệ xem xét, không bảo đảm được hoàn.",
+      "citations": 1,
+      "requiredIdeas": [
+        "không tự hủy vé đang hoạt động",
+        "nhân viên xem xét",
+        "không hứa hoàn tiền"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-SUB04-6",
+      "document": "subscription-lifecycle",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Không tự hủy vé đang hoạt động để hoàn tiền ngay; liên hệ xem xét, không bảo đảm được hoàn.",
+      "citations": 1,
+      "requiredIdeas": [
+        "không tự hủy vé đang hoạt động",
+        "nhân viên xem xét",
+        "không hứa hoàn tiền"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-SUB05-1",
+      "document": "subscription-lifecycle",
+      "variant": "ACCENTED",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Ngày bắt đầu vé mới từ hôm nay đến bảy ngày tới; không tự đổi thành phải chờ hai ngày.",
+      "citations": 1,
+      "requiredIdeas": [
+        "hôm nay đến 7 ngày tới",
+        "còn điều kiện duyệt"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-SUB05-2",
+      "document": "subscription-lifecycle",
+      "variant": "UNACCENTED",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Ngày bắt đầu vé mới từ hôm nay đến bảy ngày tới; không tự đổi thành phải chờ hai ngày.",
+      "citations": 1,
+      "requiredIdeas": [
+        "hôm nay đến 7 ngày tới",
+        "còn điều kiện duyệt"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-SUB05-3",
+      "document": "subscription-lifecycle",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Ngày bắt đầu vé mới từ hôm nay đến bảy ngày tới; không tự đổi thành phải chờ hai ngày.",
+      "citations": 2,
+      "requiredIdeas": [
+        "hôm nay đến 7 ngày tới",
+        "còn điều kiện duyệt"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-SUB05-4",
+      "document": "subscription-lifecycle",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Ngày bắt đầu vé mới từ hôm nay đến bảy ngày tới; không tự đổi thành phải chờ hai ngày.",
+      "citations": 1,
+      "requiredIdeas": [
+        "hôm nay đến 7 ngày tới",
+        "còn điều kiện duyệt"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-SUB05-5",
+      "document": "subscription-lifecycle",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Ngày bắt đầu vé mới từ hôm nay đến bảy ngày tới; không tự đổi thành phải chờ hai ngày.",
+      "citations": 1,
+      "requiredIdeas": [
+        "hôm nay đến 7 ngày tới",
+        "còn điều kiện duyệt"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-SUB05-6",
+      "document": "subscription-lifecycle",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Ngày bắt đầu vé mới từ hôm nay đến bảy ngày tới; không tự đổi thành phải chờ hai ngày.",
+      "citations": 1,
+      "requiredIdeas": [
+        "hôm nay đến 7 ngày tới",
+        "còn điều kiện duyệt"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-SUB06-1",
+      "document": "subscription-lifecycle",
+      "variant": "ACCENTED",
+      "answerMode": "OWN_FIXTURE",
+      "grade": "PASS",
+      "reason": "Tool trả vé chính chủ từ fixture, trạng thái/ngày/giá có thẩm quyền trong test, không QR riêng tư.",
+      "citations": 0,
+      "requiredIdeas": [
+        "trạng thái và ngày từ dữ liệu thật",
+        "không mã QR"
+      ],
+      "limits": "OWN data uses captured fixture ports, not a real customer account"
+    },
+    {
+      "caseId": "B2-SUB06-2",
+      "document": "subscription-lifecycle",
+      "variant": "UNACCENTED",
+      "answerMode": "OWN_FIXTURE",
+      "grade": "PASS",
+      "reason": "Tool trả vé chính chủ từ fixture, trạng thái/ngày/giá có thẩm quyền trong test, không QR riêng tư.",
+      "citations": 0,
+      "requiredIdeas": [
+        "trạng thái và ngày từ dữ liệu thật",
+        "không mã QR"
+      ],
+      "limits": "OWN data uses captured fixture ports, not a real customer account"
+    },
+    {
+      "caseId": "B2-SUB06-3",
+      "document": "subscription-lifecycle",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "OWN_FIXTURE",
+      "grade": "PASS",
+      "reason": "Tool trả vé chính chủ từ fixture, trạng thái/ngày/giá có thẩm quyền trong test, không QR riêng tư.",
+      "citations": 0,
+      "requiredIdeas": [
+        "trạng thái và ngày từ dữ liệu thật",
+        "không mã QR"
+      ],
+      "limits": "OWN data uses captured fixture ports, not a real customer account"
+    },
+    {
+      "caseId": "B2-SUB06-4",
+      "document": "subscription-lifecycle",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "OWN_FIXTURE",
+      "grade": "PASS",
+      "reason": "Tool trả vé chính chủ từ fixture, trạng thái/ngày/giá có thẩm quyền trong test, không QR riêng tư.",
+      "citations": 0,
+      "requiredIdeas": [
+        "trạng thái và ngày từ dữ liệu thật",
+        "không mã QR"
+      ],
+      "limits": "OWN data uses captured fixture ports, not a real customer account"
+    },
+    {
+      "caseId": "B2-SUB06-5",
+      "document": "subscription-lifecycle",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "OWN_FIXTURE",
+      "grade": "PASS",
+      "reason": "Tool trả vé chính chủ từ fixture, trạng thái/ngày/giá có thẩm quyền trong test, không QR riêng tư.",
+      "citations": 0,
+      "requiredIdeas": [
+        "trạng thái và ngày từ dữ liệu thật",
+        "không mã QR"
+      ],
+      "limits": "OWN data uses captured fixture ports, not a real customer account"
+    },
+    {
+      "caseId": "B2-SUB06-6",
+      "document": "subscription-lifecycle",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "OWN_FIXTURE",
+      "grade": "PASS",
+      "reason": "Tool trả vé chính chủ từ fixture, trạng thái/ngày/giá có thẩm quyền trong test, không QR riêng tư.",
+      "citations": 0,
+      "requiredIdeas": [
+        "trạng thái và ngày từ dữ liệu thật",
+        "không mã QR"
+      ],
+      "limits": "OWN data uses captured fixture ports, not a real customer account"
+    },
+    {
+      "caseId": "B2-CARD04-1",
+      "document": "cards-and-lost-card",
+      "variant": "ACCENTED",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Kiểm tra thẻ/bãi/xe/quyền và lỗi khi lập phiếu; phân biệt điều kiện hoàn tất, không bắt trả tiền/thẻ mới trước khi lập.",
+      "citations": 1,
+      "requiredIdeas": [
+        "quyền và bãi",
+        "xe lượt gửi hoặc vé",
+        "phiếu đang mở",
+        "không thay bằng phiếu hỗ trợ"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-CARD04-2",
+      "document": "cards-and-lost-card",
+      "variant": "UNACCENTED",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Kiểm tra thẻ/bãi/xe/quyền và lỗi khi lập phiếu; phân biệt điều kiện hoàn tất, không bắt trả tiền/thẻ mới trước khi lập.",
+      "citations": 2,
+      "requiredIdeas": [
+        "quyền và bãi",
+        "xe lượt gửi hoặc vé",
+        "phiếu đang mở",
+        "không thay bằng phiếu hỗ trợ"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-CARD04-3",
+      "document": "cards-and-lost-card",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Kiểm tra thẻ/bãi/xe/quyền và lỗi khi lập phiếu; phân biệt điều kiện hoàn tất, không bắt trả tiền/thẻ mới trước khi lập.",
+      "citations": 1,
+      "requiredIdeas": [
+        "quyền và bãi",
+        "xe lượt gửi hoặc vé",
+        "phiếu đang mở",
+        "không thay bằng phiếu hỗ trợ"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-CARD04-4",
+      "document": "cards-and-lost-card",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "FAIL",
+      "reason": "Chỉ đưa bước mở biểu mẫu/tra cứu, thiếu điều kiện quyền/bãi và phiếu đang mở khi người dùng hỏi điều kiện tạo phiếu.",
+      "citations": 1,
+      "requiredIdeas": [
+        "quyền và bãi",
+        "xe lượt gửi hoặc vé",
+        "phiếu đang mở",
+        "không thay bằng phiếu hỗ trợ"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-CARD04-5",
+      "document": "cards-and-lost-card",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Kiểm tra thẻ/bãi/xe/quyền và lỗi khi lập phiếu; phân biệt điều kiện hoàn tất, không bắt trả tiền/thẻ mới trước khi lập.",
+      "citations": 1,
+      "requiredIdeas": [
+        "quyền và bãi",
+        "xe lượt gửi hoặc vé",
+        "phiếu đang mở",
+        "không thay bằng phiếu hỗ trợ"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-CARD04-6",
+      "document": "cards-and-lost-card",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Kiểm tra thẻ/bãi/xe/quyền và lỗi khi lập phiếu; phân biệt điều kiện hoàn tất, không bắt trả tiền/thẻ mới trước khi lập.",
+      "citations": 1,
+      "requiredIdeas": [
+        "quyền và bãi",
+        "xe lượt gửi hoặc vé",
+        "phiếu đang mở",
+        "không thay bằng phiếu hỗ trợ"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-CARD05-1",
+      "document": "cards-and-lost-card",
+      "variant": "ACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Hoàn tất cần xác minh thanh toán và thẻ thay thế phù hợp nếu cần, cùng bãi/loại; không dùng lại thẻ mất.",
+      "citations": 1,
+      "requiredIdeas": [
+        "thanh toán được ghi nhận",
+        "thẻ còn sẵn sàng cùng bãi cùng loại",
+        "nhân viên hoàn tất"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-CARD05-2",
+      "document": "cards-and-lost-card",
+      "variant": "UNACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Hoàn tất cần xác minh thanh toán và thẻ thay thế phù hợp nếu cần, cùng bãi/loại; không dùng lại thẻ mất.",
+      "citations": 1,
+      "requiredIdeas": [
+        "thanh toán được ghi nhận",
+        "thẻ còn sẵn sàng cùng bãi cùng loại",
+        "nhân viên hoàn tất"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-CARD05-3",
+      "document": "cards-and-lost-card",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Hoàn tất cần xác minh thanh toán và thẻ thay thế phù hợp nếu cần, cùng bãi/loại; không dùng lại thẻ mất.",
+      "citations": 1,
+      "requiredIdeas": [
+        "thanh toán được ghi nhận",
+        "thẻ còn sẵn sàng cùng bãi cùng loại",
+        "nhân viên hoàn tất"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-CARD05-4",
+      "document": "cards-and-lost-card",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Hoàn tất cần xác minh thanh toán và thẻ thay thế phù hợp nếu cần, cùng bãi/loại; không dùng lại thẻ mất.",
+      "citations": 1,
+      "requiredIdeas": [
+        "thanh toán được ghi nhận",
+        "thẻ còn sẵn sàng cùng bãi cùng loại",
+        "nhân viên hoàn tất"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-CARD05-5",
+      "document": "cards-and-lost-card",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "FAIL",
+      "reason": "Trả hướng dẫn báo lỗi chung, chưa giải thích kiểm tra ghi nhận thanh toán và thẻ thay thế còn sẵn sàng/cùng bãi/cùng loại ở bước hoàn tất.",
+      "citations": 1,
+      "requiredIdeas": [
+        "thanh toán được ghi nhận",
+        "thẻ còn sẵn sàng cùng bãi cùng loại",
+        "nhân viên hoàn tất"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-CARD05-6",
+      "document": "cards-and-lost-card",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Hoàn tất cần xác minh thanh toán và thẻ thay thế phù hợp nếu cần, cùng bãi/loại; không dùng lại thẻ mất.",
+      "citations": 1,
+      "requiredIdeas": [
+        "thanh toán được ghi nhận",
+        "thẻ còn sẵn sàng cùng bãi cùng loại",
+        "nhân viên hoàn tất"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-HIST04-1",
+      "document": "parking-history",
+      "variant": "ACCENTED",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Bộ lọc ngày dùng màn hình Lịch sử gửi xe; không giả tool chat đã nhận lọc ngày.",
+      "citations": 2,
+      "requiredIdeas": [
+        "Khoảng ngày",
+        "ngày bắt đầu và ngày kết thúc",
+        "ngày kết thúc không trước ngày bắt đầu"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-HIST04-2",
+      "document": "parking-history",
+      "variant": "UNACCENTED",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Bộ lọc ngày dùng màn hình Lịch sử gửi xe; không giả tool chat đã nhận lọc ngày.",
+      "citations": 2,
+      "requiredIdeas": [
+        "Khoảng ngày",
+        "ngày bắt đầu và ngày kết thúc",
+        "ngày kết thúc không trước ngày bắt đầu"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-HIST04-3",
+      "document": "parking-history",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "FAIL",
+      "reason": "Khuyên Xóa lọc khi người dùng cần tìm theo ngày, không hướng dẫn đặt khoảng ngày; câu trả lời chưa đáp ứng đúng thao tác cần làm.",
+      "citations": 1,
+      "requiredIdeas": [
+        "Khoảng ngày",
+        "ngày bắt đầu và ngày kết thúc",
+        "ngày kết thúc không trước ngày bắt đầu"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-HIST04-4",
+      "document": "parking-history",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Bộ lọc ngày dùng màn hình Lịch sử gửi xe; không giả tool chat đã nhận lọc ngày.",
+      "citations": 1,
+      "requiredIdeas": [
+        "Khoảng ngày",
+        "ngày bắt đầu và ngày kết thúc",
+        "ngày kết thúc không trước ngày bắt đầu"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-HIST04-5",
+      "document": "parking-history",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Bộ lọc ngày dùng màn hình Lịch sử gửi xe; không giả tool chat đã nhận lọc ngày.",
+      "citations": 1,
+      "requiredIdeas": [
+        "Khoảng ngày",
+        "ngày bắt đầu và ngày kết thúc",
+        "ngày kết thúc không trước ngày bắt đầu"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-HIST04-6",
+      "document": "parking-history",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Bộ lọc ngày dùng màn hình Lịch sử gửi xe; không giả tool chat đã nhận lọc ngày.",
+      "citations": 1,
+      "requiredIdeas": [
+        "Khoảng ngày",
+        "ngày bắt đầu và ngày kết thúc",
+        "ngày kết thúc không trước ngày bắt đầu"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-HIST05-1",
+      "document": "parking-history",
+      "variant": "ACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Ảnh được xem tại chi tiết sự kiện vào/ra theo quyền, không cung cấp URL ảnh riêng tư trong chat.",
+      "citations": 1,
+      "requiredIdeas": [
+        "xem tại màn hình đúng quyền",
+        "không ảnh hay đường dẫn riêng trong chat"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-HIST05-2",
+      "document": "parking-history",
+      "variant": "UNACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Ảnh được xem tại chi tiết sự kiện vào/ra theo quyền, không cung cấp URL ảnh riêng tư trong chat.",
+      "citations": 1,
+      "requiredIdeas": [
+        "xem tại màn hình đúng quyền",
+        "không ảnh hay đường dẫn riêng trong chat"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-HIST05-3",
+      "document": "parking-history",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Ảnh được xem tại chi tiết sự kiện vào/ra theo quyền, không cung cấp URL ảnh riêng tư trong chat.",
+      "citations": 1,
+      "requiredIdeas": [
+        "xem tại màn hình đúng quyền",
+        "không ảnh hay đường dẫn riêng trong chat"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-HIST05-4",
+      "document": "parking-history",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Ảnh được xem tại chi tiết sự kiện vào/ra theo quyền, không cung cấp URL ảnh riêng tư trong chat.",
+      "citations": 1,
+      "requiredIdeas": [
+        "xem tại màn hình đúng quyền",
+        "không ảnh hay đường dẫn riêng trong chat"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-HIST05-5",
+      "document": "parking-history",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Ảnh được xem tại chi tiết sự kiện vào/ra theo quyền, không cung cấp URL ảnh riêng tư trong chat.",
+      "citations": 1,
+      "requiredIdeas": [
+        "xem tại màn hình đúng quyền",
+        "không ảnh hay đường dẫn riêng trong chat"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-HIST05-6",
+      "document": "parking-history",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Ảnh được xem tại chi tiết sự kiện vào/ra theo quyền, không cung cấp URL ảnh riêng tư trong chat.",
+      "citations": 1,
+      "requiredIdeas": [
+        "xem tại màn hình đúng quyền",
+        "không ảnh hay đường dẫn riêng trong chat"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B2-HIST06-1",
+      "document": "parking-history",
+      "variant": "ACCENTED",
+      "answerMode": "OWN_FIXTURE",
+      "grade": "PASS",
+      "reason": "Lịch sử chính chủ fixture, che biển số; thời gian/phí/trạng thái không được suy đoán từ RAG.",
+      "citations": 0,
+      "requiredIdeas": [
+        "dữ liệu thật",
+        "giới hạn gần đây",
+        "che biển số"
+      ],
+      "limits": "OWN data uses captured fixture ports, not a real customer account"
+    },
+    {
+      "caseId": "B2-HIST06-2",
+      "document": "parking-history",
+      "variant": "UNACCENTED",
+      "answerMode": "OWN_FIXTURE",
+      "grade": "PASS",
+      "reason": "Lịch sử chính chủ fixture, che biển số; thời gian/phí/trạng thái không được suy đoán từ RAG.",
+      "citations": 0,
+      "requiredIdeas": [
+        "dữ liệu thật",
+        "giới hạn gần đây",
+        "che biển số"
+      ],
+      "limits": "OWN data uses captured fixture ports, not a real customer account"
+    },
+    {
+      "caseId": "B2-HIST06-3",
+      "document": "parking-history",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "OWN_FIXTURE",
+      "grade": "PASS",
+      "reason": "Lịch sử chính chủ fixture, che biển số; thời gian/phí/trạng thái không được suy đoán từ RAG.",
+      "citations": 0,
+      "requiredIdeas": [
+        "dữ liệu thật",
+        "giới hạn gần đây",
+        "che biển số"
+      ],
+      "limits": "OWN data uses captured fixture ports, not a real customer account"
+    },
+    {
+      "caseId": "B2-HIST06-4",
+      "document": "parking-history",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "OWN_FIXTURE",
+      "grade": "PASS",
+      "reason": "Lịch sử chính chủ fixture, che biển số; thời gian/phí/trạng thái không được suy đoán từ RAG.",
+      "citations": 0,
+      "requiredIdeas": [
+        "dữ liệu thật",
+        "giới hạn gần đây",
+        "che biển số"
+      ],
+      "limits": "OWN data uses captured fixture ports, not a real customer account"
+    },
+    {
+      "caseId": "B2-HIST06-5",
+      "document": "parking-history",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "OWN_FIXTURE",
+      "grade": "PASS",
+      "reason": "Lịch sử chính chủ fixture, che biển số; thời gian/phí/trạng thái không được suy đoán từ RAG.",
+      "citations": 0,
+      "requiredIdeas": [
+        "dữ liệu thật",
+        "giới hạn gần đây",
+        "che biển số"
+      ],
+      "limits": "OWN data uses captured fixture ports, not a real customer account"
+    },
+    {
+      "caseId": "B2-HIST06-6",
+      "document": "parking-history",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "OWN_FIXTURE",
+      "grade": "PASS",
+      "reason": "Lịch sử chính chủ fixture, che biển số; thời gian/phí/trạng thái không được suy đoán từ RAG.",
+      "citations": 0,
+      "requiredIdeas": [
+        "dữ liệu thật",
+        "giới hạn gần đây",
+        "che biển số"
+      ],
+      "limits": "OWN data uses captured fixture ports, not a real customer account"
+    },
+    {
+      "caseId": "B3-PRI02-1",
+      "document": "pricing-and-fee-calculation",
+      "variant": "ACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Mỗi bãi có bảng giá/thời gian áp dụng riêng theo xe/vé; không dùng giá bãi khác kết luận tính sai.",
+      "citations": 1,
+      "requiredIdeas": [
+        "bãi",
+        "loại xe",
+        "thời điểm"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PRI02-2",
+      "document": "pricing-and-fee-calculation",
+      "variant": "UNACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Mỗi bãi có bảng giá/thời gian áp dụng riêng theo xe/vé; không dùng giá bãi khác kết luận tính sai.",
+      "citations": 1,
+      "requiredIdeas": [
+        "bãi",
+        "loại xe",
+        "thời điểm"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PRI02-3",
+      "document": "pricing-and-fee-calculation",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Mỗi bãi có bảng giá/thời gian áp dụng riêng theo xe/vé; không dùng giá bãi khác kết luận tính sai.",
+      "citations": 1,
+      "requiredIdeas": [
+        "bãi",
+        "loại xe",
+        "thời điểm"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PRI02-4",
+      "document": "pricing-and-fee-calculation",
+      "variant": "TYPO",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Mỗi bãi có bảng giá/thời gian áp dụng riêng theo xe/vé; không dùng giá bãi khác kết luận tính sai.",
+      "citations": 1,
+      "requiredIdeas": [
+        "bãi",
+        "loại xe",
+        "thời điểm"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PRI02-5",
+      "document": "pricing-and-fee-calculation",
+      "variant": "KEYWORD",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Mỗi bãi có bảng giá/thời gian áp dụng riêng theo xe/vé; không dùng giá bãi khác kết luận tính sai.",
+      "citations": 2,
+      "requiredIdeas": [
+        "bãi",
+        "loại xe",
+        "thời điểm"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PRI02-6",
+      "document": "pricing-and-fee-calculation",
+      "variant": "CONTEXTUAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Mỗi bãi có bảng giá/thời gian áp dụng riêng theo xe/vé; không dùng giá bãi khác kết luận tính sai.",
+      "citations": 1,
+      "requiredIdeas": [
+        "bãi",
+        "loại xe",
+        "thời điểm"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PRI04-1",
+      "document": "pricing-and-fee-calculation",
+      "variant": "ACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Phần chưa đủ một ngày, quá bốn giờ và ngoài khung ban ngày hoàn toàn áp mức đêm; không bịa số tiền.",
+      "citations": 1,
+      "requiredIdeas": [
+        "bốn giờ",
+        "ban đêm",
+        "bảng giá"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PRI04-2",
+      "document": "pricing-and-fee-calculation",
+      "variant": "UNACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Phần chưa đủ một ngày, quá bốn giờ và ngoài khung ban ngày hoàn toàn áp mức đêm; không bịa số tiền.",
+      "citations": 1,
+      "requiredIdeas": [
+        "bốn giờ",
+        "ban đêm",
+        "bảng giá"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PRI04-3",
+      "document": "pricing-and-fee-calculation",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Phần chưa đủ một ngày, quá bốn giờ và ngoài khung ban ngày hoàn toàn áp mức đêm; không bịa số tiền.",
+      "citations": 1,
+      "requiredIdeas": [
+        "bốn giờ",
+        "ban đêm",
+        "bảng giá"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PRI04-4",
+      "document": "pricing-and-fee-calculation",
+      "variant": "TYPO",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Phần chưa đủ một ngày, quá bốn giờ và ngoài khung ban ngày hoàn toàn áp mức đêm; không bịa số tiền.",
+      "citations": 1,
+      "requiredIdeas": [
+        "bốn giờ",
+        "ban đêm",
+        "bảng giá"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PRI04-5",
+      "document": "pricing-and-fee-calculation",
+      "variant": "KEYWORD",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Phần chưa đủ một ngày, quá bốn giờ và ngoài khung ban ngày hoàn toàn áp mức đêm; không bịa số tiền.",
+      "citations": 1,
+      "requiredIdeas": [
+        "bốn giờ",
+        "ban đêm",
+        "bảng giá"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PRI04-6",
+      "document": "pricing-and-fee-calculation",
+      "variant": "CONTEXTUAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Phần chưa đủ một ngày, quá bốn giờ và ngoài khung ban ngày hoàn toàn áp mức đêm; không bịa số tiền.",
+      "citations": 1,
+      "requiredIdeas": [
+        "bốn giờ",
+        "ban đêm",
+        "bảng giá"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PRI07-1",
+      "document": "pricing-and-fee-calculation",
+      "variant": "ACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Thiếu bảng giá cần kiểm tra bãi/xe/vé rồi liên hệ bãi; không coi bằng không hoặc mượn giá bãi khác.",
+      "citations": 1,
+      "requiredIdeas": [
+        "bãi",
+        "loại xe",
+        "không"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PRI07-2",
+      "document": "pricing-and-fee-calculation",
+      "variant": "UNACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Thiếu bảng giá cần kiểm tra bãi/xe/vé rồi liên hệ bãi; không coi bằng không hoặc mượn giá bãi khác.",
+      "citations": 1,
+      "requiredIdeas": [
+        "bãi",
+        "loại xe",
+        "không"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PRI07-3",
+      "document": "pricing-and-fee-calculation",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Thiếu bảng giá cần kiểm tra bãi/xe/vé rồi liên hệ bãi; không coi bằng không hoặc mượn giá bãi khác.",
+      "citations": 1,
+      "requiredIdeas": [
+        "bãi",
+        "loại xe",
+        "không"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PRI07-4",
+      "document": "pricing-and-fee-calculation",
+      "variant": "TYPO",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Thiếu bảng giá cần kiểm tra bãi/xe/vé rồi liên hệ bãi; không coi bằng không hoặc mượn giá bãi khác.",
+      "citations": 1,
+      "requiredIdeas": [
+        "bãi",
+        "loại xe",
+        "không"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PRI07-5",
+      "document": "pricing-and-fee-calculation",
+      "variant": "KEYWORD",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Thiếu bảng giá cần kiểm tra bãi/xe/vé rồi liên hệ bãi; không coi bằng không hoặc mượn giá bãi khác.",
+      "citations": 2,
+      "requiredIdeas": [
+        "bãi",
+        "loại xe",
+        "không"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PRI07-6",
+      "document": "pricing-and-fee-calculation",
+      "variant": "CONTEXTUAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Thiếu bảng giá cần kiểm tra bãi/xe/vé rồi liên hệ bãi; không coi bằng không hoặc mượn giá bãi khác.",
+      "citations": 1,
+      "requiredIdeas": [
+        "bãi",
+        "loại xe",
+        "không"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PRI09-1",
+      "document": "pricing-and-fee-calculation",
+      "variant": "ACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Không mặc định tăng giá ngày lễ; xem bảng giá hiện hành, không tự cộng phụ thu.",
+      "citations": 1,
+      "requiredIdeas": [
+        "không",
+        "ngày lễ",
+        "bảng giá"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PRI09-2",
+      "document": "pricing-and-fee-calculation",
+      "variant": "UNACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Không mặc định tăng giá ngày lễ; xem bảng giá hiện hành, không tự cộng phụ thu.",
+      "citations": 1,
+      "requiredIdeas": [
+        "không",
+        "ngày lễ",
+        "bảng giá"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PRI09-3",
+      "document": "pricing-and-fee-calculation",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Không mặc định tăng giá ngày lễ; xem bảng giá hiện hành, không tự cộng phụ thu.",
+      "citations": 1,
+      "requiredIdeas": [
+        "không",
+        "ngày lễ",
+        "bảng giá"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PRI09-4",
+      "document": "pricing-and-fee-calculation",
+      "variant": "TYPO",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Không mặc định tăng giá ngày lễ; xem bảng giá hiện hành, không tự cộng phụ thu.",
+      "citations": 1,
+      "requiredIdeas": [
+        "không",
+        "ngày lễ",
+        "bảng giá"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PRI09-5",
+      "document": "pricing-and-fee-calculation",
+      "variant": "KEYWORD",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Không mặc định tăng giá ngày lễ; xem bảng giá hiện hành, không tự cộng phụ thu.",
+      "citations": 1,
+      "requiredIdeas": [
+        "không",
+        "ngày lễ",
+        "bảng giá"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PRI09-6",
+      "document": "pricing-and-fee-calculation",
+      "variant": "CONTEXTUAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Không mặc định tăng giá ngày lễ; xem bảng giá hiện hành, không tự cộng phụ thu.",
+      "citations": 1,
+      "requiredIdeas": [
+        "không",
+        "ngày lễ",
+        "bảng giá"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PAY02-1",
+      "document": "invoice-vnpay-payment-refund",
+      "variant": "ACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Đã trừ tiền nhưng chưa cập nhật cần kiểm tra/đối soát, không trả thêm trước khi xác minh; bảo vệ mã bí mật.",
+      "citations": 1,
+      "requiredIdeas": [
+        "chưa",
+        "lần nữa",
+        "xác minh"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PAY02-2",
+      "document": "invoice-vnpay-payment-refund",
+      "variant": "UNACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Đã trừ tiền nhưng chưa cập nhật cần kiểm tra/đối soát, không trả thêm trước khi xác minh; bảo vệ mã bí mật.",
+      "citations": 1,
+      "requiredIdeas": [
+        "chưa",
+        "lần nữa",
+        "xác minh"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PAY02-3",
+      "document": "invoice-vnpay-payment-refund",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Đã trừ tiền nhưng chưa cập nhật cần kiểm tra/đối soát, không trả thêm trước khi xác minh; bảo vệ mã bí mật.",
+      "citations": 2,
+      "requiredIdeas": [
+        "chưa",
+        "lần nữa",
+        "xác minh"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PAY02-4",
+      "document": "invoice-vnpay-payment-refund",
+      "variant": "TYPO",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Đã trừ tiền nhưng chưa cập nhật cần kiểm tra/đối soát, không trả thêm trước khi xác minh; bảo vệ mã bí mật.",
+      "citations": 2,
+      "requiredIdeas": [
+        "chưa",
+        "lần nữa",
+        "xác minh"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PAY02-5",
+      "document": "invoice-vnpay-payment-refund",
+      "variant": "KEYWORD",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Đã trừ tiền nhưng chưa cập nhật cần kiểm tra/đối soát, không trả thêm trước khi xác minh; bảo vệ mã bí mật.",
+      "citations": 1,
+      "requiredIdeas": [
+        "chưa",
+        "lần nữa",
+        "xác minh"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PAY02-6",
+      "document": "invoice-vnpay-payment-refund",
+      "variant": "CONTEXTUAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Đã trừ tiền nhưng chưa cập nhật cần kiểm tra/đối soát, không trả thêm trước khi xác minh; bảo vệ mã bí mật.",
+      "citations": 1,
+      "requiredIdeas": [
+        "chưa",
+        "lần nữa",
+        "xác minh"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PAY04-1",
+      "document": "invoice-vnpay-payment-refund",
+      "variant": "ACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Trang trả về không tự chứng minh đã trả; cần kết quả được xác minh từ thông báo/giao dịch hợp lệ.",
+      "citations": 1,
+      "requiredIdeas": [
+        "hệ thống",
+        "xác minh",
+        "không"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PAY04-2",
+      "document": "invoice-vnpay-payment-refund",
+      "variant": "UNACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Trang trả về không tự chứng minh đã trả; cần kết quả được xác minh từ thông báo/giao dịch hợp lệ.",
+      "citations": 1,
+      "requiredIdeas": [
+        "hệ thống",
+        "xác minh",
+        "không"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PAY04-3",
+      "document": "invoice-vnpay-payment-refund",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Trang trả về không tự chứng minh đã trả; cần kết quả được xác minh từ thông báo/giao dịch hợp lệ.",
+      "citations": 1,
+      "requiredIdeas": [
+        "hệ thống",
+        "xác minh",
+        "không"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PAY04-4",
+      "document": "invoice-vnpay-payment-refund",
+      "variant": "TYPO",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Trang trả về không tự chứng minh đã trả; cần kết quả được xác minh từ thông báo/giao dịch hợp lệ.",
+      "citations": 1,
+      "requiredIdeas": [
+        "hệ thống",
+        "xác minh",
+        "không"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PAY04-5",
+      "document": "invoice-vnpay-payment-refund",
+      "variant": "KEYWORD",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Trang trả về không tự chứng minh đã trả; cần kết quả được xác minh từ thông báo/giao dịch hợp lệ.",
+      "citations": 1,
+      "requiredIdeas": [
+        "hệ thống",
+        "xác minh",
+        "không"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PAY04-6",
+      "document": "invoice-vnpay-payment-refund",
+      "variant": "CONTEXTUAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Trang trả về không tự chứng minh đã trả; cần kết quả được xác minh từ thông báo/giao dịch hợp lệ.",
+      "citations": 2,
+      "requiredIdeas": [
+        "hệ thống",
+        "xác minh",
+        "không"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PAY07-1",
+      "document": "invoice-vnpay-payment-refund",
+      "variant": "ACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Trong Vé tháng mở hóa đơn chờ, dùng ví nếu giao diện cho phép, kiểm tra tiền và xác nhận; chatbot không tự trừ ví.",
+      "citations": 1,
+      "requiredIdeas": [
+        "Vé tháng",
+        "ví",
+        "xác nhận"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PAY07-2",
+      "document": "invoice-vnpay-payment-refund",
+      "variant": "UNACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Trong Vé tháng mở hóa đơn chờ, dùng ví nếu giao diện cho phép, kiểm tra tiền và xác nhận; chatbot không tự trừ ví.",
+      "citations": 1,
+      "requiredIdeas": [
+        "Vé tháng",
+        "ví",
+        "xác nhận"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PAY07-3",
+      "document": "invoice-vnpay-payment-refund",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Trong Vé tháng mở hóa đơn chờ, dùng ví nếu giao diện cho phép, kiểm tra tiền và xác nhận; chatbot không tự trừ ví.",
+      "citations": 1,
+      "requiredIdeas": [
+        "Vé tháng",
+        "ví",
+        "xác nhận"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PAY07-4",
+      "document": "invoice-vnpay-payment-refund",
+      "variant": "TYPO",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Trong Vé tháng mở hóa đơn chờ, dùng ví nếu giao diện cho phép, kiểm tra tiền và xác nhận; chatbot không tự trừ ví.",
+      "citations": 1,
+      "requiredIdeas": [
+        "Vé tháng",
+        "ví",
+        "xác nhận"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PAY07-5",
+      "document": "invoice-vnpay-payment-refund",
+      "variant": "KEYWORD",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Trong Vé tháng mở hóa đơn chờ, dùng ví nếu giao diện cho phép, kiểm tra tiền và xác nhận; chatbot không tự trừ ví.",
+      "citations": 1,
+      "requiredIdeas": [
+        "Vé tháng",
+        "ví",
+        "xác nhận"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PAY07-6",
+      "document": "invoice-vnpay-payment-refund",
+      "variant": "CONTEXTUAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Trong Vé tháng mở hóa đơn chờ, dùng ví nếu giao diện cho phép, kiểm tra tiền và xác nhận; chatbot không tự trừ ví.",
+      "citations": 1,
+      "requiredIdeas": [
+        "Vé tháng",
+        "ví",
+        "xác nhận"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PAY09-1",
+      "document": "invoice-vnpay-payment-refund",
+      "variant": "ACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Liên hệ bộ phận giao dịch kiểm tra điều kiện/đối soát, chatbot chưa thực thi hoàn tiền và không cam kết kết quả/thời hạn.",
+      "citations": 1,
+      "requiredIdeas": [
+        "chưa",
+        "hoàn tiền",
+        "không cam kết"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PAY09-2",
+      "document": "invoice-vnpay-payment-refund",
+      "variant": "UNACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Liên hệ bộ phận giao dịch kiểm tra điều kiện/đối soát, chatbot chưa thực thi hoàn tiền và không cam kết kết quả/thời hạn.",
+      "citations": 1,
+      "requiredIdeas": [
+        "chưa",
+        "hoàn tiền",
+        "không cam kết"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PAY09-3",
+      "document": "invoice-vnpay-payment-refund",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Liên hệ bộ phận giao dịch kiểm tra điều kiện/đối soát, chatbot chưa thực thi hoàn tiền và không cam kết kết quả/thời hạn.",
+      "citations": 2,
+      "requiredIdeas": [
+        "chưa",
+        "hoàn tiền",
+        "không cam kết"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PAY09-4",
+      "document": "invoice-vnpay-payment-refund",
+      "variant": "TYPO",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Liên hệ bộ phận giao dịch kiểm tra điều kiện/đối soát, chatbot chưa thực thi hoàn tiền và không cam kết kết quả/thời hạn.",
+      "citations": 1,
+      "requiredIdeas": [
+        "chưa",
+        "hoàn tiền",
+        "không cam kết"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PAY09-5",
+      "document": "invoice-vnpay-payment-refund",
+      "variant": "KEYWORD",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Liên hệ bộ phận giao dịch kiểm tra điều kiện/đối soát, chatbot chưa thực thi hoàn tiền và không cam kết kết quả/thời hạn.",
+      "citations": 1,
+      "requiredIdeas": [
+        "chưa",
+        "hoàn tiền",
+        "không cam kết"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-PAY09-6",
+      "document": "invoice-vnpay-payment-refund",
+      "variant": "CONTEXTUAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Liên hệ bộ phận giao dịch kiểm tra điều kiện/đối soát, chatbot chưa thực thi hoàn tiền và không cam kết kết quả/thời hạn.",
+      "citations": 1,
+      "requiredIdeas": [
+        "chưa",
+        "hoàn tiền",
+        "không cam kết"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-VOU02-1",
+      "document": "voucher-and-promotions",
+      "variant": "ACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Hết hạn là hết thời gian hiệu lực, khác hết lượt; xem thời hạn và trạng thái, không gia hạn bằng nhập lại.",
+      "citations": 1,
+      "requiredIdeas": [
+        "thời gian",
+        "hiệu lực",
+        "không"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-VOU02-2",
+      "document": "voucher-and-promotions",
+      "variant": "UNACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Hết hạn là hết thời gian hiệu lực, khác hết lượt; xem thời hạn và trạng thái, không gia hạn bằng nhập lại.",
+      "citations": 1,
+      "requiredIdeas": [
+        "thời gian",
+        "hiệu lực",
+        "không"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-VOU02-3",
+      "document": "voucher-and-promotions",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Hết hạn là hết thời gian hiệu lực, khác hết lượt; xem thời hạn và trạng thái, không gia hạn bằng nhập lại.",
+      "citations": 1,
+      "requiredIdeas": [
+        "thời gian",
+        "hiệu lực",
+        "không"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-VOU02-4",
+      "document": "voucher-and-promotions",
+      "variant": "TYPO",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Hết hạn là hết thời gian hiệu lực, khác hết lượt; xem thời hạn và trạng thái, không gia hạn bằng nhập lại.",
+      "citations": 1,
+      "requiredIdeas": [
+        "thời gian",
+        "hiệu lực",
+        "không"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-VOU02-5",
+      "document": "voucher-and-promotions",
+      "variant": "KEYWORD",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Hết hạn là hết thời gian hiệu lực, khác hết lượt; xem thời hạn và trạng thái, không gia hạn bằng nhập lại.",
+      "citations": 2,
+      "requiredIdeas": [
+        "thời gian",
+        "hiệu lực",
+        "không"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-VOU02-6",
+      "document": "voucher-and-promotions",
+      "variant": "CONTEXTUAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Hết hạn là hết thời gian hiệu lực, khác hết lượt; xem thời hạn và trạng thái, không gia hạn bằng nhập lại.",
+      "citations": 1,
+      "requiredIdeas": [
+        "thời gian",
+        "hiệu lực",
+        "không"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-VOU04-1",
+      "document": "voucher-and-promotions",
+      "variant": "ACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Voucher có thể toàn hệ thống/đối tác/bãi, không mặc định dùng mọi bãi; kiểm tra phạm vi.",
+      "citations": 1,
+      "requiredIdeas": [
+        "đối tác",
+        "bãi",
+        "phạm vi"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-VOU04-2",
+      "document": "voucher-and-promotions",
+      "variant": "UNACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Voucher có thể toàn hệ thống/đối tác/bãi, không mặc định dùng mọi bãi; kiểm tra phạm vi.",
+      "citations": 1,
+      "requiredIdeas": [
+        "đối tác",
+        "bãi",
+        "phạm vi"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-VOU04-3",
+      "document": "voucher-and-promotions",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Voucher có thể toàn hệ thống/đối tác/bãi, không mặc định dùng mọi bãi; kiểm tra phạm vi.",
+      "citations": 1,
+      "requiredIdeas": [
+        "đối tác",
+        "bãi",
+        "phạm vi"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-VOU04-4",
+      "document": "voucher-and-promotions",
+      "variant": "TYPO",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Voucher có thể toàn hệ thống/đối tác/bãi, không mặc định dùng mọi bãi; kiểm tra phạm vi.",
+      "citations": 1,
+      "requiredIdeas": [
+        "đối tác",
+        "bãi",
+        "phạm vi"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-VOU04-5",
+      "document": "voucher-and-promotions",
+      "variant": "KEYWORD",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Voucher có thể toàn hệ thống/đối tác/bãi, không mặc định dùng mọi bãi; kiểm tra phạm vi.",
+      "citations": 1,
+      "requiredIdeas": [
+        "đối tác",
+        "bãi",
+        "phạm vi"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-VOU04-6",
+      "document": "voucher-and-promotions",
+      "variant": "CONTEXTUAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Voucher có thể toàn hệ thống/đối tác/bãi, không mặc định dùng mọi bãi; kiểm tra phạm vi.",
+      "citations": 1,
+      "requiredIdeas": [
+        "đối tác",
+        "bãi",
+        "phạm vi"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-VOU07-1",
+      "document": "voucher-and-promotions",
+      "variant": "ACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Xem thử chỉ kiểm tra, chưa giữ/tiêu thụ lượt; tạo đăng ký/hóa đơn mới kiểm tra lại và giữ lượt.",
+      "citations": 1,
+      "requiredIdeas": [
+        "chưa giữ",
+        "hóa đơn",
+        "kiểm tra lại"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-VOU07-2",
+      "document": "voucher-and-promotions",
+      "variant": "UNACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Xem thử chỉ kiểm tra, chưa giữ/tiêu thụ lượt; tạo đăng ký/hóa đơn mới kiểm tra lại và giữ lượt.",
+      "citations": 1,
+      "requiredIdeas": [
+        "chưa giữ",
+        "hóa đơn",
+        "kiểm tra lại"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-VOU07-3",
+      "document": "voucher-and-promotions",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Xem thử chỉ kiểm tra, chưa giữ/tiêu thụ lượt; tạo đăng ký/hóa đơn mới kiểm tra lại và giữ lượt.",
+      "citations": 1,
+      "requiredIdeas": [
+        "chưa giữ",
+        "hóa đơn",
+        "kiểm tra lại"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-VOU07-4",
+      "document": "voucher-and-promotions",
+      "variant": "TYPO",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Xem thử chỉ kiểm tra, chưa giữ/tiêu thụ lượt; tạo đăng ký/hóa đơn mới kiểm tra lại và giữ lượt.",
+      "citations": 1,
+      "requiredIdeas": [
+        "chưa giữ",
+        "hóa đơn",
+        "kiểm tra lại"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-VOU07-5",
+      "document": "voucher-and-promotions",
+      "variant": "KEYWORD",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Xem thử chỉ kiểm tra, chưa giữ/tiêu thụ lượt; tạo đăng ký/hóa đơn mới kiểm tra lại và giữ lượt.",
+      "citations": 1,
+      "requiredIdeas": [
+        "chưa giữ",
+        "hóa đơn",
+        "kiểm tra lại"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-VOU07-6",
+      "document": "voucher-and-promotions",
+      "variant": "CONTEXTUAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Xem thử chỉ kiểm tra, chưa giữ/tiêu thụ lượt; tạo đăng ký/hóa đơn mới kiểm tra lại và giữ lượt.",
+      "citations": 1,
+      "requiredIdeas": [
+        "chưa giữ",
+        "hóa đơn",
+        "kiểm tra lại"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-VOU09-1",
+      "document": "voucher-and-promotions",
+      "variant": "ACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Hai khách xem thử chưa bảo đảm cùng giữ lượt cuối; kiểm tra lại lúc đăng ký, không gửi lặp để vượt giới hạn.",
+      "citations": 1,
+      "requiredIdeas": [
+        "kiểm tra lại",
+        "hết lượt",
+        "không"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-VOU09-2",
+      "document": "voucher-and-promotions",
+      "variant": "UNACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Hai khách xem thử chưa bảo đảm cùng giữ lượt cuối; kiểm tra lại lúc đăng ký, không gửi lặp để vượt giới hạn.",
+      "citations": 1,
+      "requiredIdeas": [
+        "kiểm tra lại",
+        "hết lượt",
+        "không"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-VOU09-3",
+      "document": "voucher-and-promotions",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Hai khách xem thử chưa bảo đảm cùng giữ lượt cuối; kiểm tra lại lúc đăng ký, không gửi lặp để vượt giới hạn.",
+      "citations": 2,
+      "requiredIdeas": [
+        "kiểm tra lại",
+        "hết lượt",
+        "không"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-VOU09-4",
+      "document": "voucher-and-promotions",
+      "variant": "TYPO",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Hai khách xem thử chưa bảo đảm cùng giữ lượt cuối; kiểm tra lại lúc đăng ký, không gửi lặp để vượt giới hạn.",
+      "citations": 2,
+      "requiredIdeas": [
+        "kiểm tra lại",
+        "hết lượt",
+        "không"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-VOU09-5",
+      "document": "voucher-and-promotions",
+      "variant": "KEYWORD",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Hai khách xem thử chưa bảo đảm cùng giữ lượt cuối; kiểm tra lại lúc đăng ký, không gửi lặp để vượt giới hạn.",
+      "citations": 1,
+      "requiredIdeas": [
+        "kiểm tra lại",
+        "hết lượt",
+        "không"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-VOU09-6",
+      "document": "voucher-and-promotions",
+      "variant": "CONTEXTUAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Hai khách xem thử chưa bảo đảm cùng giữ lượt cuối; kiểm tra lại lúc đăng ký, không gửi lặp để vượt giới hạn.",
+      "citations": 1,
+      "requiredIdeas": [
+        "kiểm tra lại",
+        "hết lượt",
+        "không"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-RES02-1",
+      "document": "reservations-and-holds",
+      "variant": "ACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Có luồng công khai không cần đăng nhập, bảo mật truy cập trên trình duyệt; không khẳng định đã đặt thay khách.",
+      "citations": 1,
+      "requiredIdeas": [
+        "chưa đăng nhập",
+        "trình duyệt",
+        "mã truy cập"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-RES02-2",
+      "document": "reservations-and-holds",
+      "variant": "UNACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Có luồng công khai không cần đăng nhập, bảo mật truy cập trên trình duyệt; không khẳng định đã đặt thay khách.",
+      "citations": 1,
+      "requiredIdeas": [
+        "chưa đăng nhập",
+        "trình duyệt",
+        "mã truy cập"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-RES02-3",
+      "document": "reservations-and-holds",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Có luồng công khai không cần đăng nhập, bảo mật truy cập trên trình duyệt; không khẳng định đã đặt thay khách.",
+      "citations": 1,
+      "requiredIdeas": [
+        "chưa đăng nhập",
+        "trình duyệt",
+        "mã truy cập"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-RES02-4",
+      "document": "reservations-and-holds",
+      "variant": "TYPO",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Có luồng công khai không cần đăng nhập, bảo mật truy cập trên trình duyệt; không khẳng định đã đặt thay khách.",
+      "citations": 1,
+      "requiredIdeas": [
+        "chưa đăng nhập",
+        "trình duyệt",
+        "mã truy cập"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-RES02-5",
+      "document": "reservations-and-holds",
+      "variant": "KEYWORD",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Có luồng công khai không cần đăng nhập, bảo mật truy cập trên trình duyệt; không khẳng định đã đặt thay khách.",
+      "citations": 1,
+      "requiredIdeas": [
+        "chưa đăng nhập",
+        "trình duyệt",
+        "mã truy cập"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-RES02-6",
+      "document": "reservations-and-holds",
+      "variant": "CONTEXTUAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Có luồng công khai không cần đăng nhập, bảo mật truy cập trên trình duyệt; không khẳng định đã đặt thay khách.",
+      "citations": 1,
+      "requiredIdeas": [
+        "chưa đăng nhập",
+        "trình duyệt",
+        "mã truy cập"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-RES04-1",
+      "document": "reservations-and-holds",
+      "variant": "ACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Hạn vào sáu mươi phút từ thanh toán thành công, không từ khi hỏi hay từ lúc vào bãi.",
+      "citations": 1,
+      "requiredIdeas": [
+        "sáu mươi phút",
+        "thanh toán thành công",
+        "giải phóng"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-RES04-2",
+      "document": "reservations-and-holds",
+      "variant": "UNACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Hạn vào sáu mươi phút từ thanh toán thành công, không từ khi hỏi hay từ lúc vào bãi.",
+      "citations": 1,
+      "requiredIdeas": [
+        "sáu mươi phút",
+        "thanh toán thành công",
+        "giải phóng"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-RES04-3",
+      "document": "reservations-and-holds",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Hạn vào sáu mươi phút từ thanh toán thành công, không từ khi hỏi hay từ lúc vào bãi.",
+      "citations": 1,
+      "requiredIdeas": [
+        "sáu mươi phút",
+        "thanh toán thành công",
+        "giải phóng"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-RES04-4",
+      "document": "reservations-and-holds",
+      "variant": "TYPO",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Hạn vào sáu mươi phút từ thanh toán thành công, không từ khi hỏi hay từ lúc vào bãi.",
+      "citations": 1,
+      "requiredIdeas": [
+        "sáu mươi phút",
+        "thanh toán thành công",
+        "giải phóng"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-RES04-5",
+      "document": "reservations-and-holds",
+      "variant": "KEYWORD",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Hạn vào sáu mươi phút từ thanh toán thành công, không từ khi hỏi hay từ lúc vào bãi.",
+      "citations": 1,
+      "requiredIdeas": [
+        "sáu mươi phút",
+        "thanh toán thành công",
+        "giải phóng"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-RES04-6",
+      "document": "reservations-and-holds",
+      "variant": "CONTEXTUAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Hạn vào sáu mươi phút từ thanh toán thành công, không từ khi hỏi hay từ lúc vào bãi.",
+      "citations": 1,
+      "requiredIdeas": [
+        "sáu mươi phút",
+        "thanh toán thành công",
+        "giải phóng"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-RES07-1",
+      "document": "reservations-and-holds",
+      "variant": "ACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Số chỗ thấy trên màn hình chưa bảo đảm giữ được, kiểm tra lại khi tạo và chọn lại khi hết; không trả tiền cho đặt chỗ không hợp lệ.",
+      "citations": 1,
+      "requiredIdeas": [
+        "kiểm tra lại",
+        "người khác",
+        "chọn lại"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-RES07-2",
+      "document": "reservations-and-holds",
+      "variant": "UNACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Số chỗ thấy trên màn hình chưa bảo đảm giữ được, kiểm tra lại khi tạo và chọn lại khi hết; không trả tiền cho đặt chỗ không hợp lệ.",
+      "citations": 1,
+      "requiredIdeas": [
+        "kiểm tra lại",
+        "người khác",
+        "chọn lại"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-RES07-3",
+      "document": "reservations-and-holds",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Số chỗ thấy trên màn hình chưa bảo đảm giữ được, kiểm tra lại khi tạo và chọn lại khi hết; không trả tiền cho đặt chỗ không hợp lệ.",
+      "citations": 1,
+      "requiredIdeas": [
+        "kiểm tra lại",
+        "người khác",
+        "chọn lại"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-RES07-4",
+      "document": "reservations-and-holds",
+      "variant": "TYPO",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Số chỗ thấy trên màn hình chưa bảo đảm giữ được, kiểm tra lại khi tạo và chọn lại khi hết; không trả tiền cho đặt chỗ không hợp lệ.",
+      "citations": 1,
+      "requiredIdeas": [
+        "kiểm tra lại",
+        "người khác",
+        "chọn lại"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-RES07-5",
+      "document": "reservations-and-holds",
+      "variant": "KEYWORD",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Số chỗ thấy trên màn hình chưa bảo đảm giữ được, kiểm tra lại khi tạo và chọn lại khi hết; không trả tiền cho đặt chỗ không hợp lệ.",
+      "citations": 1,
+      "requiredIdeas": [
+        "kiểm tra lại",
+        "người khác",
+        "chọn lại"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-RES07-6",
+      "document": "reservations-and-holds",
+      "variant": "CONTEXTUAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Số chỗ thấy trên màn hình chưa bảo đảm giữ được, kiểm tra lại khi tạo và chọn lại khi hết; không trả tiền cho đặt chỗ không hợp lệ.",
+      "citations": 1,
+      "requiredIdeas": [
+        "kiểm tra lại",
+        "người khác",
+        "chọn lại"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-RES09-1",
+      "document": "reservations-and-holds",
+      "variant": "ACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Tiền đến trễ/cần đối soát chưa bảo đảm còn chỗ, liên hệ kiểm tra, không trả thêm hoặc tự khôi phục/hoàn tiền.",
+      "citations": 1,
+      "requiredIdeas": [
+        "đối soát",
+        "chưa",
+        "giữ chỗ"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-RES09-2",
+      "document": "reservations-and-holds",
+      "variant": "UNACCENTED",
+      "answerMode": "FAQ",
+      "grade": "PASS",
+      "reason": "Tiền đến trễ/cần đối soát chưa bảo đảm còn chỗ, liên hệ kiểm tra, không trả thêm hoặc tự khôi phục/hoàn tiền.",
+      "citations": 1,
+      "requiredIdeas": [
+        "đối soát",
+        "chưa",
+        "giữ chỗ"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-RES09-3",
+      "document": "reservations-and-holds",
+      "variant": "CONVERSATIONAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Tiền đến trễ/cần đối soát chưa bảo đảm còn chỗ, liên hệ kiểm tra, không trả thêm hoặc tự khôi phục/hoàn tiền.",
+      "citations": 1,
+      "requiredIdeas": [
+        "đối soát",
+        "chưa",
+        "giữ chỗ"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-RES09-4",
+      "document": "reservations-and-holds",
+      "variant": "TYPO",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Tiền đến trễ/cần đối soát chưa bảo đảm còn chỗ, liên hệ kiểm tra, không trả thêm hoặc tự khôi phục/hoàn tiền.",
+      "citations": 1,
+      "requiredIdeas": [
+        "đối soát",
+        "chưa",
+        "giữ chỗ"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-RES09-5",
+      "document": "reservations-and-holds",
+      "variant": "KEYWORD",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Tiền đến trễ/cần đối soát chưa bảo đảm còn chỗ, liên hệ kiểm tra, không trả thêm hoặc tự khôi phục/hoàn tiền.",
+      "citations": 1,
+      "requiredIdeas": [
+        "đối soát",
+        "chưa",
+        "giữ chỗ"
+      ],
+      "limits": null
+    },
+    {
+      "caseId": "B3-RES09-6",
+      "document": "reservations-and-holds",
+      "variant": "CONTEXTUAL",
+      "answerMode": "MODEL",
+      "grade": "PASS",
+      "reason": "Tiền đến trễ/cần đối soát chưa bảo đảm còn chỗ, liên hệ kiểm tra, không trả thêm hoặc tự khôi phục/hoàn tiền.",
+      "citations": 1,
+      "requiredIdeas": [
+        "đối soát",
+        "chưa",
+        "giữ chỗ"
+      ],
+      "limits": null
+    }
+  ]
+}

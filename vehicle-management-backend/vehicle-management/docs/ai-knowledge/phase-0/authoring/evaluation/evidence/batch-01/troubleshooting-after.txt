@@ -1,0 +1,4 @@
+loi tao phieu|STATIC_KNOWLEDGE
+tao phieu bi loi|STATIC_KNOWLEDGE
+toi bi loi khi tao phieu|STATIC_KNOWLEDGE
+tao giup toi phieu bao loi dang nhap|WRITE_ACTION

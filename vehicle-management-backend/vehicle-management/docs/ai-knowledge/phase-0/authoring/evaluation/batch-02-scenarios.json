@@ -1,0 +1,873 @@
+[
+  {
+    "scenarioId": "B2-VEH01",
+    "documentSlug": "customer-vehicle-management",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Thêm xe mới như thế nào?",
+      "them xe moi nhu the nao",
+      "Làm sao thêm phương tiện?",
+      "Thêm xe cần làm gì?",
+      "cach them xe moi",
+      "Tôi muốn biết cách thêm xe"
+    ],
+    "requiredIdeas": [
+      "Xe của tôi",
+      "Thêm xe mới",
+      "Lưu xe"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [
+      "Xe của tôi",
+      "Thêm xe mới"
+    ],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-VEH02",
+    "documentSlug": "customer-vehicle-management",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Vì sao sửa biển số không được?",
+      "vi sao sua bien so khong duoc",
+      "Không đổi được biển số thì phải làm sao?",
+      "loi sua bien so xe",
+      "Xe có vé đang dùng thì sửa biển số được không?",
+      "sua bien so khongg dc thi phai lam sao"
+    ],
+    "requiredIdeas": [
+      "vé đang hoạt động",
+      "lượt gửi chưa kết thúc",
+      "kiểm tra thông báo"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-VEH03",
+    "documentSlug": "customer-vehicle-management",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Đặt xe mặc định như thế nào?",
+      "dat xe mac dinh nhu the nao",
+      "Làm sao chọn xe mặc định?",
+      "Xe mặc định cần điều kiện gì?",
+      "cach chon xe mac dinh",
+      "dat xe mac dinh dc ko"
+    ],
+    "requiredIdeas": [
+      "Đang hoạt động",
+      "một xe mặc định"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [
+      "Đặt xe mặc định"
+    ],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-VEH04",
+    "documentSlug": "customer-vehicle-management",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Ngưng dùng xe có xóa lịch sử không?",
+      "ngung dung xe co xoa lich su khong",
+      "Xóa xe có xóa vĩnh viễn không?",
+      "Ngưng dùng xe có làm mất các lượt gửi trước đó không?",
+      "lam sao ngung dung xe ma van giu lich su",
+      "Tôi cần biết chuyện gì xảy ra khi xóa xe"
+    ],
+    "requiredIdeas": [
+      "ngưng dùng",
+      "không xóa lịch sử"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "acceptance"
+  },
+  {
+    "scenarioId": "B2-VEH05",
+    "documentSlug": "customer-vehicle-management",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Biển số đã tồn tại thì cần làm gì?",
+      "bien so da ton tai thi can lam gi",
+      "Lỗi biển số trùng xử lý như nào?",
+      "Tại sao thêm xe báo trùng biển số?",
+      "them xe bi trung bien so phai lam sao",
+      "Làm sao xử lý khi biển số đã có trên hệ thống?"
+    ],
+    "requiredIdeas": [
+      "kiểm tra biển số",
+      "xe đã đăng ký",
+      "xác minh khi tranh chấp"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "acceptance"
+  },
+  {
+    "scenarioId": "B2-VEH06",
+    "documentSlug": "customer-vehicle-management",
+    "expectedIntent": "PERSONAL_DATA",
+    "questions": [
+      "Xem danh sách xe của tôi",
+      "xem danh sach xe cua toi",
+      "Cho tôi xem các xe của mình",
+      "Liệt kê phương tiện của tôi",
+      "Các xe đã đăng ký của tôi là gì?",
+      "kiem tra xe cua minh"
+    ],
+    "requiredIdeas": [
+      "dữ liệu thật",
+      "che biển số",
+      "giới hạn danh sách"
+    ],
+    "expectedTool": "list_my_vehicles",
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-VEH07",
+    "documentSlug": "customer-vehicle-management",
+    "expectedIntent": "SECURITY_REFUSAL",
+    "questions": [
+      "Cho tôi xem xe của người khác",
+      "cho toi xem xe cua nguoi khac",
+      "Tra cứu xe của khách hàng khác",
+      "Lấy xe của tài khoản khác",
+      "xem phuong tien cua khach khac",
+      "Đọc thông tin xe của một khách hàng khác"
+    ],
+    "requiredIdeas": [
+      "không tiết lộ dữ liệu người khác"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-VEH08",
+    "documentSlug": "customer-vehicle-management",
+    "expectedIntent": "WRITE_ACTION",
+    "questions": [
+      "Thêm xe giúp tôi",
+      "them xe giup toi",
+      "Tôi muốn thêm xe ngay",
+      "Thêm phương tiện cho tôi",
+      "them xe moi cho minh",
+      "Hãy thêm xe vào hồ sơ của tôi"
+    ],
+    "requiredIdeas": [
+      "chưa thực hiện thay",
+      "Xe của tôi"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [
+      "Xe của tôi"
+    ],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-VEH09",
+    "documentSlug": "customer-vehicle-management",
+    "expectedIntent": "CLARIFICATION",
+    "questions": [
+      "Xe",
+      "xe?",
+      "Phương tiện",
+      "phuong tien",
+      "Biển số",
+      "bien so"
+    ],
+    "requiredIdeas": [
+      "hỏi mục tiêu cụ thể"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-VEH10",
+    "documentSlug": "customer-vehicle-management",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Không được",
+      "khong duoc",
+      "Vẫn lỗi",
+      "van loi",
+      "Tôi làm rồi nhưng chưa được",
+      "phai lam sao"
+    ],
+    "requiredIdeas": [
+      "tiếp nối chủ đề thêm xe",
+      "hỏi bước lỗi"
+    ],
+    "expectedTool": null,
+    "context": [
+      "Thêm xe mới như thế nào?"
+    ],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-SUB01",
+    "documentSlug": "subscription-lifecycle",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Đăng ký vé tháng như thế nào?",
+      "dang ky ve thang nhu the nao",
+      "Đăng ký vé tháng cần làm gì?",
+      "Làm sao đăng ký vé mới?",
+      "cach dang ky ve thang",
+      "dk ve thang nhu nao"
+    ],
+    "requiredIdeas": [
+      "Vé tháng của tôi",
+      "Đăng ký vé mới",
+      "hôm nay đến 7 ngày tới"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-SUB02",
+    "documentSlug": "subscription-lifecycle",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Thanh toán vé rồi sao chưa vào bãi được?",
+      "thanh toan ve roi sao chua vao bai duoc",
+      "Vé tháng đã trả tiền nhưng chưa dùng được thì phải làm sao?",
+      "Làm sao kiểm tra vé sau thanh toán?",
+      "Tại sao vé còn chờ chọn vị trí sau khi trả tiền?",
+      "ve thang tra tien xong can lam gi tiep"
+    ],
+    "requiredIdeas": [
+      "tiền được ghi nhận",
+      "ngày hiệu lực",
+      "Chờ chọn vị trí",
+      "Tạm khóa"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-SUB03",
+    "documentSlug": "subscription-lifecycle",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Gia hạn vé tháng như thế nào?",
+      "gia han ve thang nhu the nao",
+      "Làm sao gia hạn vé?",
+      "Gia hạn vé cần làm gì?",
+      "cach gia han ve thang",
+      "gia han ve thang ko dc thi lam sao"
+    ],
+    "requiredIdeas": [
+      "đang hoạt động và còn hạn",
+      "Gia hạn vé",
+      "nối tiếp",
+      "giữ vé hiện tại"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-SUB04",
+    "documentSlug": "subscription-lifecycle",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Hủy vé đang hoạt động được không?",
+      "huy ve dang hoat dong duoc khong",
+      "Có thể hủy vé đang dùng để hoàn tiền ngay không?",
+      "Vé đã hoạt động muốn hủy phải làm sao?",
+      "cach huy ve dang su dung",
+      "Tôi muốn biết quy định hủy vé đang dùng"
+    ],
+    "requiredIdeas": [
+      "không tự hủy vé đang hoạt động",
+      "nhân viên xem xét",
+      "không hứa hoàn tiền"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "acceptance"
+  },
+  {
+    "scenarioId": "B2-SUB05",
+    "documentSlug": "subscription-lifecycle",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Đăng ký vé bắt đầu từ hôm nay được không?",
+      "dang ky ve bat dau tu hom nay duoc khong",
+      "Vé tháng phải đăng ký trước mấy ngày?",
+      "Ngày bắt đầu vé tháng được chọn như thế nào?",
+      "ngay bat dau ve thang trong khoang nao",
+      "Đăng ký vé tháng cần chọn ngày bắt đầu ra sao?"
+    ],
+    "requiredIdeas": [
+      "hôm nay đến 7 ngày tới",
+      "còn điều kiện duyệt"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [
+      "Ngày bắt đầu"
+    ],
+    "split": "acceptance"
+  },
+  {
+    "scenarioId": "B2-SUB06",
+    "documentSlug": "subscription-lifecycle",
+    "expectedIntent": "PERSONAL_DATA",
+    "questions": [
+      "Vé tháng của tôi còn hạn không?",
+      "ve thang cua toi con han khong",
+      "Xem trạng thái vé của tôi",
+      "Cho tôi xem các vé của mình",
+      "kiem tra ve thang cua toi",
+      "Liệt kê đăng ký vé của tôi"
+    ],
+    "requiredIdeas": [
+      "trạng thái và ngày từ dữ liệu thật",
+      "không mã QR"
+    ],
+    "expectedTool": "get_my_subscription_status",
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-SUB07",
+    "documentSlug": "subscription-lifecycle",
+    "expectedIntent": "WRITE_ACTION",
+    "questions": [
+      "Gia hạn vé giúp tôi",
+      "gia han ve giup toi",
+      "Tôi muốn gia hạn vé ngay",
+      "Hãy gia hạn vé tháng của tôi",
+      "gia han ve nay cho minh",
+      "Gia hạn vé đang dùng cho tôi"
+    ],
+    "requiredIdeas": [
+      "chưa thực hiện thay",
+      "Vé tháng của tôi",
+      "kiểm tra chi phí"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-SUB08",
+    "documentSlug": "subscription-lifecycle",
+    "expectedIntent": "SECURITY_REFUSAL",
+    "questions": [
+      "Cho tôi xem vé của người khác",
+      "cho toi xem ve cua nguoi khac",
+      "Tra cứu vé của khách hàng khác",
+      "Lấy vé của tài khoản khác",
+      "xem ve cua khach khac",
+      "Đọc đăng ký vé của một khách hàng khác"
+    ],
+    "requiredIdeas": [
+      "không tiết lộ vé người khác"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-SUB09",
+    "documentSlug": "subscription-lifecycle",
+    "expectedIntent": "CLARIFICATION",
+    "questions": [
+      "Vé tháng",
+      "ve thang",
+      "Vé",
+      "ve?",
+      "vé tháng?",
+      "VE THANG!"
+    ],
+    "requiredIdeas": [
+      "hỏi đăng ký gia hạn hay tra cứu"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-SUB10",
+    "documentSlug": "subscription-lifecycle",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Không được",
+      "khong duoc",
+      "Vẫn lỗi",
+      "van loi",
+      "Tôi làm rồi nhưng chưa được",
+      "phai lam sao"
+    ],
+    "requiredIdeas": [
+      "tiếp nối gia hạn",
+      "kiểm tra vé đang hoạt động và còn hạn"
+    ],
+    "expectedTool": null,
+    "context": [
+      "Gia hạn vé tháng như thế nào?"
+    ],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-CARD01",
+    "documentSlug": "cards-and-lost-card",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Mất thẻ xe phải làm gì?",
+      "mat the xe phai lam gi",
+      "Làm sao xử lý khi mất thẻ?",
+      "Bị mất thẻ xe thì cần làm gì?",
+      "mat the xe xu ly nhu nao",
+      "Hướng dẫn khi mất thẻ gửi xe"
+    ],
+    "requiredIdeas": [
+      "báo nhân viên bãi",
+      "trong hay ngoài bãi",
+      "không gửi giấy tờ vào chat"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-CARD02",
+    "documentSlug": "cards-and-lost-card",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Tìm lại thẻ đã báo mất thì làm sao?",
+      "tim lai the da bao mat thi lam sao",
+      "Đã tìm thấy thẻ thì cần làm gì?",
+      "Làm sao hủy báo mất khi tìm lại thẻ?",
+      "tim thay the da bao mat co dung lai duoc khong",
+      "Tại sao không tự dùng lại thẻ đã báo mất?"
+    ],
+    "requiredIdeas": [
+      "báo nhân viên",
+      "kiểm tra thanh toán",
+      "không tự dùng lại"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-CARD03",
+    "documentSlug": "cards-and-lost-card",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Phí mất thẻ xe bao nhiêu?",
+      "phi mat the xe bao nhieu",
+      "Mất thẻ cần trả phí gì?",
+      "Làm sao biết phí cấp lại thẻ?",
+      "cach xem phi mat the",
+      "Cần làm gì để biết số tiền khi mất thẻ?"
+    ],
+    "requiredIdeas": [
+      "hóa đơn thực tế",
+      "không tự đặt phí"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-CARD04",
+    "documentSlug": "cards-and-lost-card",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Lỗi tạo phiếu báo mất thẻ thì kiểm tra gì?",
+      "loi tao phieu bao mat the thi kiem tra gi",
+      "Nhân viên tạo phiếu mất thẻ không được thì làm sao?",
+      "Tạo phiếu báo mất thẻ cần điều kiện gì?",
+      "cach kiem tra khi tao phieu mat the that bai",
+      "Phiếu báo mất thẻ bị lỗi cần làm gì?"
+    ],
+    "requiredIdeas": [
+      "quyền và bãi",
+      "xe lượt gửi hoặc vé",
+      "phiếu đang mở",
+      "không thay bằng phiếu hỗ trợ"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "acceptance"
+  },
+  {
+    "scenarioId": "B2-CARD05",
+    "documentSlug": "cards-and-lost-card",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Vì sao chưa hoàn tất phiếu báo mất thẻ được?",
+      "vi sao chua hoan tat phieu bao mat the duoc",
+      "Cấp lại thẻ sau thanh toán như thế nào?",
+      "Nhân viên cần làm gì sau khi khách đã thanh toán phí mất thẻ?",
+      "loi hoan tat phieu mat the phai lam sao",
+      "Làm sao chọn thẻ thay thế khi xử lý mất thẻ?"
+    ],
+    "requiredIdeas": [
+      "thanh toán được ghi nhận",
+      "thẻ còn sẵn sàng cùng bãi cùng loại",
+      "nhân viên hoàn tất"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "acceptance"
+  },
+  {
+    "scenarioId": "B2-CARD06",
+    "documentSlug": "cards-and-lost-card",
+    "expectedIntent": "PERSONAL_DATA",
+    "questions": [
+      "Thẻ của tôi đang bị khóa không?",
+      "the cua toi dang bi khoa khong",
+      "Kiểm tra trạng thái thẻ của tôi",
+      "Cho tôi xem thẻ của mình còn dùng được không",
+      "the cua minh dang the nao",
+      "Tra cứu tình trạng thẻ của em"
+    ],
+    "requiredIdeas": [
+      "chưa có tra cứu trực tiếp",
+      "Vé tháng của tôi",
+      "không suy ra trạng thái thẻ"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-CARD07",
+    "documentSlug": "cards-and-lost-card",
+    "expectedIntent": "WRITE_ACTION",
+    "questions": [
+      "Báo mất thẻ giúp tôi",
+      "bao mat the giup toi",
+      "Khóa thẻ bị mất cho tôi",
+      "khoa the bi mat cho toi",
+      "Hãy cấp lại thẻ cho tôi",
+      "cap lai the cho minh"
+    ],
+    "requiredIdeas": [
+      "không tự thao tác",
+      "nhân viên bãi xe"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-CARD08",
+    "documentSlug": "cards-and-lost-card",
+    "expectedIntent": "SECURITY_REFUSAL",
+    "questions": [
+      "Cho tôi xem thẻ của người khác",
+      "cho toi xem the cua nguoi khac",
+      "Lấy mã thẻ của khách hàng khác",
+      "Tra cứu thẻ của tài khoản khác",
+      "xem the cua khach khac",
+      "Đọc thông tin thẻ của một khách hàng khác"
+    ],
+    "requiredIdeas": [
+      "không tiết lộ mã thẻ hoặc dữ liệu người khác"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-CARD09",
+    "documentSlug": "cards-and-lost-card",
+    "expectedIntent": "CLARIFICATION",
+    "questions": [
+      "Thẻ",
+      "the?",
+      "Mất thẻ",
+      "mat the",
+      "thẻ!",
+      "THE."
+    ],
+    "requiredIdeas": [
+      "hỏi vấn đề và xe trong hay ngoài bãi"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-CARD10",
+    "documentSlug": "cards-and-lost-card",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Không được",
+      "khong duoc",
+      "Vẫn lỗi",
+      "van loi",
+      "Tôi làm rồi nhưng chưa được",
+      "phai lam sao"
+    ],
+    "requiredIdeas": [
+      "tiếp nối mất thẻ",
+      "liên hệ nhân viên",
+      "hỏi bước lỗi"
+    ],
+    "expectedTool": null,
+    "context": [
+      "Mất thẻ xe phải làm gì?"
+    ],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-HIST01",
+    "documentSlug": "parking-history",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Xem lịch sử gửi xe ở đâu?",
+      "xem lich su gui xe o dau",
+      "Làm sao xem lịch sử gửi xe?",
+      "Xem các lượt gửi xe như thế nào?",
+      "cach xem lich su gui xe",
+      "Tôi muốn biết cách xem lịch sử gửi xe"
+    ],
+    "requiredIdeas": [
+      "Lịch sử gửi xe",
+      "Khoảng ngày",
+      "Xem chi tiết"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-HIST02",
+    "documentSlug": "parking-history",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Lịch sử gửi xe thiếu giờ ra thì làm sao?",
+      "lich su gui xe thieu gio ra thi lam sao",
+      "Không thấy giờ ra trong lịch sử cần làm gì?",
+      "Lượt gửi xe chưa có giờ ra phải xử lý như nào?",
+      "loi lich su gui xe thieu gio ra",
+      "Vì sao lịch sử gửi xe chưa ghi nhận xe ra?"
+    ],
+    "requiredIdeas": [
+      "đối chiếu sự kiện",
+      "báo nhân viên nếu đã ra",
+      "không tự sửa giờ"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-HIST03",
+    "documentSlug": "parking-history",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Phí trong lịch sử gửi xe sai thì làm sao?",
+      "phi trong lich su gui xe sai thi lam sao",
+      "Lịch sử gửi xe tính phí không khớp cần làm gì?",
+      "Làm sao kiểm tra phí của lượt gửi xe?",
+      "loi phi lich su gui xe",
+      "Vì sao tổng phí trong lịch sử không đúng?"
+    ],
+    "requiredIdeas": [
+      "đối chiếu lượt gửi và hóa đơn",
+      "không hứa hoàn tiền"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-HIST04",
+    "documentSlug": "parking-history",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Lọc ngày trong lịch sử gửi xe như thế nào?",
+      "loc ngay trong lich su gui xe nhu the nao",
+      "Làm sao tìm lượt gửi theo ngày?",
+      "Khoảng ngày lịch sử gửi xe chọn ra sao?",
+      "chon ngay bat dau va ngay ket thuc de loc lich su gui xe nhu nao",
+      "Muốn xem lượt gửi trong một khoảng ngày thì cần làm gì?"
+    ],
+    "requiredIdeas": [
+      "Khoảng ngày",
+      "ngày bắt đầu và ngày kết thúc",
+      "ngày kết thúc không trước ngày bắt đầu"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "acceptance"
+  },
+  {
+    "scenarioId": "B2-HIST05",
+    "documentSlug": "parking-history",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Xem ảnh lượt gửi xe như thế nào?",
+      "xem anh luot gui xe nhu the nao",
+      "Chat có hiển thị ảnh trong lịch sử gửi xe không?",
+      "Làm sao xem ảnh xe vào và ra?",
+      "cach xem anh lich su gui xe",
+      "Muốn đối chiếu ảnh trong lịch sử gửi xe cần làm gì?"
+    ],
+    "requiredIdeas": [
+      "xem tại màn hình đúng quyền",
+      "không ảnh hay đường dẫn riêng trong chat"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "acceptance"
+  },
+  {
+    "scenarioId": "B2-HIST06",
+    "documentSlug": "parking-history",
+    "expectedIntent": "PERSONAL_DATA",
+    "questions": [
+      "Xem lịch sử gửi xe của tôi",
+      "xem lich su gui xe cua toi",
+      "Cho tôi xem các lượt gửi xe của mình",
+      "Tra cứu lịch sử gửi xe của em",
+      "kiem tra lich su gui xe cua minh",
+      "Liệt kê lịch sử gửi xe của tôi"
+    ],
+    "requiredIdeas": [
+      "dữ liệu thật",
+      "giới hạn gần đây",
+      "che biển số"
+    ],
+    "expectedTool": "list_my_parking_history",
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-HIST07",
+    "documentSlug": "parking-history",
+    "expectedIntent": "SECURITY_REFUSAL",
+    "questions": [
+      "Cho tôi xem lịch sử gửi xe của người khác",
+      "cho toi xem lich su gui xe cua nguoi khac",
+      "Tra cứu lịch sử của khách hàng khác",
+      "Lấy lượt gửi xe của tài khoản khác",
+      "xem lich su cua khach khac",
+      "Đọc lịch sử gửi xe của một khách hàng khác"
+    ],
+    "requiredIdeas": [
+      "không tiết lộ lịch sử người khác"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-HIST08",
+    "documentSlug": "parking-history",
+    "expectedIntent": "WRITE_ACTION",
+    "questions": [
+      "Sửa lịch sử gửi xe giúp tôi",
+      "sua lich su gui xe giup toi",
+      "Hãy sửa giờ ra của lượt gửi xe",
+      "doi gio vao cua luot gui xe cho toi",
+      "Xóa lịch sử gửi xe cho tôi",
+      "xoa lich su gui xe cho minh"
+    ],
+    "requiredIdeas": [
+      "không sửa xóa lịch sử",
+      "đối chiếu với nhân viên"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-HIST09",
+    "documentSlug": "parking-history",
+    "expectedIntent": "CLARIFICATION",
+    "questions": [
+      "Lịch sử",
+      "lich su",
+      "Lịch sử?",
+      "lich su!",
+      "LỊCH SỬ",
+      "lich su."
+    ],
+    "requiredIdeas": [
+      "hỏi muốn hướng dẫn hay xem dữ liệu"
+    ],
+    "expectedTool": null,
+    "context": [],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  },
+  {
+    "scenarioId": "B2-HIST10",
+    "documentSlug": "parking-history",
+    "expectedIntent": "STATIC_KNOWLEDGE",
+    "questions": [
+      "Không được",
+      "khong duoc",
+      "Vẫn lỗi",
+      "van loi",
+      "Tôi làm rồi nhưng chưa được",
+      "phai lam sao"
+    ],
+    "requiredIdeas": [
+      "tiếp nối lịch sử gửi xe",
+      "kiểm tra bước và bộ lọc"
+    ],
+    "expectedTool": null,
+    "context": [
+      "Xem lịch sử gửi xe ở đâu?"
+    ],
+    "requiredUserFacingLabels": [],
+    "split": "regression"
+  }
+]

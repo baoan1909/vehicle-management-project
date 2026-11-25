@@ -1,0 +1,30 @@
+[
+  {
+    "caseId": "CHAT06-1",
+    "question": "Trợ lý chatbot khác hội thoại với nhân viên như thế nào?",
+    "diagnostic": "INSUFFICIENT_EVIDENCE",
+    "groundedConfidence": 0.548,
+    "hitAt5": true
+  },
+  {
+    "caseId": "CHAT06-2",
+    "question": "tro ly chatbot khac hoi thoai voi nhan vien nhu the nao",
+    "diagnostic": "INSUFFICIENT_EVIDENCE",
+    "groundedConfidence": 0.545,
+    "hitAt5": true
+  },
+  {
+    "caseId": "SUP06-5",
+    "question": "Hướng dẫn tiếp tục trao đổi phiếu đã giải quyết",
+    "diagnostic": "EMBEDDING_FAILED",
+    "groundedConfidence": 0,
+    "hitAt5": false
+  },
+  {
+    "caseId": "B2-SUB02-6",
+    "question": "ve thang tra tien xong can lam gi tiep",
+    "diagnostic": "INSUFFICIENT_EVIDENCE",
+    "groundedConfidence": 0.544,
+    "hitAt5": true
+  }
+]

@@ -1,74 +1,88 @@
 <!--
-title: Thẻ xe và báo mất thẻ
+title: Thẻ gửi xe và cách xử lý mất thẻ
 slug: cards-and-lost-card
-documentVersion: 1.1.0
+documentVersion: 2.3.0
 status: DRAFT
 language: vi
 accessScope: CUSTOMER
 ownerPermission: AI_KNOWLEDGE_MANAGE_ALL
-sourceOfTruth: Card/lost-card policies, use cases, FE và Flyway
+sourceOfTruth: Giao diện, nghiệp vụ, phân quyền và migration đã đối chiếu trong bằng chứng đợt 2
 effectiveFrom: null
 reviewAt: null
-lastVerifiedAt: 2026-09-14
+lastVerifiedAt: 2026-11-24
 -->
 
-# Thẻ xe và báo mất thẻ
+# Thẻ gửi xe và cách xử lý mất thẻ
 
 ## Mục đích
-Giải thích trạng thái thẻ và hướng dẫn mất thẻ an toàn.
+Hướng dẫn xử lý thẻ không sử dụng được, báo mất thẻ và tìm lại thẻ an toàn.
 
 ## Đối tượng
-Customer và nhân viên hỗ trợ/vận hành.
+Khách hàng cần trợ giúp và nhân sự được cấp quyền xử lý mất thẻ tại bãi xe thuộc phạm vi phụ trách.
 
 ## Phạm vi
-Gán/reserve/in-use, block/unblock, lost/recover/retire và lost-card report.
+Thông tin thẻ vật lý, việc báo mất và quy trình nhân viên xử lý. Phiếu báo mất thẻ là hồ sơ vận hành riêng, khác phiếu hỗ trợ để báo lỗi chức năng hệ thống.
 
 ## Thuật ngữ
-UID là mã kỹ thuật nhạy cảm không hiển thị qua chatbot; lost-card report là hồ sơ vận hành, khác support ticket.
+Thẻ vật lý dùng để nhận diện khi ra vào bãi. Phiếu báo mất thẻ ghi nhận sự việc và xử lý theo quy trình tại bãi. Mã QR của vé và thẻ vật lý không phải cùng một dữ liệu; không gửi mã sử dụng ra vào trong chat.
 
 ## Điều kiện trước
-Chuyển trạng thái thẻ do Backend policy và người có permission ALL; report yêu cầu context và xác minh tại quy trình vận hành.
+Khách hàng liên hệ nhân viên bãi xe để được xác minh thông tin. Nhân viên phải có quyền tạo hoặc xử lý phiếu và được phép thao tác tại đúng bãi xe. Khách hàng không tự lập phiếu báo mất chính thức qua chatbot.
+Không gửi số giấy tờ định danh đầy đủ, ảnh giấy tờ, mã thẻ kỹ thuật hay mã QR vào chat. Nhân viên xác minh bằng quy trình nghiệp vụ được phép, không qua yêu cầu thu giấy tờ của chatbot.
 
 ## Luồng chính
-- Thẻ mới `AVAILABLE`; có thể `RESERVED`, `ASSIGNED`, `IN_USE`.
-- Thẻ hợp lệ có thể block và lưu status trước block; unblock khôi phục status đó.
-- Report mất thẻ tạo `OPEN`; operator xử lý để `RESOLVED` hoặc `CANCELLED`, có thể liên quan thẻ thay thế/invoice.
+1. Nếu mất thẻ, báo nhân viên bãi xe và cho biết xe còn trong bãi hay đã ra ngoài. Không dùng thẻ khác để tự mở cổng.
+2. Nhân viên mở Tạo phiếu báo mất thẻ, Tra cứu biển số, đối chiếu xe, thẻ và thông tin xác minh.
+3. Nhân viên lập phiếu sau khi đủ thông tin. Hệ thống đánh dấu thẻ cũ bị mất, ghi nhận lượt gửi liên quan và tạo hóa đơn theo dữ liệu đã xác định.
+4. Đối chiếu số tiền trên hóa đơn và thực hiện thanh toán theo hướng dẫn. Không coi việc tạo phiếu là đã hoàn tất xử lý.
+5. Khi hệ thống đã ghi nhận thanh toán, nhân viên hoàn tất phiếu. Trường hợp cần thẻ thay thế phải chọn thẻ phù hợp còn sẵn sàng tại cùng bãi và cùng loại với thẻ cũ. Việc mở thanh chắn theo kết quả xử lý, không phải do chatbot cam kết.
 
 ## Luồng thay thế
-Thẻ LOST tìm lại có thể recover về AVAILABLE theo policy và audit người thực hiện.
+- Khách dùng vé và đang ở trong bãi: có thể cần thay thẻ, cập nhật liên kết với vé và kết thúc lượt gửi theo quy trình.
+- Khách dùng vé nhưng đã ở ngoài bãi: nhân viên kiểm tra vé và thẻ; không tạo lượt xe ra giả hoặc hứa mở cổng.
+- Khách gửi lượt thông thường: không tự yêu cầu gán thẻ mới vào vé tháng không tồn tại.
+- Tìm lại thẻ trước khi trả tiền: báo nhân viên để kiểm tra khả năng hủy phiếu và khôi phục theo đúng trường hợp. Không tự dùng lại thẻ đã báo mất.
 
 ## Luồng lỗi
-Không block LOST/RETIRED; không retire IN_USE; thiếu metadata block; report thiếu thông tin xác minh hoặc thời gian mất ở tương lai.
+- Không tạo được phiếu: kiểm tra thông tin xe, lượt gửi hoặc vé, bãi xe, thời gian mất và dữ liệu xác minh. Có phiếu đang mở cho thẻ hoặc lượt gửi thì không tạo lặp.
+- Chưa thể hoàn tất: kiểm tra hóa đơn đã được ghi nhận thanh toán chưa và đã chọn thẻ thay thế đúng yêu cầu chưa.
+- Không hủy được: phiếu đã trả tiền hoặc đã có thanh toán thành công không được hủy theo luồng này. Liên hệ nhân viên có thẩm quyền; không hứa hoàn tiền.
+- Không biết phí: xem hóa đơn thực tế. Phí phụ thuộc dữ liệu và cấu hình có hiệu lực; chatbot không tự đặt một mức phí cố định.
 
 ## Trạng thái và chuyển trạng thái
-Card: AVAILABLE, RESERVED, ASSIGNED, IN_USE, LOST, BLOCKED, RETIRED. Report: OPEN→RESOLVED|CANCELLED.
+Phiếu báo mất: Đang mở → Đã xử lý hoặc Đã hủy, theo điều kiện được kiểm tra.
+Thẻ có thể đang sẵn sàng, được giữ, được gán, đang sử dụng, bị mất, bị khóa hoặc ngừng sử dụng. Bị mất khác với tạm khóa; tìm thấy thẻ không tự làm phiếu hoàn tất hoặc khôi phục quyền ra vào.
+Với quy trình báo mất, hệ thống đánh dấu thẻ cũ bị mất. Khi giao diện mô tả “khóa thẻ cũ”, không suy ra đó là mọi loại khóa thẻ hoặc tự dùng chức năng mở khóa thay cho xử lý báo mất.
 
 ## Câu hỏi khách hàng thường gặp
-- Mất thẻ phải làm gì?
-- Thẻ bị khóa nghĩa là gì?
-- Có cấp thẻ thay thế không?
+- Điều kiện tạo phiếu báo mất thẻ là gì? Nhân viên cần đúng quyền và phạm vi bãi, xác định đúng thẻ hoặc lượt gửi, kiểm tra thông tin xác minh và chưa có phiếu đang mở cho cùng thẻ hoặc lượt gửi. Không tạo nhiều phiếu khi chưa biết kết quả. Phiếu hỗ trợ chỉ báo lỗi phần mềm, không thay thế phiếu báo mất thẻ. Thanh toán ghi nhận và thẻ thay thế khả dụng, cùng bãi, đúng loại được kiểm tra ở bước hoàn tất khi áp dụng.
+- Mất thẻ phải làm gì? Báo nhân viên bãi xe, cho biết xe còn trong bãi hay đã ra ngoài, rồi thực hiện xác minh theo hướng dẫn.
+- Có báo mất qua chat được không? Chat có thể hướng dẫn; nhân viên có quyền mới lập hồ sơ báo mất chính thức.
+- Tạo phiếu hỗ trợ có thay phiếu báo mất không? Không. Phiếu hỗ trợ chỉ dùng để báo lỗi chức năng; việc báo mất xử lý tại nghiệp vụ mất thẻ.
+- Phí mất thẻ bao nhiêu? Xem hóa đơn và cấu hình áp dụng; chưa có dữ liệu thì không đưa số tiền.
+- Đã trả tiền mà chưa xong thì sao? Nhờ nhân viên kiểm tra tiền đã được ghi nhận và bước cấp thẻ hoặc hoàn tất còn thiếu.
+- Tìm lại thẻ rồi phải làm sao? Báo nhân viên; không tự dùng lại. Khả năng hủy phiếu phụ thuộc tình trạng thanh toán và xử lý.
+- Thẻ bị khóa có phải bị mất không? Không; cần kiểm tra nguyên nhân thực tế tại vé hoặc với nhân viên.
+- Chat có khóa hoặc cấp lại thẻ cho tôi không? Chưa hỗ trợ, và không được khẳng định đã làm thay.
+- Có phải gửi ảnh căn cước qua chat không? Không. Thực hiện xác minh qua quy trình của nhân viên bãi xe.
+- Chỉ hỏi “thẻ” hoặc “mất thẻ” thì sao? Hỏi rõ vấn đề và xe đang ở trong hay ngoài bãi trước khi hướng dẫn cụ thể.
+- Tạo phiếu mất thẻ thất bại cần kiểm tra gì? Nhân viên kiểm tra đúng thẻ, bãi xe, tình trạng xe trong hay ngoài bãi, quyền xử lý và thông báo lỗi. Khách hàng báo nhân viên; không tự gửi lại nhiều phiếu khi chưa biết kết quả lần trước.
+- Vì sao chưa hoàn tất phiếu báo mất thẻ được? Nhờ nhân viên kiểm tra thanh toán đã được ghi nhận đầy đủ và điều kiện hoàn tất của phiếu. Nếu cần thay thẻ, thẻ thay thế phải còn sẵn sàng, đúng loại và cùng bãi. Không tự dùng lại thẻ đã báo mất hoặc trả tiền lại khi chưa đối chiếu giao dịch.
+- Nhân viên tạo phiếu mất thẻ không được thì làm sao? Nhờ nhân viên kiểm tra đúng thẻ, bãi xe, tình trạng xe trong hay ngoài bãi, quyền xử lý, thông tin xác minh và có phiếu đang mở cho cùng thẻ hoặc lượt gửi hay chưa. Ghi lại thông báo lỗi; không gửi nhiều phiếu khi chưa biết kết quả lần trước. Thanh toán và thẻ thay thế là điều kiện ở bước hoàn tất, không phải điều kiện để lập phiếu lần đầu. Phiếu hỗ trợ báo lỗi phần mềm không thay thế phiếu báo mất thẻ.
+- Cách kiểm tra khi tạo phiếu mất thẻ thất bại? Báo nhân viên kiểm tra đúng thẻ, bãi xe, tình trạng xe trong hay ngoài bãi, quyền xử lý, dữ liệu xác minh và phiếu đang mở có thể bị trùng. Cung cấp bước gặp lỗi và thông báo cụ thể. Không tự gửi lại nhiều phiếu; chưa yêu cầu thanh toán hoặc chọn thẻ thay thế ở bước lập phiếu lần đầu. Thanh toán và thẻ thay thế được kiểm tra ở bước hoàn tất khi trường hợp đó yêu cầu. Phiếu hỗ trợ báo lỗi phần mềm không thay thế phiếu báo mất thẻ.
+- Phiếu báo mất thẻ bị lỗi cần làm gì? Báo nhân viên bãi xe, cho biết lỗi ở bước lập phiếu hay hoàn tất và thông báo cụ thể. Nhân viên kiểm tra đúng thẻ, bãi xe, tình trạng xe, quyền xử lý và có phiếu đang mở cho cùng thẻ hoặc lượt gửi hay chưa; không gửi nhiều phiếu khi chưa biết kết quả. Điều kiện thanh toán và thẻ thay thế được kiểm tra ở bước hoàn tất. Phiếu hỗ trợ báo lỗi phần mềm không thay thế phiếu báo mất thẻ.
 
 ## Điều chatbot được phép trả lời
-Hướng dẫn giữ nguyên hiện trường, báo nhân viên/tạo support ticket và chỉ cung cấp dữ liệu tối thiểu.
+Hướng dẫn phù hợp với khách hàng hoặc nhân sự, giải thích các bước và điều kiện. Với câu “lỗi tạo phiếu báo mất”, hỏi bước và thông báo lỗi; không tự tạo phiếu hỗ trợ để thay nghiệp vụ báo mất.
 
-## Điều chatbot phải dùng business tool
-Status thẻ OWN qua subscription mapping; không trả UID hoặc thông tin định danh đầy đủ.
+## Điều chatbot phải dùng chức năng được cấp quyền
+Muốn xác nhận trạng thái thẻ, phí hoặc hồ sơ cụ thể phải có chức năng đọc dữ liệu đúng quyền. Chat hiện chưa có chức năng đọc trực tiếp trạng thái thẻ hoặc phiếu báo mất; hướng dẫn kiểm tra thông tin thẻ tại Vé tháng của tôi hoặc nhờ nhân viên. Không suy ra trạng thái thẻ chỉ từ trạng thái vé.
 
 ## Điều chatbot phải từ chối
-Nhận CCCD/CMND đầy đủ, số thẻ/UID, tự block/unblock/recover/retire hoặc xác nhận phí thay thế không có tool.
+Nhận giấy tờ định danh đầy đủ; tiết lộ mã thẻ, thông tin khách khác hoặc đường dẫn ảnh riêng tư; tự khóa, mở khóa, cấp lại, hủy hoặc hoàn tất phiếu khi chưa có chức năng và quyền hợp lệ.
 
 ## Khi nào chuyển nhân viên
-Khách đang ở trong bãi, thẻ LOST/BLOCKED, cần xác minh/cấp thẻ hoặc có tranh chấp phí.
+Mất thẻ thực tế, xe đang ở bãi, cần xác minh, tìm lại thẻ đã báo mất, tranh chấp hóa đơn hoặc lỗi không hoàn tất được. Không đưa lời hứa về phí, thời gian cấp thẻ hoặc hoàn tiền khi chưa có chính sách và dữ liệu.
 
-## Nguồn đối chiếu
-- `CardController`, `CardUseCaseImpl`, `CardPolicy`.
-- `LostCardReportController`, use case/policy/access guard.
-- FE cards/lost-card pages và API.
-- `access_control.cards`, `lost_card_reports`.
-
-## Nội dung TBD
-Self-service và masking đã chốt: customer không tự lập official lost-card report; chatbot không nhận CCCD/CMND và chỉ giữ tối đa 4 ký tự cuối parking-card. Mức phí, giấy tờ vận hành, replacement SLA và retention giấy tờ cần decision riêng.
-
-## Lịch sử phiên bản
-- 1.1.0: ghi nhận TBD-010/TBD-022 APPROVED ngày 2026-09-14; customer tool không được mở.
-- 1.0.0: baseline ngày 2026-09-14.
+## Lưu ý khi trả lời và đối chiếu kết quả
+Lập phiếu lần đầu và hoàn tất phiếu có điều kiện khác nhau. Chưa trả tiền không tự chứng minh không thể lập phiếu; đã trả tiền cũng chưa chứng minh đã hoàn tất. Nhân viên cần đối chiếu kết quả thanh toán và thẻ thay thế khi trường hợp đó yêu cầu. Không tự dùng lại thẻ đã báo mất.

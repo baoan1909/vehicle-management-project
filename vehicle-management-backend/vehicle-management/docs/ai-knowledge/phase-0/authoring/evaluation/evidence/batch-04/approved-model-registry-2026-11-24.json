@@ -1,0 +1,116 @@
+{
+  "queriedAt": "2026-11-23T18:01:55.764863+00:00",
+  "target": "local vehicle-pgvector dev container",
+  "readOnlyTransaction": true,
+  "exit": 0,
+  "models": [
+    {
+      "modelId": "gemini-3.6-flash",
+      "status": "ACTIVE",
+      "freeTierApproved": true,
+      "priority": 10,
+      "rolloutPercentage": 100,
+      "apiVersion": "v1beta",
+      "temperature": 0.3,
+      "maxOutputTokens": 1024,
+      "requiresStructuredOutput": true,
+      "requiresFunctionCalling": false
+    },
+    {
+      "modelId": "gemini-3.1-flash-lite",
+      "status": "FALLBACK",
+      "freeTierApproved": true,
+      "priority": 20,
+      "rolloutPercentage": 0,
+      "apiVersion": "v1beta",
+      "temperature": 0.3,
+      "maxOutputTokens": 1024,
+      "requiresStructuredOutput": true,
+      "requiresFunctionCalling": false
+    },
+    {
+      "modelId": "gemini-3.5-flash-lite",
+      "status": "FALLBACK",
+      "freeTierApproved": true,
+      "priority": 30,
+      "rolloutPercentage": 0,
+      "apiVersion": "v1beta",
+      "temperature": 0.3,
+      "maxOutputTokens": 1024,
+      "requiresStructuredOutput": true,
+      "requiresFunctionCalling": false
+    },
+    {
+      "modelId": "gemini-2.5-flash-lite",
+      "status": "FALLBACK",
+      "freeTierApproved": true,
+      "priority": 40,
+      "rolloutPercentage": 0,
+      "apiVersion": "v1beta",
+      "temperature": 0.3,
+      "maxOutputTokens": 1024,
+      "requiresStructuredOutput": true,
+      "requiresFunctionCalling": false
+    },
+    {
+      "modelId": "gemini-2.5-flash",
+      "status": "FALLBACK",
+      "freeTierApproved": true,
+      "priority": 50,
+      "rolloutPercentage": 0,
+      "apiVersion": "v1beta",
+      "temperature": 0.3,
+      "maxOutputTokens": 1024,
+      "requiresStructuredOutput": true,
+      "requiresFunctionCalling": false
+    },
+    {
+      "modelId": "gemini-3.5-flash",
+      "status": "FALLBACK",
+      "freeTierApproved": true,
+      "priority": 60,
+      "rolloutPercentage": 0,
+      "apiVersion": "v1beta",
+      "temperature": 0.3,
+      "maxOutputTokens": 1024,
+      "requiresStructuredOutput": true,
+      "requiresFunctionCalling": false
+    },
+    {
+      "modelId": "gemini-3-flash-preview",
+      "status": "FALLBACK",
+      "freeTierApproved": true,
+      "priority": 70,
+      "rolloutPercentage": 0,
+      "apiVersion": "v1beta",
+      "temperature": 0.3,
+      "maxOutputTokens": 1024,
+      "requiresStructuredOutput": true,
+      "requiresFunctionCalling": false
+    },
+    {
+      "modelId": "gemini-3.7-flash",
+      "status": "FALLBACK",
+      "freeTierApproved": true,
+      "priority": 80,
+      "rolloutPercentage": 0,
+      "apiVersion": "v1beta",
+      "temperature": 0.3,
+      "maxOutputTokens": 1024,
+      "requiresStructuredOutput": true,
+      "requiresFunctionCalling": false
+    },
+    {
+      "modelId": "gemini-3.8-flash",
+      "status": "FALLBACK",
+      "freeTierApproved": true,
+      "priority": 90,
+      "rolloutPercentage": 0,
+      "apiVersion": "v1beta",
+      "temperature": 0.3,
+      "maxOutputTokens": 1024,
+      "requiresStructuredOutput": true,
+      "requiresFunctionCalling": false
+    }
+  ]
+}

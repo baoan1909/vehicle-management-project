@@ -1,0 +1,70 @@
+{
+  "verifiedAt": "2026-11-19",
+  "testsAreNotSemanticAnswerCertification": true,
+  "files": [
+    {
+      "file": "after-routes.txt",
+      "sha256": "ff5a514d7534cb5531f291a965b0ecfc5d53f5ec84c29cf74d05434073e49087"
+    },
+    {
+      "file": "baseline-cases.json",
+      "sha256": "f41d4a08e6df11e985a12154bc5edc9b4fb0b39f09dc4a2bac599160e092fd64"
+    },
+    {
+      "file": "baseline-routes.txt",
+      "sha256": "b33016426237facc3ddd8e74d789dcc223a898909c9a04b70eae8e3bc44e749a"
+    },
+    {
+      "file": "cache-latency.json",
+      "sha256": "bd20c4277aaee99a6ef5cebe6c52ef24aaccf0ad2155f135505e83c4ad04ec0b"
+    },
+    {
+      "file": "dev-corpus-inventory.json",
+      "sha256": "97432f61c35a70ff80fa0734a0d34b52291ebf7613b1f795c823a3f74c73b4a6"
+    },
+    {
+      "file": "full-retrieval-results.json",
+      "sha256": "63b5c1b1910e341b299742318d856ec87e177f8ad1aadb1ea5a04cd123650274"
+    },
+    {
+      "file": "live-transcript.json",
+      "sha256": "6fce21fd893b3236f8a6330fbff1dcdb9549e9f74f80b2d8c6775e5190bb7390"
+    },
+    {
+      "file": "provider-generation-probe.jsonl",
+      "sha256": "3292b73f04948400722a208e784812eede052189571d9fb4ab5a48c3bd4c5964"
+    },
+    {
+      "file": "remaining-low-evidence.json",
+      "sha256": "e2ddba8ceba3695f43980fe225d9808379439c95bbc6ef7861d0482a3e3100b1"
+    },
+    {
+      "file": "retrieval-before-lexical.json",
+      "sha256": "beb8144879e59ff81f2a9c972784711dc050d5bbf2fa0a27d3777242f8a7fd17"
+    },
+    {
+      "file": "retrieval-summary.json",
+      "sha256": "53f23803e8ecdfa5028ee0fcbacb88848f0cc6239eb9a5bb098b4b6c215864af"
+    },
+    {
+      "file": "routing-results.json",
+      "sha256": "37662e0224a206c90b28361b8da8d6e000d04dac53324ab45bc0f8155efda73d"
+    },
+    {
+      "file": "routing-summary.json",
+      "sha256": "a440822da4d1437c62783a0fc05013da45dc709dc672f616a4e66a8c698d797b"
+    },
+    {
+      "file": "test-log-summary.json",
+      "sha256": "07e0bcf1b11950e11c6cdf7e21095e37ba09a64665e07905ed0f622d064ac4a7"
+    },
+    {
+      "file": "troubleshooting-after.txt",
+      "sha256": "dff2f78d0b007f53e016e338cdfbbf60449a3f91649044dff3c203cbf27534e0"
+    },
+    {
+      "file": "troubleshooting-before.txt",
+      "sha256": "f18c0e9acd565b7945da752991fdc0abd79c6a7269c14f66a9ad10473cd9fcd0"
+    }
+  ]
+}

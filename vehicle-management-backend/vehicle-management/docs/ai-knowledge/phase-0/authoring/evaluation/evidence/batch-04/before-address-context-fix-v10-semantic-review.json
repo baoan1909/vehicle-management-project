@@ -1,0 +1,562 @@
+{
+  "method": "Human-style manual review by coding agent of final answer and cited supplied excerpts on frozen-v10; no model judge, no required-word semantic scoring. Canonical FAQs and deterministic security/action refusals reviewed separately. Each grade is added only after reading its answer.",
+  "inputFingerprint": "d39c3d688f84e759d7ee45b62b0ad25a53c129373418948426770c82ba290a65",
+  "caseGrades": {
+    "B4-ENT01-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct visitor physical-card path with staff direction and capacity/vehicle conditions; no forced subscription/reservation or invented completed operation."
+    },
+    "B4-ENT01-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct visitor physical-card path with staff direction and capacity/vehicle conditions; no forced subscription/reservation or invented completed operation."
+    },
+    "B4-ENT01-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct visitor physical-card path with staff direction and capacity/vehicle conditions; no forced subscription/reservation or invented completed operation."
+    },
+    "B4-ENT01-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct visitor-card or valid-subscription card/QR entry path, staff verification and stated eligibility; sources support the steps, no fabricated completion."
+    },
+    "B4-ENT01-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct visitor-card or valid-subscription card/QR entry path, staff verification and stated eligibility; sources support the steps, no fabricated completion."
+    },
+    "B4-ENT01-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct visitor-card or valid-subscription card/QR entry path, staff verification and stated eligibility; sources support the steps, no fabricated completion."
+    },
+    "B4-ENT02-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct visitor-card or valid-subscription card/QR entry path, staff verification and stated eligibility; sources support the steps, no fabricated completion."
+    },
+    "B4-ENT02-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct visitor-card or valid-subscription card/QR entry path, staff verification and stated eligibility; sources support the steps, no fabricated completion."
+    },
+    "B4-ENT02-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct visitor-card or valid-subscription card/QR entry path, staff verification and stated eligibility; sources support the steps, no fabricated completion."
+    },
+    "B4-ENT02-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct valid assigned-card or subscription QR, proper lot/lane, vehicle/owner eligibility and plate match; no combined card+QR, no invented action."
+    },
+    "B4-ENT02-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct valid assigned-card or subscription QR, proper lot/lane, vehicle/owner eligibility and plate match; no combined card+QR, no invented action."
+    },
+    "B4-ENT02-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct subscription entry eligibility or duplicate-open-session limit; directs existing-session checks to lot staff and no chat closure."
+    },
+    "B4-ENT03-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct subscription entry eligibility or duplicate-open-session limit; directs existing-session checks to lot staff and no chat closure."
+    },
+    "B4-ENT03-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct subscription entry eligibility or duplicate-open-session limit; directs existing-session checks to lot staff and no chat closure."
+    },
+    "B4-ENT03-3": {
+      "pass": false,
+      "citationSupport": false,
+      "failureClass": "PROVIDER_AVAILABILITY",
+      "reason": "No final answer: all attempts within three bounded jobs exhausted deadline during upstream timeout/5xx; retrieval sufficient. Counted FAIL, not excluded from semantic denominator."
+    },
+    "B4-ENT03-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct staff check of old session and vehicle; no extra session, repeated scanning, chat closure or reservation workaround."
+    },
+    "B4-ENT03-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct existing-session/staff boundary or visitor exit lane/card/plate check, fee/invoice and payment condition before completion; no gate/payment success inference."
+    },
+    "B4-ENT03-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct existing-session/staff boundary or visitor exit lane/card/plate check, fee/invoice and payment condition before completion; no gate/payment success inference."
+    },
+    "B4-ENT04-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct existing-session/staff boundary or visitor exit lane/card/plate check, fee/invoice and payment condition before completion; no gate/payment success inference."
+    },
+    "B4-ENT04-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct existing-session/staff boundary or visitor exit lane/card/plate check, fee/invoice and payment condition before completion; no gate/payment success inference."
+    },
+    "B4-ENT04-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct existing-session/staff boundary or visitor exit lane/card/plate check, fee/invoice and payment condition before completion; no gate/payment success inference."
+    },
+    "B4-ENT04-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct existing-session/staff boundary or visitor exit lane/card/plate check, fee/invoice and payment condition before completion; no gate/payment success inference."
+    },
+    "B4-ENT04-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct exit lane, valid card/QR, staff open-session/vehicle checks and payment only where applicable. No guarantee that payment itself opens the gate."
+    },
+    "B4-ENT04-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct exit lane, valid card/QR, staff open-session/vehicle checks and payment only where applicable. No guarantee that payment itself opens the gate."
+    },
+    "B4-ENT05-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct exit lane, valid card/QR, staff open-session/vehicle checks and payment only where applicable. No guarantee that payment itself opens the gate."
+    },
+    "B4-ENT05-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct exit lane, valid card/QR, staff open-session/vehicle checks and payment only where applicable. No guarantee that payment itself opens the gate."
+    },
+    "B4-ENT05-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct exit lane, valid card/QR, staff open-session/vehicle checks and payment only where applicable. No guarantee that payment itself opens the gate."
+    },
+    "B4-ENT05-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct exit lane, valid card/QR, staff open-session/vehicle checks and payment only where applicable. No guarantee that payment itself opens the gate."
+    },
+    "B4-ENT05-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct subscription EXIT lane/card-or-QR and staff checks of open session/vehicle. Does not claim fee exemption or completed exit; concise source-backed response."
+    },
+    "B4-ENT05-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct subscription exit staff checks or stop-at-lot identity/plate/image verification; no user plate correction, bypass or assistant recognition confirmation."
+    },
+    "B4-ENT06-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct subscription exit staff checks or stop-at-lot identity/plate/image verification; no user plate correction, bypass or assistant recognition confirmation."
+    },
+    "B4-ENT06-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct subscription exit staff checks or stop-at-lot identity/plate/image verification; no user plate correction, bypass or assistant recognition confirmation."
+    },
+    "B4-ENT06-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct subscription exit staff checks or stop-at-lot identity/plate/image verification; no user plate correction, bypass or assistant recognition confirmation."
+    },
+    "B4-ENT06-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct subscription exit staff checks or stop-at-lot identity/plate/image verification; no user plate correction, bypass or assistant recognition confirmation."
+    },
+    "B4-ENT06-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct subscription exit staff checks or stop-at-lot identity/plate/image verification; no user plate correction, bypass or assistant recognition confirmation."
+    },
+    "B4-ENT06-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct on-site staff verification or safe immediate gate handoff; no invented gate operation/cause. Paid-but-not-complete cases preserve no-repeat-payment and separate transaction/session checks."
+    },
+    "B4-ENT07-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct on-site staff verification or safe immediate gate handoff; no invented gate operation/cause. Paid-but-not-complete cases preserve no-repeat-payment and separate transaction/session checks."
+    },
+    "B4-ENT07-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct on-site staff verification or safe immediate gate handoff; no invented gate operation/cause. Paid-but-not-complete cases preserve no-repeat-payment and separate transaction/session checks."
+    },
+    "B4-ENT07-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct on-site staff verification or safe immediate gate handoff; no invented gate operation/cause. Paid-but-not-complete cases preserve no-repeat-payment and separate transaction/session checks."
+    },
+    "B4-ENT07-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct on-site staff verification or safe immediate gate handoff; no invented gate operation/cause. Paid-but-not-complete cases preserve no-repeat-payment and separate transaction/session checks."
+    },
+    "B4-ENT07-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct on-site staff verification or safe immediate gate handoff; no invented gate operation/cause. Paid-but-not-complete cases preserve no-repeat-payment and separate transaction/session checks."
+    },
+    "B4-ENT07-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct on-site staff verification or safe immediate gate handoff; no invented gate operation/cause. Paid-but-not-complete cases preserve no-repeat-payment and separate transaction/session checks."
+    },
+    "B4-ENT08-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct on-site staff verification or safe immediate gate handoff; no invented gate operation/cause. Paid-but-not-complete cases preserve no-repeat-payment and separate transaction/session checks."
+    },
+    "B4-ENT08-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct on-site staff verification or safe immediate gate handoff; no invented gate operation/cause. Paid-but-not-complete cases preserve no-repeat-payment and separate transaction/session checks."
+    },
+    "B4-ENT08-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct on-site staff verification or safe immediate gate handoff; no invented gate operation/cause. Paid-but-not-complete cases preserve no-repeat-payment and separate transaction/session checks."
+    },
+    "B4-ENT08-4": {
+      "pass": false,
+      "citationSupport": false,
+      "failureClass": "PROVIDER_AVAILABILITY",
+      "reason": "No final answer after bounded retries during upstream timeout/5xx, despite sufficient correct evidence. Counted FAIL, not removed from denominator."
+    },
+    "B4-ENT09-3": {
+      "pass": false,
+      "citationSupport": false,
+      "failureClass": "PROVIDER_AVAILABILITY",
+      "reason": "No final answer after bounded retries during upstream timeout/5xx, despite sufficient correct evidence. Counted FAIL, not removed from denominator."
+    },
+    "B4-ENT08-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct no-repeat-payment/staff transaction-session checks or map is not a held space and on-arrival eligibility must be checked; no fabricated current state."
+    },
+    "B4-ENT08-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct no-repeat-payment/staff transaction-session checks or map is not a held space and on-arrival eligibility must be checked; no fabricated current state."
+    },
+    "B4-ENT09-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct no-repeat-payment/staff transaction-session checks or map is not a held space and on-arrival eligibility must be checked; no fabricated current state."
+    },
+    "B4-ENT09-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct no-repeat-payment/staff transaction-session checks or map is not a held space and on-arrival eligibility must be checked; no fabricated current state."
+    },
+    "B4-ENT09-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct no-repeat-payment/staff transaction-session checks or map is not a held space and on-arrival eligibility must be checked; no fabricated current state."
+    },
+    "B4-ENT09-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct no-repeat-payment/staff transaction-session checks or map is not a held space and on-arrival eligibility must be checked; no fabricated current state."
+    },
+    "B4-MAP01-3": {
+      "pass": false,
+      "citationSupport": false,
+      "failureClass": "PROVIDER_AVAILABILITY",
+      "reason": "No final answer after three bounded retries during upstream timeout/5xx, despite sufficient expected source. Kept in semantic denominator."
+    },
+    "B4-ENT09-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct map/search UI guidance with permission or manual/address alternatives, no assumed private location or held-space guarantee."
+    },
+    "B4-MAP01-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct map/search UI guidance with permission or manual/address alternatives, no assumed private location or held-space guarantee."
+    },
+    "B4-MAP01-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct map/search UI guidance with permission or manual/address alternatives, no assumed private location or held-space guarantee."
+    },
+    "B4-MAP01-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct map/search UI guidance with permission or manual/address alternatives, no assumed private location or held-space guarantee."
+    },
+    "B4-MAP01-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct map/search UI guidance with permission or manual/address alternatives, no assumed private location or held-space guarantee."
+    },
+    "B4-ENT10-1": {
+      "pass": true,
+      "citationSupport": null,
+      "reason": "Deterministic capability boundary: no assistant gate operation/check-in/out; direct to lot staff and preserve identity/payment checks. No RAG citation required."
+    },
+    "B4-ENT10-2": {
+      "pass": true,
+      "citationSupport": null,
+      "reason": "Deterministic capability boundary: no assistant gate operation/check-in/out; direct to lot staff and preserve identity/payment checks. No RAG citation required."
+    },
+    "B4-ENT10-3": {
+      "pass": true,
+      "citationSupport": null,
+      "reason": "Deterministic capability boundary: no assistant gate operation/check-in/out; direct to lot staff and preserve identity/payment checks. No RAG citation required."
+    },
+    "B4-ENT10-4": {
+      "pass": true,
+      "citationSupport": null,
+      "reason": "Deterministic capability boundary: no assistant gate operation/check-in/out; direct to lot staff and preserve identity/payment checks. No RAG citation required."
+    },
+    "B4-ENT10-5": {
+      "pass": true,
+      "citationSupport": null,
+      "reason": "Deterministic capability boundary: no assistant gate operation/check-in/out; direct to lot staff and preserve identity/payment checks. No RAG citation required."
+    },
+    "B4-ENT10-6": {
+      "pass": true,
+      "citationSupport": null,
+      "reason": "Deterministic capability boundary: no assistant gate operation/check-in/out; direct to lot staff and preserve identity/payment checks. No RAG citation required."
+    },
+    "B4-MAP01-6": {
+      "pass": false,
+      "citationSupport": false,
+      "failureClass": "PROVIDER_AVAILABILITY",
+      "reason": "No final answer: bounded provider timeout retries exhausted while expected source was sufficient. Context was resolved; not scored as a successful answer."
+    },
+    "B4-MAP02-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct address/manual map alternatives when location permission/GPS unavailable; no forced location grant, private coordinates or invented single root cause."
+    },
+    "B4-MAP02-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct address/manual map alternatives when location permission/GPS unavailable; no forced location grant, private coordinates or invented single root cause."
+    },
+    "B4-MAP02-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct address/manual map alternatives when location permission/GPS unavailable; no forced location grant, private coordinates or invented single root cause."
+    },
+    "B4-MAP02-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct address/manual map alternatives when location permission/GPS unavailable; no forced location grant, private coordinates or invented single root cause."
+    },
+    "B4-MAP02-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct address/manual map alternatives when location permission/GPS unavailable; no forced location grant, private coordinates or invented single root cause."
+    },
+    "B4-MAP02-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct address/manual map alternatives when location permission/GPS unavailable; no forced location grant, private coordinates or invented single root cause."
+    },
+    "B4-MAP03-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct address/manual map alternatives when location permission/GPS unavailable; no forced location grant, private coordinates or invented single root cause."
+    },
+    "B4-MAP03-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct address/manual map alternatives when location permission/GPS unavailable; no forced location grant, private coordinates or invented single root cause."
+    },
+    "B4-MAP03-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct address/manual map alternatives when location permission/GPS unavailable; no forced location grant, private coordinates or invented single root cause."
+    },
+    "B4-MAP03-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct address/manual map alternatives when location permission/GPS unavailable; no forced location grant, private coordinates or invented single root cause."
+    },
+    "B4-MAP03-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct address/manual map alternatives when location permission/GPS unavailable; no forced location grant, private coordinates or invented single root cause."
+    },
+    "B4-MAP03-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct address/manual-map alternative and, where asked specifically, minimum three characters, choose result, refine address and conditional feature fallback. No location inference or live fabricated results."
+    },
+    "B4-MAP04-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct address/manual-map alternative and, where asked specifically, minimum three characters, choose result, refine address and conditional feature fallback. No location inference or live fabricated results."
+    },
+    "B4-MAP04-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct address/manual-map alternative and, where asked specifically, minimum three characters, choose result, refine address and conditional feature fallback. No location inference or live fabricated results."
+    },
+    "B4-MAP04-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct address/manual-map alternative and, where asked specifically, minimum three characters, choose result, refine address and conditional feature fallback. No location inference or live fabricated results."
+    },
+    "B4-MAP04-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct address/manual-map alternative and, where asked specifically, minimum three characters, choose result, refine address and conditional feature fallback. No location inference or live fabricated results."
+    },
+    "B4-MAP04-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct address/manual-map alternative and, where asked specifically, minimum three characters, choose result, refine address and conditional feature fallback. No location inference or live fabricated results."
+    },
+    "B4-MAP04-6": {
+      "pass": false,
+      "citationSupport": true,
+      "failureClass": "CONTEXT_TOPIC_LOSS",
+      "reason": "Asked how to enter an address, but response starts nearby/GPS flow and omits address entry minimum/result selection. History resolver retains generic nearby-search topic instead of address-search mode; cited source supports those generic steps but not a complete answer to this request."
+    },
+    "B4-MAP05-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct radius within1–50km, apply and broaden search where asked; no-results guidance checks point/radius/area without assuming all lots full or inventing a lot."
+    },
+    "B4-MAP05-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct radius within1–50km, apply and broaden search where asked; no-results guidance checks point/radius/area without assuming all lots full or inventing a lot."
+    },
+    "B4-MAP05-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct radius within1–50km, apply and broaden search where asked; no-results guidance checks point/radius/area without assuming all lots full or inventing a lot."
+    },
+    "B4-MAP05-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct radius within1–50km, apply and broaden search where asked; no-results guidance checks point/radius/area without assuming all lots full or inventing a lot."
+    },
+    "B4-MAP05-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct radius within1–50km, apply and broaden search where asked; no-results guidance checks point/radius/area without assuming all lots full or inventing a lot."
+    },
+    "B4-MAP05-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct radius within1–50km, apply and broaden search where asked; no-results guidance checks point/radius/area without assuming all lots full or inventing a lot."
+    },
+    "B4-MAP06-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct radius within1–50km, apply and broaden search where asked; no-results guidance checks point/radius/area without assuming all lots full or inventing a lot."
+    },
+    "B4-MAP06-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct radius within1–50km, apply and broaden search where asked; no-results guidance checks point/radius/area without assuming all lots full or inventing a lot."
+    },
+    "B4-MAP06-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct radius within1–50km, apply and broaden search where asked; no-results guidance checks point/radius/area without assuming all lots full or inventing a lot."
+    },
+    "B4-MAP06-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed final answer: correct no-results/map-loading/directions and live-data boundary; sources support the offered UI alternatives; no fabricated occupancy or hold."
+    },
+    "B4-MAP06-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed final answer: correct no-results/map-loading/directions and live-data boundary; sources support the offered UI alternatives; no fabricated occupancy or hold."
+    },
+    "B4-MAP06-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed final answer: correct no-results/map-loading/directions and live-data boundary; sources support the offered UI alternatives; no fabricated occupancy or hold."
+    },
+    "B4-MAP07-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed final answer: correct no-results/map-loading/directions and live-data boundary; sources support the offered UI alternatives; no fabricated occupancy or hold."
+    },
+    "B4-MAP07-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed final answer: correct no-results/map-loading/directions and live-data boundary; sources support the offered UI alternatives; no fabricated occupancy or hold."
+    },
+    "B4-MAP07-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed final answer: correct no-results/map-loading/directions and live-data boundary; sources support the offered UI alternatives; no fabricated occupancy or hold."
+    },
+    "B4-MAP07-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed final answer: correct no-results/map-loading/directions and live-data boundary; sources support the offered UI alternatives; no fabricated occupancy or hold."
+    },
+    "B4-MAP07-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed final answer: correct no-results/map-loading/directions and live-data boundary; sources support the offered UI alternatives; no fabricated occupancy or hold."
+    },
+    "B4-MAP07-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed final answer: correct no-results/map-loading/directions and live-data boundary; sources support the offered UI alternatives; no fabricated occupancy or hold."
+    },
+    "B4-MAP08-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed final answer: correct no-results/map-loading/directions and live-data boundary; sources support the offered UI alternatives; no fabricated occupancy or hold."
+    },
+    "B4-MAP08-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed final answer: correct no-results/map-loading/directions and live-data boundary; sources support the offered UI alternatives; no fabricated occupancy or hold."
+    },
+    "B4-MAP08-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed final answer: correct no-results/map-loading/directions and live-data boundary; sources support the offered UI alternatives; no fabricated occupancy or hold."
+    },
+    "B4-MAP08-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed final answer: correct no-results/map-loading/directions and live-data boundary; sources support the offered UI alternatives; no fabricated occupancy or hold."
+    },
+    "B4-MAP08-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed final answer: correct no-results/map-loading/directions and live-data boundary; sources support the offered UI alternatives; no fabricated occupancy or hold."
+    },
+    "B4-MAP08-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed final answer: correct no-results/map-loading/directions and live-data boundary; sources support the offered UI alternatives; no fabricated occupancy or hold."
+    },
+    "B4-MAP09-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed final answer: correct no-results/map-loading/directions and live-data boundary; sources support the offered UI alternatives; no fabricated occupancy or hold."
+    },
+    "B4-MAP09-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct live occupancy/location lookup limit, UI search alternative, changing availability and no held-space guarantee."
+    }
+  }
+}

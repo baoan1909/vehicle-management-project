@@ -1,0 +1,65 @@
+{
+  "method": "Manually read every final answer and citation/source topic in the pre4s registry smoke; counts failures rather than replacing them.",
+  "caseGrades": {
+    "AUTH09-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct login method/error triage, concrete incognito troubleshooting with signout reminder, or genuine permission check; no lot-assignment advice on generic login error."
+    },
+    "AUTH09-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct login method/error triage, concrete incognito troubleshooting with signout reminder, or genuine permission check; no lot-assignment advice on generic login error."
+    },
+    "B4-MAP04-6": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "Provider timeout/5xx budget exhausted; no answer despite sufficient source."
+    },
+    "B4-LOC01-3": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "Provider timeout/5xx budget exhausted; no answer despite sufficient source."
+    },
+    "B4-ERR01-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct login method/error triage, concrete incognito troubleshooting with signout reminder, or genuine permission check; no lot-assignment advice on generic login error."
+    },
+    "B4-ERR01-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct login method/error triage, concrete incognito troubleshooting with signout reminder, or genuine permission check; no lot-assignment advice on generic login error."
+    },
+    "B4-ERR01-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct login method/error triage, concrete incognito troubleshooting with signout reminder, or genuine permission check; no lot-assignment advice on generic login error."
+    },
+    "B4-ERR02-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct login method/error triage, concrete incognito troubleshooting with signout reminder, or genuine permission check; no lot-assignment advice on generic login error."
+    },
+    "B4-ERR02-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct login method/error triage, concrete incognito troubleshooting with signout reminder, or genuine permission check; no lot-assignment advice on generic login error."
+    },
+    "B4-ERR02-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct login method/error triage, concrete incognito troubleshooting with signout reminder, or genuine permission check; no lot-assignment advice on generic login error."
+    },
+    "B4-ERR04-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Correct login method/error triage, concrete incognito troubleshooting with signout reminder, or genuine permission check; no lot-assignment advice on generic login error."
+    },
+    "B4-ERR07-6": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "Provider timeout/5xx budget exhausted; no answer despite sufficient source."
+    }
+  }
+}

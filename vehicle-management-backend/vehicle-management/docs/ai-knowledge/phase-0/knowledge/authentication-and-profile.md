@@ -1,83 +1,82 @@
 <!--
 title: Đăng ký, đăng nhập và hồ sơ
 slug: authentication-and-profile
-documentVersion: 1.0.0
+documentVersion: 2.2.0
 status: DRAFT
 language: vi
 accessScope: PUBLIC
 ownerPermission: AI_KNOWLEDGE_MANAGE_ALL
-sourceOfTruth: Backend IAM, Keycloak flow và Frontend auth/profile
+sourceOfTruth: Code FE/BE, domain policy, access guard, Flyway và test đợt 1
 effectiveFrom: null
 reviewAt: null
-lastVerifiedAt: 2026-09-14
+lastVerifiedAt: 2026-11-24
 -->
 
 # Đăng ký, đăng nhập và hồ sơ
 
 ## Mục đích
-Hướng dẫn an toàn về đăng ký, đăng nhập thường/Google, quên mật khẩu và hồ sơ.
+Hướng dẫn đăng ký, đăng nhập, xác minh email, quên mật khẩu và hoàn thiện hồ sơ bằng chức năng hiện có; không tra cứu trạng thái cá nhân bằng tài liệu tĩnh.
 
 ## Đối tượng
-Người chưa đăng nhập và khách hàng.
+Người chưa đăng nhập, khách hàng và người dùng cần hướng dẫn tài khoản. Phê duyệt tài khoản nội bộ không thuộc hướng dẫn công khai này.
 
 ## Phạm vi
-Không bao gồm duyệt nội bộ chi tiết, cấu hình Keycloak hay xử lý token.
+Trang Đăng ký, Đăng nhập, Quên mật khẩu và Hồ sơ cá nhân của khách hàng hoặc nhân sự. Không cung cấp bí mật đăng nhập, cấu hình xác thực hay thao tác quản trị tài khoản.
 
 ## Thuật ngữ
-- Account: tài khoản xác thực trong `iam.accounts`.
-- Profile: hồ sơ dùng chung trong `people.user_profiles`.
-- Onboarding: hoàn thiện hồ sơ và gửi duyệt.
+Tài khoản dùng để đăng nhập; hồ sơ lưu thông tin cá nhân. Trạng thái tài khoản, tình trạng hoạt động khách hàng và kết quả duyệt hồ sơ là các thông tin riêng. Hoàn thiện hồ sơ là cập nhật và gửi thông tin theo giao diện.
 
 ## Điều kiện trước
-Người dùng có email hợp lệ; đăng nhập Google yêu cầu email đã được Google xác minh.
+Có email hợp lệ và truy cập được hộp thư. Chỉ nhập mật khẩu vào trang xác thực chính thức. Đăng nhập bằng Google cần email được Google xác minh; hệ thống không tự nối với tài khoản dùng mật khẩu có cùng email.
 
 ## Luồng chính
-1. Đăng ký local tại `/register`, nhập username, email, mật khẩu và họ tên hợp lệ.
-2. Hệ thống tạo danh tính Keycloak, account/profile và gửi email xác thực.
-3. Sau đăng nhập, người dùng hoàn thiện onboarding; customer ban đầu chờ phê duyệt.
-4. Đăng nhập Google dùng OAuth authorization code + PKCE; Backend social-bootstrap ánh xạ identity đã xác thực.
-5. Quên mật khẩu tại `/forgot-password`; việc đặt mật khẩu mới diễn ra qua email/Keycloak.
+1. Mở Đăng ký, nhập username, email, mật khẩu và họ tên hợp lệ trên form; không gửi mật khẩu vào chat.
+2. Làm theo email xác minh. Nếu chưa nhận, kiểm tra spam và dùng chức năng gửi lại nếu được phép.
+3. Mở Đăng nhập để đăng nhập. Đăng nhập bằng Google thực hiện xác thực với Google, sau đó hệ thống kiểm tra và liên kết danh tính theo quy trình được phép.
+4. Sau đăng nhập, hoàn thiện hồ sơ theo trang hiện tại. Chờ duyệt không có nghĩa tài khoản đã bị khóa.
+5. Quên mật khẩu: mở Quên mật khẩu, nhập email trên form và làm theo email và trang xác thực chính thức; hệ thống không gửi mật khẩu cũ cho người dùng.
+6. Đọc thông báo cụ thể trên giao diện trước khi thử lại; không lặp gửi email liên tục.
 
 ## Luồng thay thế
-Có thể gửi lại email xác thực khi account còn PENDING và email chưa xác minh, trong giới hạn rate-limit.
+- Route OTP/khôi phục cũ chuyển về `/forgot-password`; không hướng dẫn nhập OTP trong chat.
+- Tài khoản chờ duyệt có thể dùng các chức năng hỗ trợ được hệ thống cho phép; không mặc định mọi hỗ trợ đều yêu cầu hồ sơ được duyệt.
+- Câu “làm sao lấy lại mật khẩu” là hướng dẫn hợp lệ, không phải yêu cầu tiết lộ mật khẩu.
 
 ## Luồng lỗi
-- Username/email đã tồn tại: chọn thông tin khác.
-- Google state không khớp: khởi động lại login; không gửi token cho hỗ trợ.
-- Email local đã tồn tại: hệ thống hiện không tự liên kết với Google.
-- Email reset không tới: kiểm tra spam rồi tạo phiếu; hệ thống không xác nhận công khai email có tồn tại.
+- Đăng nhập không được: hỏi đang đăng nhập bằng tài khoản/mật khẩu hay Google, đang ở bước nào và thấy thông báo lỗi gì. Xác minh email và hoàn thiện hồ sơ là các bước kiểm tra tài khoản, không phải cách đăng nhập. Không tự chuyển sang hướng dẫn quên mật khẩu khi chưa biết người dùng có quên mật khẩu hay không.
+- Trùng email/username: dùng chức năng phù hợp hoặc hỗ trợ; không tự liên kết tài khoản Google trùng email.
+- Không nhận email: kiểm tra địa chỉ đã nhập, spam và gửi lại theo giới hạn; không hứa thời gian email chưa được kiểm chứng.
+- Tài khoản bị khóa hoặc ngừng hoạt động: không khuyên vượt quyền hoặc tạo tài khoản để né hạn chế; liên hệ hỗ trợ hệ thống.
+- Câu “vẫn lỗi” sau hướng dẫn đăng nhập dùng đúng chủ đề gần nhất; nếu chưa có chủ đề thì hỏi chức năng và bước gặp lỗi.
 
 ## Trạng thái và chuyển trạng thái
-Account: `PENDING`, `ACTIVE`, `LOCKED`, `DISABLED`. Customer có `approval_status` riêng: `PENDING`, `APPROVED`, `REJECTED`, `SUSPENDED` và operational status ACTIVE/INACTIVE.
+Tài khoản có thể đang chờ, đang hoạt động, bị khóa hoặc ngừng hoạt động. Khách hàng còn có approval/operational status riêng; trạng thái thực của người dùng chỉ xác định qua nguồn đã được phân quyền. Tài liệu này không tự thay đổi trạng thái.
 
 ## Câu hỏi khách hàng thường gặp
-- Đăng ký và xác thực email thế nào?
-- Tại sao Google login bị lỗi?
-- Quên mật khẩu xử lý ở đâu?
-- Hồ sơ của tôi đã được duyệt chưa?
+- Không đăng nhập được thì kiểm tra gì trước? Hỏi người dùng đang đăng nhập bằng Google hay tài khoản và mật khẩu, màn hình hiện thông báo gì và lỗi ở bước nào. Không mặc định cần Quên mật khẩu; chỉ hướng dẫn khôi phục khi phương thức và lỗi phù hợp. Nếu người dùng đã nêu phương thức thì không hỏi lại.
+- “dang ky tai khoan nhu the nao” → các bước đăng ký và xác minh email.
+- “quen mat khau phai lam sao” → dùng Quên mật khẩu và email chính thức.
+- “dang nhap ko dc” → hướng dẫn theo lỗi đăng nhập, hỏi bước còn thiếu.
+- “hồ sơ của tôi duyệt chưa?” → dữ liệu cá nhân; không trả trạng thái bằng tài liệu hướng dẫn.
+- “lỗi” → hỏi chức năng/bước, không tự suy ra đăng nhập.
+- Làm sao đăng ký CoParking? Mở Đăng ký, điền tài khoản, email, mật khẩu và họ tên; làm theo email xác minh rồi đăng nhập.
+- Đặt lại mật khẩu thế nào? Dùng Quên mật khẩu, nhập email tại trang chính thức và làm theo thư nhận được. Không chia sẻ mật khẩu, mã xác thực hoặc đường dẫn khôi phục.
+- Đăng nhập bằng Google không thành công cần làm gì? Kiểm tra thông báo và email Google đã xác minh; nếu vẫn lỗi, báo bước gặp lỗi cho nhân viên, không tự liên kết tài khoản trùng email.
+- Xem trạng thái hồ sơ trên giao diện ở đâu? Mở hồ sơ cá nhân, đọc thông báo duyệt; chat chưa có chức năng tra cứu hồ sơ thực tế của bạn.
+- Hồ sơ cần sửa thì làm sao? Đọc lý do yêu cầu bổ sung, cập nhật thông tin trên hồ sơ cá nhân và gửi lại theo nút đang được phép.
+- Sau hướng dẫn quên mật khẩu, bước tiếp theo là gì, cái đó ở đâu? Mở Quên mật khẩu trên trang đăng nhập. Nếu đã làm rồi vẫn chưa được, hỏi người dùng lỗi ở bước nhập email, nhận thư hay đặt mật khẩu mới; không tự đoán đã hoàn tất.
 
 ## Điều chatbot được phép trả lời
-Hướng dẫn UI, yêu cầu dữ liệu đầu vào, ý nghĩa trạng thái và bước khắc phục không nhạy cảm.
+Các bước UI, ý nghĩa trạng thái tổng quát, phân biệt lỗi và cách tìm hỗ trợ. Trả lời ngắn, ưu tiên bước người dùng đang mắc; chỉ viện dẫn nguồn thật.
 
-## Điều chatbot phải dùng business tool
-Trạng thái account/onboarding/profile của người đang đăng nhập.
+## Điều chatbot phải dùng chức năng được cấp quyền
+Tình trạng tài khoản và hồ sơ thực tế phải kiểm tra bằng chức năng có quyền. Chat hiện chưa có chức năng đọc trạng thái hồ sơ; không giả vờ đã kiểm tra. Hướng dẫn người dùng mở Hồ sơ hoặc gửi hỗ trợ nếu cần người xử lý.
 
 ## Điều chatbot phải từ chối
-Nhận hoặc hiển thị password, OTP, access/refresh token; tra cứu account người khác; tự approve/unlock.
+Tiết lộ mật khẩu/OTP/token, đọc hồ sơ người khác, tự approve/unlock, bỏ qua xác thực hoặc khẳng định email người khác tồn tại.
 
 ## Khi nào chuyển nhân viên
-Google identity conflict, account bị khóa/disabled, email không tới kéo dài hoặc người dùng tranh chấp phê duyệt.
+Người dùng yêu cầu người thật, lỗi xung đột danh tính đăng nhập, tài khoản khóa, email không đến sau các bước hợp lệ hoặc trạng thái hồ sơ bất thường; dùng kênh hỗ trợ hệ thống, không chat đối tác để gửi phiếu.
 
-## Nguồn đối chiếu
-- `PublicAuthController`, `PublicAuthUseCaseImpl`, `PublicAuthPolicy`.
-- `SocialAccountBootstrapUseCaseImpl`, `SocialAccountPolicy`.
-- `AccountProfileController`, `AccountProfileUseCaseImpl`.
-- `authApi.ts`, `LoginPage.tsx`, `ProfilePage.tsx`.
-- Flyway baseline và `V20260821234837__create_account_identities.sql`.
-
-## Nội dung TBD
-SLA email, chính sách account lock/unlock, retention identity và quy trình support Google chính thức.
-
-## Lịch sử phiên bản
-- 1.0.0: baseline từ mã nguồn ngày 2026-09-14.
-
+## Lưu ý khi trả lời và đối chiếu kết quả
+Hỏi cách đăng nhập khác với hỏi tài khoản của bạn đang bị gì. Nếu đã nêu phương thức đăng nhập và thông báo lỗi, không hỏi lại các thông tin đó. Câu “vẫn lỗi” chỉ tiếp nối chủ đề đã rõ; khi chưa rõ, cần hỏi bước đang mắc. Không kết luận tài khoản đã bị khóa hoặc hồ sơ đã được duyệt từ tài liệu hướng dẫn.

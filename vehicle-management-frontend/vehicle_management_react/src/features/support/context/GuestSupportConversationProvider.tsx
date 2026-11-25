@@ -35,11 +35,13 @@ export function GuestSupportConversationProvider({ children }: PropsWithChildren
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<GuestSupportError | null>(null);
   const requestRef = useRef<AbortController | null>(null);
+  const lastQuestionRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     if (isGuest) return;
     requestRef.current?.abort();
     requestRef.current = null;
+    lastQuestionRef.current = undefined;
     setMessages([]);
     setDraft("");
     setBusy(false);
@@ -58,8 +60,10 @@ export function GuestSupportConversationProvider({ children }: PropsWithChildren
     setDraft("");
     setMessages((current) => [...current, { id: crypto.randomUUID(), role: "user", content: question }]);
     try {
-      const response = await askGuestAssistant(question, sessionId, captchaProof, controller.signal);
+      const response = await askGuestAssistant(question, sessionId, captchaProof, controller.signal, lastQuestionRef.current);
       if (requestRef.current !== controller || !guestRef.current || controller.signal.aborted) return;
+      // Backend uses only an allowlisted public topic, never client-supplied instructions or identity.
+      if (response.data.diagnosticCode !== "CLARIFICATION_REQUIRED") lastQuestionRef.current = question;
       setMessages((current) => [...current, {
         id: crypto.randomUUID(), role: "assistant", content: response.data.answer, answer: response.data,
       }]);

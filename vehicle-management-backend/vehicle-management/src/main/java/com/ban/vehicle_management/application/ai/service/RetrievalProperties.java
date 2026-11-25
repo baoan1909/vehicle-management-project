@@ -52,7 +52,7 @@ public class RetrievalProperties {
     private double cautionConfidenceThreshold = 0.55;
 
     /** Policy version recorded on every retrieval audit. */
-    private String policyVersion = "retrieval-policy-v1";
+    private String policyVersion = "retrieval-policy-v4";
 
     /** Threshold-set version recorded on every retrieval audit. */
     private String thresholdVersion = "retrieval-threshold-v1";

@@ -1,0 +1,302 @@
+[
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/ALL_BATCHES_QWEN_REVIEW_REPORT.vi.md",
+    "sha256": "8fd6ae466b0f7e1f5644c46f85d55d202aad2828e9dd2fd396f1e8dd2be0b9cc",
+    "newThisTurn": true
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/COMMON_KNOWLEDGE_IMPLEMENTATION_REPORT.vi.md",
+    "sha256": "1a3ab971e6bce9676ec37bb8e43e8dbe8f8578fa6f7ddde4db5ec44450f05831",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/QWEN_GOOGLE_IMPLEMENTATION_REPORT.vi.md",
+    "sha256": "c07d74387b7e02f3e0ec3267f305cd9e01378b56496f1655f205e6ee3ab26ccf",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/README.md",
+    "sha256": "10f73cc6eb7f54831d196b80225c7544f8b6f57721127edbf535a89af1dd7bf1",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/evidence/all-batches-review-2026-11-24/README.md",
+    "sha256": "618c527c828fc6532f0c0db825f49eba4fd3645805580de7c383f3f4cdb2cf99",
+    "newThisTurn": true
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/evidence/all-batches-review-2026-11-24/content-integrity.json",
+    "sha256": "a87a7becc79389116048ade32ade933773cbda790408edfc8e91937541d1dcb8",
+    "newThisTurn": true
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/evidence/all-batches-review-2026-11-24/export-tests.log",
+    "sha256": "8b0184232951967cf437426646746a304e506ec0504ae0bcd526ff225217a325",
+    "newThisTurn": true
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/evidence/all-batches-review-2026-11-24/export-validation.log",
+    "sha256": "cabd5d6e53ecc65af2b828868dceb05bd3e84130607425e15e29f0bfab9121a1",
+    "newThisTurn": true
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/evidence/all-batches-review-2026-11-24/powershell-syntax.log",
+    "sha256": "45649f4ba1c855757075d7da1109ee55c7d17cc82ea17dbaa30bfd1656a818bd",
+    "newThisTurn": true
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/evidence/all-batches-review-2026-11-24/resource-preflight.json",
+    "sha256": "6f5d21ac5520e40aeab27e65eef2e255fbd5e69e4a9e85c030b689a5254174c6",
+    "newThisTurn": true
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/evidence/all-batches-review-2026-11-24/summary-tests.log",
+    "sha256": "011a02c8d9f7d6e7874d37e9752648b46da77ef38b0e2ed06a5e00aa7a26e722",
+    "newThisTurn": true
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/evaluation/batch-04-report.md",
+    "sha256": "82676bcc34407d0dc2167439e8ed5cde866954b20d981dc9eff92cac18381fd0",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/evaluation/batch-04-rubric.md",
+    "sha256": "075916711ff7fac5f24bea2555ad322214ca273346a64fb34090f9a5c32ad67f",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/knowledge/parking-search-and-map.md",
+    "sha256": "368ff9ce9c6c955e43efb8b07ce1b4178f42e3e5f21d358433bc44043e86c700",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/knowledge/parking-search-and-map.md",
+    "sha256": "630273662370b5116827a034fdfeea10864911d096d8639eacb98ce81ac6ae06",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/scripts/ai-knowledge/run-qwen-local-live.ps1",
+    "sha256": "81aa55e4c1d17f2cc09e64e36832873e5ca6bfa566c52f86f5592fbd77f3f1dc",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/scripts/ai-knowledge/summarize-qwen-runtime.py",
+    "sha256": "2a1691e1395a0d7f06a62ee8dcbd8000915272cda68e65198b371e9194450415",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/scripts/ai-knowledge/test_summarize_qwen_runtime.py",
+    "sha256": "d76acbc7b44c0a9120dc8c08e0647597240e0228debc59eb8b707c96eb4c3393",
+    "newThisTurn": true
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/ai/golden/QwenLiveCaseSelection.java",
+    "sha256": "895f8694926d3c540d638fcdbbd4237151ae8a31b60fefb8382cd366fc250011",
+    "newThisTurn": true
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/ai/golden/QwenLiveCaseSelectionTest.java",
+    "sha256": "88e195a2d36b86fbf74dc46d2fea27c66d360a8431feb80dd869ae0a01623773",
+    "newThisTurn": true
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/ai/golden/QwenLocalAcceptanceIT.java",
+    "sha256": "d79fe01e55c1baa6c864db57b77494cc1f72ace0da137dee59fb021c8813dbaa",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/ai/golden/ReviewedFaqRegressionTest.java",
+    "sha256": "17dc11f5d133de48b5a84fa46183f77ef35467ca7ed644a36634203010ea2a4d",
+    "newThisTurn": true
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/assistant-response-contract.md",
+    "sha256": "744809667c201b17365d3c88580a599826b036d26a2b6a0978dbcdda3ac90dc3",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/evaluation/batch-01-report.md",
+    "sha256": "4ae320c7061827f4e663eb9a9b2b5930cb3b2bf5d6ca03a47f31c741a45810ef",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/evaluation/batch-01-rubric.md",
+    "sha256": "0a5125576aa7442c2a4b487ff57e3d7d9a54f7df37dee11812b76195665966fc",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/evaluation/batch-02-report.md",
+    "sha256": "d3e98c03337b21e6007add90fe4d8277c6d94d9971a8834c72c437cecf233597",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/evaluation/batch-02-rubric.md",
+    "sha256": "41a21c842d69edda423b50926425a601ca84718b7f007dfcb585ec942386f500",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/evaluation/batch-03-report.md",
+    "sha256": "bd6854f299a4d5780205ae4ad0beeae8d4f7439987beb2b51944065df285b273",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/evaluation/batch-03-rubric.md",
+    "sha256": "bf9e9c41f76b5ce9a0213c9037af9518864e324618d3772fe84563fb882f0ff1",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/knowledge-manifest.json",
+    "sha256": "f36ea972e7812f6a995769fce352f4da15615485c3369ac27b80447d002b4275",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/knowledge/authentication-and-profile.md",
+    "sha256": "4b4b831f3c87f21582c46b43fe456a030047ba13574a78d2a6d2eb5faaa28985",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/knowledge/cards-and-lost-card.md",
+    "sha256": "9060006f293b2f1825164b9eabdb06fa6c4945d20f0e06fa7a76a4bb333c9b69",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/knowledge/chat-conversations-and-support-boundaries.md",
+    "sha256": "b07698715d880aa7dc12fea22a402f8664fbbab9e3554a7a43bf40b246b2bad0",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/knowledge/chatbot-privacy-and-prohibited-data.md",
+    "sha256": "184cebdd9a8364195ff18c28aae2462299fa093e6983e9a7ddc4031f9b387b00",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/knowledge/common-errors-and-troubleshooting.md",
+    "sha256": "ca1b4f9af75cef61726605fb43d61f19448c3a845ce409cae4b57de190934086",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/knowledge/customer-vehicle-management.md",
+    "sha256": "7f682655dd8c3f4a9110254b1c86cda3ef29eb0a28e264e3d52bde0f0b6efc04",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/knowledge/invoice-vnpay-payment-refund.md",
+    "sha256": "af4f74b1481a17d505e9d8004736320988873ac3179fd84ec617d3c6e481db7b",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/knowledge/locations-hours-sla-contact.md",
+    "sha256": "6df4a1e6fd66aa1dbfe5e7f6d54760a16814d83945d8ce3988cf98b9619c4bc7",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/knowledge/parking-entry-exit.md",
+    "sha256": "cb842888810b4495f45b83d30b46d52e6affcf5f0870079c1b9a672876154862",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/knowledge/parking-history.md",
+    "sha256": "302e95a7e36948e9fee15689d11a361a1129706b447c41967b9d5d9c7046add5",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/knowledge/pricing-and-fee-calculation.md",
+    "sha256": "c78a5d94ec48bcc1b04e33cb906c23902a1892a213919d6d10c4e14223261a9b",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/knowledge/reservations-and-holds.md",
+    "sha256": "cdd065320e11f11eda4b355a77d16e0453db9ada604e029f127c11ecbbf151db",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/knowledge/subscription-lifecycle.md",
+    "sha256": "b0d50e4f3ac065d2e0e375f4c2e0996027b92e42550674d9bc94a24baac1090d",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/knowledge/support-ticket-and-escalation.md",
+    "sha256": "56c69878967e9e24be532b0e3d885cd32df107529bf1ccaa70aaa914ae20f90d",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/knowledge/voucher-and-promotions.md",
+    "sha256": "1c3a853dd0c52e34feba0cf46c240f1fbd4efb2337b3b2af34c4f50da3be65ef",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/knowledge/authentication-and-profile.md",
+    "sha256": "6fa1979e4d1359c4eee9bda9a983f52e1c1087f46632f7ad3e2f2140783e8102",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/knowledge/cards-and-lost-card.md",
+    "sha256": "4f768d60180861aefa8f4fa4afe37631d431b53636d26e5933ceec7cda0853c0",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/knowledge/chat-conversations-and-support-boundaries.md",
+    "sha256": "7c4e28b3f7ca1f889aa4406e3ebc03f4401c7c87d08e2145002f220083820fa0",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/knowledge/chatbot-privacy-and-prohibited-data.md",
+    "sha256": "e60ab37c64f77871aeebde36543ae7e41dfaeb3350472e06181e56bf677e4307",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/knowledge/common-errors-and-troubleshooting.md",
+    "sha256": "d60c054598fa034e32e02752b55db9f48ffdcb031cd6834a16c28a38b9b0baaa",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/knowledge/customer-vehicle-management.md",
+    "sha256": "aecb3424421501cbb9c8b912aa063db3b5e8ac9647ec2f492ca5eca7892ae22e",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/knowledge/invoice-vnpay-payment-refund.md",
+    "sha256": "c5ad6e1b013af0943b90f44d6e101da356cd6374ca5401c43fb6d71799528b8c",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/knowledge/locations-hours-sla-contact.md",
+    "sha256": "868c12d2e31496e293352ebf45db37d2e035179f23c9464f9cc0fcf0a76e1354",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/knowledge/parking-entry-exit.md",
+    "sha256": "f10bfcfebd352cd9cf93f261144fab7eefd048159e5b5fe03c431cda160e190e",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/knowledge/parking-history.md",
+    "sha256": "171c6e1c809b373b7e405b696180952b6f6352e97a62e2cbb888498388accc1f",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/knowledge/pricing-and-fee-calculation.md",
+    "sha256": "415ecab6d5d075c7b956590e2af5e19a5a6e8500919985fd5d12b56ff0654f7c",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/knowledge/reservations-and-holds.md",
+    "sha256": "75ee1d0491fbbeeeaea7261822017e9103875db8aaf6212e1dfd1a0a3d340e20",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/knowledge/subscription-lifecycle.md",
+    "sha256": "d537957889a6ca3190f88e9346a64079a467e10c6678778e578ef684a2c2923f",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/knowledge/support-ticket-and-escalation.md",
+    "sha256": "0c3087a808bc162f308a5640212fe92529063080b26a8ca36147171f5dd4d622",
+    "newThisTurn": false
+  },
+  {
+    "path": "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/knowledge/voucher-and-promotions.md",
+    "sha256": "8e05ce4259072b566aca928d405fd5941a55bbc857777c059d9bc8e7c2b7ca66",
+    "newThisTurn": false
+  }
+]

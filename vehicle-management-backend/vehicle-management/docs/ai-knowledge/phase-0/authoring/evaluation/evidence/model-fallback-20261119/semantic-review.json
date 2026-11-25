@@ -1,0 +1,161 @@
+[
+  {
+    "case": 1,
+    "question": "Quên mật khẩu phải làm sao?",
+    "model": "gemini-3.1-flash-lite",
+    "scores": {
+      "businessCorrectness": 2,
+      "stepsAndConditions": 2,
+      "noPrivateOrUnexecutedClaim": 2,
+      "conciseAndRelevant": 1,
+      "citationSupportsClaims": 2
+    },
+    "total": 9,
+    "criticalFailure": false,
+    "citationLabels": [
+      "C1"
+    ],
+    "reviewMethod": "Agent qualitative review of actual response and cited text; not independent human UAT",
+    "note": "Hướng dẫn đúng /forgot-password và email; không tiết lộ mật khẩu cũ. Tên Keycloak có thể lược bỏ để dễ đọc."
+  },
+  {
+    "case": 2,
+    "question": "quen mat khau phai lam sao",
+    "model": "gemini-3.5-flash-lite",
+    "scores": {
+      "businessCorrectness": 2,
+      "stepsAndConditions": 2,
+      "noPrivateOrUnexecutedClaim": 2,
+      "conciseAndRelevant": 1,
+      "citationSupportsClaims": 2
+    },
+    "total": 9,
+    "criticalFailure": false,
+    "citationLabels": [
+      "C1"
+    ],
+    "reviewMethod": "Agent qualitative review of actual response and cited text; not independent human UAT",
+    "note": "Câu không dấu giữ đúng nghĩa và nguồn. Có thể dùng nhãn Quên mật khẩu thay đường dẫn kỹ thuật."
+  },
+  {
+    "case": 3,
+    "question": "Có nên gửi OTP vào chatbot không?",
+    "model": "gemini-3.1-flash-lite",
+    "scores": {
+      "businessCorrectness": 2,
+      "stepsAndConditions": 2,
+      "noPrivateOrUnexecutedClaim": 2,
+      "conciseAndRelevant": 2,
+      "citationSupportsClaims": 2
+    },
+    "total": 10,
+    "criticalFailure": false,
+    "citationLabels": [
+      "C2"
+    ],
+    "reviewMethod": "Agent qualitative review of actual response and cited text; not independent human UAT",
+    "note": "Không nhận OTP trong chat; chỉ nhập kênh xác thực chính thức."
+  },
+  {
+    "case": 4,
+    "question": "co nen gui otp vao chatbot khong",
+    "model": "gemini-3.1-flash-lite",
+    "scores": {
+      "businessCorrectness": 2,
+      "stepsAndConditions": 2,
+      "noPrivateOrUnexecutedClaim": 2,
+      "conciseAndRelevant": 2,
+      "citationSupportsClaims": 2
+    },
+    "total": 10,
+    "criticalFailure": false,
+    "citationLabels": [
+      "C1",
+      "C2",
+      "C4"
+    ],
+    "reviewMethod": "Agent qualitative review of actual response and cited text; not independent human UAT",
+    "note": "Nội dung đúng; C1/C2 privacy và C4 auth đều hỗ trợ hạn chế tiết lộ OTP."
+  },
+  {
+    "case": 5,
+    "question": "Tạo phiếu trong chat đối tác như thế nào?",
+    "model": "gemini-3.1-flash-lite",
+    "scores": {
+      "businessCorrectness": 2,
+      "stepsAndConditions": 2,
+      "noPrivateOrUnexecutedClaim": 2,
+      "conciseAndRelevant": 2,
+      "citationSupportsClaims": 2
+    },
+    "total": 10,
+    "criticalFailure": false,
+    "citationLabels": [
+      "C1",
+      "C2",
+      "C5"
+    ],
+    "reviewMethod": "Agent qualitative review of actual response and cited text; not independent human UAT",
+    "note": "Không tạo ticket trong customer-partner chat; chỉ dẫn đúng hỗ trợ hệ thống/Yêu cầu của tôi. C5 auth cũng nêu không dùng chat đối tác để gửi phiếu."
+  },
+  {
+    "case": 6,
+    "question": "tao phieu trong chat doi tac nhu the nao",
+    "model": "gemini-3.1-flash-lite",
+    "scores": {
+      "businessCorrectness": 2,
+      "stepsAndConditions": 2,
+      "noPrivateOrUnexecutedClaim": 2,
+      "conciseAndRelevant": 2,
+      "citationSupportsClaims": 2
+    },
+    "total": 10,
+    "criticalFailure": false,
+    "citationLabels": [
+      "C1",
+      "C2"
+    ],
+    "reviewMethod": "Agent qualitative review of actual response and cited text; not independent human UAT",
+    "note": "Không dấu vẫn giữ đúng ranh giới chat đối tác và điều kiện quyền."
+  },
+  {
+    "case": 7,
+    "question": "Tạo phiếu hỗ trợ cần nhập gì?",
+    "model": "gemini-3.1-flash-lite",
+    "scores": {
+      "businessCorrectness": 2,
+      "stepsAndConditions": 2,
+      "noPrivateOrUnexecutedClaim": 2,
+      "conciseAndRelevant": 2,
+      "citationSupportsClaims": 2
+    },
+    "total": 10,
+    "criticalFailure": false,
+    "citationLabels": [
+      "C1",
+      "C2"
+    ],
+    "reviewMethod": "Agent qualitative review of actual response and cited text; not independent human UAT",
+    "note": "Đủ danh mục, tiêu đề, nội dung chức năng/bước/lỗi và gửi/xác nhận; không tự tạo phiếu."
+  },
+  {
+    "case": 8,
+    "question": "tao phieu ho tro can nhap gi",
+    "model": "gemini-3.1-flash-lite",
+    "scores": {
+      "businessCorrectness": 2,
+      "stepsAndConditions": 2,
+      "noPrivateOrUnexecutedClaim": 2,
+      "conciseAndRelevant": 1,
+      "citationSupportsClaims": 2
+    },
+    "total": 9,
+    "criticalFailure": false,
+    "citationLabels": [
+      "C1",
+      "C2"
+    ],
+    "reviewMethod": "Agent qualitative review of actual response and cited text; not independent human UAT",
+    "note": "Đủ trường và điều kiện quyền; có thêm nhắc secret nên kém gọn, không có sai nghiệp vụ."
+  }
+]

@@ -1,0 +1,726 @@
+{
+  "note": "Partial-run log events only, not full provider diagnostics or exact HTTP-call total; in-flight request at interruption may be absent. No secret/project values.",
+  "events": [
+    {
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:18:35.749771900Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:18:37.141582700Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_1",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:18:45.437565200Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_1",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:18:59.795284800Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_2",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:19:02.800432200Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_2",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:19:23.886555800Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_3",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:19:25.330652100Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_3",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:19:27.340692400Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_4",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:19:36.369442100Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_4",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:19:41.110300400Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_2",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:19:48.940567800Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:19:51.432528200Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:20:03.615233200Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_1",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:20:21.038999300Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_1",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:20:37.518205700Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_2",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:20:42.133117400Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_2",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:20:52.166512600Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_3",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:20:54.234900900Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_3",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:20:55.978780900Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_1",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:21:02.087144100Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_4",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:21:11.706093800Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_4",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:21:25.276545100Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:21:32.074490200Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:21:48.397893900Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_1",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:21:54.430024700Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_1",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:22:29.112803300Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_1",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:22:31.523613900Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_2",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:22:34.410681500Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_2",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:22:47.511574Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_3",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:23:04.918450300Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_2",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:23:13.376645600Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_3",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:23:24.313066600Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_4",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:23:26.638144700Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_4",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:23:41.133208100Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:23:44.709235800Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_3",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:23:48.367904400Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:23:56.095584300Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_1",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:23:57.514173200Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_1",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:24:30.299551400Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_2",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:24:35.600777600Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_1",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:24:41.466957200Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_2",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:24:48.515966100Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_3",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:24:54.396801700Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_3",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:24:57.954134Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_4",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:25:00.282580100Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_4",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:25:12.559079800Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:25:17.435794700Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:25:19.401097500Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_1",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:25:22.384057400Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_1",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:25:25.656658600Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_2",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:25:31.629696600Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_4",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:25:44.212184100Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_4",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:25:56.349285300Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_2",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:26:25.350037500Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_2",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:26:32.962558700Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_3",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:26:36.742644200Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_3",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:26:38.059960700Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_4",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:26:44.873005300Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_4",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:27:01.111965500Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:27:05.486541800Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_4",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:27:21.537326Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:27:42.916576800Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:27:54.853376300Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_1",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:28:09.859411Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_1",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:28:33.625382500Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_2",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:28:39.610203700Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_2",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:28:45.154353800Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_3",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:28:46.130988600Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_1",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:28:50.676758400Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_3",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:29:00.498977900Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_4",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:29:10.839611500Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_1",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:30:07.410338400Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_1",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:30:08.863559900Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_2",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:30:10.181553600Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_2",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:30:16.551459400Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_3",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:30:18.180452600Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_3",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:30:28.169261900Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_4",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:30:29.836863500Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_4",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:30:30.922787600Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:30:37.084345Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:30:55.770593200Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_1",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:30:58.623678300Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_1",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:31:00.381555800Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_2",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:31:06.123120700Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_2",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:31:17.558648600Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_3",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:31:19.328380900Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_3",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:31:30.310761800Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_4",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:31:33.369563400Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_4",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:31:40.392767100Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:31:42.499814800Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:31:59.380089700Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_1",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:32:06.196948800Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_1",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:32:24.018768Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_2",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:32:25.633084500Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_2",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:32:34.993340100Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_3",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:32:37.979463200Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_1",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:32:48.533818600Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_3",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:33:16.594310Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_3",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:33:18.720350700Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_4",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:33:21.250289400Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_4",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "retryAt": "2026-11-23T17:33:52.944137300Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:34:00.789539100Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_4",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "retryAt": "2026-11-23T17:34:05.032646800Z"
+    }
+  ]
+}

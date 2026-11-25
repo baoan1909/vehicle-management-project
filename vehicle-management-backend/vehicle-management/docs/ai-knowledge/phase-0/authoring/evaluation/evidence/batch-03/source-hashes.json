@@ -1,0 +1,487 @@
+[
+  {
+    "path": "src/main/java/com/ban/vehicle_management/entrypoint/controller/catalog/PublicPricingController.java",
+    "kind": "Backend",
+    "sha256": "6bf1c609d4d8b7850a1b461c7a325f2525bc6b4e9760f98b2509f4e9a95047ae"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/domain/catalog/pricerule/policy/PriceRulePolicy.java",
+    "kind": "Backend",
+    "sha256": "77dbb6edb9e86eefadbe1c329295996cf01002dcfa72d829702cb36c56207558"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/infrastructure/persistence/adapter/catalog/PriceRulePersistenceAdapter.java",
+    "kind": "Backend",
+    "sha256": "4b819dc4d0da76fdeb5842ff0580cfee22088770e3468e584f0bb5c8a5910df7"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/domain/parking/parkingsession/policy/ParkingCheckoutPricePolicy.java",
+    "kind": "Backend",
+    "sha256": "e2cc2f6f693459931d17f7b1117796a8cd374ba000c357cbfc5c281a3624cbee"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/application/parking/parkingsession/usecase/ParkingCheckOutUseCaseImpl.java",
+    "kind": "Backend",
+    "sha256": "1f27a5cd8913185f928a222e5d68c473c8d1bfea9f557c9d80688c80d790855c"
+  },
+  {
+    "path": "../../vehicle-management-frontend/vehicle_management_react/src/features/customer-portal/pages/PricingPage.tsx",
+    "kind": "Frontend",
+    "sha256": "33a2a420c5b92addb0129229e0b12748251980cbd705450e071b3b452593ffba"
+  },
+  {
+    "path": "src/test/java/com/ban/vehicle_management/domain/parking/parkingsession/policy/ParkingCheckoutPricePolicyTest.java",
+    "kind": "Kiểm thử",
+    "sha256": "4bbb9cd97ad571ad1318ef9d8e41c4996bc131997e52ff23ebcb701db002b2dc"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/entrypoint/controller/billing/VnpayPaymentController.java",
+    "kind": "Backend",
+    "sha256": "386c8094ad911929f23bfae52a4d7627bceb5a5baeffad0dc24afd6097fb8255"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/application/billing/payment/usecase/VnpayPaymentUseCaseImpl.java",
+    "kind": "Backend",
+    "sha256": "fda7d3e1a58059f4057847845ce35dd4b1d7fe9344538593634332e9dbce3d57"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/application/billing/payment/usecase/SepayPaymentUseCaseImpl.java",
+    "kind": "Backend",
+    "sha256": "503f6c5c01861a2b34f524d788c56b9939b4275affa6a1d15d0b9c19da88fb86"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/infrastructure/payment/sepay/SepayGatewayAdapter.java",
+    "kind": "Backend",
+    "sha256": "6748c790b9d051c69f64b7148bf7c3b39c65c22b2067fcf8b9df9b4536f9b842"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/application/billing/wallet/usecase/WalletInvoicePaymentUseCaseImpl.java",
+    "kind": "Backend",
+    "sha256": "68152b6bb9cc5937fa27b290e0b080d4a91444ec2df6e9a2a680da3b939d8d4d"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/application/billing/invoice/authorization/InvoiceAccessGuard.java",
+    "kind": "Backend",
+    "sha256": "5626e9d25b93550d27f00c4d02c08a4f8dee106ae1d69e7ab33137ec8c72da4f"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/application/billing/payment/authorization/PaymentAccessGuard.java",
+    "kind": "Backend",
+    "sha256": "ecd2b00bd256a1cdb613943a45406b7aa4a935bb6481d428794d6f85fcc4c1e3"
+  },
+  {
+    "path": "../../vehicle-management-frontend/vehicle_management_react/src/features/customer-portal/pages/SubscriptionPage.tsx",
+    "kind": "Frontend",
+    "sha256": "5eda2d458a897925985bc529ad956a0abd747712f25b924aa47b31176308ea89"
+  },
+  {
+    "path": "../../vehicle-management-frontend/vehicle_management_react/src/features/billing/pages/VnpayReturnPage.tsx",
+    "kind": "Frontend",
+    "sha256": "4707b1d79336ae04797b5f548711294802e34be0779723f4802c7587b0f3046e"
+  },
+  {
+    "path": "../../vehicle-management-frontend/vehicle_management_react/src/features/billing/api/invoicePaymentsApi.ts",
+    "kind": "Frontend",
+    "sha256": "b0b91156d3ffe9cb42982239bcbecb346ad0345bc496c93de97549c86c40801b"
+  },
+  {
+    "path": "src/test/java/com/ban/vehicle_management/application/billing/payment/usecase/VnpayPaymentUseCaseImplTest.java",
+    "kind": "Kiểm thử",
+    "sha256": "5b2a9582246ac6ff705bb9da9d61f42ee3c7fbc5d09cae9fdc9a983eb04448fe"
+  },
+  {
+    "path": "src/test/java/com/ban/vehicle_management/application/billing/payment/usecase/SepayPaymentUseCaseImplTest.java",
+    "kind": "Kiểm thử",
+    "sha256": "1bf8cc4511352a847dab37ca9dd50a6a5f6748e7ba5fe63ada04f5c5d5821bbb"
+  },
+  {
+    "path": "src/test/java/com/ban/vehicle_management/infrastructure/payment/vnpay/VnpayGatewayAdapterTest.java",
+    "kind": "Kiểm thử",
+    "sha256": "3f8cd7e75cc8ad32f08e4deefd5df4007a89795394929425cdd989ef62b5390a"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/domain/catalog/voucher/policy/VoucherPolicy.java",
+    "kind": "Backend",
+    "sha256": "ba2739e51d0d4fd0bcf9b7db9d556f8b47235a1adaff51580a9651383c249892"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/application/catalog/voucher/usecase/VoucherUseCaseImpl.java",
+    "kind": "Backend",
+    "sha256": "2c99d4efb7cfbc7b8cf67afe96e2ac4eeb2372b25024731ef3a8035fdee8c6f1"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/application/catalog/voucher/authorization/VoucherAccessGuard.java",
+    "kind": "Backend",
+    "sha256": "62e79a338113f2618a523778e61727b35f5f85ae46016db0a69250b5b45b46ab"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/infrastructure/persistence/adapter/catalog/VoucherPersistenceAdapter.java",
+    "kind": "Backend",
+    "sha256": "6154abf124ff9003cb73ec216ed4b2007420cd3f6ff6d8301900162a019a144b"
+  },
+  {
+    "path": "../../vehicle-management-frontend/vehicle_management_react/src/features/customer-portal/pages/SubscriptionPage.tsx",
+    "kind": "Frontend",
+    "sha256": "5eda2d458a897925985bc529ad956a0abd747712f25b924aa47b31176308ea89"
+  },
+  {
+    "path": "../../vehicle-management-frontend/vehicle_management_react/src/features/customer-portal/components/VoucherPromotionBanner.tsx",
+    "kind": "Frontend",
+    "sha256": "a2b25907f7f4a38f593d64cb985df27c4fadd7a21e420a79479b0a7b55a036dc"
+  },
+  {
+    "path": "src/test/java/com/ban/vehicle_management/domain/catalog/voucher/policy/VoucherPolicyTest.java",
+    "kind": "Kiểm thử",
+    "sha256": "304c4dd051a6c58fc9205dd7f8924f765900b04eb479e0ac448cdc496bdd8439"
+  },
+  {
+    "path": "src/test/java/com/ban/vehicle_management/application/catalog/voucher/authorization/VoucherAccessGuardTest.java",
+    "kind": "Kiểm thử",
+    "sha256": "7e12a298121d6cfc97b770c45466e5e2db43dedf002f38d55fd20cb9ddccd1be"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/entrypoint/controller/parking/CustomerReservationController.java",
+    "kind": "Backend",
+    "sha256": "d167435fcae63dc6481ad57a855607cee070640f7ab69336ec236d3b09813234"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/entrypoint/controller/parking/PublicCustomerReservationController.java",
+    "kind": "Backend",
+    "sha256": "042554da9618701ebce4bc0edd7daa997a80566742c01fc3ea97079db797b0fe"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/application/parking/customerreservation/usecase/CustomerReservationUseCaseImpl.java",
+    "kind": "Backend",
+    "sha256": "998480d7c80f18d56e9ad9da15625c5c704ce28cb396db4090a824c44681e4c3"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/infrastructure/persistence/adapter/parking/CustomerReservationPersistenceAdapter.java",
+    "kind": "Backend",
+    "sha256": "f905e0d4628f08798a129b193a4953b83715579acd01b1d860db59e655b782d0"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/infrastructure/scheduler/parking/CustomerReservationExpiryScheduler.java",
+    "kind": "Backend",
+    "sha256": "1fe0b7802781d313f9ca815d76c26f045f50b48201de87ed43b9443ae050455a"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/application/parking/parkingsession/usecase/ParkingCheckOutUseCaseImpl.java",
+    "kind": "Backend",
+    "sha256": "1f27a5cd8913185f928a222e5d68c473c8d1bfea9f557c9d80688c80d790855c"
+  },
+  {
+    "path": "../../vehicle-management-frontend/vehicle_management_react/src/features/parking/pages/CustomerReservationPage.tsx",
+    "kind": "Frontend",
+    "sha256": "1ee5be2eeb3508f390deab064d59f6301f53c15cc690a939ae97602a6258ad0e"
+  },
+  {
+    "path": "../../vehicle-management-frontend/vehicle_management_react/src/features/parking/api/customerReservationApi.ts",
+    "kind": "Frontend",
+    "sha256": "29883b2921ea477fa2dcd8cce52d332a8eea9b6de031c73d810520fba920eebd"
+  },
+  {
+    "path": "src/test/java/com/ban/vehicle_management/application/parking/customerreservation/usecase/CustomerReservationUseCaseImplTest.java",
+    "kind": "Kiểm thử",
+    "sha256": "82fc9c5ae02e941c67e271f5f3265a11b799970df788690d96eb57472373616b"
+  },
+  {
+    "path": "src/test/java/com/ban/vehicle_management/application/parking/customerreservation/usecase/GuestReservationCheckoutUseCaseTest.java",
+    "kind": "Kiểm thử",
+    "sha256": "ca0f65569d9195676239db31129f99f0e6c9f7f7ffc3fe5fe43307d62dfcbaf0"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/infrastructure/ai/gemini/GeminiAiProviderAdapter.java",
+    "kind": "CodeOrCorpus",
+    "sha256": "c40ef3e44b29261713e53bfcb6301aea0cfd202542aea83a88af85b626002ea9"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/infrastructure/ai/gemini/GeminiConfiguration.java",
+    "kind": "CodeOrCorpus",
+    "sha256": "b5ebc857b0a802b6b9ac24171a90a001d75f4f6e978dcebeac1c7a52a64e30a2"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/infrastructure/ai/gemini/GeminiCredentialPool.java",
+    "kind": "CodeOrCorpus",
+    "sha256": "62e69a3e3abf95937fd33827f01eeea25e344492b91e740ce944779a60a83d3a"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/infrastructure/ai/gemini/GeminiEmbeddingProviderAdapter.java",
+    "kind": "CodeOrCorpus",
+    "sha256": "ca09237ff0a13e3047638184e130164edf0c21efe503e10b9f77da0ba9d7d4ca"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/infrastructure/ai/gemini/GeminiEmbeddingRequestMapper.java",
+    "kind": "CodeOrCorpus",
+    "sha256": "675f4e6423201e24683a7422f960d9b0ec9f62db921b7ec004b1d23621afd9ca"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/infrastructure/ai/gemini/GeminiEmbeddingResponseMapper.java",
+    "kind": "CodeOrCorpus",
+    "sha256": "64811f47934efa05ef183b6f0a650ddc3edfec9f9b7ed9b5700ed88b85f5722c"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/infrastructure/ai/gemini/GeminiProperties.java",
+    "kind": "CodeOrCorpus",
+    "sha256": "e23661627b6bf63a508a88ed073a62ae8e5c60334290d09ea97cd3dfa6a1b9e9"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/infrastructure/ai/gemini/GeminiRequestMapper.java",
+    "kind": "CodeOrCorpus",
+    "sha256": "38d9538c1f0ed121399c391e13ab8a000c7365ae78f2a92d8877fe6dd9ff6848"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/infrastructure/ai/gemini/GeminiResponseMapper.java",
+    "kind": "CodeOrCorpus",
+    "sha256": "527fba0400f91a3a91feeeb004059ef9977cd5264c5cf0d5886bdbdae1cc3f58"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/application/ai/service/AiProviderAttemptPlanner.java",
+    "kind": "CodeOrCorpus",
+    "sha256": "204e438aaa7668d9bcd3d3e81092621e69b6e1f07baf9fa8c5943336b0dac4a1"
+  },
+  {
+    "path": "docs/ai-knowledge/phase-0/authoring/knowledge/authentication-and-profile.md",
+    "kind": "CodeOrCorpus",
+    "sha256": "7b8cb1ae840c6792bd861c22b14d060d9dc5a0551dafba1642f7654034fb4d5a"
+  },
+  {
+    "path": "docs/ai-knowledge/phase-0/authoring/knowledge/cards-and-lost-card.md",
+    "kind": "CodeOrCorpus",
+    "sha256": "720f6afa0145ee776d0c5aa337ce78b8aa1c6cfacaaf56c4621383336107507a"
+  },
+  {
+    "path": "docs/ai-knowledge/phase-0/authoring/knowledge/chat-conversations-and-support-boundaries.md",
+    "kind": "CodeOrCorpus",
+    "sha256": "91386084af7af44c705b72a8015a76574d27a76db88b9c261aca3add49253faf"
+  },
+  {
+    "path": "docs/ai-knowledge/phase-0/authoring/knowledge/chatbot-privacy-and-prohibited-data.md",
+    "kind": "CodeOrCorpus",
+    "sha256": "38044b2143426411c0016221533e368ae366f63b9d67845898eedabe2e09d470"
+  },
+  {
+    "path": "docs/ai-knowledge/phase-0/authoring/knowledge/common-errors-and-troubleshooting.md",
+    "kind": "CodeOrCorpus",
+    "sha256": "08c5cf806ba9907b273b68eba72995b6b12a0efbdc359e5e95dcc8899449030e"
+  },
+  {
+    "path": "docs/ai-knowledge/phase-0/authoring/knowledge/customer-vehicle-management.md",
+    "kind": "CodeOrCorpus",
+    "sha256": "054fc8eca66c00802034cf57541b9fd130d0e548e0c737521307363b866a7210"
+  },
+  {
+    "path": "docs/ai-knowledge/phase-0/authoring/knowledge/invoice-vnpay-payment-refund.md",
+    "kind": "CodeOrCorpus",
+    "sha256": "69c8ec7faed780beac669d93641735dcf9f174cca7afb8737a6c97fc0e29895a"
+  },
+  {
+    "path": "docs/ai-knowledge/phase-0/authoring/knowledge/locations-hours-sla-contact.md",
+    "kind": "CodeOrCorpus",
+    "sha256": "e5b1156433d146a10c8b617bcaf48f879e5ad849d922981446cf0d973f91e325"
+  },
+  {
+    "path": "docs/ai-knowledge/phase-0/authoring/knowledge/parking-entry-exit.md",
+    "kind": "CodeOrCorpus",
+    "sha256": "4c315e5f7e3ed48ec271282326aee87eb6fd119e07c0211bbd66fd31a4ca33b0"
+  },
+  {
+    "path": "docs/ai-knowledge/phase-0/authoring/knowledge/parking-history.md",
+    "kind": "CodeOrCorpus",
+    "sha256": "cd4f9b7a73675a6ce5fddd5cb2ed552cc6079f688fea7d7842db5f08faa9ad44"
+  },
+  {
+    "path": "docs/ai-knowledge/phase-0/authoring/knowledge/pricing-and-fee-calculation.md",
+    "kind": "CodeOrCorpus",
+    "sha256": "1df7110a24295d75be98e62641b79f26fc79f6f447e90a2e26256b2bf48e9c61"
+  },
+  {
+    "path": "docs/ai-knowledge/phase-0/authoring/knowledge/reservations-and-holds.md",
+    "kind": "CodeOrCorpus",
+    "sha256": "95725140d5b5774be0c35863abc8a9f00af5f4f7df0e51baeb1307ef335ef2f1"
+  },
+  {
+    "path": "docs/ai-knowledge/phase-0/authoring/knowledge/subscription-lifecycle.md",
+    "kind": "CodeOrCorpus",
+    "sha256": "40717c24880dbd9b7c1c6a62dab6f3df92d42208f2b5ee00eeb12e26d32f04b3"
+  },
+  {
+    "path": "docs/ai-knowledge/phase-0/authoring/knowledge/support-ticket-and-escalation.md",
+    "kind": "CodeOrCorpus",
+    "sha256": "b11512eacd9e40a3fcba55bd4e0cf20d2244116a778d7a99143a6aa1b4c11762"
+  },
+  {
+    "path": "docs/ai-knowledge/phase-0/authoring/knowledge/voucher-and-promotions.md",
+    "kind": "CodeOrCorpus",
+    "sha256": "0fbe78ec5549e9dfe14da12e1e5ab912faa8c2748e3eb5e540fe55dabb2d3e67"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/application/ai/port/out/AiProviderPortOut.java",
+    "kind": "SharedRuntime",
+    "sha256": "cdeeaa36de3d627b2ff9091fdf91d84c3932301addfcbda678603fb0ecdd8510"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/domain/ai/model/AiProviderAttempt.java",
+    "kind": "SharedRuntime",
+    "sha256": "ac206d57a1de1bfc0f52a1271a0cdf5408bc28da931ac08154ae0b4624299023"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/application/ai/service/AiProviderAttemptPlanner.java",
+    "kind": "SharedRuntime",
+    "sha256": "204e438aaa7668d9bcd3d3e81092621e69b6e1f07baf9fa8c5943336b0dac4a1"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/application/ai/service/AiModelPolicyService.java",
+    "kind": "SharedRuntime",
+    "sha256": "020d8d0d204dc53314de60d345211cb574fe3499db70745a603291409c0a93b1"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/application/ai/service/AssistantOrchestrator.java",
+    "kind": "SharedRuntime",
+    "sha256": "da55c8c83aa59eca4781dab59efd98501a9224a9fffd22eb8b4f800eacc10202"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/application/operations/guestsupport/service/GuestPublicAssistantService.java",
+    "kind": "SharedRuntime",
+    "sha256": "e76c20834a4c33589687b47cd57744071542c426089dbc29ef682f8635ec0d15"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/domain/ai/model/AssistantBusinessRequestPolicy.java",
+    "kind": "SharedRuntime",
+    "sha256": "38aa8684ce88952f2590b602bcfff71b0b034654113eb60a680c1081c3d76be6"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/domain/ai/model/AssistantIntentRouter.java",
+    "kind": "SharedRuntime",
+    "sha256": "f75545051e1cc17705e875ffc9adfdd5f65007b722a767491b956adeb5dedda8"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/domain/ai/model/AssistantQuestionResolver.java",
+    "kind": "SharedRuntime",
+    "sha256": "122f1b1ba179ce6f3dac98bd75e29aa622409312faeef89860e9886ba956f1b6"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/domain/ai/model/PromptInjectionScreening.java",
+    "kind": "SharedRuntime",
+    "sha256": "6225ab7d2406db95cd5762ff611536c95e496669c0b86d3e46e47eec96086994"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/domain/ai/model/GroundedContextPack.java",
+    "kind": "SharedRuntime",
+    "sha256": "c7ffcb4ef7fb2ae7c5d1417b21da72995946a9b48c9b9c12339418a7ee9ed7fe"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/domain/ai/model/VietnameseQueryNormalizer.java",
+    "kind": "SharedRuntime",
+    "sha256": "c40904dfd080e80c5996ac7b6352f603308a684ad76855a26e143426e980de97"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/domain/ai/model/AssistantResponseStyle.java",
+    "kind": "SharedRuntime",
+    "sha256": "1f3b4d2fa0a13fa8808a96e2526225106a4e9f609a7557bfa6a9d6a717a5b769"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/infrastructure/cache/AiCacheKeyFactory.java",
+    "kind": "SharedRuntime",
+    "sha256": "5858652c1fad478eb5b873c72415971f2c77d90217fc4838061b27b91a5504c2"
+  },
+  {
+    "path": "src/main/java/com/ban/vehicle_management/domain/ai/model/AssistantOutputValidator.java",
+    "kind": "SharedRuntime",
+    "sha256": "4da5197fc1727ab418065454fafab4a75f6178b404be1216d3ff0ba0fe52dd66"
+  },
+  {
+    "path": "src/test/java/com/ban/vehicle_management/infrastructure/ai/gemini/GeminiCredentialPoolTest.java",
+    "kind": "Verification",
+    "sha256": "410cc947ff2bc84df79c4f779a2e87bf8b382524ae68c1271d950ce316ecd52e"
+  },
+  {
+    "path": "src/test/java/com/ban/vehicle_management/infrastructure/ai/gemini/GeminiCredentialAvailabilityTest.java",
+    "kind": "Verification",
+    "sha256": "0143ef5250702eb7a446453dae4b59b9b0ab7153c576999840327a4acdca8749"
+  },
+  {
+    "path": "src/test/java/com/ban/vehicle_management/domain/ai/model/Phase3KnowledgeAcceptanceTest.java",
+    "kind": "Verification",
+    "sha256": "ed817478641533de3749a1e0394ec4018768e17e490f0894a32c5bd4b29117ea"
+  },
+  {
+    "path": "src/test/java/com/ban/vehicle_management/domain/ai/model/PromptInjectionProhibitionTest.java",
+    "kind": "Verification",
+    "sha256": "2cde8e128c19091b3d4846a805cfac5ad75b0566b1d769c22d7c2bbd3366fdc0"
+  },
+  {
+    "path": "src/test/java/com/ban/vehicle_management/domain/ai/model/QueryAwareContextPackTest.java",
+    "kind": "Verification",
+    "sha256": "95401f76e04960ec50d2f58f0f512a9a0f733efbad869fb58de233317f231e2d"
+  },
+  {
+    "path": "src/test/java/com/ban/vehicle_management/domain/ai/model/FinancialActionClaimTest.java",
+    "kind": "Verification",
+    "sha256": "983b2ce441dca4ed93dd1d0c55d96d645eaf26b2402bd761339ad6de90fe53d8"
+  },
+  {
+    "path": "src/test/java/com/ban/vehicle_management/domain/ai/model/VietnameseLexicalQueryTest.java",
+    "kind": "Verification",
+    "sha256": "b590eb02b9bdd13d03379e5ab17e434121da1b773fb9bd9ef46ce5fce01e94aa"
+  },
+  {
+    "path": "src/test/java/com/ban/vehicle_management/ai/golden/Phase2KnowledgeAcceptanceIT.java",
+    "kind": "Verification",
+    "sha256": "e8f08c02379c52faf43d778762a63406765c497e65a7b9d930090c266e03770f"
+  },
+  {
+    "path": "src/test/java/com/ban/vehicle_management/application/operations/guestsupport/service/GuestPublicAssistantServiceTest.java",
+    "kind": "Verification",
+    "sha256": "a7528238ef06118f1a18968300f037d5b81362368bd317e1d6d3a9ec0d754912"
+  },
+  {
+    "path": "src/test/java/com/ban/vehicle_management/application/ai/service/AssistantOrchestratorTest.java",
+    "kind": "Verification",
+    "sha256": "9cdfcb535cdc2b773cbe96fbee3cb9778aaa8b9a283ffb0da33637680630160e"
+  },
+  {
+    "path": "src/test/java/com/ban/vehicle_management/domain/ai/model/CapturedResponseGuardTest.java",
+    "kind": "Verification",
+    "sha256": "c8d031086e82a6b44093dfde72e9d3686bca10ef3d6aba12c8f5b300ff0b0905"
+  },
+  {
+    "path": "scripts/check_gemini_credentials.py",
+    "kind": "VerificationArtifact",
+    "sha256": "69ab6c8736268c0cae60a9e1570f77e048e3798761a6f2d2729afa6581c1503b"
+  },
+  {
+    "path": "scripts/run_ai_knowledge_live.py",
+    "kind": "VerificationArtifact",
+    "sha256": "f92d20068f0a44d216e305a08392ac1f4e25fbbd011068c209de510f5fd16ed6"
+  },
+  {
+    "path": "scripts/sync_ai_knowledge.py",
+    "kind": "VerificationArtifact",
+    "sha256": "fc2d2620b20d2e2e619394dc7c10e791d3cc447f10ac329587a9c61db71dd27b"
+  },
+  {
+    "path": ".env.example",
+    "kind": "VerificationArtifact",
+    "sha256": "d738c216c4c36773e010dd320eaced5ea9e494a66efa7239a1f558e0feb92536"
+  },
+  {
+    "path": "src/main/resources/application.yaml",
+    "kind": "VerificationArtifact",
+    "sha256": "f18a6571696ab3cc96eda8bb4bde4a43e181fb16becb750248feb7ef07d3f1f0"
+  },
+  {
+    "path": "docs/ai-knowledge/phase-0/authoring/knowledge-manifest.json",
+    "kind": "VerificationArtifact",
+    "sha256": "fcfad5804e7c21c11bdcf82415aafaf18ffab036d6b02c0646a555d3e2e54284"
+  },
+  {
+    "path": "docs/ai-knowledge/phase-0/authoring/evaluation/batch-03-questions.jsonl",
+    "kind": "VerificationArtifact",
+    "sha256": "173c8d0480d2be7d916f2d33d6d3cbc2dd6963f35c8f1dd3433dd9f61edac500"
+  },
+  {
+    "path": "docs/ai-knowledge/phase-0/authoring/evaluation/batch-03-rubric.md",
+    "kind": "VerificationArtifact",
+    "sha256": "b21933b15e64e281cecfe0f523a919b6dd401c6d3bdd67b1102165a74626384d"
+  }
+]

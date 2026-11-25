@@ -1,0 +1,32 @@
+{
+  "sql": {
+    "migration": "165 migrations applied on isolated Testcontainers DB through V20261124170000",
+    "test": "6 assertions did not execute successfully: context expected concrete adapter but received JDK transaction proxy",
+    "fix": "test now injects CommonKnowledgePortOut",
+    "rerun": "NOT_STARTED_LOW_MEMORY",
+    "preflightMb": [
+      {
+        "available": 629,
+        "minimum": 1024
+      },
+      {
+        "available": 343,
+        "minimum": 1024
+      },
+      {
+        "available": 465,
+        "minimum": 1024
+      }
+    ]
+  },
+  "frontend": {
+    "syntax": "3 TS/TSX files PASS via esbuild transform",
+    "fullTypeScript": "FAILED JVM-independent Node heap384MB; subsequent run guarded at physical free441MB<1024MB",
+    "browser": "NOT_RUN"
+  },
+  "providerLive": {
+    "google": "NOT_CALLED; old cohort remains paused",
+    "qwen": "NOT_RUN; guard and pending gates"
+  },
+  "qualityAccepted": false
+}

@@ -8,10 +8,10 @@ import { CustomerMobileNav } from "@/features/customer-portal/components/Custome
 import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 
 export const publicContactItems = [
-  { icon: "fas fa-phone-alt", title: "Hotline", value: "1900 1234", note: "Hỗ trợ 24/7" },
-  { icon: "far fa-envelope", title: "Email", value: "support@coparking.vn", note: "Phản hồi trong 24h" },
-  { icon: "fas fa-map-marker-alt", title: "Địa chỉ", value: "Số 1 Võ Văn Ngân, phường Thủ Đức, TP. Hồ Chí Minh", note: "" },
-  { icon: "far fa-clock", title: "Giờ hỗ trợ", value: "06:00 - 22:00", note: "Tất cả các ngày" },
+  { icon: "fas fa-phone-alt", title: "Hotline", value: "0912345678", note: "Tiếp nhận hỗ trợ 24/7" },
+  { icon: "far fa-envelope", title: "Email", value: "support@coparking.vn", note: "Thời gian phản hồi tùy mức độ yêu cầu" },
+  { icon: "fas fa-map-marker-alt", title: "Địa chỉ", value: "10/5 Đường Tỉnh Lộ 19, Phường An Phú Đông, Thành phố Hồ Chí Minh", note: "Trụ sở CoParking" },
+  { icon: "far fa-clock", title: "Giờ hỗ trợ", value: "24/7", note: "Giờ mở cửa từng bãi cần kiểm tra riêng" },
 ];
 
 const customerNavItems = [

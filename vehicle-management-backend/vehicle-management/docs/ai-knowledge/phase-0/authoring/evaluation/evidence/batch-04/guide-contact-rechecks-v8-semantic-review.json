@@ -1,0 +1,153 @@
+{
+  "method": "Manual Vietnamese semantic review against code/public-source conditions, final answer not raw model output.",
+  "caseGrades": {
+    "AUTH09-3": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "AUTH09-4": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B2-CARD04-4": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B2-CARD05-5": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B2-HIST04-3": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B3-PAY02-3": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B3-PAY04-3": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B3-PAY07-3": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B3-PRI04-3": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B3-RES04-3": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B3-RES09-3": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B3-VOU02-5": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B3-VOU09-3": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B4-ENT03-3": {
+      "pass": false,
+      "reason": "Wrong reservation evidence and omits staff at lot checking the open parking session."
+    },
+    "B4-ENT03-4": {
+      "pass": false,
+      "reason": "Wrong reservation evidence and omits staff at lot checking the open parking session."
+    },
+    "B4-ENT04-6": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B4-ENT05-5": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B4-MAP01-6": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B4-MAP05-6": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B4-LOC01-3": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B4-LOC01-4": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B4-LOC01-5": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B4-LOC01-6": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B4-LOC02-3": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B4-LOC02-4": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B4-LOC02-5": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B4-LOC02-6": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B4-LOC03-4": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B4-LOC08-4": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B4-LOC08-5": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B4-LOC08-6": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B4-ERR06-3": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B4-ERR06-4": {
+      "pass": true,
+      "reason": "Manually reviewed final answer: correct workflow/conditions/public contact and important safety/financial limits."
+    },
+    "B4-ERR06-5": {
+      "pass": true,
+      "reason": "Manually reviewed: creation has no duplicate-open report; completion requires recorded payment and available replacement at same lot/type if needed."
+    },
+    "B4-ERR07-3": {
+      "pass": true,
+      "reason": "Manually reviewed: creation has no duplicate-open report; completion requires recorded payment and available replacement at same lot/type if needed."
+    },
+    "B4-ERR07-4": {
+      "pass": true,
+      "reason": "Manually reviewed: creation has no duplicate-open report; completion requires recorded payment and available replacement at same lot/type if needed."
+    },
+    "B4-ERR07-6": {
+      "pass": true,
+      "reason": "Manually reviewed: creation has no duplicate-open report; completion requires recorded payment and available replacement at same lot/type if needed."
+    }
+  }
+}

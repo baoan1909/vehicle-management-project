@@ -1,0 +1,234 @@
+{
+  "cases": 600,
+  "retrievalCases": 552,
+  "answerJobs": 216,
+  "jobStatuses": {
+    "COMPLETED": 216
+  },
+  "top5Hits": 552,
+  "evidenceSufficient": 542,
+  "insufficientCases": [
+    "CHAT06-1",
+    "CHAT06-2",
+    "B3-PAY02-5",
+    "B3-PAY03-3",
+    "B3-PAY06-3",
+    "B3-PAY06-4",
+    "B3-VOU08-4",
+    "B3-RES07-4",
+    "B3-RES09-3",
+    "B3-RES09-4"
+  ],
+  "sourcedAnswerJobs": 168,
+  "answersWithCitations": 161,
+  "citationCount": 201,
+  "citationMembershipViolations": [],
+  "generationAttempts": 139,
+  "generationHttpCalls": 122,
+  "generationHttpByModel": {
+    "gemini-3.1-flash-lite": 57,
+    "gemini-3.5-flash-lite": 65
+  },
+  "generationFailureCodes": {
+    "TIMEOUT": 2,
+    "GEMINI_REQUEST_BUDGET_EXHAUSTED": 2,
+    "GEMINI_CANDIDATE_UNAVAILABLE": 17,
+    "HTTP_5XX": 2
+  },
+  "successfulGenerations": {
+    "gemini-3.1-flash-lite": 54,
+    "gemini-3.5-flash-lite": 62
+  },
+  "credentialHttpCalls": 135,
+  "embeddingHttpCalls": 13,
+  "tokenUsage": {
+    "input": 156081,
+    "output": 8448,
+    "reportedAttempts": 116
+  },
+  "latencyMs": {
+    "retrievalRecordedVectors": {
+      "n": 552,
+      "p50": 41,
+      "p95": 84,
+      "max": 231
+    },
+    "faqWithoutGeneration": {
+      "n": 48,
+      "p50": 57,
+      "p95": 94,
+      "max": 142
+    },
+    "sourcedGenerationJobs": {
+      "n": 116,
+      "p50": 5710,
+      "p95": 9738,
+      "max": 38741
+    },
+    "providerAttemptsIncludingPacing": {
+      "n": 122,
+      "p50": 5477,
+      "p95": 9496,
+      "max": 12004
+    }
+  },
+  "cacheCondition": "Application answer/retrieval caches disabled; recorded real query/corpus vectors reused by the harness. No production warm-cache p95 claim.",
+  "scope": "Real PostgreSQL/chunker/hybrid retrieval/Gemini; synthetic actor/chat/audit/business ports. No dev corpus or financial writes.",
+  "credentials": [
+    {
+      "variable": "GEMINI_API_KEY",
+      "status": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "calls": 90,
+      "successes": 85
+    },
+    {
+      "variable": "GEMINI_API_KEY_1",
+      "status": "OK",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "calls": 45,
+      "successes": 44
+    },
+    {
+      "variable": "GEMINI_API_KEY_2",
+      "status": "UNTESTED",
+      "operation": null,
+      "model": null,
+      "calls": 0,
+      "successes": 0
+    },
+    {
+      "variable": "GEMINI_API_KEY_3",
+      "status": "UNTESTED",
+      "operation": null,
+      "model": null,
+      "calls": 0,
+      "successes": 0
+    },
+    {
+      "variable": "GEMINI_API_KEY_4",
+      "status": "UNTESTED",
+      "operation": null,
+      "model": null,
+      "calls": 0,
+      "successes": 0
+    }
+  ],
+  "credentialFailureEvents": [
+    {
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "occurredAt": "2026-11-20T10:44:02.146768700Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "occurredAt": "2026-11-20T10:48:06.209314500Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "occurredAt": "2026-11-20T10:48:26.222142600Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY_1",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "occurredAt": "2026-11-20T10:49:34.782210600Z"
+    }
+  ],
+  "retrievalByDocument": {
+    "authentication-and-profile": {
+      "n": 54,
+      "hitAt5": 54,
+      "sufficient": 54
+    },
+    "cards-and-lost-card": {
+      "n": 36,
+      "hitAt5": 36,
+      "sufficient": 36
+    },
+    "chat-conversations-and-support-boundaries": {
+      "n": 42,
+      "hitAt5": 42,
+      "sufficient": 40
+    },
+    "chatbot-privacy-and-prohibited-data": {
+      "n": 24,
+      "hitAt5": 24,
+      "sufficient": 24
+    },
+    "customer-vehicle-management": {
+      "n": 36,
+      "hitAt5": 36,
+      "sufficient": 36
+    },
+    "invoice-vnpay-payment-refund": {
+      "n": 60,
+      "hitAt5": 60,
+      "sufficient": 56
+    },
+    "parking-history": {
+      "n": 36,
+      "hitAt5": 36,
+      "sufficient": 36
+    },
+    "pricing-and-fee-calculation": {
+      "n": 60,
+      "hitAt5": 60,
+      "sufficient": 60
+    },
+    "reservations-and-holds": {
+      "n": 60,
+      "hitAt5": 60,
+      "sufficient": 57
+    },
+    "subscription-lifecycle": {
+      "n": 36,
+      "hitAt5": 36,
+      "sufficient": 36
+    },
+    "support-ticket-and-escalation": {
+      "n": 48,
+      "hitAt5": 48,
+      "sufficient": 48
+    },
+    "voucher-and-promotions": {
+      "n": 60,
+      "hitAt5": 60,
+      "sufficient": 59
+    }
+  },
+  "selectionChanges": 4,
+  "selectionChangeEvents": [
+    {
+      "scope": "generateContent:SUPPORT_CHAT",
+      "variable": "GEMINI_API_KEY",
+      "model": "gemini-3.5-flash-lite"
+    },
+    {
+      "scope": "generateContent:SUPPORT_CHAT",
+      "variable": "GEMINI_API_KEY",
+      "model": "gemini-3.1-flash-lite"
+    },
+    {
+      "scope": "generateContent:SUPPORT_CHAT",
+      "variable": "GEMINI_API_KEY_1",
+      "model": "gemini-3.1-flash-lite"
+    },
+    {
+      "scope": "generateContent:SUPPORT_CHAT",
+      "variable": "GEMINI_API_KEY_1",
+      "model": "gemini-3.5-flash-lite"
+    }
+  ]
+}

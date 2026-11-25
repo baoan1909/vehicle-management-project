@@ -1,0 +1,150 @@
+{
+  "cases": 8,
+  "retrievalCases": 8,
+  "answerJobs": 8,
+  "jobStatuses": {
+    "COMPLETED": 8
+  },
+  "top5Hits": 8,
+  "evidenceSufficient": 8,
+  "insufficientCases": [],
+  "sourcedAnswerJobs": 8,
+  "answersWithCitations": 8,
+  "citationCount": 14,
+  "citationMembershipViolations": [],
+  "generationAttempts": 28,
+  "generationHttpCalls": 12,
+  "generationHttpByModel": {
+    "gemini-3.1-flash-lite": 7,
+    "gemini-3.5-flash-lite": 5
+  },
+  "generationFailureCodes": {
+    "TIMEOUT": 2,
+    "GEMINI_REQUEST_BUDGET_EXHAUSTED": 2,
+    "GEMINI_CANDIDATE_UNAVAILABLE": 16
+  },
+  "successfulGenerations": {
+    "gemini-3.5-flash-lite": 3,
+    "gemini-3.1-flash-lite": 5
+  },
+  "credentialHttpCalls": 12,
+  "embeddingHttpCalls": 0,
+  "tokenUsage": {
+    "input": 11392,
+    "output": 644,
+    "reportedAttempts": 8
+  },
+  "latencyMs": {
+    "retrievalRecordedVectors": {
+      "n": 8,
+      "p50": 20,
+      "p95": 85,
+      "max": 85
+    },
+    "faqWithoutGeneration": {
+      "n": 0
+    },
+    "sourcedGenerationJobs": {
+      "n": 8,
+      "p50": 7024,
+      "p95": 39247,
+      "max": 39247
+    },
+    "providerAttemptsIncludingPacing": {
+      "n": 12,
+      "p50": 5745,
+      "p95": 11397,
+      "max": 11397
+    }
+  },
+  "cacheCondition": "Application answer/retrieval caches disabled; recorded real query/corpus vectors reused by the harness. No production warm-cache p95 claim.",
+  "scope": "Real PostgreSQL/chunker/hybrid retrieval/Gemini; synthetic actor/chat/audit/business ports. No dev corpus or financial writes.",
+  "credentials": [
+    {
+      "variable": "GEMINI_API_KEY",
+      "status": "OK",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "calls": 12,
+      "successes": 8
+    },
+    {
+      "variable": "GEMINI_API_KEY_1",
+      "status": "UNTESTED",
+      "operation": null,
+      "model": null,
+      "calls": 0,
+      "successes": 0
+    },
+    {
+      "variable": "GEMINI_API_KEY_2",
+      "status": "UNTESTED",
+      "operation": null,
+      "model": null,
+      "calls": 0,
+      "successes": 0
+    },
+    {
+      "variable": "GEMINI_API_KEY_3",
+      "status": "UNTESTED",
+      "operation": null,
+      "model": null,
+      "calls": 0,
+      "successes": 0
+    },
+    {
+      "variable": "GEMINI_API_KEY_4",
+      "status": "UNTESTED",
+      "operation": null,
+      "model": null,
+      "calls": 0,
+      "successes": 0
+    }
+  ],
+  "credentialFailureEvents": [
+    {
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "occurredAt": "2026-11-20T11:36:03.740716300Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "occurredAt": "2026-11-20T11:36:57.027059Z"
+    }
+  ],
+  "retrievalByDocument": {
+    "invoice-vnpay-payment-refund": {
+      "n": 3,
+      "hitAt5": 3,
+      "sufficient": 3
+    },
+    "pricing-and-fee-calculation": {
+      "n": 1,
+      "hitAt5": 1,
+      "sufficient": 1
+    },
+    "reservations-and-holds": {
+      "n": 2,
+      "hitAt5": 2,
+      "sufficient": 2
+    },
+    "voucher-and-promotions": {
+      "n": 2,
+      "hitAt5": 2,
+      "sufficient": 2
+    }
+  },
+  "selectionChanges": 1,
+  "selectionChangeEvents": [
+    {
+      "scope": "generateContent:SUPPORT_CHAT",
+      "variable": "GEMINI_API_KEY",
+      "model": "gemini-3.1-flash-lite"
+    }
+  ]
+}

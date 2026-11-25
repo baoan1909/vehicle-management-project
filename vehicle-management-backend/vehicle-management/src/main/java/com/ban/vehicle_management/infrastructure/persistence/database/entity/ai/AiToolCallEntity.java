@@ -26,7 +26,7 @@ public class AiToolCallEntity {
     @Column(name = "tool_call_id", nullable = false)
     private UUID toolCallId;
 
-    @Column(name = "run_id", nullable = false)
+    @Column(name = "run_id")
     private UUID runId;
 
     @Column(name = "conversation_id")

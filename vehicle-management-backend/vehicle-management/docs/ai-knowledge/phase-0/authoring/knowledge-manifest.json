@@ -1,0 +1,204 @@
+{
+  "schemaVersion": 2,
+  "verifiedAt": "2026-11-24",
+  "sourceRoot": "docs/ai-knowledge/phase-0/authoring/knowledge",
+  "exportRoot": "docs/ai-knowledge/phase-0/knowledge",
+  "documents": [
+    {
+      "slug": "authentication-and-profile",
+      "file": "authentication-and-profile.md",
+      "accessScope": "PUBLIC",
+      "documentVersion": "2.2.0",
+      "status": "DRAFT",
+      "batch": 1,
+      "sourceSha256": "4b4b831f3c87f21582c46b43fe456a030047ba13574a78d2a6d2eb5faaa28985",
+      "exportSha256": "6fa1979e4d1359c4eee9bda9a983f52e1c1087f46632f7ad3e2f2140783e8102"
+    },
+    {
+      "slug": "cards-and-lost-card",
+      "file": "cards-and-lost-card.md",
+      "accessScope": "CUSTOMER",
+      "documentVersion": "2.3.0",
+      "status": "DRAFT",
+      "batch": 2,
+      "sourceSha256": "8b3e7b7881393beff4ab5fc01fd24f0a002d751e221af8ea6f56b603295d2d3b",
+      "exportSha256": "8597552db8ce98968dc9f1ea80621475a3f11aa32b339ed4706d520f977581a0"
+    },
+    {
+      "slug": "chat-conversations-and-support-boundaries",
+      "file": "chat-conversations-and-support-boundaries.md",
+      "accessScope": "PUBLIC",
+      "documentVersion": "2.2.0",
+      "status": "DRAFT",
+      "batch": 1,
+      "sourceSha256": "b07698715d880aa7dc12fea22a402f8664fbbab9e3554a7a43bf40b246b2bad0",
+      "exportSha256": "7c4e28b3f7ca1f889aa4406e3ebc03f4401c7c87d08e2145002f220083820fa0"
+    },
+    {
+      "slug": "chatbot-privacy-and-prohibited-data",
+      "file": "chatbot-privacy-and-prohibited-data.md",
+      "accessScope": "PUBLIC",
+      "documentVersion": "2.1.0",
+      "status": "DRAFT",
+      "batch": 1,
+      "sourceSha256": "184cebdd9a8364195ff18c28aae2462299fa093e6983e9a7ddc4031f9b387b00",
+      "exportSha256": "e60ab37c64f77871aeebde36543ae7e41dfaeb3350472e06181e56bf677e4307"
+    },
+    {
+      "slug": "common-errors-and-troubleshooting",
+      "file": "common-errors-and-troubleshooting.md",
+      "accessScope": "PUBLIC",
+      "documentVersion": "2.1.0",
+      "status": "DRAFT",
+      "batch": 4,
+      "sourceSha256": "ca1b4f9af75cef61726605fb43d61f19448c3a845ce409cae4b57de190934086",
+      "exportSha256": "d60c054598fa034e32e02752b55db9f48ffdcb031cd6834a16c28a38b9b0baaa"
+    },
+    {
+      "slug": "customer-vehicle-management",
+      "file": "customer-vehicle-management.md",
+      "accessScope": "CUSTOMER",
+      "documentVersion": "2.1.0",
+      "status": "DRAFT",
+      "batch": 2,
+      "sourceSha256": "7f682655dd8c3f4a9110254b1c86cda3ef29eb0a28e264e3d52bde0f0b6efc04",
+      "exportSha256": "aecb3424421501cbb9c8b912aa063db3b5e8ac9647ec2f492ca5eca7892ae22e"
+    },
+    {
+      "slug": "invoice-vnpay-payment-refund",
+      "file": "invoice-vnpay-payment-refund.md",
+      "accessScope": "CUSTOMER",
+      "documentVersion": "2.1.0",
+      "status": "DRAFT",
+      "batch": 3,
+      "sourceSha256": "af4f74b1481a17d505e9d8004736320988873ac3179fd84ec617d3c6e481db7b",
+      "exportSha256": "c5ad6e1b013af0943b90f44d6e101da356cd6374ca5401c43fb6d71799528b8c"
+    },
+    {
+      "slug": "locations-hours-sla-contact",
+      "file": "locations-hours-sla-contact.md",
+      "accessScope": "PUBLIC",
+      "documentVersion": "2.1.0",
+      "status": "DRAFT",
+      "batch": 4,
+      "sourceSha256": "6df4a1e6fd66aa1dbfe5e7f6d54760a16814d83945d8ce3988cf98b9619c4bc7",
+      "exportSha256": "868c12d2e31496e293352ebf45db37d2e035179f23c9464f9cc0fcf0a76e1354"
+    },
+    {
+      "slug": "parking-entry-exit",
+      "file": "parking-entry-exit.md",
+      "accessScope": "PUBLIC",
+      "documentVersion": "2.1.0",
+      "status": "DRAFT",
+      "batch": 4,
+      "sourceSha256": "cb842888810b4495f45b83d30b46d52e6affcf5f0870079c1b9a672876154862",
+      "exportSha256": "f10bfcfebd352cd9cf93f261144fab7eefd048159e5b5fe03c431cda160e190e"
+    },
+    {
+      "slug": "parking-history",
+      "file": "parking-history.md",
+      "accessScope": "CUSTOMER",
+      "documentVersion": "2.2.0",
+      "status": "DRAFT",
+      "batch": 2,
+      "sourceSha256": "302e95a7e36948e9fee15689d11a361a1129706b447c41967b9d5d9c7046add5",
+      "exportSha256": "171c6e1c809b373b7e405b696180952b6f6352e97a62e2cbb888498388accc1f"
+    },
+    {
+      "slug": "parking-search-and-map",
+      "file": "parking-search-and-map.md",
+      "accessScope": "PUBLIC",
+      "documentVersion": "2.1.0",
+      "status": "DRAFT",
+      "batch": 4,
+      "sourceSha256": "368ff9ce9c6c955e43efb8b07ce1b4178f42e3e5f21d358433bc44043e86c700",
+      "exportSha256": "630273662370b5116827a034fdfeea10864911d096d8639eacb98ce81ac6ae06"
+    },
+    {
+      "slug": "pricing-and-fee-calculation",
+      "file": "pricing-and-fee-calculation.md",
+      "accessScope": "PUBLIC",
+      "documentVersion": "2.1.0",
+      "status": "DRAFT",
+      "batch": 3,
+      "sourceSha256": "c78a5d94ec48bcc1b04e33cb906c23902a1892a213919d6d10c4e14223261a9b",
+      "exportSha256": "415ecab6d5d075c7b956590e2af5e19a5a6e8500919985fd5d12b56ff0654f7c"
+    },
+    {
+      "slug": "reservations-and-holds",
+      "file": "reservations-and-holds.md",
+      "accessScope": "PUBLIC",
+      "documentVersion": "2.1.0",
+      "status": "DRAFT",
+      "batch": 3,
+      "sourceSha256": "cdd065320e11f11eda4b355a77d16e0453db9ada604e029f127c11ecbbf151db",
+      "exportSha256": "75ee1d0491fbbeeeaea7261822017e9103875db8aaf6212e1dfd1a0a3d340e20"
+    },
+    {
+      "slug": "subscription-lifecycle",
+      "file": "subscription-lifecycle.md",
+      "accessScope": "CUSTOMER",
+      "documentVersion": "2.2.0",
+      "status": "DRAFT",
+      "batch": 2,
+      "sourceSha256": "7d3a93cd1fb0adccd55310f673180ef39bdb0b851fd75fd3420c1e4aee5313fe",
+      "exportSha256": "71ebaee56d7a070cff37952be75158288d76eebe54f47c1bf76665878fcc886d"
+    },
+    {
+      "slug": "support-ticket-and-escalation",
+      "file": "support-ticket-and-escalation.md",
+      "accessScope": "CUSTOMER",
+      "documentVersion": "2.1.0",
+      "status": "DRAFT",
+      "batch": 1,
+      "sourceSha256": "56c69878967e9e24be532b0e3d885cd32df107529bf1ccaa70aaa914ae20f90d",
+      "exportSha256": "0c3087a808bc162f308a5640212fe92529063080b26a8ca36147171f5dd4d622"
+    },
+    {
+      "slug": "voucher-and-promotions",
+      "file": "voucher-and-promotions.md",
+      "accessScope": "PUBLIC",
+      "documentVersion": "2.2.0",
+      "status": "DRAFT",
+      "batch": 3,
+      "sourceSha256": "1c3a853dd0c52e34feba0cf46c240f1fbd4efb2337b3b2af34c4f50da3be65ef",
+      "exportSha256": "8e05ce4259072b566aca928d405fd5941a55bbc857777c059d9bc8e7c2b7ca66"
+    }
+  ],
+  "datasets": [
+    {
+      "file": "golden-questions.jsonl",
+      "kind": "baseline",
+      "expectedCount": 120,
+      "sha256": "b7c8ac854eccb1f298e1ef67885469c2eb57646bbe975228646d882b9e8c7f05"
+    },
+    {
+      "file": "batch-01-questions.jsonl",
+      "kind": "batch",
+      "batch": 1,
+      "expectedCount": 240,
+      "sha256": "c52428079ce9ada180f89aef76821f34ca070198d5f4e8ba758bf99d4ee7704a"
+    },
+    {
+      "file": "batch-02-questions.jsonl",
+      "kind": "batch",
+      "batch": 2,
+      "expectedCount": 240,
+      "sha256": "a6cca7271a2b406f1600fcb5998351aaa5360112b736152c6fb8812e73ca7654"
+    },
+    {
+      "file": "batch-03-questions.jsonl",
+      "kind": "batch",
+      "batch": 3,
+      "expectedCount": 240,
+      "sha256": "173c8d0480d2be7d916f2d33d6d3cbc2dd6963f35c8f1dd3433dd9f61edac500"
+    },
+    {
+      "file": "batch-04-questions.jsonl",
+      "kind": "batch",
+      "batch": 4,
+      "expectedCount": 264,
+      "sha256": "82644eb7048f994833b5f7ab01706a2a8c78c3e98b89b119c04acb284e4826c9"
+    }
+  ]
+}

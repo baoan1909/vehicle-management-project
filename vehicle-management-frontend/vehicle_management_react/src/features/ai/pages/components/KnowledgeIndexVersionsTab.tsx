@@ -26,25 +26,25 @@ type PendingAction = {
 
 const statusMeta: Record<KnowledgeIndexVersionStatus, { label: string; tone: StatusTone }> = {
   DRAFT: { label: "Bản nháp", tone: "neutral" },
-  BUILDING: { label: "Đang lập chỉ mục", tone: "warning" },
-  READY: { label: "Sẵn sàng", tone: "primary" },
-  ACTIVE: { label: "Đang hoạt động", tone: "success" },
+  BUILDING: { label: "Đang chuẩn bị", tone: "warning" },
+  READY: { label: "Chờ bật sử dụng", tone: "primary" },
+  ACTIVE: { label: "Đang dùng", tone: "success" },
   RETIRED: { label: "Đã ngừng sử dụng", tone: "neutral" },
   FAILED: { label: "Thất bại", tone: "danger" },
 };
 
 const actionCopy = {
   build: {
-    title: "Xây dựng chỉ mục",
-    confirmLabel: "Xây dựng",
+    title: "Chuẩn bị tìm kiếm",
+    confirmLabel: "Bắt đầu chuẩn bị",
     description: (versionCode: string) =>
-      `Bắt đầu lập chỉ mục cho phiên bản ${versionCode}? Hệ thống sẽ gọi Gemini để tạo embedding cho toàn bộ tài liệu được phép.`,
+      `Bắt đầu lập chỉ mục cho phiên bản ${versionCode}? Hệ thống sẽ dùng model tạo chỉ mục của phiên bản này khi chế độ tương ứng đang được chọn.`,
   },
   activate: {
-    title: "Kích hoạt phiên bản",
-    confirmLabel: "Kích hoạt",
+    title: "Bật phiên bản tìm kiếm",
+    confirmLabel: "Bật sử dụng",
     description: (versionCode: string) =>
-      `Kích hoạt phiên bản ${versionCode} để phục vụ tìm kiếm kiến thức AI? Phiên bản đang hoạt động hiện tại sẽ được chuyển sang trạng thái đã ngừng sử dụng.`,
+      `Bật phiên bản ${versionCode} để tìm tài liệu? Phiên bản đang dùng sẽ ngừng sử dụng. Hãy kiểm tra đúng dịch vụ AI trước khi xác nhận; sau đó cần thử câu hỏi ở bước 4.`,
   },
   rollback: {
     title: "Quay lại phiên bản",
@@ -114,7 +114,7 @@ export function KnowledgeIndexVersionsTab() {
   const embeddingOptions = useMemo(
     () =>
       embeddingConfigs.map((config) => ({
-        label: `${config.modelId} (${config.status})`,
+        label: `${config.provider === "LM_STUDIO" ? "Qwen local" : "Google API"} · ${config.modelId}${config.status === "ACTIVE" ? " · Đang dùng" : ""}`,
         value: config.configurationId,
       })),
     [embeddingConfigs],
@@ -165,9 +165,9 @@ export function KnowledgeIndexVersionsTab() {
   return (
     <section className="tw-grid tw-gap-4">
       <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3">
-        <p className="tw-m-0 tw-text-sm tw-font-semibold tw-text-slate-500">Vòng đời phiên bản chỉ mục kiến thức, embedding và kích hoạt tìm kiếm AI.</p>
+        <p className="tw-m-0 tw-max-w-3xl tw-text-sm tw-leading-6 tw-text-slate-500">Ưu tiên phiên bản hệ thống đã chuẩn bị sau khi duyệt tài liệu. Chỉ tạo bản mới khi cần chuẩn bị lại hoặc đổi model tìm tài liệu.</p>
         {canCreate ? (
-          <Button onClick={() => setCreateOpen(true)} variant="primary">Tạo phiên bản mới</Button>
+          <Button onClick={() => setCreateOpen(true)} variant="secondary">Chuẩn bị bản mới</Button>
         ) : null}
       </div>
 
@@ -175,42 +175,53 @@ export function KnowledgeIndexVersionsTab() {
 
       <div className="tw-overflow-hidden tw-rounded-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-white">
         <div className="tw-overflow-x-auto">
-          <table className="tw-min-w-[1100px] tw-w-full tw-border-collapse tw-text-sm">
+          <table className="tw-min-w-[850px] tw-w-full tw-border-collapse tw-text-sm">
             <thead className="tw-bg-slate-50 tw-text-left tw-text-xs tw-font-black tw-uppercase tw-text-slate-500">
-              <tr>{["Mã phiên bản", "Model", "Trạng thái", "Chỉ mục", "Tiến độ", "Cập nhật", "Hành động"].map((header) => <th className="tw-px-3 tw-py-3" key={header}>{header}</th>)}</tr>
+              <tr>{["Phiên bản", "Dùng với", "Trạng thái", "Nội dung đã chuẩn bị", "Cập nhật", "Thao tác"].map((header) => <th className="tw-px-3 tw-py-3" key={header}>{header}</th>)}</tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td className="tw-p-6 tw-text-center tw-font-bold tw-text-slate-500" colSpan={7}>Đang tải...</td></tr>
+                <tr><td className="tw-p-6 tw-text-center tw-font-bold tw-text-slate-500" colSpan={6}>Đang tải...</td></tr>
               ) : versions.length === 0 ? (
-                <tr><td className="tw-p-6 tw-text-center tw-font-bold tw-text-slate-500" colSpan={7}>Chưa có phiên bản chỉ mục tri thức nào.</td></tr>
+                <tr><td className="tw-p-8 tw-text-center tw-text-slate-500" colSpan={6}>Chưa có phiên bản tìm kiếm. Duyệt tài liệu ở bước 2 trước; nếu hệ thống chưa tự chuẩn bị, kiểm tra model rồi chọn “Chuẩn bị bản mới”.</td></tr>
               ) : versions.map((version) => {
                 const meta = statusMeta[version.status];
                 const busy = actingId === version.indexVersionId;
                 return (
                   <tr className="tw-border-0 tw-border-t tw-border-solid tw-border-slate-100" key={version.indexVersionId}>
-                    <td className="tw-px-3 tw-py-3"><b className="tw-block tw-text-slate-900">{version.versionCode}</b><span className="tw-text-xs tw-font-semibold tw-text-slate-500">#{version.indexVersionId}</span></td>
-                    <td className="tw-px-3 tw-py-3"><b className="tw-block tw-text-slate-700">{version.modelId}</b><span className="tw-text-xs tw-font-semibold tw-text-slate-500">{version.provider} / {version.dimension ?? "-"} dims / {version.chunkerVersion}</span></td>
+                    <td className="tw-max-w-xs tw-px-3 tw-py-3">
+                      <b className="tw-block tw-break-words tw-text-slate-900">{version.versionCode}</b>
+                      <details className="tw-mt-1 tw-text-xs tw-text-slate-500">
+                        <summary className="tw-cursor-pointer">Thông số kỹ thuật</summary>
+                        <dl className="tw-mb-0 tw-mt-2 tw-grid tw-gap-1 tw-break-all">
+                          <div><dt className="tw-inline">ID: </dt><dd className="tw-m-0 tw-inline">{version.indexVersionId}</dd></div>
+                          <div><dt className="tw-inline">Số chiều: </dt><dd className="tw-m-0 tw-inline">{version.dimension ?? "—"}</dd></div>
+                          <div><dt className="tw-inline">Cách chia đoạn: </dt><dd className="tw-m-0 tw-inline">{version.chunkerVersion}</dd></div>
+                          <div><dt className="tw-inline">Khoảng cách / chuẩn hóa: </dt><dd className="tw-m-0 tw-inline">{version.distanceMetric} / {version.normalization}</dd></div>
+                        </dl>
+                      </details>
+                    </td>
+                    <td className="tw-px-3 tw-py-3"><b className="tw-block tw-text-slate-700">{version.provider === "LM_STUDIO" ? "Qwen local" : "Google API"}</b><span className="tw-text-xs tw-text-slate-500">{version.modelId}</span></td>
                     <td className="tw-px-3 tw-py-3">
                       <Badge tone={meta.tone} className="tw-w-fit tw-whitespace-nowrap tw-px-2.5">{meta.label}</Badge>
                       {version.failureCode ? <span className="tw-mt-1 tw-block tw-text-xs tw-font-black tw-text-red-600">{version.failureCode}</span> : null}
                     </td>
-                    <td className="tw-px-3 tw-py-3 tw-text-xs tw-font-semibold tw-text-slate-600">{version.distanceMetric} / {version.normalization}</td>
                     <td className="tw-px-3 tw-py-3">
                       <span className="tw-font-bold tw-text-slate-700">{version.embeddedChunkCount ?? 0}</span>
                       <span className="tw-text-slate-400"> / {version.expectedChunkCount ?? "-"}</span>
+                      <span className="tw-ml-1 tw-text-xs tw-text-slate-500">đoạn</span>
                       {version.failedChunkCount ? <span className="tw-rounded tw-bg-red-50 tw-px-1.5 tw-py-0.5 tw-text-xs tw-font-black tw-text-red-700">{version.failedChunkCount} lỗi</span> : null}
                     </td>
                     <td className="tw-text-xs tw-font-semibold tw-text-slate-500">{formatApplicationDateTime(version.updatedAt)}</td>
                     <td className="tw-px-3 tw-py-3">
                       {version.status === "DRAFT" && canReindex ? (
-                        <Button loading={busy} onClick={() => setPendingAction({ kind: "build", indexVersion: version })} size="sm" variant="secondary">Xây dựng</Button>
+                        <Button loading={busy} onClick={() => setPendingAction({ kind: "build", indexVersion: version })} size="sm" variant="secondary">Bắt đầu chuẩn bị</Button>
                       ) : version.status === "READY" && canApprove ? (
-                        <Button loading={busy} onClick={() => setPendingAction({ kind: "activate", indexVersion: version })} size="sm" variant="primary">Kích hoạt</Button>
+                        <Button loading={busy} onClick={() => setPendingAction({ kind: "activate", indexVersion: version })} size="sm" variant="primary">Bật sử dụng</Button>
                       ) : version.status === "RETIRED" && version.activatedAt && canApprove && versions.some((item) => item.status === "ACTIVE") ? (
                         <Button loading={busy} onClick={() => setPendingAction({ kind: "rollback", indexVersion: version })} size="sm" variant="secondary">Quay lại</Button>
                       ) : version.status === "BUILDING" ? (
-                        <span className="tw-text-xs tw-font-black tw-text-slate-400">Đang xây dựng...</span>
+                        <span className="tw-text-xs tw-font-black tw-text-slate-400">Đợi chuẩn bị xong…</span>
                       ) : (
                         <span className="tw-text-xs tw-font-bold tw-text-slate-300">—</span>
                       )}
@@ -232,14 +243,14 @@ export function KnowledgeIndexVersionsTab() {
         )}
         onClose={() => setCreateOpen(false)}
         open={createOpen}
-        title="Tạo phiên bản chỉ mục tri thức"
+        title="Chuẩn bị phiên bản tìm kiếm mới"
         width="md"
       >
         <div className="tw-grid tw-gap-4">
           <label className="tw-grid tw-gap-1.5">
-            <span className="tw-text-sm tw-font-black tw-text-slate-700">Cấu hình model embedding</span>
+            <span className="tw-text-sm tw-font-black tw-text-slate-700">Model tìm tài liệu</span>
             <SelectMenu
-              ariaLabel="Cấu hình model embedding"
+              ariaLabel="Model tìm tài liệu"
               className="tw-w-full"
               onChange={setModelConfigurationId}
               options={embeddingOptions}
@@ -247,13 +258,15 @@ export function KnowledgeIndexVersionsTab() {
               searchable={false}
               value={modelConfigurationId}
             />
+            <span className="tw-text-xs tw-leading-5 tw-text-slate-500">Chọn cùng dịch vụ AI đang dùng. Model này tìm nguồn, khác model viết câu trả lời.</span>
+            {!loading && embeddingOptions.length === 0 ? <span className="tw-text-sm tw-text-amber-800">Chưa có cấu hình phù hợp. Kiểm tra tại Model & kết nối trước.</span> : null}
           </label>
           <label className="tw-grid tw-gap-1.5">
             <span className="tw-text-sm tw-font-black tw-text-slate-700">Mã phiên bản <span className="tw-font-semibold tw-text-slate-400">(tùy chọn)</span></span>
             <Input
               className="tw-w-full"
               onChange={(event) => setVersionCode(event.target.value)}
-              placeholder="VD: IDX-GEMINI-001"
+              placeholder="VD: IDX-LOCAL-001"
               value={versionCode}
             />
             <span className="tw-text-xs tw-font-semibold tw-text-slate-400">Để trống để hệ thống tự sinh mã.</span>

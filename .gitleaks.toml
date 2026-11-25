@@ -11,6 +11,18 @@ regexes = [
   '''(?i)\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b''',
 ]
 
+[[allowlists]]
+description = "Source-file SHA-256 checksums in AI evaluation evidence inventories"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+paths = [
+  '''^vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/evaluation/evidence/batch-[0-9]{2}/(?:[A-Za-z0-9_-]+-(?:input|source)-hashes|evidence-manifest)\.json$''',
+]
+regexes = [
+  '''^\s*"(?:src/(?:main|test)/|scripts/)[^"\r\n]+\.(?:java|sql|py)"\s*:\s*"[0-9a-f]{64}"\s*,?\s*$''',
+]
+
 [[rules]]
 id = "keycloak-export-private-key"
 description = "Keycloak realm exports must not contain generated private keys"

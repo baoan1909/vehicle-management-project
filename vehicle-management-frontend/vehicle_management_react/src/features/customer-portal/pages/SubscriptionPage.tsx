@@ -111,7 +111,8 @@ function statusLabel(status?: string | null) {
   if (status === "EXPIRED") return "Hết hạn";
   if (status === "CANCELLED") return "Đã hủy";
   if (status === "REJECTED") return "Từ chối";
-  return status || "--";
+  if (status === "TERMINATED") return "Đã chấm dứt";
+  return "Chưa xác định trạng thái";
 }
 
 function physicalCardStatusLabel(subscription?: CustomerPortalSubscription | null) {

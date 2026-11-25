@@ -9,6 +9,8 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface RetrievalAuditPersistenceMapper {
 
+    @Mapping(target = "retrievalMethod", source = "retrievalMethod")
+    @Mapping(target = "sourceSnapshot", source = "sourceSnapshot")
     @Mapping(target = "resultCount", ignore = true)
     RetrievalAuditEntity toEntity(RetrievalAudit domain);
 

@@ -10,15 +10,25 @@ import org.springframework.validation.annotation.Validated;
 @ConfigurationProperties(prefix = "app.ai")
 public class AiAssistantProperties {
 
+    private java.util.Set<String> publicContactValues = java.util.Set.of();
+    public java.util.Set<String> getPublicContactValues() { return publicContactValues; }
+    public void setPublicContactValues(java.util.Set<String> values) {
+        publicContactValues = values == null ? java.util.Set.of() : java.util.Set.copyOf(values);
+    }
+
     private boolean assistantEnabled;
     private int recentMessageLimit = 8;
+    @jakarta.validation.constraints.Min(1)
+    @jakarta.validation.constraints.Max(4)
+    private int assistantJobConcurrency = 2;
     private int maxAttempts = 3;
     private boolean allowUnpaidSupportData;
     private Duration retryInitialDelay = Duration.ofSeconds(20);
     private Duration requestTimeout = Duration.ofSeconds(20);
+    private Duration generationTimeout = Duration.ofSeconds(4);
     private Duration lockSafetyMargin = Duration.ofSeconds(90);
     private AiDataMode dataMode = AiDataMode.UNPAID;
-    private String promptVersion = "support-assistant-v1";
+    private String promptVersion = "support-assistant-v3";
 
     public boolean isAssistantEnabled() {
         return assistantEnabled;
@@ -27,6 +37,10 @@ public class AiAssistantProperties {
     public void setAssistantEnabled(boolean assistantEnabled) {
         this.assistantEnabled = assistantEnabled;
     }
+
+    public int getAssistantJobConcurrency() { return assistantJobConcurrency; }
+
+    public void setAssistantJobConcurrency(int value) { assistantJobConcurrency = value; }
 
     public int getRecentMessageLimit() {
         return recentMessageLimit;
@@ -72,6 +86,14 @@ public class AiAssistantProperties {
         this.requestTimeout = requestTimeout;
     }
 
+    public Duration getGenerationTimeout() {
+        return generationTimeout.compareTo(requestTimeout) < 0 ? generationTimeout : requestTimeout;
+    }
+
+    public void setGenerationTimeout(Duration generationTimeout) {
+        this.generationTimeout = generationTimeout;
+    }
+
     public Duration getLockSafetyMargin() {
         return lockSafetyMargin;
     }
@@ -98,7 +120,8 @@ public class AiAssistantProperties {
 
     @AssertTrue(message = "AI assistant durations must be greater than zero")
     public boolean areDurationsValid() {
-        return isPositive(retryInitialDelay) && isPositive(requestTimeout) && isPositive(lockSafetyMargin);
+        return isPositive(retryInitialDelay) && isPositive(requestTimeout)
+                && isPositive(generationTimeout) && isPositive(lockSafetyMargin);
     }
 
     private boolean isPositive(Duration value) {
