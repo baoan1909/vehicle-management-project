@@ -57,7 +57,7 @@ toàn bộ các kiểm tra bắt buộc thành công.
 
 | # | Job GitHub Actions | Kiểm tra gì? | Nếu đỏ thì sao? |
 | --- | --- | --- | --- |
-| 01 | Secret scan | Gitleaks quét source và toàn bộ Git history để phát hiện token, mật khẩu, private key bị lộ. | Chặn pipeline. |
+| 01 | Secret scan | Gitleaks quét các commit của sự kiện PR/push; chạy thủ công quét lịch sử nhánh đã checkout để phát hiện token, mật khẩu, private key bị lộ. | Chặn pipeline. |
 | 02 | Frontend build | Cài dependency từ lock file rồi chạy `npm run build` để tạo bundle React/Vite. | Chặn pipeline. |
 | 03 | Frontend static analysis | Chạy `tsc --noEmit` để kiểm tra TypeScript strict mà không tạo file build. | Chặn pipeline. |
 | 04 | Frontend test | Chạy các script kiểm tra contract/cấu trúc luồng giao diện hiện có bằng `npm test`. | Chặn pipeline. |
@@ -179,6 +179,39 @@ thay thế dữ liệu trạng thái.
   hoặc secret manager của hạ tầng, sau đó inject khi deploy.
 - `NVD_API_KEY` chỉ cần cho OWASP Dependency-Check chạy chuyên sâu theo lịch
   hoặc local. CI bắt buộc hiện dùng Trivy, nên không phụ thuộc NVD bulk sync.
+
+### Gitleaks ở local và CI — cập nhật 25/11/2026
+
+CI ghim **Gitleaks 8.30.1**, cùng phiên bản trong `.pre-commit-config.yaml`, và
+chỉ định rõ `.gitleaks.toml`. Action `gitleaks/gitleaks-action@v3` mặc định dùng
+8.24.3, trong khi cấu hình `[[allowlists]]` theo quy tắc của dự án cần phiên bản
+mới hơn. Khi nâng scanner, cập nhật đồng thời local và CI.
+
+Ngoại lệ SHA-256 chỉ áp dụng cho đúng dòng bản đồ đường dẫn file → checksum
+trong các inventory bằng chứng AI. Key bình thường hoặc key có định dạng nhà
+cung cấp vẫn phải bị chặn, kể cả khi nằm trong thư mục bằng chứng. Không loại
+bỏ toàn bộ thư mục tài liệu khỏi quét.
+
+Job dùng quyền `contents: read`, không đăng bình luận PR. Báo cáo chi tiết đã
+che giá trị được giữ ở artifact `gitleaks-results.sarif`; summary chỉ ghi phiên
+bản và trạng thái, không chép toàn bộ finding để tránh vượt giới hạn 1 MiB.
+Khi scanner phát hiện leak, job vẫn thất bại; phần ghi summary không đổi kết
+quả bảo mật. Sau khi sửa workflow, cần push commit mới; chạy lại job của commit
+cũ vẫn dùng workflow cũ.
+
+Hook local chỉ quét phần staged, nên không thay thế được quét commit/lịch sử.
+Xóa file ở commit mới không xóa nội dung trong commit trước. Nếu phát hiện
+credential đã từng được commit, cần thay credential còn sử dụng và xử lý lịch
+sử theo kế hoạch thống nhất của team. Không tạo baseline bỏ qua credential thật
+để làm pipeline xanh.
+
+Kiểm chứng local trên nhánh `feature/unified-support-operations-workflow` ngày
+25/11: phạm vi 3 commit của PR và phạm vi tương đương action đều không có finding
+với cấu hình hiện tại. Quét rộng 326 commit trên mọi ref vẫn ghi nhận 9 finding
+lịch sử, gồm 7 mục credential trong export Keycloak đã xóa ở HEAD và 2 mục ở
+test/tài liệu cần xét riêng. Các cảnh báo lịch sử này chưa được bỏ qua hoặc
+xóa bằng cách viết lại Git. Đây là kiểm chứng local; chưa xác nhận lượt CI mới
+trên GitHub vì CLI trên máy chưa đăng nhập.
 
 ## 10. Quy trình thành viên nên làm trước khi tạo Pull Request
 
