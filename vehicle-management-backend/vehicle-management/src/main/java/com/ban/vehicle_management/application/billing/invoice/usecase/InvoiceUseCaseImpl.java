@@ -196,6 +196,7 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
     @Override
     @Transactional(readOnly = true)
     public InvoiceManagementPageResult getManagementInvoices(
+            InvoiceSource source,
             InvoiceStatus status,
             PaymentMethod paymentMethod,
             Instant fromDate,
@@ -224,6 +225,7 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
                         invoiceAccessGuard.visibleParkingLotIdsForManagement(organizationId, parkingLotId)
                 ).stream()
                 .map(this::toManagementItem)
+                .filter(item -> source == null || source.equals(item.source()))
                 .filter(item -> paymentMethod == null || paymentMethod.equals(item.paymentMethod()))
                 .filter(item -> matchesKeyword(item, normalizedKeyword))
                 .sorted(Comparator.comparing(

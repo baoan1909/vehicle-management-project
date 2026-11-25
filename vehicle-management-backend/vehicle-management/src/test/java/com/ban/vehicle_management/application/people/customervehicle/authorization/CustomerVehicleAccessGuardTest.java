@@ -49,6 +49,17 @@ class CustomerVehicleAccessGuardTest {
     private CustomerVehicleAccessGuard customerVehicleAccessGuard;
 
     @Test
+    void ownReadAlwaysResolvesProfileEvenWhenAllPermissionCouldAlsoBePresent() {
+        UUID accountId = UUID.randomUUID(); UUID customerId = UUID.randomUUID();
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(accountId);
+        when(accountProfilePortOut.findProfileStateByAccountId(accountId))
+                .thenReturn(Optional.of(approvedCustomerProfile(accountId, customerId)));
+        assertEquals(customerId, customerVehicleAccessGuard.resolveOwnCustomerId());
+        verify(currentAccountPortIn).requirePermission("CUSTOMER_VEHICLE_READ_OWN");
+        org.mockito.Mockito.verify(currentAccountPortIn, org.mockito.Mockito.never()).hasPermission("CUSTOMER_VEHICLE_READ_ALL");
+    }
+
+    @Test
     void shouldKeepRequestedCustomerIdWhenCreateAllPermissionIsGranted() {
         UUID requestedCustomerId = UUID.randomUUID();
         when(currentAccountPortIn.hasPermission("CUSTOMER_VEHICLE_CREATE_ALL")).thenReturn(true);

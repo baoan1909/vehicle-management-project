@@ -6,6 +6,7 @@ package com.ban.vehicle_management.domain.ai.model;
  */
 public enum AssistantIntent {
     GREETING,
+    CLARIFICATION,
     STATIC_KNOWLEDGE,
     PERSONAL_DATA,
     WRITE_ACTION,

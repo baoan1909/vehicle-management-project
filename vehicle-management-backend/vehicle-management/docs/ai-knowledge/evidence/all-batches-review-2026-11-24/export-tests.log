@@ -1,0 +1,14 @@
+test_adding_second_batch_keeps_first_export_and_ids_unchanged (test_sync_ai_knowledge.KnowledgeBatchIntegrityTest.test_adding_second_batch_keeps_first_export_and_ids_unchanged) ... ok
+test_authoring_notes_are_not_exported_or_retrieved (test_sync_ai_knowledge.KnowledgeBatchIntegrityTest.test_authoring_notes_are_not_exported_or_retrieved) ... ok
+test_changed_question_requires_manifest_review (test_sync_ai_knowledge.KnowledgeBatchIntegrityTest.test_changed_question_requires_manifest_review) ... ok
+test_duplicate_case_ids_across_batches_are_rejected (test_sync_ai_knowledge.KnowledgeBatchIntegrityTest.test_duplicate_case_ids_across_batches_are_rejected) ... ok
+test_nested_or_reversed_markers_fail_closed (test_sync_ai_knowledge.KnowledgeBatchIntegrityTest.test_nested_or_reversed_markers_fail_closed) ... ok
+test_relative_link_stays_valid_after_export_to_a_different_directory (test_sync_ai_knowledge.KnowledgeBatchIntegrityTest.test_relative_link_stays_valid_after_export_to_a_different_directory) ... ok
+test_scenario_question_mismatch_is_rejected (test_sync_ai_knowledge.KnowledgeBatchIntegrityTest.test_scenario_question_mismatch_is_rejected) ... ok
+test_scenario_split_leak_is_rejected (test_sync_ai_knowledge.KnowledgeBatchIntegrityTest.test_scenario_split_leak_is_rejected) ... ok
+test_unclosed_authoring_note_fails_instead_of_publishing_it (test_sync_ai_knowledge.KnowledgeBatchIntegrityTest.test_unclosed_authoring_note_fails_instead_of_publishing_it) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.149s
+
+OK

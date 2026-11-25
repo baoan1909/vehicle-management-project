@@ -1,0 +1,491 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ---------------------< com.ban:vehicle-management >---------------------
+[INFO] Building  0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ vehicle-management ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 172 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.14.1:compile (default-compile) @ vehicle-management ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ vehicle-management ---
+[INFO] Copying 4 resources from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.14.1:testCompile (default-testCompile) @ vehicle-management ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 460 source files with javac [debug parameters release 21] to target\test-classes
+[INFO] /C:/DiskD/VehicleManagementProject/vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/application/accesscontrol/subscription/usecase/SubscriptionUseCaseImplTest.java: Some input files use or override a deprecated API.
+[INFO] /C:/DiskD/VehicleManagementProject/vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/application/accesscontrol/subscription/usecase/SubscriptionUseCaseImplTest.java: Recompile with -Xlint:deprecation for details.
+[INFO] /C:/DiskD/VehicleManagementProject/vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/application/accesscontrol/subscription/usecase/SubscriptionUseCaseImplTest.java: Some input files use unchecked or unsafe operations.
+[INFO] /C:/DiskD/VehicleManagementProject/vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/application/accesscontrol/subscription/usecase/SubscriptionUseCaseImplTest.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- surefire:3.5.6:test (default-test) @ vehicle-management ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.ban.vehicle_management.application.ai.service.AiModelRouterTest
+Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (C:\DiskD\VehicleManagementProject\vehicle-management-backend\vehicle-management\.m2-local\net\bytebuddy\byte-buddy-agent\1.17.8\byte-buddy-agent-1.17.8.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+Java HotSpot(TM) 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.800 s -- in com.ban.vehicle_management.application.ai.service.AiModelRouterTest
+[INFO] Running com.ban.vehicle_management.application.ai.service.AiRuntimeModeServiceTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.224 s -- in com.ban.vehicle_management.application.ai.service.AiRuntimeModeServiceTest
+[INFO] Running com.ban.vehicle_management.application.ai.service.AssistantOrchestratorTest
+15:08:01.839 [support-assistant-0] WARN com.ban.vehicle_management.application.ai.service.AssistantOrchestrator -- AI assistant job failed jobId=97b1a25c-777c-45e4-858e-6186afffd406 conversationId=2995cdf7-3fc3-4129-833b-62b7568e4bc1 inputMessageId=d8956dc1-cac5-4508-b51e-68072532e0a5 error=IllegalStateException
+java.lang.IllegalStateException: simulated worker failure
+	at com.ban.vehicle_management.application.ai.service.AssistantOrchestrator.loadJobContext(AssistantOrchestrator.java:1339)
+	at com.ban.vehicle_management.application.ai.service.AssistantOrchestrator.lambda$processJobInMode$3(AssistantOrchestrator.java:332)
+	at com.ban.vehicle_management.application.ai.service.AssistantOrchestratorTest.lambda$setUp$0(AssistantOrchestratorTest.java:125)
+	at org.springframework.transaction.support.TransactionTemplate.execute(TransactionTemplate.java:128)
+	at com.ban.vehicle_management.application.ai.service.AssistantOrchestrator.processJobInMode(AssistantOrchestrator.java:332)
+	at com.ban.vehicle_management.application.ai.service.AssistantOrchestrator.processJob(AssistantOrchestrator.java:319)
+	at com.ban.vehicle_management.application.ai.service.AssistantOrchestrator.processJobSafely(AssistantOrchestrator.java:305)
+	at com.ban.vehicle_management.application.ai.service.AssistantOrchestrator.lambda$processDueJobs$0(AssistantOrchestrator.java:288)
+	at java.base/java.util.concurrent.ThreadPerTaskExecutor$TaskRunner.run(ThreadPerTaskExecutor.java:314)
+	at java.base/java.lang.VirtualThread.run(VirtualThread.java:329)
+[INFO] Tests run: 43, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.492 s -- in com.ban.vehicle_management.application.ai.service.AssistantOrchestratorTest
+[INFO] Running com.ban.vehicle_management.application.ai.service.KnowledgeDocumentUseCaseImplTest
+[INFO] Tests run: 13, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.398 s -- in com.ban.vehicle_management.application.ai.service.KnowledgeDocumentUseCaseImplTest
+[INFO] Running com.ban.vehicle_management.application.ai.service.KnowledgeIndexBuildCoordinatorTest
+15:08:02.783 [main] WARN com.ban.vehicle_management.application.ai.service.KnowledgeIndexBuildCoordinator -- Skipping auto knowledge index candidate: no active embedding model configuration with an output dimension
+15:08:02.783 [main] INFO com.ban.vehicle_management.application.ai.service.KnowledgeIndexBuildCoordinator -- Auto knowledge index candidate created: ddf5eb30-e775-4cdc-afa0-bdbe067acde7 (auto-gemini-embedding-2-2026-11-24T08-08-02.783160700Z-fff2fe50)
+15:08:02.795 [main] INFO com.ban.vehicle_management.application.ai.service.KnowledgeIndexBuildCoordinator -- Auto knowledge index candidate created: b039d5b2-4248-4843-85ac-dea49f985f25 (auto-gemini-embedding-2-2026-11-24T08-08-02.794483600Z-887f5da3)
+15:08:02.800 [main] INFO com.ban.vehicle_management.application.ai.service.KnowledgeIndexBuildCoordinator -- Stale knowledge index candidate 19d2d8c0-2fc3-4350-aac8-33a6dcca41f6 failed because corpus changed: auto-x
+15:08:02.800 [main] INFO com.ban.vehicle_management.application.ai.service.KnowledgeIndexBuildCoordinator -- Auto knowledge index candidate created: 86858ef0-c8f3-4ba1-870f-ea0033db2018 (auto-gemini-embedding-2-2026-11-24T08-08-02.800489700Z-193d1313)
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.076 s -- in com.ban.vehicle_management.application.ai.service.KnowledgeIndexBuildCoordinatorTest
+[INFO] Running com.ban.vehicle_management.application.ai.service.KnowledgeIndexBuildSchedulerTest
+15:08:02.876 [main] ERROR com.ban.vehicle_management.application.ai.service.KnowledgeIndexBuildScheduler -- Knowledge index build failed for version dc94298e-b15d-4e85-8e18-b0666c873f44
+java.lang.RuntimeException: boom
+	at com.ban.vehicle_management.application.ai.service.KnowledgeIndexBuildService.process(KnowledgeIndexBuildService.java:71)
+	at com.ban.vehicle_management.application.ai.service.KnowledgeIndexBuildScheduler.buildPendingIndexVersions(KnowledgeIndexBuildScheduler.java:47)
+	at com.ban.vehicle_management.application.ai.service.KnowledgeIndexBuildSchedulerTest.shouldNotAbortWhenOneVersionFails(KnowledgeIndexBuildSchedulerTest.java:72)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.platform.commons.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:701)
+	at org.junit.platform.commons.support.ReflectionSupport.invokeMethod(ReflectionSupport.java:502)
+	at org.junit.jupiter.engine.support.MethodReflectionUtils.invoke(MethodReflectionUtils.java:45)
+	at org.junit.jupiter.engine.execution.MethodInvocation.proceed(MethodInvocation.java:61)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$ValidatingInvocation.proceed(InvocationInterceptorChain.java:124)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.intercept(TimeoutExtension.java:163)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestableMethod(TimeoutExtension.java:148)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestMethod(TimeoutExtension.java:86)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker$ReflectiveInterceptorCall.lambda$ofVoidMethod$0(InterceptingExecutableInvoker.java:123)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.lambda$invoke$0(InterceptingExecutableInvoker.java:105)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$InterceptedInvocation.proceed(InvocationInterceptorChain.java:99)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.proceed(InvocationInterceptorChain.java:66)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.chainAndInvoke(InvocationInterceptorChain.java:47)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.invoke(InvocationInterceptorChain.java:39)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:104)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:98)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invokeVoid(InterceptingExecutableInvoker.java:71)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.lambda$invokeTestMethod$0(TestMethodTestDescriptor.java:219)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.invokeTestMethod(TestMethodTestDescriptor.java:215)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:157)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:70)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$2(NodeTestTask.java:176)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$1(NodeTestTask.java:166)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$0(NodeTestTask.java:164)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:163)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:116)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1597)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:42)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$2(NodeTestTask.java:180)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$1(NodeTestTask.java:166)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$0(NodeTestTask.java:164)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:163)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:116)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1597)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:42)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$2(NodeTestTask.java:180)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$1(NodeTestTask.java:166)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$0(NodeTestTask.java:164)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:163)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:116)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.submit(SameThreadHierarchicalTestExecutorService.java:36)
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestExecutor.execute(HierarchicalTestExecutor.java:52)
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestEngine.execute(HierarchicalTestEngine.java:58)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.executeEngine(EngineExecutionOrchestrator.java:246)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.failOrExecuteEngine(EngineExecutionOrchestrator.java:218)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:179)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:108)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.lambda$execute$0(EngineExecutionOrchestrator.java:66)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.withInterceptedStreams(EngineExecutionOrchestrator.java:157)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:65)
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:125)
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:114)
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:58)
+	at org.junit.platform.launcher.core.InterceptingLauncher.lambda$execute$2(InterceptingLauncher.java:57)
+	at org.junit.platform.launcher.core.ClasspathAlignmentCheckingLauncherInterceptor.intercept(ClasspathAlignmentCheckingLauncherInterceptor.java:25)
+	at org.junit.platform.launcher.core.InterceptingLauncher.execute(InterceptingLauncher.java:56)
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:58)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.apache.maven.surefire.api.util.ReflectionUtils.invokeMethodWithArray(ReflectionUtils.java:125)
+	at org.apache.maven.surefire.junitplatform.LauncherAdapter.executeWithCancellationToken(LauncherAdapter.java:68)
+	at org.apache.maven.surefire.junitplatform.LauncherAdapter.execute(LauncherAdapter.java:54)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.execute(JUnitPlatformProvider.java:203)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invokeAllTests(JUnitPlatformProvider.java:168)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invoke(JUnitPlatformProvider.java:136)
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:385)
+	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162)
+	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507)
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495)
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.075 s -- in com.ban.vehicle_management.application.ai.service.KnowledgeIndexBuildSchedulerTest
+[INFO] Running com.ban.vehicle_management.application.ai.service.KnowledgeIndexBuildServiceTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.086 s -- in com.ban.vehicle_management.application.ai.service.KnowledgeIndexBuildServiceTest
+[INFO] Running com.ban.vehicle_management.application.ai.service.KnowledgeIndexVersionUseCaseImplTest
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.012 s -- in com.ban.vehicle_management.application.ai.service.KnowledgeIndexVersionUseCaseImplTest
+[INFO] Running com.ban.vehicle_management.application.ai.service.KnowledgeIngestionWorkerTest
+[INFO] Tests run: 12, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.131 s -- in com.ban.vehicle_management.application.ai.service.KnowledgeIngestionWorkerTest
+[INFO] Running com.ban.vehicle_management.application.ai.service.LocalAiModelRegistrationServiceTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.014 s -- in com.ban.vehicle_management.application.ai.service.LocalAiModelRegistrationServiceTest
+[INFO] Running com.ban.vehicle_management.application.operations.guestsupport.service.GuestPublicAssistantServiceTest
+[INFO] Tests run: 43, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.231 s -- in com.ban.vehicle_management.application.operations.guestsupport.service.GuestPublicAssistantServiceTest
+[INFO] Running com.ban.vehicle_management.domain.ai.model.KnowledgeIndexVersionTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0 s -- in com.ban.vehicle_management.domain.ai.model.KnowledgeIndexVersionTest
+[INFO] Running com.ban.vehicle_management.domain.ai.model.KnowledgeIngestionRuntimePauseTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0 s -- in com.ban.vehicle_management.domain.ai.model.KnowledgeIngestionRuntimePauseTest
+[INFO] Running com.ban.vehicle_management.domain.ai.model.LocalGroundedProfileTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.011 s -- in com.ban.vehicle_management.domain.ai.model.LocalGroundedProfileTest
+[INFO] Running com.ban.vehicle_management.domain.ai.policy.KnowledgeIndexVersionPolicyTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0 s -- in com.ban.vehicle_management.domain.ai.policy.KnowledgeIndexVersionPolicyTest
+[INFO] Running com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialAvailabilityTest
+15:08:03.462 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=DAILY_QUOTA operation=generateContent model=model-a retryAt=2026-11-21T08:00:00Z
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.104 s -- in com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialAvailabilityTest
+[INFO] Running com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPoolTest
+15:08:03.780 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=DAILY_QUOTA operation=generateContent model=model-a retryAt=2026-11-25T08:00:00Z
+15:08:03.794 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=AUTH operation=generateContent model=model-a retryAt=2026-11-25T08:08:03.794485400Z
+15:08:03.794 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY_1 category=AUTH operation=generateContent model=model-a retryAt=2026-11-25T08:08:03.794485400Z
+15:08:03.794 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY_3 category=AUTH operation=generateContent model=model-a retryAt=2026-11-25T08:08:03.794485400Z
+15:08:03.794 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY_5 category=AUTH operation=generateContent model=model-a retryAt=2026-11-25T08:08:03.794485400Z
+15:08:03.794 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY_7 category=AUTH operation=generateContent model=model-a retryAt=2026-11-25T08:08:03.794485400Z
+15:08:03.805 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY_9 category=AUTH operation=generateContent model=model-a retryAt=2026-11-25T08:08:03.805491500Z
+15:08:03.807 [main] INFO com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini selection changed scope=generateContent:SUPPORT_CHAT credential=GEMINI_API_KEY_12 model=model-a
+15:08:03.815 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=DAILY_QUOTA operation=generateContent model=model-a retryAt=2026-11-25T08:00:00Z
+15:08:03.815 [main] INFO com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini selection changed scope=generateContent:SUPPORT_CHAT credential=GEMINI_API_KEY_2 model=model-a
+15:08:03.833 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=AUTH operation=generateContent model=model-a retryAt=2026-11-25T08:08:03.833017800Z
+15:08:03.833 [main] INFO com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini selection changed scope=generateContent:SUPPORT_CHAT credential=GEMINI_API_KEY_1 model=model-a
+15:08:03.841 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=AUTH operation=generateContent model=model-a retryAt=2026-11-25T08:08:03.841740900Z
+15:08:03.847 [main] INFO com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini selection changed scope=generateContent:SUPPORT_CHAT credential=GEMINI_API_KEY_1 model=model-a
+15:08:03.856 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=AUTH operation=generateContent model=model-a retryAt=2026-11-25T08:08:03.856159900Z
+15:08:03.858 [main] INFO com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini selection changed scope=generateContent:SUPPORT_CHAT credential=GEMINI_API_KEY_1 model=model-a
+15:08:03.876 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=DAILY_QUOTA operation=generateContent model=model-a retryAt=2026-11-25T08:00:00Z
+15:08:03.918 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=MODEL operation=generateContent model=model-a retryAt=2026-11-24T08:13:03.918272500Z
+15:08:03.923 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=DAILY_QUOTA operation=embedContent model=gemini-embedding-2 retryAt=2026-11-25T08:00:00Z
+15:08:03.923 [main] INFO com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini selection changed scope=embedContent credential=GEMINI_API_KEY_1 model=gemini-embedding-2
+15:08:03.940 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=TRANSIENT operation=generateContent model=model-a retryAt=2026-11-24T08:08:33.940565600Z
+15:08:03.955 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=RATE_LIMIT operation=generateContent model=model-a retryAt=2026-11-24T08:08:33.955071300Z
+15:08:03.971 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=TRANSIENT operation=generateContent model=model-a retryAt=2026-11-24T08:08:33.971940300Z
+15:08:03.985 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=TRANSIENT operation=generateContent model=model-a retryAt=2026-11-24T08:08:33.984905600Z
+15:08:03.997 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=AUTH operation=generateContent model=model-a retryAt=2026-11-25T08:08:03.997847Z
+15:08:04.000 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY_1 category=AUTH operation=generateContent model=model-a retryAt=2026-11-25T08:08:03.999851500Z
+15:08:04.006 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=REQUEST operation=generateContent model=model-a retryAt=null
+15:08:04.006 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=DAILY_QUOTA operation=embedContent model=embedding-a retryAt=2026-11-25T08:00:00Z
+15:08:04.021 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=DAILY_QUOTA operation=generateContent model=model-a retryAt=2026-11-20T08:00:00Z
+15:08:04.021 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=RATE_LIMIT operation=generateContent model=model-b retryAt=2026-11-20T08:01:00Z
+15:08:04.038 [virtual-206] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=AUTH operation=generateContent model=model-a retryAt=2026-11-25T08:08:04.038258900Z
+15:08:04.043 [virtual-206] INFO com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini selection changed scope=generateContent:SUPPORT_CHAT credential=GEMINI_API_KEY_1 model=model-a
+15:08:04.319 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=TRANSIENT operation=generateContent model=model-a retryAt=2026-11-24T08:08:34.319510400Z
+15:08:04.684 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=AUTH operation=generateContent model=model-a retryAt=2026-11-25T08:08:04.684638Z
+15:08:04.684 [main] INFO com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini selection changed scope=generateContent:SUPPORT_CHAT credential=GEMINI_API_KEY_1 model=model-a
+15:08:05.696 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=TRANSIENT operation=generateContent model=model-a retryAt=2026-11-24T08:08:35.696775400Z
+15:08:06.122 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=AUTH operation=listModels model=catalog retryAt=2026-11-25T08:08:06.122983300Z
+[INFO] Tests run: 29, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.633 s -- in com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPoolTest
+[INFO] Running com.ban.vehicle_management.infrastructure.ai.gemini.GeminiEmbeddingRequestMapperTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0 s -- in com.ban.vehicle_management.infrastructure.ai.gemini.GeminiEmbeddingRequestMapperTest
+[INFO] Running com.ban.vehicle_management.infrastructure.ai.gemini.GeminiEmbeddingResponseMapperTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.016 s -- in com.ban.vehicle_management.infrastructure.ai.gemini.GeminiEmbeddingResponseMapperTest
+[INFO] Running com.ban.vehicle_management.infrastructure.ai.gemini.GeminiGenerationDeadlineTest
+15:08:06.629 [main] WARN com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPool -- Gemini request unavailable credential=GEMINI_API_KEY category=TRANSIENT operation=generateContent model=test-model retryAt=2026-11-24T08:08:36.629216800Z
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.681 s -- in com.ban.vehicle_management.infrastructure.ai.gemini.GeminiGenerationDeadlineTest
+[INFO] Running com.ban.vehicle_management.infrastructure.ai.gemini.GeminiRequestMapperTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.032 s -- in com.ban.vehicle_management.infrastructure.ai.gemini.GeminiRequestMapperTest
+[INFO] Running com.ban.vehicle_management.infrastructure.ai.gemini.GeminiResponseMapperTest
+[INFO] Tests run: 13, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0 s -- in com.ban.vehicle_management.infrastructure.ai.gemini.GeminiResponseMapperTest
+[INFO] Running com.ban.vehicle_management.infrastructure.ai.lmstudio.LmStudioWireMapperTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.015 s -- in com.ban.vehicle_management.infrastructure.ai.lmstudio.LmStudioWireMapperTest
+[INFO] Running com.ban.vehicle_management.infrastructure.mapper.ai.KnowledgeIndexVersionPersistenceMapperTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.009 s -- in com.ban.vehicle_management.infrastructure.mapper.ai.KnowledgeIndexVersionPersistenceMapperTest
+[INFO] Running com.ban.vehicle_management.infrastructure.persistence.AiRuntimeIsolationIntegrationTest
+15:08:06.998 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.ban.vehicle_management.infrastructure.persistence.AiRuntimeIsolationIntegrationTest]: AiRuntimeIsolationIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+15:08:07.676 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.ban.vehicle_management.VehicleManagementApplication for test class com.ban.vehicle_management.infrastructure.persistence.AiRuntimeIsolationIntegrationTest
+15:08:07.784 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.ban.vehicle_management.infrastructure.persistence.AiRuntimeIsolationIntegrationTest]: AiRuntimeIsolationIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+15:08:07.784 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.ban.vehicle_management.testsupport.PostgresIntegrationTestSupport]: PostgresIntegrationTestSupport does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+15:08:07.784 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.ban.vehicle_management.VehicleManagementApplication for test class com.ban.vehicle_management.infrastructure.persistence.AiRuntimeIsolationIntegrationTest
+15:08:07.847 [main] INFO org.testcontainers.images.PullPolicy -- Image pull policy will be performed by: DefaultPullPolicy()
+15:08:07.847 [main] INFO org.testcontainers.utility.ImageNameSubstitutor -- Image name substitution will be performed by: DefaultImageNameSubstitutor (composite of 'ConfigurationFileImageNameSubstitutor' and 'PrefixingImageNameSubstitutor')
+15:08:07.855 [main] INFO org.testcontainers.DockerClientFactory -- Testcontainers version: 2.0.5
+15:08:08.132 [main] INFO org.testcontainers.dockerclient.DockerClientProviderStrategy -- Loaded org.testcontainers.dockerclient.NpipeSocketClientProviderStrategy from ~/.testcontainers.properties, will try it first
+15:08:08.536 [main] INFO org.testcontainers.dockerclient.DockerClientProviderStrategy -- Found Docker environment with local Npipe socket (npipe:////./pipe/docker_engine)
+15:08:08.536 [main] INFO org.testcontainers.DockerClientFactory -- Docker host IP address is localhost
+15:08:08.573 [main] INFO org.testcontainers.DockerClientFactory -- Connected to docker: 
+  Server Version: 29.6.1
+  API Version: 1.55
+  Operating System: Docker Desktop
+  Total Memory: 3734 MB
+  Labels: 
+    com.docker.desktop.address=npipe://\\.\pipe\docker_cli
+15:08:08.708 [main] INFO tc.testcontainers/ryuk:0.14.0 -- Creating container for image: testcontainers/ryuk:0.14.0
+15:08:08.835 [main] INFO org.testcontainers.utility.RegistryAuthLocator -- Credential helper/store (docker-credential-desktop) does not have credentials for https://index.docker.io/v1/
+15:08:09.089 [main] INFO tc.testcontainers/ryuk:0.14.0 -- Container testcontainers/ryuk:0.14.0 is starting: 04f5565aa4a21dd72951d3bae5929fb845a411450cc1dd4029cc8d853525a794
+15:08:09.915 [main] INFO tc.testcontainers/ryuk:0.14.0 -- Container testcontainers/ryuk:0.14.0 started in PT1.2069089S
+15:08:09.927 [main] INFO org.testcontainers.utility.RyukResourceReaper -- Ryuk started - will monitor and terminate Testcontainers containers on JVM exit
+15:08:09.927 [main] INFO org.testcontainers.DockerClientFactory -- Checking the system...
+15:08:09.928 [main] INFO org.testcontainers.DockerClientFactory -- ?? Docker server version should be at least 1.6.0
+15:08:09.929 [main] INFO tc.vehicle-management/postgres-pgvector-postgis:17 -- Creating container for image: vehicle-management/postgres-pgvector-postgis:17
+15:08:10.067 [main] INFO tc.vehicle-management/postgres-pgvector-postgis:17 -- Container vehicle-management/postgres-pgvector-postgis:17 is starting: 56b92d3a7478fcadf539fdf33b11e5c57f23b9b45be70099d5e011cacaa56200
+15:08:13.844 [main] INFO tc.vehicle-management/postgres-pgvector-postgis:17 -- Container vehicle-management/postgres-pgvector-postgis:17 started in PT3.9146057S
+15:08:13.844 [main] INFO tc.vehicle-management/postgres-pgvector-postgis:17 -- Container is started (JDBC URL: jdbc:postgresql://localhost:56569/vehicle_management_test?loggerLevel=OFF)
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.0.8)
+
+2026-11-24T15:08:14.304+07:00  INFO 1652 --- [           main] .v.i.p.AiRuntimeIsolationIntegrationTest : Starting AiRuntimeIsolationIntegrationTest using Java 23.0.2 with PID 1652 (started by baoan in C:\DiskD\VehicleManagementProject\vehicle-management-backend\vehicle-management)
+2026-11-24T15:08:14.304+07:00  INFO 1652 --- [           main] .v.i.p.AiRuntimeIsolationIntegrationTest : The following 1 profile is active: "test"
+2026-11-24T15:08:18.102+07:00  INFO 1652 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2026-11-24T15:08:18.102+07:00  INFO 1652 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-11-24T15:08:19.546+07:00  INFO 1652 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 1425 ms. Found 121 JPA repository interfaces.
+2026-11-24T15:08:21.212+07:00  INFO 1652 --- [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://localhost:56569/vehicle_management_test?loggerLevel=OFF (PostgreSQL 17.12)
+2026-11-24T15:08:21.874+07:00  INFO 1652 --- [           main] o.f.c.i.s.JdbcTableSchemaHistory         : Schema history table "public"."flyway_schema_history" does not exist yet
+2026-11-24T15:08:21.882+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbValidate     : Successfully validated 164 migrations (execution time 00:00.628s)
+2026-11-24T15:08:21.917+07:00  INFO 1652 --- [           main] o.f.c.i.s.JdbcTableSchemaHistory         : Creating Schema History table "public"."flyway_schema_history" ...
+2026-11-24T15:08:21.978+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": << Empty Schema >>
+2026-11-24T15:08:22.074+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260818110000 - baseline schema"
+2026-11-24T15:08:22.087+07:00  INFO 1652 --- [           main] o.f.c.i.s.DefaultSqlScriptExecutor       : +------------+
+| set_config |
++------------+
+|            |
++------------+
+
+2026-11-24T15:08:22.786+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260818120000 - seed security reference data"
+2026-11-24T15:08:23.331+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260818120100 - seed catalog reference data"
+2026-11-24T15:08:23.380+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260818120200 - seed support ticket categories"
+2026-11-24T15:08:23.407+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260821234837 - create account identities"
+2026-11-24T15:08:23.444+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260825180000 - add onboarding approval permissions"
+2026-11-24T15:08:23.466+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260826090000 - grant employee customer chat creation"
+2026-11-24T15:08:23.485+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260826100000 - ensure parking manager customer chat permissions"
+2026-11-24T15:08:23.502+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260826190000 - activate approved customer accounts"
+2026-11-24T15:08:23.518+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260826191000 - grant customer subscription permissions"
+2026-11-24T15:08:23.533+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260826192000 - grant customer vehicle permissions"
+2026-11-24T15:08:23.547+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260826193000 - activate approved customer profiles"
+2026-11-24T15:08:23.564+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260827123000 - support ticket permission first chat flow"
+2026-11-24T15:08:23.586+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260901103000 - support chat intake queue"
+2026-11-24T15:08:23.607+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260901120000 - assistant support conversation"
+2026-11-24T15:08:23.637+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260901130000 - support ticket chat message context"
+2026-11-24T15:08:23.665+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260905100000 - complete customer support flow"
+2026-11-24T15:08:23.732+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260906100000 - validate support flow integrity"
+2026-11-24T15:08:23.756+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260906110000 - support ticket escalation flow"
+2026-11-24T15:08:23.791+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260907100000 - ai assistant model job audit"
+2026-11-24T15:08:23.875+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260907101000 - ai assistant reply idempotency"
+2026-11-24T15:08:23.903+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260907102000 - assistant job lock expiry"
+2026-11-24T15:08:23.941+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260908100000 - ai tool call rag admin runtime"
+2026-11-24T15:08:24.071+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260908101000 - seed default support knowledge"
+2026-11-24T15:08:24.114+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260912090000 - add subscription vouchers"
+2026-11-24T15:08:24.165+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260912100000 - ai run provider error details"
+2026-11-24T15:08:24.198+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260913100000 - add voucher customer banner configuration"
+2026-11-24T15:08:24.223+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260917100000 - ai pgvector index versioning"
+2026-11-24T15:08:24.269+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260917101000 - seed ai embedding config and knowledge permissions"
+2026-11-24T15:08:24.290+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260918100000 - ai knowledge source document identity"
+2026-11-24T15:08:24.323+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260918100010 - ai knowledge blocks chunks staged"
+2026-11-24T15:08:24.361+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260918100020 - ai knowledge ingestion jobs and lease"
+2026-11-24T15:08:24.400+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260918100030 - ai knowledge documents versioned reindex"
+2026-11-24T15:08:24.423+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260918100040 - ai knowledge candidate and reindex guards"
+2026-11-24T15:08:24.448+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260919100000 - ai retrieval unaccent and audit"
+2026-11-24T15:08:24.503+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260923130000 - ai knowledge retrieval scope permissions"
+2026-11-24T15:08:24.542+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260923140000 - add partner multi tenant foundation"
+2026-11-24T15:08:24.587+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260924163000 - backfill partner created parking manager memberships"
+2026-11-24T15:08:24.603+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260924170000 - grant partner admin parking manager onboarding review"
+2026-11-24T15:08:24.620+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260924173000 - add parking lot setup lifecycle"
+2026-11-24T15:08:24.637+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260924180000 - add parking lot location coordinates"
+2026-11-24T15:08:24.657+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260924200000 - add parking lot activation request"
+2026-11-24T15:08:24.673+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260925100000 - grant partner admin shared catalog read permissions"
+2026-11-24T15:08:24.691+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260925110000 - align system admin platform governance permissions"
+2026-11-24T15:08:24.717+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260925120000 - scope cards to parking lots"
+2026-11-24T15:08:24.734+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260925130000 - allow multiple vehicle types per zone"
+2026-11-24T15:08:24.751+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926100000 - grant partner admin scoped parking operations"
+2026-11-24T15:08:24.760+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926110000 - grant partner admin scoped device operations"
+2026-11-24T15:08:24.776+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926120000 - anchor parking sessions to parking lots"
+2026-11-24T15:08:24.792+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926130000 - grant partner admin scoped shift operations"
+2026-11-24T15:08:24.806+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926140000 - backfill employee partner memberships"
+2026-11-24T15:08:24.819+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926150000 - grant partner admin employee onboarding review"
+2026-11-24T15:08:24.831+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926160000 - grant partner admin scoped employee management"
+2026-11-24T15:08:24.844+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926170000 - remove system admin partner lot write permissions"
+2026-11-24T15:08:24.858+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926180000 - scope partner card and lost card access"
+2026-11-24T15:08:24.877+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926190000 - snapshot lost card report parking lot"
+2026-11-24T15:08:24.901+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926200000 - scope catalog to organizations"
+2026-11-24T15:08:24.954+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926210000 - anchor subscriptions to parking lots"
+2026-11-24T15:08:24.977+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926220000 - grant scoped subscription operations"
+2026-11-24T15:08:24.993+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926230000 - backfill unambiguous subscription lots"
+2026-11-24T15:08:25.006+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926240000 - anchor invoices to parking lots"
+2026-11-24T15:08:25.023+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926250000 - grant scoped invoice operations"
+2026-11-24T15:08:25.039+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926260000 - scope employee payments to open shifts"
+2026-11-24T15:08:25.052+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926270000 - grant scoped customer read access"
+2026-11-24T15:08:25.064+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926280000 - move customer onboarding review to platform"
+2026-11-24T15:08:25.078+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926290000 - configure catalog availability by parking lot"
+2026-11-24T15:08:25.093+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926300000 - set database default timezone"
+2026-11-24T15:08:25.104+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260927100000 - normalize license plate identity"
+2026-11-24T15:08:25.137+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260928100000 - add postgis parking lot location"
+2026-11-24T15:08:25.179+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260928110000 - create administrative reference schema"
+2026-11-24T15:08:25.294+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260928111000 - seed current administrative divisions v5 2 0"
+2026-11-24T15:08:25.734+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260928112000 - seed legacy administrative divisions v2 4 1"
+2026-11-24T15:08:26.567+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260929100000 - add parking lot address management"
+2026-11-24T15:08:26.591+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260929100100 - create current ward gis schema"
+2026-11-24T15:08:29.109+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260929100101 - seed current ward gis part 01"
+2026-11-24T15:08:35.236+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260929100102 - seed current ward gis part 02"
+2026-11-24T15:08:40.781+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260929100103 - seed current ward gis part 03"
+2026-11-24T15:08:45.002+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260929100104 - seed current ward gis part 04"
+2026-11-24T15:08:46.383+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260929100200 - validate current ward gis and active parking lots"
+2026-11-24T15:08:48.383+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261003100000 - secure partner self registration"
+2026-11-24T15:08:48.663+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261004120000 - add onboarding approval policies"
+2026-11-24T15:08:48.747+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261004130000 - add structured address columns"
+2026-11-24T15:08:48.775+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261004131000 - add structured address province code"
+2026-11-24T15:08:48.794+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261005160000 - add avatar moderation workflow"
+2026-11-24T15:08:48.835+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261006120000 - remove legacy user profile address"
+2026-11-24T15:08:48.851+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261007130000 - remove remaining legacy address columns"
+2026-11-24T15:08:48.876+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261008090000 - backfill partner request data"
+2026-11-24T15:08:48.906+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261008100000 - parking levels spaces layout allocations"
+2026-11-24T15:08:48.986+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261008100001 - parking space topology and allocation guards"
+2026-11-24T15:08:49.120+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261009100000 - seed parking space layout permissions"
+2026-11-24T15:08:49.136+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261010000000 - draft layout snapshot and revision"
+2026-11-24T15:08:49.155+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261013090000 - allow unbound draft layout items"
+2026-11-24T15:08:49.178+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261014010000 - create wallet core ledger"
+2026-11-24T15:08:49.233+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261014010100 - create wallet topup orders"
+2026-11-24T15:08:49.252+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261014010200 - add wallet payment method"
+2026-11-24T15:08:49.288+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261014010300 - create settlement payout"
+2026-11-24T15:08:49.315+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261014090000 - create platform fee tables"
+2026-11-24T15:08:49.419+07:00  WARN 1652 --- [           main] o.f.c.i.s.DefaultSqlScriptExecutor       : DB: there is already a transaction in progress (SQL State: 25001 - Error Code: 0)
+2026-11-24T15:08:49.452+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261014100000 - seed platform fee permissions"
+2026-11-24T15:08:49.467+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261015090000 - subscription idempotency key"
+2026-11-24T15:08:49.482+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261015100000 - add partner organization profile approval permissions"
+2026-11-24T15:08:49.497+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261016090000 - separate platform fee permission module"
+2026-11-24T15:08:49.509+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261016100000 - create platform fee configuration"
+2026-11-24T15:08:49.528+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261016102000 - create user guide foundation"
+2026-11-24T15:08:49.568+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261016103000 - seed user guide permissions"
+2026-11-24T15:08:49.585+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261016104000 - user guide state progress"
+2026-11-24T15:08:49.603+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261021190000 - retire partner organization profile access"
+2026-11-24T15:08:49.620+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261022100000 - scope parking manager onboarding to creator"
+2026-11-24T15:08:49.635+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261022210000 - index public nearby parking lots"
+2026-11-24T15:08:49.648+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261024100000 - grant partner admin plate operation permissions"
+2026-11-24T15:08:49.662+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261026100000 - add account access changed notification"
+2026-11-24T15:08:49.682+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261026110000 - create guest support requests"
+2026-11-24T15:08:49.704+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261027100000 - subscription zone entitlements and capacity maintenance"
+2026-11-24T15:08:49.740+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261028100000 - add subscription period quantity"
+2026-11-24T15:08:49.755+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261028110000 - add subscription physical card preference"
+2026-11-24T15:08:49.774+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261028170000 - add lane status notification types"
+2026-11-24T15:08:49.789+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261029100000 - grant partner admin scoped payment operations"
+2026-11-24T15:08:49.800+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261029110000 - add subscription qr credentials"
+2026-11-24T15:08:49.816+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261029120000 - add subscription access blocking"
+2026-11-24T15:08:49.835+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261029130000 - allow subscription qr parking sessions"
+2026-11-24T15:08:49.851+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261102100000 - add customer favorite parking lots"
+2026-11-24T15:08:49.880+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261102110000 - parking lot workforce scope and manager handover"
+2026-11-24T15:08:49.953+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261102230000 - index latest onboarding approval lookup"
+2026-11-24T15:08:49.970+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261103100000 - create parking lot reviews"
+2026-11-24T15:08:49.991+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261103110000 - grant scoped parking lot vehicle service management"
+2026-11-24T15:08:50.004+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261104100000 - grant partner admin review chat permissions"
+2026-11-24T15:08:50.014+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261104110000 - allow open ended vouchers"
+2026-11-24T15:08:50.033+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261104120000 - create customer account deletion lifecycle"
+2026-11-24T15:08:50.069+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261104130000 - generalize account deletion for internal accounts"
+2026-11-24T15:08:50.095+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261105100000 - add three level voucher scope"
+2026-11-24T15:08:50.125+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261105110000 - add subscription space selection"
+2026-11-24T15:08:50.150+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261105120000 - decouple physical card fulfillment"
+2026-11-24T15:08:50.172+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261105130000 - add subscription physical card fulfillment"
+2026-11-24T15:08:50.197+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261106100000 - add subscription renewals"
+2026-11-24T15:08:50.221+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261106110000 - allow subscription renewal invoice purpose"
+2026-11-24T15:08:50.238+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261107100000 - parking customer reservations"
+2026-11-24T15:08:50.266+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261107110000 - allow guest customer reservations"
+2026-11-24T15:08:50.283+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261109120000 - allow stripe reservation payments"
+2026-11-24T15:08:50.300+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261110100000 - check in space holds"
+2026-11-24T15:08:50.332+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261110100001 - generalize platform fee scope"
+2026-11-24T15:08:50.369+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261110101000 - create billing outbox"
+2026-11-24T15:08:50.390+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261110102000 - create revenue allocation reversals"
+2026-11-24T15:08:50.405+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261110110000 - add vehicle parking evidence"
+2026-11-24T15:08:50.418+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261110120000 - organization account deletion closure"
+2026-11-24T15:08:50.469+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261111100000 - account deletion archive identity fingerprints"
+2026-11-24T15:08:50.483+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261111170000 - account deletion active subscription no refund consent"
+2026-11-24T15:08:50.495+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261111171000 - terminate subscription for account deletion"
+2026-11-24T15:08:50.505+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261113100000 - add sepay reservation payments"
+2026-11-24T15:08:50.529+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261113120000 - seed business workflow user guide drafts"
+2026-11-24T15:08:50.562+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261114100000 - seed customer portal user guide drafts"
+2026-11-24T15:08:50.588+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261115100000 - partner catalog draft lifecycle"
+2026-11-24T15:08:50.627+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261115105000 - scope price rules to parking lots"
+2026-11-24T15:08:50.655+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261115110000 - seed post onboarding operations journeys"
+2026-11-24T15:08:50.681+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261115120000 - seed workflow coach mark coverage"
+2026-11-24T15:08:50.708+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261116100000 - user guide journey configuration"
+2026-11-24T15:08:50.742+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261116110000 - align price rule drafts with parking lot scope"
+2026-11-24T15:08:50.759+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261116111000 - version price rule guides for parking lot flow"
+2026-11-24T15:08:50.778+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261116112000 - repair price rule guide version metadata"
+2026-11-24T15:08:50.798+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261117100000 - account owned support workflow"
+2026-11-24T15:08:50.857+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261118010000 - support ticket snapshot events"
+2026-11-24T15:08:50.882+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261118020000 - support ticket inactivity auto close"
+2026-11-24T15:08:50.896+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261118030000 - support ticket category administration"
+2026-11-24T15:08:50.919+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261119100000 - standardize support category catalog"
+2026-11-24T15:08:50.943+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261119110000 - allow tool audit without model run"
+2026-11-24T15:08:50.956+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261124120000 - strict ai runtime provider modes"
+2026-11-24T15:08:51.024+07:00  INFO 1652 --- [           main] o.f.core.internal.command.DbMigrate      : Successfully applied 164 migrations to schema "public", now at version v20261124120000 (execution time 00:14.558s)
+2026-11-24T15:08:52.355+07:00  INFO 1652 --- [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-11-24T15:08:52.481+07:00  INFO 1652 --- [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.24.Final
+2026-11-24T15:08:52.957+07:00  INFO 1652 --- [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-11-24T15:08:53.004+07:00  INFO 1652 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-11-24T15:08:53.086+07:00  INFO 1652 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-11-24T15:08:53.178+07:00  INFO 1652 --- [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://localhost:56569/vehicle_management_test?loggerLevel=OFF]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 17.12
+	Default catalog/schema: vehicle_management_test/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-11-24T15:08:55.910+07:00  INFO 1652 --- [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-11-24T15:08:56.097+07:00  INFO 1652 --- [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-11-24T15:08:56.283+07:00  INFO 1652 --- [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-11-24T15:08:59.930+07:00  INFO 1652 --- [           main] c.b.v.i.c.t.ApplicationTimeConfiguration : Application timezone resolved to Asia/Ho_Chi_Minh
+2026-11-24T15:09:02.666+07:00  INFO 1652 --- [           main] f.a.AutowiredAnnotationBeanPostProcessor : Inconsistent constructor declaration on bean with name 'knowledgeRetrievalService': single autowire-marked constructor flagged as optional - this constructor is effectively required since there is no default constructor to fall back to: public com.ban.vehicle_management.application.ai.service.KnowledgeRetrievalService(com.ban.vehicle_management.application.ai.port.out.KnowledgeRetrievalPortOut,com.ban.vehicle_management.application.ai.port.out.KnowledgeIndexVersionPortOut,com.ban.vehicle_management.application.ai.port.out.AiModelConfigurationPortOut,com.ban.vehicle_management.application.ai.port.out.KnowledgeRetrievalAuditPortOut,com.ban.vehicle_management.application.ai.service.EmbeddingService,com.ban.vehicle_management.application.ai.service.EmbeddingPromptFormatter,com.ban.vehicle_management.application.ai.service.PiiRedactionService,com.ban.vehicle_management.application.ai.service.EmbeddingProperties,com.ban.vehicle_management.application.ai.service.RetrievalProperties,com.ban.vehicle_management.application.ai.service.KnowledgeAccessContextResolver,com.ban.vehicle_management.application.ai.service.ResolveQueryEmbeddingService,com.ban.vehicle_management.application.ai.port.out.KnowledgeRetrievalCachePortOut,com.ban.vehicle_management.infrastructure.cache.AiCacheKeyFactory,com.ban.vehicle_management.application.ai.service.SensitiveQueryGuard,com.ban.vehicle_management.application.ai.service.AiCacheProperties,com.ban.vehicle_management.application.ai.mapper.AiCacheMapper)
+2026-11-24T15:09:02.793+07:00  INFO 1652 --- [           main] f.a.AutowiredAnnotationBeanPostProcessor : Inconsistent constructor declaration on bean with name 'assistantOrchestrator': single autowire-marked constructor flagged as optional - this constructor is effectively required since there is no default constructor to fall back to: public com.ban.vehicle_management.application.ai.service.AssistantOrchestrator(com.ban.vehicle_management.application.ai.service.AiAssistantProperties,com.ban.vehicle_management.application.ai.port.out.AssistantJobPortOut,com.ban.vehicle_management.application.operations.chatconversation.port.out.ChatConversationPortOut,com.ban.vehicle_management.application.ai.service.AiModelRouter,com.ban.vehicle_management.application.ai.service.AiModelPolicyService,java.util.List,com.ban.vehicle_management.application.ai.port.out.AiRunPortOut,com.ban.vehicle_management.application.ai.port.out.AiModelWarningPortOut,com.ban.vehicle_management.application.ai.port.out.AiToolCallPortOut,com.ban.vehicle_management.application.ai.service.AiToolExecutionService,com.ban.vehicle_management.domain.ai.policy.AiToolRegistry,com.ban.vehicle_management.application.operations.chatconversation.port.out.ChatRealtimeEventPublisherPortOut,com.ban.vehicle_management.application.operations.chatconversation.mapper.ChatRealtimeEventMapper,com.ban.vehicle_management.application.ai.service.PiiRedactionService,com.ban.vehicle_management.application.ai.service.KnowledgeAccessContextResolver,com.ban.vehicle_management.application.ai.service.KnowledgeRetrievalService,com.ban.vehicle_management.application.ai.service.RetrievalProperties,com.ban.vehicle_management.application.ai.port.out.KnowledgeRetrievalAuditPortOut,com.ban.vehicle_management.application.ai.port.out.AiMessageCitationPortOut,com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn,com.ban.vehicle_management.infrastructure.security.assistant.AssistantActorScope,com.fasterxml.jackson.databind.ObjectMapper,org.springframework.transaction.support.TransactionTemplate,com.ban.vehicle_management.application.ai.port.out.GroundedAnswerCachePortOut,com.ban.vehicle_management.application.ai.port.out.AiModelCircuitBreakerPortOut,com.ban.vehicle_management.application.ai.service.AiSingleFlightService,com.ban.vehicle_management.infrastructure.cache.AiCacheKeyFactory,com.ban.vehicle_management.application.ai.service.SensitiveQueryGuard,com.ban.vehicle_management.application.ai.service.AiCacheProperties,com.ban.vehicle_management.application.ai.mapper.AiCacheMapper,com.ban.vehicle_management.application.ai.port.out.KnowledgeIndexVersionPortOut,com.ban.vehicle_management.infrastructure.cache.AiCacheMetrics)
+2026-11-24T15:09:05.647+07:00  WARN 1652 --- [           main] c.b.v.a.o.g.s.GuestSupportTokenService   : PUBLIC_SUPPORT_CAPABILITY_SECRET is missing; guest capability tokens will not survive a restart
+2026-11-24T15:09:09.133+07:00  WARN 1652 --- [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-11-24T15:09:11.717+07:00  INFO 1652 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 4 endpoints beneath base path '/actuator'
+2026-11-24T15:09:11.875+07:00  INFO 1652 --- [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : Starting...
+2026-11-24T15:09:11.876+07:00  INFO 1652 --- [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : BrokerAvailabilityEvent[available=true, SimpleBrokerMessageHandler [org.springframework.messaging.simp.broker.DefaultSubscriptionRegistry@56517728]]
+2026-11-24T15:09:11.880+07:00  INFO 1652 --- [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : Started.
+2026-11-24T15:09:11.908+07:00  INFO 1652 --- [           main] .v.i.p.AiRuntimeIsolationIntegrationTest : Started AiRuntimeIsolationIntegrationTest in 58.025 seconds (process running for 75.045)
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 66.74 s -- in com.ban.vehicle_management.infrastructure.persistence.AiRuntimeIsolationIntegrationTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 224, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  01:46 min
+[INFO] Finished at: 2026-11-24T15:09:16+07:00
+[INFO] ------------------------------------------------------------------------

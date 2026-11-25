@@ -1,0 +1,376 @@
+{
+  "method": "Agent manual review of actual final answers and cited evidence on frozen v14. No required-word/HTTP200 automatic semantic grading. All failed provider jobs count FAIL. Two disjoint132-case acceptance shards; repetitions reported separately, never replace failed originalcases.",
+  "inputFingerprint": "412282c1cffbacb5e9d29816f6c40874ce7b5ce87b911326a8216f369d064ab6",
+  "caseGrades": {
+    "B4-LOC01-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed final answer: exact approved hotline/email from cited company FAQ, readable after sanitizer. Company support24/7 distinct from lot operations, email asks only safe problem details."
+    },
+    "B4-LOC01-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed final answer: exact approved hotline/email from cited company FAQ, readable after sanitizer. Company support24/7 distinct from lot operations, email asks only safe problem details."
+    },
+    "B4-LOC01-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed final answer: exact approved hotline/email from cited company FAQ, readable after sanitizer. Company support24/7 distinct from lot operations, email asks only safe problem details."
+    },
+    "B4-LOC01-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed final answer: exact approved hotline/email from cited company FAQ, readable after sanitizer. Company support24/7 distinct from lot operations, email asks only safe problem details."
+    },
+    "B4-LOC01-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed final answer: exact approved hotline/email from cited company FAQ, readable after sanitizer. Company support24/7 distinct from lot operations, email asks only safe problem details."
+    },
+    "B4-LOC01-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed final answer: exact approved hotline/email from cited company FAQ, readable after sanitizer. Company support24/7 distinct from lot operations, email asks only safe problem details."
+    },
+    "B4-LOC02-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed final answer: exact approved hotline/email from cited company FAQ, readable after sanitizer. Company support24/7 distinct from lot operations, email asks only safe problem details."
+    },
+    "B4-LOC02-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed final answer: exact approved hotline/email from cited company FAQ, readable after sanitizer. Company support24/7 distinct from lot operations, email asks only safe problem details."
+    },
+    "B4-LOC02-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed actual exact sourceFAQ: approved email readable, appropriate problem details and privacy instruction. Context follow-up resolves company email, no private value."
+    },
+    "B4-LOC02-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed actual exact sourceFAQ: approved email readable, appropriate problem details and privacy instruction. Context follow-up resolves company email, no private value."
+    },
+    "B4-LOC02-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed actual exact sourceFAQ: approved email readable, appropriate problem details and privacy instruction. Context follow-up resolves company email, no private value."
+    },
+    "B4-LOC02-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed actual exact sourceFAQ: approved email readable, appropriate problem details and privacy instruction. Context follow-up resolves company email, no private value."
+    },
+    "B4-LOC03-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed actual address answer: exact approved company address, does not claim all-lot location; additional public hotline/email in paraphrase grounded in cited same company source."
+    },
+    "B4-LOC03-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed actual address answer: exact approved company address, does not claim all-lot location; additional public hotline/email in paraphrase grounded in cited same company source."
+    },
+    "B4-LOC03-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed actual address answer: exact approved company address, does not claim all-lot location; additional public hotline/email in paraphrase grounded in cited same company source."
+    },
+    "B4-LOC03-3": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "Provider failed after budget/retries; empty final answer despite sufficient correct PUBLIC evidence."
+    },
+    "B4-LOC03-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual answer has approved exact company address and distinguishes company from individual parking lots. Cited PUBLIC contact source supports it. Slow retries reported separately."
+    },
+    "B4-LOC03-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual answer has approved exact company address and distinguishes company from individual parking lots. Cited PUBLIC contact source supports it. Slow retries reported separately."
+    },
+    "B4-LOC04-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual answer correctly states company support intake24/7; does not promise immediate human response or all-lot opening hours. Night/weekend intake consistent with continuous support decision."
+    },
+    "B4-LOC04-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual answer correctly states company support intake24/7; does not promise immediate human response or all-lot opening hours. Night/weekend intake consistent with continuous support decision."
+    },
+    "B4-LOC04-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual answer correctly states company support intake24/7; does not promise immediate human response or all-lot opening hours. Night/weekend intake consistent with continuous support decision."
+    },
+    "B4-LOC04-4": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "TIMEOUT after retries, no final answer despite correct sufficient PUBLIC evidence. Count as failure, not replaced by repetitions."
+    },
+    "B4-LOC04-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual answer distinguishes company support intake24/7 from human response/resolution and lot opening hours. Cited company source supports each condition."
+    },
+    "B4-LOC04-6": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "Provider budget exhausted after retries, empty final answer despite sufficient correct PUBLIC source. Original acceptance failure preserved."
+    },
+    "B4-LOC05-3": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "Provider budget exhausted after retries, empty final answer despite sufficient correct PUBLIC source. Original acceptance failure preserved."
+    },
+    "B4-LOC05-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual answer asks which lot, requires verified lot hours and clearly separates support24/7 from unverified lot opening hours. Source supports safe next steps."
+    },
+    "B4-LOC05-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual answer asks which lot, requires verified lot hours and clearly separates support24/7 from unverified lot opening hours. Source supports safe next steps."
+    },
+    "B4-LOC05-4": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "No usable final answer after provider budget exhausted; correct PUBLIC evidence retrieved. Count failure."
+    },
+    "B4-LOC05-6": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "No usable final answer after provider budget exhausted; correct PUBLIC evidence retrieved. Count failure."
+    },
+    "B4-LOC05-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual answer requires lot identification and verified lot hours; no invented hours or support24/7 inference."
+    },
+    "B4-LOC06-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual answer gives all four first human response targets30min/2h/8h/48h, continuous Vietnam time, as targets rather than resolution guarantees. Grounded company response source."
+    },
+    "B4-LOC06-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual answer gives all four first human response targets30min/2h/8h/48h, continuous Vietnam time, as targets rather than resolution guarantees. Grounded company response source."
+    },
+    "B4-LOC06-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual answer gives all four first human response targets30min/2h/8h/48h, continuous Vietnam time, as targets rather than resolution guarantees. Grounded company response source."
+    },
+    "B4-LOC06-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual answer gives all four first human response targets30min/2h/8h/48h, continuous Vietnam time, as targets rather than resolution guarantees. Grounded company response source."
+    },
+    "B4-LOC06-5": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "Provider exhausted budget with empty final answer despite sufficient company response-target evidence."
+    },
+    "B4-LOC06-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual contextual answer retains correct four human-response targets, continuous time, and excludes bot acknowledgments."
+    },
+    "B4-LOC07-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual FAQ answer says bot/automatic message does not count as first human response and response target is not resolution."
+    },
+    "B4-LOC07-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual FAQ answer says bot/automatic message does not count as first human response and response target is not resolution."
+    },
+    "B4-LOC07-3": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "TIMEOUT left no answer despite sufficient source explaining bot versus human response."
+    },
+    "B4-LOC07-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual answer directly states automated/chatbot message is not human response, grounded in cited source."
+    },
+    "B4-LOC07-5": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "Provider timeout/budget exhaustion after retries; correct sufficient PUBLIC source but empty final answer. Retained as original acceptance failure."
+    },
+    "B4-LOC07-6": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "Provider timeout/budget exhaustion after retries; correct sufficient PUBLIC source but empty final answer. Retained as original acceptance failure."
+    },
+    "B4-LOC08-3": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "Provider timeout/budget exhaustion after retries; correct sufficient PUBLIC source but empty final answer. Retained as original acceptance failure."
+    },
+    "B4-LOC08-4": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "Provider timeout/budget exhaustion after retries; correct sufficient PUBLIC source but empty final answer. Retained as original acceptance failure."
+    },
+    "B4-LOC08-6": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "Provider timeout/budget exhaustion after retries; correct sufficient PUBLIC source but empty final answer. Retained as original acceptance failure."
+    },
+    "B4-LOC09-5": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "Provider timeout/budget exhaustion after retries; correct sufficient PUBLIC source but empty final answer. Retained as original acceptance failure."
+    },
+    "B4-LOC09-6": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "Provider timeout/budget exhaustion after retries; correct sufficient PUBLIC source but empty final answer. Retained as original acceptance failure."
+    },
+    "B4-LOC10-3": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "Provider timeout/budget exhaustion after retries; correct sufficient PUBLIC source but empty final answer. Retained as original acceptance failure."
+    },
+    "B4-LOC10-4": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "Provider timeout/budget exhaustion after retries; correct sufficient PUBLIC source but empty final answer. Retained as original acceptance failure."
+    },
+    "B4-LOC08-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual response states contactform unavailable and offers approved hotline/email; does not claim form was sent or create a fake receipt."
+    },
+    "B4-LOC08-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual response states contactform unavailable and offers approved hotline/email; does not claim form was sent or create a fake receipt."
+    },
+    "B4-LOC08-5": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual response states contactform unavailable and offers approved hotline/email; does not claim form was sent or create a fake receipt."
+    },
+    "B4-LOC09-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual response explicitly rejects ACTIVE/current displayed capacity as guarantee lot open/receiving cars now; source supports distinction and next checks."
+    },
+    "B4-LOC09-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual response explicitly rejects ACTIVE/current displayed capacity as guarantee lot open/receiving cars now; source supports distinction and next checks."
+    },
+    "B4-LOC09-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual response explicitly rejects ACTIVE/current displayed capacity as guarantee lot open/receiving cars now; source supports distinction and next checks."
+    },
+    "B4-LOC09-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual response explicitly rejects ACTIVE/current displayed capacity as guarantee lot open/receiving cars now; source supports distinction and next checks."
+    },
+    "B4-LOC10-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual response refuses choosing conflicting value; asks relevant lot/conflict and verifies official/current channel, no invented hours."
+    },
+    "B4-LOC10-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual response refuses choosing conflicting value; asks relevant lot/conflict and verifies official/current channel, no invented hours."
+    },
+    "B4-LOC10-5": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "Provider TIMEOUT left no final answer on verified-hours ambiguity case; correct sufficient PUBLIC source."
+    },
+    "B4-LOC10-6": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "Provider failed with budget exhaustion on source-conflict follow-up, no final answer despite correct PUBLIC evidence."
+    },
+    "B4-ERR01-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual sourceFAQ correctly asks login method, error and failing step; no unsupported password-reset assumption or permission-assignment advice."
+    },
+    "B4-ERR01-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual sourceFAQ correctly asks login method, error and failing step; no unsupported password-reset assumption or permission-assignment advice."
+    },
+    "B4-ERR01-3": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "Provider budget exhausted; no final answer for login-error paraphrase despite correct source. Semantic fix cannot be judged PASS from an empty final answer."
+    },
+    "B4-ERR01-4": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "Provider budget exhausted, no final login-triage answer despite correct sufficient cited candidates. Count failure."
+    },
+    "B4-ERR01-5": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "No final answer after provider budget exhausted; correct evidence exists."
+    },
+    "B4-ERR01-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual follow-up asks missing login method, exact error and step; no wrong permission/reset assumption."
+    },
+    "B4-ERR02-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual answers provide concrete normal/incognito comparison, disable extension or site data when appropriate, re-login/logout warning; no claim backend proven broken and no secrets requested."
+    },
+    "B4-ERR02-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual answers provide concrete normal/incognito comparison, disable extension or site data when appropriate, re-login/logout warning; no claim backend proven broken and no secrets requested."
+    },
+    "B4-ERR02-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual answers provide concrete normal/incognito comparison, disable extension or site data when appropriate, re-login/logout warning; no claim backend proven broken and no secrets requested."
+    },
+    "B4-ERR02-4": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "Provider timeout/budget exhaustion; no usable answer despite correct source. Retained original failure before user-requested quota pause."
+    },
+    "B4-ERR02-5": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "Provider timeout/budget exhaustion; no usable answer despite correct source. Retained original failure before user-requested quota pause."
+    },
+    "B4-ERR02-6": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "Provider timeout/budget exhaustion; no usable answer despite correct source. Retained original failure before user-requested quota pause."
+    },
+    "B4-ERR03-1": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual FAQ explains failed connection without guessing cause; network/check result before retrying payment or creation avoids duplicate actions, asks only safe diagnostic details."
+    },
+    "B4-ERR03-2": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Actual FAQ explains failed connection without guessing cause; network/check result before retrying payment or creation avoids duplicate actions, asks only safe diagnostic details."
+    }
+  }
+}

@@ -1,0 +1,74 @@
+package com.ban.vehicle_management.domain.ai.model;
+
+import java.util.List;
+
+/** Resolves only a bounded public topic, never prior instructions, identifiers, or a prior write action. */
+public final class AssistantQuestionResolver {
+    public static final String CLARIFICATION_TEXT = "Bạn đang gặp vấn đề ở chức năng nào và đã thực hiện đến bước nào? Ví dụ: đăng nhập, xác minh email hoặc tạo phiếu hỗ trợ.";
+    private static final List<String> TOPICS = List.of(
+            "(?:chatbot|tin.{0,15}tu dong).{0,50}(?:tinh|thoi gian|dau tien).{0,30}(?:phan hoi|nhan vien)",
+            "luot (?:gui xe )?chua ket thuc", "(?:ho tro.{0,45}gio|gio.{0,35}ho tro)", "(?:trang thai bai|bai.{0,15}hoat dong)", "luot gui xe", "(?:tro ly|chatbot)",
+            "(?:ban kinh|pham vi tim bai|tim xa hon)", "tu choi quyen vi tri", "tu choi quyen dinh vi", "dinh vi", "gps", "tim(?: thay)? bai", "bai(?: xe)?(?: nao)? gan", "ban do", "chi duong",
+            "xe vao", "vao bai", "xe ra", "ra bai", "(?:cong (?:bai|xe|khong|chua)|(?:loi|mo|qua|dong) cong)", "hotline", "email ho tro", "tru so", "dia chi lien he", "(?:gio mo cua|bai(?: xe)?.{0,10}mo cua)", "gio hoat dong", "gio tiep nhan", "phan hoi", "bieu mau lien he", "loi ket noi",
+            "dat cho", "giu cho", "voucher", "ma giam gia", "uu dai", "hoa don", "bang gia", "tinh phi", "hoan tien", "sepay", "vnpay",
+            "tao phieu ho tro", "quen mat khau", "dang nhap", "xac minh email", "dang ky ve", "gia han", "lich su gui xe",
+            "them xe", "sua xe", "xe mac dinh", "bien so", "mat the", "the xe", "phuong tien",
+            "dang ky", "ho so", "phieu ho tro", "hoi thoai", "quyen rieng tu", "ve thang", "thanh toan");
+    private static final List<String> LABELS = List.of(
+            "phản hồi đầu tiên của nhân viên hỗ trợ",
+            "lượt gửi xe chưa kết thúc", "giờ tiếp nhận hỗ trợ", "trạng thái hoạt động bãi xe", "lịch sử gửi xe", "trợ lý chatbot",
+            "bán kính tìm bãi", "quyền định vị", "quyền định vị", "định vị", "định vị", "tìm bãi xe gần vị trí hiện tại", "tìm bãi xe gần vị trí hiện tại", "bản đồ", "chỉ đường",
+            "xe vào", "xe vào", "xe ra", "xe ra", "cổng bãi xe", "hotline CoParking", "email hỗ trợ CoParking", "trụ sở CoParking", "địa chỉ liên hệ CoParking", "giờ mở cửa bãi xe", "giờ hoạt động", "giờ tiếp nhận hỗ trợ", "phản hồi hỗ trợ", "biểu mẫu liên hệ", "lỗi kết nối",
+            "đặt chỗ", "giữ chỗ", "mã ưu đãi", "mã giảm giá", "ưu đãi", "hóa đơn", "bảng giá", "tính phí", "hoàn tiền", "SePay", "VNPay",
+            "tạo phiếu hỗ trợ", "quên mật khẩu", "đăng nhập", "xác minh email", "đăng ký vé tháng", "gia hạn vé tháng", "lịch sử gửi xe",
+            "thêm xe", "sửa xe", "xe mặc định", "biển số", "mất thẻ", "thẻ xe", "phương tiện",
+            "đăng ký", "hồ sơ", "phiếu hỗ trợ", "hội thoại", "quyền riêng tư", "vé tháng", "thanh toán");
+    private AssistantQuestionResolver() { }
+
+    public record ResolvedQuestion(String query, AssistantIntentRouter.IntentDecision decision, boolean contextual) { }
+
+    /** Callers must load actor-filtered history for dependent knowledge questions as well as vague ones. */
+    public static boolean requiresContext(String question) {
+        var intent = AssistantIntentRouter.route(question).intent();
+        return intent == AssistantIntent.CLARIFICATION
+                || intent == AssistantIntent.STATIC_KNOWLEDGE && isDependentFollowUp(question);
+    }
+
+    /** History is newest first and must already be restricted to the actor and conversation by the caller. */
+    public static ResolvedQuestion resolve(String question, List<String> previousQuestions) {
+        var decision = AssistantIntentRouter.route(question);
+        boolean needsTopic = requiresContext(question);
+        if (needsTopic && previousQuestions != null) {
+            for (String previous : previousQuestions.stream().limit(3).toList()) {
+                var previousIntent = AssistantIntentRouter.route(previous).intent();
+                if (previousIntent == AssistantIntent.CLARIFICATION) continue;
+                if (previousIntent != AssistantIntent.STATIC_KNOWLEDGE) break;
+                String focusedTopic = AssistantGuideFocus.from(previous).publicTopic();
+                if (!focusedTopic.isBlank()) {
+                    String contextual = "Hướng dẫn " + focusedTopic + ". " + question;
+                    return new ResolvedQuestion(contextual, AssistantIntentRouter.route(contextual), true);
+                }
+                String folded = AssistantIntentRouter.matching(previous);
+                for (int i = 0; i < TOPICS.size(); i++) {
+                    if (!folded.matches(".*\\b" + TOPICS.get(i) + "\\b.*")) continue;
+                    String contextual = "Hướng dẫn " + LABELS.get(i) + ". " + question;
+                    return new ResolvedQuestion(contextual, AssistantIntentRouter.route(contextual), true);
+                }
+                // Do not search older topics when the latest eligible turn changed the subject.
+                break;
+            }
+        }
+        return new ResolvedQuestion(question, decision, false);
+    }
+
+    private static boolean isDependentFollowUp(String question) {
+        String folded = AssistantIntentRouter.matching(question);
+        if (!folded.matches("^(?:vay|the|neu|luc|con|ban dem|so do|dia chi do|nut do)\\b.*")) return false;
+        if (folded.matches(".*\\b(?:tai khoan|mat khau|google|email)\\b.*")) return false;
+        // A broad word such as registration cannot distinguish signing up from entering
+        // without a parking subscription. Explicit new topics still start a fresh question.
+        var broadTopics = java.util.Set.of("dang ky");
+        return TOPICS.stream().filter(topic -> !broadTopics.contains(topic))
+                .noneMatch(topic -> folded.matches(".*\\b" + topic + "\\b.*"));
+    }
+}

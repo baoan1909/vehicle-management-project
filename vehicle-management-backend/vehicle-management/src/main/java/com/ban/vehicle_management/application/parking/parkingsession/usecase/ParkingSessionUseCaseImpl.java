@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.UUID;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ParkingSessionUseCaseImpl implements ParkingSessionPortIn {
@@ -110,6 +111,20 @@ public class ParkingSessionUseCaseImpl implements ParkingSessionPortIn {
             UUID parkingLotId,
             Integer limit
     ) {
+        return parkingSessionManagementResultMapper.withResolvedEventImageUrls(
+                findOwnSessions(status, vehicleTypeId, zoneId, fromDate, toDate, keyword, parkingLotId, limit), fileAccessPort);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ParkingSessionManagementResult> getOwnSessionSummaries(ParkingSessionStatus status, Integer limit) {
+        currentAccountPortIn.requirePermission("PARKING_SESSION_READ_OWN");
+        return findOwnSessions(status, null, null, null, null, null, null, limit);
+    }
+
+    private List<ParkingSessionManagementResult> findOwnSessions(
+            ParkingSessionStatus status, UUID vehicleTypeId, UUID zoneId, LocalDate fromDate,
+            LocalDate toDate, String keyword, UUID parkingLotId, Integer limit) {
         UUID customerId = subscriptionAccessGuard.resolveCurrentApprovedCustomerId();
         List<UUID> customerVehicleIds = customerVehiclePortOut.findAll(customerId, null, null, null, null)
                 .stream()
@@ -135,7 +150,7 @@ public class ParkingSessionUseCaseImpl implements ParkingSessionPortIn {
                 parkingLotId == null ? null : Set.of(parkingLotId),
                 resolvedLimit
         );
-        return parkingSessionManagementResultMapper.withResolvedEventImageUrls(sessions, fileAccessPort);
+        return sessions;
     }
 
     @Override

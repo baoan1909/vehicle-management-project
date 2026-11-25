@@ -31,8 +31,17 @@ public class AiToolRegistry {
                                 """), "SUPPORT_TICKET_READ_OWN", this::validateOptionalStatus),
                 readOnly("get_my_subscription_status", "List current user's subscription status.",
                         schema("""
-                                {"status":{"type":"string","enum":["PENDING","PENDING_PAYMENT","ACTIVE","EXPIRED","CANCELLED","REJECTED"]}}
+                                {"status":{"type":"string","enum":["PENDING","PENDING_PAYMENT","PENDING_CARD","PENDING_SPACE","ACTIVE","EXPIRED","CANCELLED","REJECTED","TERMINATED"]}}
                                 """), "SUBSCRIPTION_READ_OWN", this::validateOptionalSubscriptionStatus),
+                readOnly("list_my_vehicles", "Read at most 20 vehicles of the authenticated customer. Returns a safe Vietnamese summary with masked plates. No other customer or identifier is accepted.",
+                        schema("{}"), "CUSTOMER_VEHICLE_READ_OWN", arguments -> validateOnlyFields(arguments)),
+                readOnly("list_my_parking_history", "Read up to 20 recent parking sessions of the authenticated customer. Vietnamese summary only; no images or private URLs. For date or vehicle filters guide the user to Lịch sử gửi xe instead of inventing filters.",
+                        schema("{\"status\":{\"type\":\"string\",\"enum\":[\"OPEN\",\"CLOSED\",\"LOST_CARD\",\"CANCELLED\"]}}"),
+                        "PARKING_SESSION_READ_OWN", arguments -> {
+                            validateOnlyFields(arguments, "status");
+                            optionalText(arguments, "status", 1, 30);
+                            if (arguments.hasNonNull("status")) com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatus.valueOf(arguments.get("status").asText());
+                        }),
                 write("create_support_ticket", "Create a support ticket from the current assistant conversation after user confirmation.",
                         schema("""
                                 {"categoryId":{"type":"string","format":"uuid"},"title":{"type":"string"},"content":{"type":"string"}}
@@ -72,24 +81,36 @@ public class AiToolRegistry {
                 """.formatted(properties.trim(), required);
     }
 
+    private void validateOnlyFields(JsonNode arguments, String... fields) {
+        var allowed = java.util.Set.of(fields);
+        arguments.fieldNames().forEachRemaining(field -> {
+            if (!allowed.contains(field)) throw new BadRequestException("AI tool argument is not supported");
+        });
+    }
+
     private void validateSearchKnowledge(JsonNode arguments) {
+        validateOnlyFields(arguments, "query");
         requireText(arguments, "query", 3, 300);
     }
 
     private void validateTicketId(JsonNode arguments) {
+        validateOnlyFields(arguments, "supportTicketId");
         requireText(arguments, "supportTicketId", 10, 60);
     }
 
     private void validateOptionalStatus(JsonNode arguments) {
+        validateOnlyFields(arguments, "status", "keyword");
         optionalText(arguments, "status", 2, 30);
         optionalText(arguments, "keyword", 1, 120);
     }
 
     private void validateOptionalSubscriptionStatus(JsonNode arguments) {
+        validateOnlyFields(arguments, "status");
         optionalText(arguments, "status", 2, 30);
     }
 
     private void validateCreateTicket(JsonNode arguments) {
+        validateOnlyFields(arguments, "categoryId", "title", "content");
         requireText(arguments, "categoryId", 10, 60);
         requireText(arguments, "title", 3, 150);
         requireText(arguments, "content", 5, 4000);

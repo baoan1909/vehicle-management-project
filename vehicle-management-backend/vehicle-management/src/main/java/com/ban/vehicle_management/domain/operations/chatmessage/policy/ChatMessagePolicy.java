@@ -14,7 +14,7 @@ public class ChatMessagePolicy {
             throw new BadRequestException("message must not be null");
         }
         message.setMessageType(ChatMessageType.TEXT);
-        message.setContent(TextValidationUtils.normalizeRequiredText(
+        message.setContent(TextValidationUtils.normalizeRequiredMultilineText(
                 message.getContent(),
                 "content",
                 MAX_TEXT_CONTENT_LENGTH
@@ -48,6 +48,19 @@ public class ChatMessagePolicy {
         message.setDeleted(false);
     }
 
+    public void initializeContextCard(ChatMessage message) {
+        if (message == null) {
+            throw new BadRequestException("message must not be null");
+        }
+        message.setMessageType(ChatMessageType.CONTEXT_CARD);
+        message.setContent(TextValidationUtils.normalizeRequiredText(
+                message.getContent(),
+                "content",
+                MAX_TEXT_CONTENT_LENGTH
+        ));
+        message.setDeleted(false);
+    }
+
     public void initializeSystem(ChatMessage message) {
         if (message == null) {
             throw new BadRequestException("message must not be null");
@@ -66,7 +79,7 @@ public class ChatMessagePolicy {
             throw new BadRequestException("message must not be null");
         }
         message.setMessageType(ChatMessageType.ASSISTANT_TEXT);
-        message.setContent(TextValidationUtils.normalizeRequiredText(
+        message.setContent(TextValidationUtils.normalizeRequiredMultilineText(
                 message.getContent(),
                 "content",
                 MAX_TEXT_CONTENT_LENGTH

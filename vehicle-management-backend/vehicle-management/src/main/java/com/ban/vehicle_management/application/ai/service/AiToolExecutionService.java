@@ -26,6 +26,8 @@ public class AiToolExecutionService {
     private final CurrentAccountPortIn currentAccountPortIn;
     private final SupportTicketPortIn supportTicketPortIn;
     private final SubscriptionPortIn subscriptionPortIn;
+    private final com.ban.vehicle_management.application.people.customervehicle.port.in.CustomerVehiclePortIn customerVehiclePortIn;
+    private final com.ban.vehicle_management.application.parking.parkingsession.port.in.ParkingSessionPortIn parkingSessionPortIn;
     private final KnowledgeRetrievalService knowledgeRetrievalService;
     private final KnowledgeAccessContextResolver accessContextResolver;
     private final ObjectMapper objectMapper;
@@ -35,6 +37,8 @@ public class AiToolExecutionService {
             CurrentAccountPortIn currentAccountPortIn,
             SupportTicketPortIn supportTicketPortIn,
             SubscriptionPortIn subscriptionPortIn,
+            com.ban.vehicle_management.application.people.customervehicle.port.in.CustomerVehiclePortIn customerVehiclePortIn,
+            com.ban.vehicle_management.application.parking.parkingsession.port.in.ParkingSessionPortIn parkingSessionPortIn,
             KnowledgeRetrievalService knowledgeRetrievalService,
             KnowledgeAccessContextResolver accessContextResolver,
             ObjectMapper objectMapper
@@ -43,6 +47,8 @@ public class AiToolExecutionService {
         this.currentAccountPortIn = currentAccountPortIn;
         this.supportTicketPortIn = supportTicketPortIn;
         this.subscriptionPortIn = subscriptionPortIn;
+        this.customerVehiclePortIn = customerVehiclePortIn;
+        this.parkingSessionPortIn = parkingSessionPortIn;
         this.knowledgeRetrievalService = knowledgeRetrievalService;
         this.accessContextResolver = accessContextResolver;
         this.objectMapper = objectMapper;
@@ -62,6 +68,8 @@ public class AiToolExecutionService {
             case "get_my_support_ticket" -> getMySupportTicket(arguments);
             case "list_my_support_tickets" -> listMySupportTickets(arguments);
             case "get_my_subscription_status" -> listMySubscriptions(arguments);
+            case "list_my_vehicles" -> Map.of("responseText", AssistantOwnDataFormatter.vehicles(customerVehiclePortIn.getMyCustomerVehicles(20)));
+            case "list_my_parking_history" -> listMyParkingHistory(arguments);
             case "create_support_ticket" -> createSupportTicket(arguments, conversationId, idempotencyKey);
             default -> throw new BadRequestException("AI tool is not executable");
         };
@@ -76,6 +84,8 @@ public class AiToolExecutionService {
             case "get_my_support_ticket" -> getMySupportTicket(arguments);
             case "list_my_support_tickets" -> listMySupportTickets(arguments);
             case "get_my_subscription_status" -> listMySubscriptions(arguments);
+            case "list_my_vehicles" -> Map.of("responseText", AssistantOwnDataFormatter.vehicles(customerVehiclePortIn.getMyCustomerVehicles(20)));
+            case "list_my_parking_history" -> listMyParkingHistory(arguments);
             default -> throw new BadRequestException("AI tool requires user confirmation or request-time authorization");
         };
         return new ToolExecutionResult(
@@ -103,19 +113,30 @@ public class AiToolExecutionService {
     }
 
     private Object getMySupportTicket(JsonNode arguments) {
-        return supportTicketPortIn.getTicketById(UUID.fromString(requiredText(arguments, "supportTicketId")));
+        SupportTicket ticket = supportTicketPortIn.getTicketById(UUID.fromString(requiredText(arguments, "supportTicketId")));
+        if (!currentAccountPortIn.getCurrentAccountIdOrThrow().equals(ticket.getRequesterAccountId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Access is denied");
+        }
+        return Map.of("responseText", AssistantOwnDataFormatter.supportTickets(List.of(ticket)));
     }
 
     private Object listMySupportTickets(JsonNode arguments) {
         SupportTicketStatus status = optionalEnum(arguments, "status", SupportTicketStatus.class);
         String keyword = optionalText(arguments, "keyword");
-        return supportTicketPortIn.getMyTickets(status, keyword);
+        return Map.of("responseText", AssistantOwnDataFormatter.supportTickets(supportTicketPortIn.getMyTickets(status, keyword, 20)));
     }
 
     private Object listMySubscriptions(JsonNode arguments) {
         SubscriptionStatus status = optionalEnum(arguments, "status", SubscriptionStatus.class);
-        List<Subscription> subscriptions = subscriptionPortIn.getSubscriptions(null, null, null, null, status, null, null, null);
-        return Map.of("subscriptions", subscriptions);
+        List<Subscription> subscriptions = subscriptionPortIn.getMySubscriptions(20).stream()
+                .filter(row -> status == null || row.getStatus() == status).toList();
+        return Map.of("responseText", AssistantOwnDataFormatter.subscriptions(subscriptions));
+    }
+
+    private Object listMyParkingHistory(JsonNode arguments) {
+        var status = optionalEnum(arguments, "status", com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatus.class);
+        var rows = parkingSessionPortIn.getOwnSessionSummaries(status, 20);
+        return Map.of("responseText", AssistantOwnDataFormatter.parkingHistory(rows));
     }
 
     private Object createSupportTicket(JsonNode arguments, UUID conversationId, String idempotencyKey) {

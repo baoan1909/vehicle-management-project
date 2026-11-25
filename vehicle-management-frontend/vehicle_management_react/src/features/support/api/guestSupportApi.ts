@@ -62,12 +62,13 @@ export function verifyGuestCaptcha(challengeToken: string, purpose: CaptchaPurpo
   });
 }
 
-export function askGuestAssistant(message: string, sessionId: string, captchaProof?: string, signal?: AbortSignal) {
+export function askGuestAssistant(message: string, sessionId: string, captchaProof?: string, signal?: AbortSignal, contextQuestion?: string) {
   return apiClient<ApiResponse<GuestAssistantAnswer>>(apiEndpoints.public.support.assistantMessages, {
-    body: { message, sessionId, captchaProof },
+    body: { message, sessionId, captchaProof, contextQuestion },
     method: "POST",
     skipAuth: true,
-    timeoutMs: 30_000,
+    // Covers the default three 20-second generation attempts plus retrieval.
+    timeoutMs: 90_000,
     signal,
   });
 }

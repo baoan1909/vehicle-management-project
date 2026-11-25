@@ -20,6 +20,7 @@ import com.ban.vehicle_management.application.people.userprofile.port.out.UserPr
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.domain.billing.payment.model.Payment;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.InvoiceSource;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentMethod;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
 import java.math.BigDecimal;
@@ -61,13 +62,32 @@ class InvoiceUseCaseManagementTest {
                 .thenReturn(List.of(payment(cashInvoice.getInvoiceId(), PaymentMethod.CASH)));
 
         InvoiceManagementPageResult result = useCase.getManagementInvoices(
-                null, PaymentMethod.VNPAY, null, null, null, 0, 10, null, null
+                null, null, PaymentMethod.VNPAY, null, null, null, 0, 10, null, null
         );
 
         assertEquals(1, result.totalElements());
         assertEquals("INV-VNPAY", result.items().get(0).invoiceNo());
         assertEquals(PaymentMethod.VNPAY, result.items().get(0).paymentMethod());
         verify(invoiceAccessGuard).ensureCanReadAll();
+    }
+
+    @Test
+    void shouldSeparateSubscriptionInvoicesFromParkingSessionInvoices() {
+        Invoice subscriptionInvoice = invoice("INV-SUBSCRIPTION", InvoiceStatus.PAID, "2026-08-06T02:00:00Z");
+        subscriptionInvoice.setSubscriptionId(UUID.randomUUID());
+        Invoice parkingSessionInvoice = invoice("INV-PARKING", InvoiceStatus.PAID, "2026-08-06T01:00:00Z");
+        parkingSessionInvoice.setParkingSessionId(UUID.randomUUID());
+
+        when(invoicePortOut.findAll(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(java.util.Set.of())))
+                .thenReturn(List.of(parkingSessionInvoice, subscriptionInvoice));
+
+        InvoiceManagementPageResult result = useCase.getManagementInvoices(
+                InvoiceSource.SUBSCRIPTION, null, null, null, null, null, 0, 10, null, null
+        );
+
+        assertEquals(1, result.totalElements());
+        assertEquals("INV-SUBSCRIPTION", result.items().get(0).invoiceNo());
+        assertEquals(InvoiceSource.SUBSCRIPTION, result.items().get(0).source());
     }
 
     @Test

@@ -1,6 +1,8 @@
 package com.ban.vehicle_management.infrastructure.persistence.adapter.accesscontrol;
 
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionPortOut;
+import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionChatOrder;
+import com.ban.vehicle_management.infrastructure.persistence.database.projection.accesscontrol.SubscriptionChatOrderProjection;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
 import com.ban.vehicle_management.infrastructure.mapper.accesscontrol.SubscriptionPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.accesscontrol.SubscriptionEntity;
@@ -71,6 +73,47 @@ public class SubscriptionPersistenceAdapter implements SubscriptionPortOut {
         }
         return subscriptionRepository.findByIdForUpdate(subscriptionId)
                 .map(subscriptionPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public List<SubscriptionChatOrder> findChatOrders(UUID customerId, Set<UUID> parkingLotIds, int limit) {
+        if (customerId == null || parkingLotIds == null || parkingLotIds.isEmpty()) {
+            return List.of();
+        }
+        return subscriptionRepository.findChatOrders(customerId, parkingLotIds, limit).stream()
+                .map(this::toChatOrder)
+                .toList();
+    }
+
+    @Override
+    public Optional<SubscriptionChatOrder> findChatOrderById(
+            UUID subscriptionId,
+            UUID customerId,
+            Set<UUID> parkingLotIds
+    ) {
+        if (subscriptionId == null || customerId == null || parkingLotIds == null || parkingLotIds.isEmpty()) {
+            return Optional.empty();
+        }
+        return subscriptionRepository.findChatOrderById(subscriptionId, customerId, parkingLotIds)
+                .map(this::toChatOrder);
+    }
+
+    private SubscriptionChatOrder toChatOrder(SubscriptionChatOrderProjection projection) {
+        return new SubscriptionChatOrder(
+                projection.getSubscriptionId(),
+                projection.getParkingLotId(),
+                projection.getParkingLotCode(),
+                projection.getParkingLotName(),
+                projection.getTicketTypeCode(),
+                projection.getTicketTypeName(),
+                projection.getLicensePlate(),
+                projection.getVehicleTypeName(),
+                projection.getEffectiveFrom(),
+                projection.getEffectiveTo(),
+                projection.getPrice(),
+                SubscriptionStatus.valueOf(projection.getStatus()),
+                projection.getCreatedAt()
+        );
     }
 
     @Override

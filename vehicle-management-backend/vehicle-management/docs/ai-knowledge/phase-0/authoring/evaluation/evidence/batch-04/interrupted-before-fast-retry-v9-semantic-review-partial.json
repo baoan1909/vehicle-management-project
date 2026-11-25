@@ -1,0 +1,78 @@
+{
+  "method": "Manual review of final Vietnamese answers on frozen-v9 code/corpus; evaluate intent, important conditions, citation meaning, safety and plain language. No required-word semantic scoring. FAQ/refusal outputs checked separately.",
+  "inputHashes": "frozen-v9-input-hashes.json",
+  "caseGrades": {
+    "B4-ENT01-3": {
+      "pass": true,
+      "reason": "Correct visitor/card vs subscription QR flow, staff check and conditional capacity; no forced reservation or fabricated operation."
+    },
+    "B4-ENT01-4": {
+      "pass": true,
+      "reason": "Correct visitor/card vs subscription QR flow, staff check and conditional capacity; no forced reservation or fabricated operation."
+    },
+    "B4-ENT01-5": {
+      "pass": true,
+      "reason": "Correct visitor/card vs subscription QR flow, staff check and conditional capacity; no forced reservation or fabricated operation."
+    },
+    "B4-ENT01-6": {
+      "pass": true,
+      "reason": "Correct visitor/card vs subscription QR flow, staff check and conditional capacity; no forced reservation or fabricated operation."
+    },
+    "B4-ENT02-3": {
+      "pass": true,
+      "reason": "Correct visitor/card vs subscription QR flow, staff check and conditional capacity; no forced reservation or fabricated operation."
+    },
+    "B4-ENT02-4": {
+      "pass": true,
+      "reason": "Correct visitor/card vs subscription QR flow, staff check and conditional capacity; no forced reservation or fabricated operation."
+    },
+    "B4-ENT02-5": {
+      "pass": true,
+      "reason": "Correct visitor/card vs subscription QR flow, staff check and conditional capacity; no forced reservation or fabricated operation."
+    },
+    "B4-ENT02-6": {
+      "pass": true,
+      "reason": "Correct visitor/card vs subscription QR flow, staff check and conditional capacity; no forced reservation or fabricated operation."
+    },
+    "B4-ENT03-3": {
+      "pass": true,
+      "reason": "Correct staff check of existing session or exit/card/QR flow with important payment conditions; cited entry/exit source supports it."
+    },
+    "B4-ENT03-4": {
+      "pass": true,
+      "reason": "Correct staff check of existing session or exit/card/QR flow with important payment conditions; cited entry/exit source supports it."
+    },
+    "B4-ENT03-5": {
+      "pass": true,
+      "reason": "Correct staff check of existing session or exit/card/QR flow with important payment conditions; cited entry/exit source supports it."
+    },
+    "B4-ENT03-6": {
+      "pass": true,
+      "reason": "Correct staff check of existing session or exit/card/QR flow with important payment conditions; cited entry/exit source supports it."
+    },
+    "B4-ENT04-3": {
+      "pass": true,
+      "reason": "Correct staff check of existing session or exit/card/QR flow with important payment conditions; cited entry/exit source supports it."
+    },
+    "B4-ENT04-4": {
+      "pass": true,
+      "reason": "Correct staff check of existing session or exit/card/QR flow with important payment conditions; cited entry/exit source supports it."
+    },
+    "B4-ENT04-5": {
+      "pass": true,
+      "reason": "Correct staff check of existing session or exit/card/QR flow with important payment conditions; cited entry/exit source supports it."
+    },
+    "B4-ENT04-6": {
+      "pass": false,
+      "reason": "Unsupported future guarantee: says staff will complete session AND open gate after payment success; source separates payment, completion and gate checks. Does not claim an action already executed; no tool/action emitted."
+    },
+    "B4-ENT05-3": {
+      "pass": true,
+      "reason": "Correct staff check of existing session or exit/card/QR flow with important payment conditions; cited entry/exit source supports it."
+    },
+    "B4-ENT05-4": {
+      "pass": true,
+      "reason": "Correct staff check of existing session or exit/card/QR flow with important payment conditions; cited entry/exit source supports it."
+    }
+  }
+}

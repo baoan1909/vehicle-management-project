@@ -1,0 +1,329 @@
+{
+  "sourceSha256": "8e4a8ea7d98faabd729c671a4276d4ab9b3a98a85bf5298e784487b6fd6ebb3e",
+  "percentileMethod": "nearest-rank",
+  "cache": "disabled in live fixture",
+  "businessData": "synthetic own-data ports; retrieval uses isolated PostgreSQL and real Gemini embeddings",
+  "summary": {
+    "cases": 3,
+    "retrievalCases": 3,
+    "hitsAt5": 3,
+    "sufficientEvidence": 3,
+    "insufficientCaseIds": [],
+    "jobs": {
+      "COMPLETED": 3
+    },
+    "answers": 3,
+    "generatedAnswers": 3,
+    "exactFaqAnswers": 0,
+    "providerAttempts": 3,
+    "exactFaqLatency": {
+      "samples": 0
+    },
+    "models": {
+      "gemini-3.1-flash-lite": 3
+    },
+    "providerFailures": {},
+    "ownListCases": 0,
+    "ownListModelCalls": 0,
+    "retrievalLatency": {
+      "samples": 3,
+      "p50Ms": 477,
+      "p95Ms": 984,
+      "maxMs": 984
+    },
+    "generatedJobLatency": {
+      "samples": 3,
+      "p50Ms": 2796,
+      "p95Ms": 5320,
+      "maxMs": 5320
+    },
+    "providerAttemptLatency": {
+      "samples": 3,
+      "p50Ms": 1962,
+      "p95Ms": 4856,
+      "maxMs": 4856
+    },
+    "ownListFixtureLatency": {
+      "samples": 0
+    },
+    "semanticGrading": "SEPARATE_AGENT_REVIEW_REQUIRED"
+  },
+  "batches": {
+    "batch-02-questions.jsonl": {
+      "cases": 3,
+      "retrievalCases": 3,
+      "hitsAt5": 3,
+      "sufficientEvidence": 3,
+      "insufficientCaseIds": [],
+      "jobs": {
+        "COMPLETED": 3
+      },
+      "answers": 3,
+      "generatedAnswers": 3,
+      "exactFaqAnswers": 0,
+      "providerAttempts": 3,
+      "exactFaqLatency": {
+        "samples": 0
+      },
+      "models": {
+        "gemini-3.1-flash-lite": 3
+      },
+      "providerFailures": {},
+      "ownListCases": 0,
+      "ownListModelCalls": 0,
+      "retrievalLatency": {
+        "samples": 3,
+        "p50Ms": 477,
+        "p95Ms": 984,
+        "maxMs": 984
+      },
+      "generatedJobLatency": {
+        "samples": 3,
+        "p50Ms": 2796,
+        "p95Ms": 5320,
+        "maxMs": 5320
+      },
+      "providerAttemptLatency": {
+        "samples": 3,
+        "p50Ms": 1962,
+        "p95Ms": 4856,
+        "maxMs": 4856
+      },
+      "ownListFixtureLatency": {
+        "samples": 0
+      },
+      "semanticGrading": "SEPARATE_AGENT_REVIEW_REQUIRED"
+    }
+  },
+  "cases": [
+    {
+      "attempts": [
+        {
+          "model": "gemini-3.1-flash-lite",
+          "ms": 1751,
+          "success": true,
+          "failure": null,
+          "rawResponse": "{\"responseText\":\"Không, thao tác ngưng dùng phương tiện không làm mất các lượt gửi trước đó.\",\"citations\":[\"C3\"]}"
+        }
+      ],
+      "caseId": "B2-VEH04-4",
+      "batch": "batch-02-questions.jsonl",
+      "split": "acceptance",
+      "question": "Ngưng dùng xe có làm mất các lượt gửi trước đó không?",
+      "expectedDocument": "customer-vehicle-management",
+      "personalProbe": false,
+      "retrievalMs": 984,
+      "citations": [
+        {
+          "citationId": "ba96afc6-c36f-4ef2-9b75-3b4cbc9aea57",
+          "messageId": "ea89628e-ab72-4bf6-899f-39d9ebfbb82d",
+          "documentId": "b9368073-141d-476a-b540-8ead788fcea9",
+          "chunkId": "5ca0f9f4-aeda-402f-9f4f-e4baaf3f1b5b",
+          "label": "C3",
+          "title": "Quản lý phương tiện của tôi",
+          "sourcePage": null,
+          "sourceSection": "Luồng lỗi",
+          "retrievalScore": 0.00952381,
+          "retrievalAuditId": "86164391-16f9-4125-b7a8-065cf89513e6",
+          "indexVersionId": "bf35d7b1-a6b1-408c-a910-e28fc2cb5821",
+          "citationOrder": 0
+        }
+      ],
+      "retryEvents": [],
+      "attemptCount": 1,
+      "jobStatus": "COMPLETED",
+      "jobError": null,
+      "answer": "Không, thao tác ngưng dùng phương tiện không làm mất các lượt gửi trước đó.",
+      "totalMs": 2796,
+      "evidenceSufficient": true,
+      "groundedConfidence": 0.551,
+      "diagnostic": null,
+      "hitAt5": true,
+      "evidenceRefs": [
+        "b2ab8f49-a437-4a20-9a2b-ea4a03b91c9f",
+        "96760e67-2eb4-4af5-bbe8-8dec6948e6b4",
+        "5ca0f9f4-aeda-402f-9f4f-e4baaf3f1b5b",
+        "233f67e4-81e5-4da5-9cc2-c5e05eb313ef",
+        "0b26fbbf-ace8-46b0-a8a2-43a0bbedc941"
+      ]
+    },
+    {
+      "attempts": [
+        {
+          "model": "gemini-3.1-flash-lite",
+          "ms": 1962,
+          "success": true,
+          "failure": null,
+          "rawResponse": "{\n  \"responseText\": \"Để lọc lịch sử gửi xe theo khoảng thời gian, bạn thực hiện các bước sau: 1. Mở màn hình Lịch sử gửi xe. 2. Chọn Khoảng ngày để thiết lập ngày bắt đầu và ngày kết thúc. Lưu ý ngày kết thúc không được trước ngày bắt đầu. 3. Nếu muốn xem lại toàn bộ, bạn chọn Xóa lọc để đưa các bộ lọc về mặc định.\",\n  \"citations\": [\n    \"C1\"\n  ]\n}"
+        }
+      ],
+      "caseId": "B2-HIST04-5",
+      "batch": "batch-02-questions.jsonl",
+      "split": "acceptance",
+      "question": "chon ngay bat dau va ngay ket thuc de loc lich su gui xe nhu nao",
+      "expectedDocument": "parking-history",
+      "personalProbe": false,
+      "retrievalMs": 477,
+      "citations": [
+        {
+          "citationId": "1eafa0a9-ffc8-4ef6-a649-8c8122434b8a",
+          "messageId": "bf540400-4c70-4e79-9f7a-ab84f4ebf3f2",
+          "documentId": "04b7a4da-2950-4654-af9f-3546dd3e95f6",
+          "chunkId": "b2ab8f49-a437-4a20-9a2b-ea4a03b91c9f",
+          "label": "C1",
+          "title": "Xem lịch sử gửi xe của tôi",
+          "sourcePage": null,
+          "sourceSection": "Xem lịch sử gửi xe của tôi",
+          "retrievalScore": 0.01639344,
+          "retrievalAuditId": "b10722b1-33f6-4222-8b73-33b57557e28a",
+          "indexVersionId": "bf35d7b1-a6b1-408c-a910-e28fc2cb5821",
+          "citationOrder": 0
+        }
+      ],
+      "retryEvents": [],
+      "attemptCount": 1,
+      "jobStatus": "COMPLETED",
+      "jobError": null,
+      "answer": "Để lọc lịch sử gửi xe theo khoảng thời gian, bạn thực hiện các bước sau:\n1. Mở màn hình Lịch sử gửi xe.\n2. Chọn Khoảng ngày để thiết lập ngày bắt đầu và ngày kết thúc. Lưu ý ngày kết thúc không được trước ngày bắt đầu.\n3. Nếu muốn xem lại toàn bộ, bạn chọn Xóa lọc để đưa các bộ lọc về mặc định.",
+      "totalMs": 2454,
+      "evidenceSufficient": true,
+      "groundedConfidence": 0.773,
+      "diagnostic": null,
+      "hitAt5": true,
+      "evidenceRefs": [
+        "b2ab8f49-a437-4a20-9a2b-ea4a03b91c9f",
+        "9af12719-0508-439d-adf3-1482f2de9a6a",
+        "96760e67-2eb4-4af5-bbe8-8dec6948e6b4",
+        "5722c1b6-c854-4366-b04a-c8233bb6cb80",
+        "7095607e-17ce-4030-95c9-473b354b6d70"
+      ]
+    },
+    {
+      "attempts": [
+        {
+          "model": "gemini-3.1-flash-lite",
+          "ms": 4856,
+          "success": true,
+          "failure": null,
+          "rawResponse": "{\"responseText\":\"Để xem lượt gửi xe trong một khoảng ngày, bạn thực hiện các bước sau: 1. Mở màn hình Lịch sử gửi xe. 2. Chọn mục Khoảng ngày. 3. Thiết lập thời gian bắt đầu và kết thúc (lưu ý ngày kết thúc không được trước ngày bắt đầu) để lọc danh sách. 4. Chọn Xem chi tiết ở từng lượt gửi nếu bạn muốn kiểm tra thông tin cụ thể.\",\"citations\":[\"C1\",\"C3\"]}"
+        }
+      ],
+      "caseId": "B2-HIST04-6",
+      "batch": "batch-02-questions.jsonl",
+      "split": "acceptance",
+      "question": "Muốn xem lượt gửi trong một khoảng ngày thì cần làm gì?",
+      "expectedDocument": "parking-history",
+      "personalProbe": false,
+      "retrievalMs": 449,
+      "citations": [
+        {
+          "citationId": "85cb4bfd-2b5b-44be-9fae-546dcc6253db",
+          "messageId": "04b8b735-c843-47a7-bc09-d2a5bebe0aff",
+          "documentId": "04b7a4da-2950-4654-af9f-3546dd3e95f6",
+          "chunkId": "b2ab8f49-a437-4a20-9a2b-ea4a03b91c9f",
+          "label": "C1",
+          "title": "Xem lịch sử gửi xe của tôi",
+          "sourcePage": null,
+          "sourceSection": "Xem lịch sử gửi xe của tôi",
+          "retrievalScore": 0.01639344,
+          "retrievalAuditId": "961cc017-ca3f-4d28-81ec-5cea9abf2ba6",
+          "indexVersionId": "bf35d7b1-a6b1-408c-a910-e28fc2cb5821",
+          "citationOrder": 0
+        },
+        {
+          "citationId": "b1043763-4853-467f-88f2-42c18e991422",
+          "messageId": "04b8b735-c843-47a7-bc09-d2a5bebe0aff",
+          "documentId": "04b7a4da-2950-4654-af9f-3546dd3e95f6",
+          "chunkId": "9af12719-0508-439d-adf3-1482f2de9a6a",
+          "label": "C3",
+          "title": "Xem lịch sử gửi xe của tôi",
+          "sourcePage": null,
+          "sourceSection": "Câu hỏi khách hàng thường gặp",
+          "retrievalScore": 0.00952381,
+          "retrievalAuditId": "961cc017-ca3f-4d28-81ec-5cea9abf2ba6",
+          "indexVersionId": "bf35d7b1-a6b1-408c-a910-e28fc2cb5821",
+          "citationOrder": 1
+        }
+      ],
+      "retryEvents": [],
+      "attemptCount": 1,
+      "jobStatus": "COMPLETED",
+      "jobError": null,
+      "answer": "Để xem lượt gửi xe trong một khoảng ngày, bạn thực hiện các bước sau:\n1. Mở màn hình Lịch sử gửi xe.\n2. Chọn mục Khoảng ngày.\n3. Thiết lập thời gian bắt đầu và kết thúc (lưu ý ngày kết thúc không được trước ngày bắt đầu) để lọc danh sách.\n4. Chọn Xem chi tiết ở từng lượt gửi nếu bạn muốn kiểm tra thông tin cụ thể.",
+      "totalMs": 5320,
+      "evidenceSufficient": true,
+      "groundedConfidence": 0.746,
+      "diagnostic": null,
+      "hitAt5": true,
+      "evidenceRefs": [
+        "b2ab8f49-a437-4a20-9a2b-ea4a03b91c9f",
+        "96760e67-2eb4-4af5-bbe8-8dec6948e6b4",
+        "9af12719-0508-439d-adf3-1482f2de9a6a",
+        "38689654-5160-4a0b-8704-51ebf9609a88",
+        "a967b6c0-07dd-4c45-8d9a-6baa68906aed"
+      ]
+    }
+  ],
+  "chunks": {
+    "b2ab8f49-a437-4a20-9a2b-ea4a03b91c9f": {
+      "documentId": "04b7a4da-2950-4654-af9f-3546dd3e95f6",
+      "chunkId": "b2ab8f49-a437-4a20-9a2b-ea4a03b91c9f",
+      "title": "Xem lịch sử gửi xe của tôi",
+      "content": "Xem lịch sử gửi xe của tôi\nMục đích\nHướng dẫn xem lượt xe vào, xe ra, thời gian và phí đã ghi nhận; xử lý khi lịch sử thiếu hoặc không khớp.\nĐối tượng\nKhách hàng đã đăng nhập, được duyệt và có quyền xem lịch sử của mình. Nhân sự chỉ xem dữ liệu tại bãi và đơn vị thuộc quyền phụ trách.\nPhạm vi\nLịch sử liên kết với các phương tiện trong tài khoản khách hàng hiện tại, bộ lọc, chi tiết lượt gửi và thông tin được phép hiển thị. Chatbot không sửa hoặc xóa lịch sử.\nThuật ngữ\nMột lượt gửi xe có thông tin xe vào và có thể có xe ra. Chưa có thời gian ra không tự chứng minh xe chắc chắn còn trong bãi: có thể cần đối chiếu sự kiện và dữ liệu vận hành.\nĐiều kiện trước\nĐăng nhập đúng tài khoản có hồ sơ được duyệt, đang hoạt động và quyền xem lịch sử. Lịch sử trong tài khoản phụ thuộc phương tiện được liên kết; không tra cứu lịch sử người khác bằng biển số hoặc thông tin họ cung cấp qua chat.\nLuồng chính\nMở Lịch sử gửi xe.\nChọn Khoảng ngày, Tìm kiếm hoặc Trạng thái theo thông tin cần xem. Ngày kết thúc không được trước ngày bắt đầu.\nChọn Xem chi tiết ở lượt gửi để đối chiếu thời gian, trạng thái, tổng phí và Sự kiện vào / ra.\nNếu cần xem lại toàn bộ, chọn Xóa lọc rồi kiểm tra danh sách. Ngày và giờ được hiển thị theo múi giờ Việt Nam.\nLuồng thay thế\nCó thể hỏi chat về các lượt gửi gần đây của chính mình khi đủ quyền. Chat chỉ trả bản tóm tắt giới hạn và che phần lớn biển số.\nMuốn lọc ngày, tìm một phương tiện cụ thể hoặc xem ảnh, dùng màn hình Lịch sử gửi xe với quyền hiện có. Công cụ chat đợt này chỉ hỗ trợ các lượt gần đây và bộ lọc trạng thái, chưa nhận bộ lọc ngày hoặc biển số.\nNhân sự sử dụng màn hình quản lý lượt gửi xe theo phân công, không yêu cầu chatbot truy cập dữ liệu toàn đơn vị bằng chức năng tra cứu cá nhân.\nLuồng lỗi\nKhông thấy lịch sử: kiểm tra đúng tài khoản, phương tiện, khoảng ngày và trạng thái; chọn Xóa lọc. Danh sách trống khác với lỗi tải dữ liệu.\nThiếu giờ ra: xem trạng thái và sự kiện; nếu xe đã ra thực tế nhưng chưa ghi nhận, báo nhân viên bãi để đối chiếu. Không tự điền giờ ra.\nPhí không khớp: đối chiếu lượt gửi, thời gian và hóa đơn được phép xem. Chat không tự tính lại hoặc hứa điều chỉnh, hoàn tiền."
+    },
+    "96760e67-2eb4-4af5-bbe8-8dec6948e6b4": {
+      "documentId": "04b7a4da-2950-4654-af9f-3546dd3e95f6",
+      "chunkId": "96760e67-2eb4-4af5-bbe8-8dec6948e6b4",
+      "title": "Xem lịch sử gửi xe của tôi",
+      "content": "Thiếu giờ ra: xem trạng thái và sự kiện; nếu xe đã ra thực tế nhưng chưa ghi nhận, báo nhân viên bãi để đối chiếu. Không tự điền giờ ra.\nPhí không khớp: đối chiếu lượt gửi, thời gian và hóa đơn được phép xem. Chat không tự tính lại hoặc hứa điều chỉnh, hoàn tiền.\nKhông xem được ảnh: kiểm tra trên màn hình có quyền. Chat không cấp đường dẫn ảnh riêng tư hoặc lấy ảnh camera thay người dùng.\nLỗi vẫn tiếp diễn: ghi lại bước thao tác, thời điểm và thông báo lỗi; tránh gửi thông tin cá nhân không cần thiết.\nTrạng thái và chuyển trạng thái\nĐang gửi: lượt gửi chưa hoàn tất theo dữ liệu hiện tại.\nĐã hoàn tất: lượt gửi đã kết thúc.\nMất thẻ: lượt gửi liên quan quy trình báo mất, không gộp với đã ra thông thường.\nĐã hủy: lượt gửi đã bị hủy theo nghiệp vụ, không đồng nghĩa đã hoàn tất.Chat không chuyển trạng thái hoặc tự sửa giờ vào, giờ ra. Có giờ ra và trạng thái hợp lệ mới là căn cứ cho câu trả lời cụ thể, không suy đoán chỉ từ tin nhắn cũ.\nCâu hỏi khách hàng thường gặp\nXem lịch sử ở đâu? Mở Lịch sử gửi xe, chọn khoảng ngày và Xem chi tiết.\nKhông dấu “xem lich su gui xe o dau” có hiểu không? Có cùng ý nghĩa hướng dẫn mở màn hình; không tự đọc dữ liệu khi chỉ hỏi cách xem.\nXe tôi đã ra chưa? Cần dữ liệu được phép và thông tin đủ để xác định lượt; không khẳng định dựa vào tài liệu hướng dẫn.\nKhông thấy lượt gửi hôm qua thì sao? Kiểm tra khoảng ngày, phương tiện, trạng thái và Xóa lọc; nếu vẫn thiếu, nhờ nhân viên đối chiếu.\nThiếu giờ ra phải làm gì? Kiểm tra sự kiện và báo nhân viên nếu xe đã ra thực tế.\nXem năm lượt gửi gần nhất của tôi được không? Có thể tóm tắt khi đủ quyền, tối đa 5 mục; xem đầy đủ tại màn hình lịch sử.\nCó xem ảnh xe trong chat không? Không. Xem trên màn hình lịch sử với quyền phù hợp, không chia sẻ đường dẫn riêng tư.\nPhí trong lịch sử sai thì sửa ở đâu? Đối chiếu hóa đơn và liên hệ nhân viên; chatbot không sửa phí.\nChỉ hỏi “lịch sử” thì sao? Hỏi rõ bạn muốn được hướng dẫn hay xem các lượt gần đây của mình.\n“Không được” sau câu hỏi xem lịch sử: tiếp tục hỏi bộ lọc hoặc bước gặp lỗi, không chuyển sang thao tác sửa dữ liệu."
+    },
+    "5ca0f9f4-aeda-402f-9f4f-e4baaf3f1b5b": {
+      "documentId": "b9368073-141d-476a-b540-8ead788fcea9",
+      "chunkId": "5ca0f9f4-aeda-402f-9f4f-e4baaf3f1b5b",
+      "title": "Quản lý phương tiện của tôi",
+      "content": "Không đặt được xe mặc định: kiểm tra xe có đang hoạt động không. Xe ngưng dùng hoặc bị khóa không được đặt mặc định.\nKhông tải được danh sách: kiểm tra đăng nhập và quyền truy cập; thử tải lại màn hình. Không kết luận danh sách trống khi việc tải dữ liệu thất bại.\nTrạng thái và chuyển trạng thái\nĐang hoạt động: có thể dùng cho đăng ký khi đáp ứng các điều kiện khác.\nNgưng dùng: phương tiện tạm ngừng sử dụng; có thể kích hoạt lại theo quyền.\nBị khóa: cần nhân sự có thẩm quyền kiểm tra; không hướng dẫn lách khóa.Thao tác xóa phương tiện của hệ thống hiện chuyển xe sang ngưng dùng, không xóa lịch sử. Đổi trạng thái không đồng nghĩa tự hủy các vé hoặc lượt gửi liên quan.\nCâu hỏi khách hàng thường gặp\nThêm xe mới như thế nào? Mở Xe của tôi, chọn Thêm xe mới, điền thông tin rồi Lưu xe.\nXe đạp không có biển số thì sao? Chọn đúng loại xe đạp; hệ thống có hỗ trợ biển số để trống cho loại này.\nXe mặc định là gì? Là xe được chọn sẵn; phải là xe đang hoạt động.\nBiển số đã có rồi phải làm sao? Kiểm tra xe đã đăng ký và biển số nhập; nếu vẫn không đúng, nhờ nhân viên xác minh.\nVì sao không đổi được biển số? Kiểm tra vé đang dùng và lượt gửi chưa kết thúc.\nXóa xe có xóa lịch sử không? Không. Thao tác hiện chuyển xe sang ngưng dùng.\nCó thể xem xe của tôi trong chat không? Có, khi đủ quyền; trợ lý chỉ tóm tắt các xe gần đây của chính bạn và che một phần biển số.\nChat có thêm hoặc ngưng dùng xe hộ tôi không? Chưa hỗ trợ; thao tác trên Xe của tôi và kiểm tra trước khi lưu.\nChỉ hỏi “xe” hoặc “biển số” thì sao? Trợ lý cần hỏi bạn muốn thêm xe, sửa thông tin hay xem danh sách.\n“Không được” sau câu hỏi thêm xe: hỏi bước gặp lỗi và thông báo cụ thể; không tự thêm xe.\nLàm sao ngưng dùng xe mà vẫn giữ lịch sử? Chọn Xóa phương tiện tại Xe của tôi và kiểm tra xác nhận. Thao tác chuyển xe sang ngưng dùng, giữ các lượt gửi trước đó.\nChuyện gì xảy ra khi xóa xe? Xe ngưng dùng; thông tin lịch sử vẫn được giữ. Các ràng buộc vé và lượt gửi đang mở phải được hệ thống kiểm tra.\nLỗi biển số trùng, thêm xe báo trùng biển số hoặc biển số đã tồn tại xử lý thế nào? Kiểm tra biển số nhập và Danh sách xe đã đăng ký. Không thêm lại xe đã có; nếu không phải xe của bạn, nhờ nhân viên xác minh, không đọc thông tin chủ xe khác."
+    },
+    "233f67e4-81e5-4da5-9cc2-c5e05eb313ef": {
+      "documentId": "b1e32695-e01d-4de0-ab05-e2831ad4b8a9",
+      "chunkId": "233f67e4-81e5-4da5-9cc2-c5e05eb313ef",
+      "title": "Thẻ gửi xe và cách xử lý mất thẻ",
+      "content": "Thẻ gửi xe và cách xử lý mất thẻ\nMục đích\nHướng dẫn xử lý thẻ không sử dụng được, báo mất thẻ và tìm lại thẻ an toàn.\nĐối tượng\nKhách hàng cần trợ giúp và nhân sự được cấp quyền xử lý mất thẻ tại bãi xe thuộc phạm vi phụ trách.\nPhạm vi\nThông tin thẻ vật lý, việc báo mất và quy trình nhân viên xử lý. Phiếu báo mất thẻ là hồ sơ vận hành riêng, khác phiếu hỗ trợ để báo lỗi chức năng hệ thống.\nThuật ngữ\nThẻ vật lý dùng để nhận diện khi ra vào bãi. Phiếu báo mất thẻ ghi nhận sự việc và xử lý theo quy trình tại bãi. Mã QR của vé và thẻ vật lý không phải cùng một dữ liệu; không gửi mã sử dụng ra vào trong chat.\nĐiều kiện trước\nKhách hàng liên hệ nhân viên bãi xe để được xác minh thông tin. Nhân viên phải có quyền tạo hoặc xử lý phiếu và được phép thao tác tại đúng bãi xe. Khách hàng không tự lập phiếu báo mất chính thức qua chatbot.Không gửi số giấy tờ định danh đầy đủ, ảnh giấy tờ, mã thẻ kỹ thuật hay mã QR vào chat. Nhân viên xác minh bằng quy trình nghiệp vụ được phép, không qua yêu cầu thu giấy tờ của chatbot.\nLuồng chính\nNếu mất thẻ, báo nhân viên bãi xe và cho biết xe còn trong bãi hay đã ra ngoài. Không dùng thẻ khác để tự mở cổng.\nNhân viên mở Tạo phiếu báo mất thẻ, Tra cứu biển số, đối chiếu xe, thẻ và thông tin xác minh.\nNhân viên lập phiếu sau khi đủ thông tin. Hệ thống đánh dấu thẻ cũ bị mất, ghi nhận lượt gửi liên quan và tạo hóa đơn theo dữ liệu đã xác định.\nĐối chiếu số tiền trên hóa đơn và thực hiện thanh toán theo hướng dẫn. Không coi việc tạo phiếu là đã hoàn tất xử lý.\nKhi hệ thống đã ghi nhận thanh toán, nhân viên hoàn tất phiếu. Trường hợp cần thẻ thay thế phải chọn thẻ phù hợp còn sẵn sàng tại cùng bãi và cùng loại với thẻ cũ. Việc mở thanh chắn theo kết quả xử lý, không phải do chatbot cam kết.\nLuồng thay thế\nKhách dùng vé và đang ở trong bãi: có thể cần thay thẻ, cập nhật liên kết với vé và kết thúc lượt gửi theo quy trình.\nKhách dùng vé nhưng đã ở ngoài bãi: nhân viên kiểm tra vé và thẻ; không tạo lượt xe ra giả hoặc hứa mở cổng.\nKhách gửi lượt thông thường: không tự yêu cầu gán thẻ mới vào vé tháng không tồn tại."
+    },
+    "0b26fbbf-ace8-46b0-a8a2-43a0bbedc941": {
+      "documentId": "b1e32695-e01d-4de0-ab05-e2831ad4b8a9",
+      "chunkId": "0b26fbbf-ace8-46b0-a8a2-43a0bbedc941",
+      "title": "Thẻ gửi xe và cách xử lý mất thẻ",
+      "content": "Khách dùng vé nhưng đã ở ngoài bãi: nhân viên kiểm tra vé và thẻ; không tạo lượt xe ra giả hoặc hứa mở cổng.\nKhách gửi lượt thông thường: không tự yêu cầu gán thẻ mới vào vé tháng không tồn tại.\nTìm lại thẻ trước khi trả tiền: báo nhân viên để kiểm tra khả năng hủy phiếu và khôi phục theo đúng trường hợp. Không tự dùng lại thẻ đã báo mất.\nLuồng lỗi\nKhông tạo được phiếu: kiểm tra thông tin xe, lượt gửi hoặc vé, bãi xe, thời gian mất và dữ liệu xác minh. Có phiếu đang mở cho thẻ hoặc lượt gửi thì không tạo lặp.\nChưa thể hoàn tất: kiểm tra hóa đơn đã được ghi nhận thanh toán chưa và đã chọn thẻ thay thế đúng yêu cầu chưa.\nKhông hủy được: phiếu đã trả tiền hoặc đã có thanh toán thành công không được hủy theo luồng này. Liên hệ nhân viên có thẩm quyền; không hứa hoàn tiền.\nKhông biết phí: xem hóa đơn thực tế. Phí phụ thuộc dữ liệu và cấu hình có hiệu lực; chatbot không tự đặt một mức phí cố định.\nTrạng thái và chuyển trạng thái\nPhiếu báo mất: Đang mở → Đã xử lý hoặc Đã hủy, theo điều kiện được kiểm tra.Thẻ có thể đang sẵn sàng, được giữ, được gán, đang sử dụng, bị mất, bị khóa hoặc ngừng sử dụng. Bị mất khác với tạm khóa; tìm thấy thẻ không tự làm phiếu hoàn tất hoặc khôi phục quyền ra vào.Với quy trình báo mất, hệ thống đánh dấu thẻ cũ bị mất. Khi giao diện mô tả “khóa thẻ cũ”, không suy ra đó là mọi loại khóa thẻ hoặc tự dùng chức năng mở khóa thay cho xử lý báo mất.\nCâu hỏi khách hàng thường gặp\nMất thẻ phải làm gì? Báo nhân viên bãi xe, cho biết xe còn trong bãi hay đã ra ngoài, rồi thực hiện xác minh theo hướng dẫn.\nCó báo mất qua chat được không? Chat có thể hướng dẫn; nhân viên có quyền mới lập hồ sơ báo mất chính thức.\nTạo phiếu hỗ trợ có thay phiếu báo mất không? Không. Phiếu hỗ trợ chỉ dùng để báo lỗi chức năng; việc báo mất xử lý tại nghiệp vụ mất thẻ.\nPhí mất thẻ bao nhiêu? Xem hóa đơn và cấu hình áp dụng; chưa có dữ liệu thì không đưa số tiền.\nĐã trả tiền mà chưa xong thì sao? Nhờ nhân viên kiểm tra tiền đã được ghi nhận và bước cấp thẻ hoặc hoàn tất còn thiếu.\nTìm lại thẻ rồi phải làm sao? Báo nhân viên; không tự dùng lại. Khả năng hủy phiếu phụ thuộc tình trạng thanh toán và xử lý."
+    },
+    "9af12719-0508-439d-adf3-1482f2de9a6a": {
+      "documentId": "04b7a4da-2950-4654-af9f-3546dd3e95f6",
+      "chunkId": "9af12719-0508-439d-adf3-1482f2de9a6a",
+      "title": "Xem lịch sử gửi xe của tôi",
+      "content": "Chỉ hỏi “lịch sử” thì sao? Hỏi rõ bạn muốn được hướng dẫn hay xem các lượt gần đây của mình.\n“Không được” sau câu hỏi xem lịch sử: tiếp tục hỏi bộ lọc hoặc bước gặp lỗi, không chuyển sang thao tác sửa dữ liệu.\nVì sao tổng phí trong lịch sử không đúng? Đối chiếu các lượt gửi, khoảng ngày, trạng thái và hóa đơn trên màn hình. Nếu vẫn lệch, nhờ nhân viên kiểm tra; chat không tự sửa phí hoặc khẳng định hệ thống tính sai khi chưa có dữ liệu.\nCó nút Tìm kiếm để áp dụng bộ lọc không? Tìm kiếm là ô nhập từ khóa, Trạng thái là danh sách chọn; thay đổi bộ lọc sẽ cập nhật danh sách. Không có nút Tìm kiếm riêng để bấm. Dùng Xóa lọc để đưa các bộ lọc về mặc định.\nXem ảnh xe vào và ra ở đâu? Mở Lịch sử gửi xe, tìm lượt cần xem, chọn Xem chi tiết rồi xem phần Sự kiện vào / ra nếu có ảnh và tài khoản được phép xem. Chat không gửi đường dẫn ảnh riêng tư.\nXem ảnh lượt gửi xe như thế nào? Mở Lịch sử gửi xe, tìm lượt cần xem, chọn Xem chi tiết rồi xem phần Sự kiện vào / ra nếu có ảnh và tài khoản được phép xem. Chat không gửi đường dẫn ảnh riêng tư.\nChat có hiển thị ảnh trong lịch sử gửi xe không? Không. Chat không hiển thị ảnh lịch sử gửi xe hoặc gửi đường dẫn ảnh riêng tư. Bạn mở Lịch sử gửi xe, chọn lượt cần xem, mở Xem chi tiết rồi xem Sự kiện vào / ra nếu có ảnh và tài khoản được phép xem.\nĐiều chatbot được phép trả lời\nHướng dẫn sử dụng bộ lọc, ý nghĩa trạng thái và các bước đối chiếu khi thiếu dữ liệu. Câu trả lời dùng ngày giờ dễ đọc và tên nút thật trên giao diện.\nĐiều chatbot phải dùng business tool\nLượt gửi, thời gian và phí thực tế phải đọc từ chức năng tra cứu lịch sử của chính tài khoản. Hiện đọc tối đa 20 lượt gần đây, hiển thị tối đa 5 mục; không suy rộng kết quả này thành toàn bộ lịch sử. Che biển số, chỉ giữ tối đa 3 ký tự cuối. Không gửi ảnh, mã thẻ, thông tin chủ xe hoặc dữ liệu sự kiện nhạy cảm cho model.\nĐiều chatbot phải từ chối\nLịch sử người khác, toàn bộ ảnh camera, đường dẫn ảnh riêng tư, thay đổi hoặc xóa lịch sử; bỏ qua đăng nhập, quyền hoặc xác minh chủ sở hữu.\nKhi nào chuyển nhân viên"
+    },
+    "5722c1b6-c854-4366-b04a-c8233bb6cb80": {
+      "documentId": "eefbcc74-5f5a-452f-aa14-4394df3eefd7",
+      "chunkId": "5722c1b6-c854-4366-b04a-c8233bb6cb80",
+      "title": "Đăng ký, sử dụng và gia hạn vé tháng",
+      "content": "Đăng ký, sử dụng và gia hạn vé tháng\nMục đích\nHướng dẫn đăng ký vé tháng, theo dõi thanh toán, chọn vị trí và gia hạn theo chức năng hiện tại.\nĐối tượng\nKhách hàng đã đăng nhập, được duyệt và có quyền đăng ký hoặc xem vé. Nhân viên duyệt và xử lý vé theo bãi xe, đơn vị và quyền được giao.\nPhạm vi\nĐăng ký mới, duyệt, thanh toán, vị trí đỗ, hiệu lực vé, thẻ vật lý, gia hạn và hủy trước khi sử dụng. Chatbot không tự duyệt, thu tiền, gia hạn hoặc hủy vé.\nThuật ngữ\nVé tháng là đăng ký sử dụng dịch vụ theo loại vé và số kỳ đã chọn. Một kỳ không mặc định luôn là 30 ngày: thời hạn phụ thuộc loại vé. Thẻ vật lý là phương tiện ra vào có quy trình cấp riêng; không đồng nhất tình trạng thẻ với hiệu lực vé.\nĐiều kiện trước\nHồ sơ được duyệt và đang hoạt động; phương tiện thuộc tài khoản và đang hoạt động. Bãi xe, loại vé, giá và sức chứa phải đáp ứng kiểm tra của hệ thống. Không được có vé chồng thời gian bị quy tắc hiện hành chặn.Ngày bắt đầu đăng ký mới hiện được chọn từ hôm nay đến 7 ngày tới, tính theo ngày tại Việt Nam. Có thể chọn từ 1 đến 12 kỳ theo điều kiện loại vé. Không áp dụng lại hướng dẫn cũ bắt buộc trước 2 ngày.\nLuồng chính\nMở Vé tháng của tôi, chọn Đăng ký vé mới.\nChọn bãi xe, phương tiện, loại vé, số kỳ và ngày bắt đầu; kiểm tra giá và lựa chọn thẻ vật lý nếu có.\nGửi đăng ký và theo dõi Chờ duyệt. Nhân viên cần duyệt trong hạn mà hệ thống cho phép; chat không cam kết giờ duyệt.\nNếu có số tiền phải trả, hoàn tất thanh toán trên chức năng được cung cấp. Chỉ tin kết quả hệ thống đã ghi nhận, không coi việc mở trang thanh toán là đã trả tiền.\nNếu vé hiển thị Chờ chọn vị trí, chọn Chọn vị trí và hoàn tất yêu cầu. Kiểm tra trạng thái, ngày hiệu lực và tình trạng tạm khóa trước khi dùng vé hoặc mã QR.\nLuồng thay thế\nĐăng ký không phát sinh tiền phải trả có thể tiếp tục sang bước tiếp theo sau khi được duyệt; bãi quản lý theo vị trí vẫn có thể yêu cầu chọn chỗ.\nThẻ vật lý có các bước yêu cầu thẻ, thanh toán cọc, chờ có thẻ và gán thẻ riêng. Không khẳng định mọi vé phải nhận thẻ mới được hoạt động.\nGia hạn: mở vé đang hoạt động, còn hạn, chọn Gia hạn vé; chọn điều kiện kỳ tiếp theo, xem chi phí rồi xác nhận và thanh toán nếu cần. Thời gian mới nối tiếp sau ngày hết hạn hiện tại. Hệ thống giữ vé, mã QR và thẻ hiện có; điều kiện gói kỳ mới được áp dụng theo thời điểm nghiệp vụ."
+    },
+    "7095607e-17ce-4030-95c9-473b354b6d70": {
+      "documentId": "eefbcc74-5f5a-452f-aa14-4394df3eefd7",
+      "chunkId": "7095607e-17ce-4030-95c9-473b354b6d70",
+      "title": "Đăng ký, sử dụng và gia hạn vé tháng",
+      "content": "Câu hỏi khách hàng thường gặp\nĐăng ký vé tháng như thế nào? Mở Vé tháng của tôi và chọn Đăng ký vé mới.\nHôm nay đăng ký bắt đầu hôm nay được không? Ngày bắt đầu được phép từ hôm nay đến 7 ngày tới; còn phải đáp ứng các điều kiện khác và được xử lý theo quy trình.\nThanh toán rồi có vào bãi ngay không? Cần kiểm tra ngày hiệu lực, trạng thái, chọn vị trí và tạm khóa; không chỉ dựa vào thanh toán.\nGia hạn có phải tạo vé mới không? Vé đang hoạt động, chưa hết hạn có chức năng Gia hạn vé nối tiếp vé hiện tại. Vé đã hết hạn cần đăng ký mới.\nHủy vé đang dùng để hoàn tiền ngay được không? Quy trình hủy hiện không cho tự hủy vé đang hoạt động để hoàn tiền ngay. Liên hệ nhân viên để được xem xét theo chính sách, không hứa hoàn tiền.\nTrạng thái nào có thể hủy theo quy trình hiện tại? Chờ duyệt hoặc Chờ thanh toán, khi đủ quyền và đáp ứng điều kiện. Chat chưa hủy thay bạn.\nKhông có thẻ vật lý thì vé có dùng được không? Kiểm tra trạng thái và quyền sử dụng mã QR; thẻ vật lý được xử lý riêng.\nVé của tôi còn hạn không? Trợ lý phải đọc dữ liệu được phép và nêu ngày hiệu lực, không suy đoán từ lịch sử chat.\nChỉ hỏi “vé tháng” thì sao? Cần làm rõ bạn muốn đăng ký, gia hạn, thanh toán hay xem vé.\nNgày bắt đầu vé tháng trong khoảng nào? Khi đăng ký mới, chọn từ hôm nay đến 7 ngày tới theo ngày tại Việt Nam. Không mặc định phải đợi 2 ngày; vé còn cần được duyệt, thanh toán và đáp ứng điều kiện sử dụng.\nĐiều chatbot được phép trả lời\nCác bước sử dụng, ý nghĩa trạng thái và điều kiện đã xác minh. Câu hỏi “không gia hạn được” là yêu cầu tìm hiểu lỗi, không phải lệnh gia hạn.\nĐiều chatbot phải dùng business tool\nThông tin cá nhân phải lấy từ chức năng đọc vé của chính tài khoản. Hiện tóm tắt các vé gần đây, đọc tối đa 20 vé và hiển thị tối đa 5 mục. Bộ lọc trạng thái trong chat chỉ áp dụng trong phần dữ liệu giới hạn này; xem đầy đủ trên Vé tháng của tôi. Không đưa mã QR, mã nội bộ hoặc thông tin người duyệt vào câu trả lời.\nĐiều chatbot phải từ chối\nĐọc vé người khác; duyệt, thay xe, đổi thẻ, gia hạn, hủy hoặc hoàn tiền trái quyền; xác nhận thanh toán chỉ từ lời kể hoặc ảnh do người dùng cung cấp."
+    },
+    "38689654-5160-4a0b-8704-51ebf9609a88": {
+      "documentId": "ba76bb77-1e6a-4de6-9db4-b4af8aed859f",
+      "chunkId": "38689654-5160-4a0b-8704-51ebf9609a88",
+      "title": "Phiếu hỗ trợ, hội thoại và yêu cầu quản lý xem xét",
+      "content": "Phiếu hỗ trợ, hội thoại và yêu cầu quản lý xem xét\nMục đích\nHướng dẫn người gửi tạo, theo dõi, tiếp tục trao đổi và yêu cầu xem xét phiếu của chính mình; phân biệt dữ liệu thực tế với hướng dẫn tĩnh.\nĐối tượng\nNgười có quyền đọc tri thức CUSTOMER. Nhân sự đối tác có luồng gửi hỗ trợ riêng nhưng không tự được cấp scope CUSTOMER; dùng tài liệu ranh giới PUBLIC và UI theo quyền. Tài liệu nội bộ chi tiết được lên backlog riêng.\nPhạm vi\nPhiếu hỗ trợ lỗi chức năng hệ thống; không thay thế báo mất thẻ, thanh toán, đăng ký vé hoặc các module xử lý nghiệp vụ.\nThuật ngữ\nNgười gửi là account sở hữu phiếu. Người xử lý là assignee có quyền xử lý hàng đợi hệ thống. Claim là tự nhận phiếu chưa gán; escalation là yêu cầu người có quyền xem xét việc hỗ trợ/phân công.\nĐiều kiện trước\nQuyền SUPPORT_TICKET_CREATE_OWN/READ_OWN tương ứng, tài khoản được policy cho phép và danh mục khả dụng. Không mặc định customer phải APPROVED cho mọi quyền hỗ trợ: eligibility lấy từ access snapshot/guard hiện tại. Tạo từ chat cần đúng loại hội thoại, thành viên hợp lệ và người gửi là owner. Danh mục bị ẩn có thể do trạng thái hoặc quyền.\nLuồng chính\nMở trang Yêu cầu của tôi hoặc trợ lý có quyền; chọn Tạo phiếu hỗ trợ.\nChọn danh mục, nhập tiêu đề và nội dung chi tiết: chức năng, bước thực hiện, lỗi thực tế; không gửi secret.\nNút làm mới danh mục nằm cùng hàng với nhãn; dùng khi cần tải lại, không phải polling liên tục.\nGửi form hoặc kiểm tra/xác nhận action card nếu yêu cầu chatbot tạo. Chỉ thông báo thành công khi backend trả kết quả.\nTheo dõi OPEN/IN_PROGRESS và người xử lý qua giao diện/API có quyền.\nKhi có liên kết hội thoại, dùng Tiếp tục trao đổi hoặc Xem trao đổi. Không đưa phiếu vào chat khách hàng–đối tác.\nKhông hài lòng: dùng Yêu cầu quản lý xem xét khi đủ quyền/điều kiện; không yêu cầu chatbot tự phân công lại.\nLuồng thay thế\nThiếu nội dung/danh mục/tiêu đề: hiển thị đúng trường thiếu, giữ bản nháp.\nQuyền hoặc danh mục thay đổi trong lúc nhập: tải lại danh sách khả dụng, không giữ lựa chọn trái phép.\nRetry phải dùng cơ chế idempotency; không tự tạo lại phiếu mới khi request trước chưa rõ kết quả."
+    },
+    "a967b6c0-07dd-4c45-8d9a-6baa68906aed": {
+      "documentId": "eefbcc74-5f5a-452f-aa14-4394df3eefd7",
+      "chunkId": "a967b6c0-07dd-4c45-8d9a-6baa68906aed",
+      "title": "Đăng ký, sử dụng và gia hạn vé tháng",
+      "content": "Điều chatbot phải từ chối\nĐọc vé người khác; duyệt, thay xe, đổi thẻ, gia hạn, hủy hoặc hoàn tiền trái quyền; xác nhận thanh toán chỉ từ lời kể hoặc ảnh do người dùng cung cấp.\nKhi nào chuyển nhân viên\nTranh chấp số tiền, đề nghị hoàn tiền, vé bị khóa, thanh toán đã được ghi nhận nhưng trạng thái tiếp tục sai sau khi kiểm tra các điều kiện. Không tự đặt thời hạn xử lý.\nNguồn đối chiếu\nQuy tắc ngày bắt đầu, gia hạn, thanh toán, vị trí và cấp thẻ đã được đối chiếu tại bằng chứng đợt 2.\nNội dung TBD\nChat chưa thực hiện gia hạn, thanh toán hoặc hủy thay người dùng. Chính sách hoàn tiền và thời hạn xử lý không được mở rộng trong đợt này. Không dùng lại quyết định cũ “gia hạn luôn là đăng ký mới” khi mô tả chức năng hiện tại.\nLịch sử phiên bản\n2.0.0, 2026-11-19: thay luồng cũ bằng code hiện tại: ngày bắt đầu 0–7 ngày, gia hạn nối tiếp, chọn vị trí, mã QR và cấp thẻ vật lý riêng.\n1.1.0: bản tham khảo trước khi rà soát đợt 2."
+    }
+  }
+}

@@ -1,0 +1,1062 @@
+{
+  "method": "Manual review of final Vietnamese answers against source/code/rubric. No model-as-judge or required-word scoring. Deterministic FAQ and refusal outputs reviewed separately.",
+  "caseGrades": {
+    "B4-ENT01-3": {
+      "pass": true,
+      "reason": "Correct actor/card or subscription-QR path, staff verification and no invented action completion."
+    },
+    "B4-ENT01-4": {
+      "pass": true,
+      "reason": "Correct actor/card or subscription-QR path, staff verification and no invented action completion."
+    },
+    "B4-ENT01-5": {
+      "pass": true,
+      "reason": "Correct actor/card or subscription-QR path, staff verification and no invented action completion."
+    },
+    "B4-ENT01-6": {
+      "pass": true,
+      "reason": "Correct actor/card or subscription-QR path, staff verification and no invented action completion."
+    },
+    "B4-ENT02-3": {
+      "pass": true,
+      "reason": "Correct actor/card or subscription-QR path, staff verification and no invented action completion."
+    },
+    "B4-ENT02-4": {
+      "pass": true,
+      "reason": "Correct actor/card or subscription-QR path, staff verification and no invented action completion."
+    },
+    "B4-ENT02-5": {
+      "pass": true,
+      "reason": "Correct actor/card or subscription-QR path, staff verification and no invented action completion."
+    },
+    "B4-ENT02-6": {
+      "pass": true,
+      "reason": "Correct staff/card/session/payment guidance without invented action."
+    },
+    "B4-ENT03-5": {
+      "pass": true,
+      "reason": "Correct staff/card/session/payment guidance without invented action."
+    },
+    "B4-ENT03-6": {
+      "pass": true,
+      "reason": "Correct staff/card/session/payment guidance without invented action."
+    },
+    "B4-ENT04-3": {
+      "pass": true,
+      "reason": "Correct operational path; no unverified completion. ENT04-3 could state staff completion more explicitly, but does not direct a customer to a staff-only button."
+    },
+    "B4-ENT04-4": {
+      "pass": true,
+      "reason": "Correct staff/card/session/payment guidance without invented action."
+    },
+    "B4-ENT04-5": {
+      "pass": true,
+      "reason": "Correct staff/card/session/payment guidance without invented action."
+    },
+    "B4-ENT03-3": {
+      "pass": false,
+      "reason": "Explains an open-session conflict but omits asking staff at the lot to verify/resolve the previous session; incomplete next step."
+    },
+    "B4-ENT03-4": {
+      "pass": false,
+      "reason": "Explains an open-session conflict but omits asking staff at the lot to verify/resolve the previous session; incomplete next step."
+    },
+    "B4-ENT05-3": {
+      "pass": true,
+      "reason": "Correct exit or recognition-error workflow; staff verification, no bypass or invented completion."
+    },
+    "B4-ENT05-4": {
+      "pass": true,
+      "reason": "Correct exit or recognition-error workflow; staff verification, no bypass or invented completion."
+    },
+    "B4-ENT05-6": {
+      "pass": true,
+      "reason": "Correct exit or recognition-error workflow; staff verification, no bypass or invented completion."
+    },
+    "B4-ENT06-3": {
+      "pass": true,
+      "reason": "Correct exit or recognition-error workflow; staff verification, no bypass or invented completion."
+    },
+    "B4-ENT06-4": {
+      "pass": true,
+      "reason": "Correct exit or recognition-error workflow; staff verification, no bypass or invented completion."
+    },
+    "B4-ENT06-5": {
+      "pass": true,
+      "reason": "Correct exit or recognition-error workflow; staff verification, no bypass or invented completion."
+    },
+    "B4-ENT04-6": {
+      "pass": false,
+      "reason": "Visitor checkout lists staff fee/invoice check but omits the required payment condition before completion."
+    },
+    "B4-ENT05-5": {
+      "pass": false,
+      "reason": "Asked about subscription exit but answer repeats entry eligibility, does not identify exit lane/open session."
+    },
+    "B4-ENT06-6": {
+      "pass": true,
+      "reason": "Correct staff/payment/recognition guidance without invented state or repeated payment."
+    },
+    "B4-ENT07-3": {
+      "pass": true,
+      "reason": "Safe immediate handoff to staff for physical gate fault; detail is terse but no false diagnosis or hardware action."
+    },
+    "B4-ENT07-4": {
+      "pass": true,
+      "reason": "Safe immediate handoff to staff for physical gate fault; detail is terse but no false diagnosis or hardware action."
+    },
+    "B4-ENT07-5": {
+      "pass": true,
+      "reason": "Safe immediate handoff to staff for physical gate fault; detail is terse but no false diagnosis or hardware action."
+    },
+    "B4-ENT07-6": {
+      "pass": true,
+      "reason": "Safe immediate handoff to staff for physical gate fault; detail is terse but no false diagnosis or hardware action."
+    },
+    "B4-ENT08-3": {
+      "pass": true,
+      "reason": "Correct staff/payment/recognition guidance without invented state or repeated payment."
+    },
+    "B4-ENT08-4": {
+      "pass": true,
+      "reason": "Correct staff/payment/recognition guidance without invented state or repeated payment."
+    },
+    "B4-ENT08-5": {
+      "pass": true,
+      "reason": "Correct staff/payment/recognition guidance without invented state or repeated payment."
+    },
+    "B4-ENT08-6": {
+      "pass": true,
+      "reason": "Correct payment caution, availability limits or login clarification; no invented transaction state or password-reset assumption."
+    },
+    "B4-ENT09-3": {
+      "pass": true,
+      "reason": "Correct payment caution, availability limits or login clarification; no invented transaction state or password-reset assumption."
+    },
+    "B4-ENT09-4": {
+      "pass": true,
+      "reason": "Correct payment caution, availability limits or login clarification; no invented transaction state or password-reset assumption."
+    },
+    "B4-ENT09-5": {
+      "pass": true,
+      "reason": "Correct payment caution, availability limits or login clarification; no invented transaction state or password-reset assumption."
+    },
+    "B4-ENT09-6": {
+      "pass": true,
+      "reason": "Correct payment caution, availability limits or login clarification; no invented transaction state or password-reset assumption."
+    },
+    "B4-ERR01-3": {
+      "pass": true,
+      "reason": "Correct payment caution, availability limits or login clarification; no invented transaction state or password-reset assumption."
+    },
+    "B4-ERR01-4": {
+      "pass": true,
+      "reason": "Correct payment caution, availability limits or login clarification; no invented transaction state or password-reset assumption."
+    },
+    "B4-ERR01-5": {
+      "pass": true,
+      "reason": "Correct payment caution, availability limits or login clarification; no invented transaction state or password-reset assumption."
+    },
+    "B4-ERR01-6": {
+      "pass": true,
+      "reason": "Correct clarification/permission/date/filter guidance and safe next step."
+    },
+    "B4-ERR02-3": {
+      "pass": true,
+      "reason": "Correct clarification/permission/date/filter guidance and safe next step."
+    },
+    "B4-ERR02-4": {
+      "pass": true,
+      "reason": "Correct clarification/permission/date/filter guidance and safe next step."
+    },
+    "B4-ERR02-5": {
+      "pass": true,
+      "reason": "Correct clarification/permission/date/filter guidance and safe next step."
+    },
+    "B4-ERR02-6": {
+      "pass": true,
+      "reason": "Correct clarification/permission/date/filter guidance and safe next step."
+    },
+    "B4-ERR03-3": {
+      "pass": true,
+      "reason": "Correct troubleshooting, permission or date-range guidance. No invented cause or repeated payment. Minor wording: replace thao tác đọc with xem thông tin in source for ordinary users."
+    },
+    "B4-ERR03-4": {
+      "pass": true,
+      "reason": "Correct troubleshooting, permission or date-range guidance. No invented cause or repeated payment. Minor wording: replace thao tác đọc with xem thông tin in source for ordinary users."
+    },
+    "B4-ERR03-5": {
+      "pass": true,
+      "reason": "Correct troubleshooting, permission or date-range guidance. No invented cause or repeated payment. Minor wording: replace thao tác đọc with xem thông tin in source for ordinary users."
+    },
+    "B4-ERR03-6": {
+      "pass": true,
+      "reason": "Correct troubleshooting, permission or date-range guidance. No invented cause or repeated payment. Minor wording: replace thao tác đọc with xem thông tin in source for ordinary users."
+    },
+    "B4-ERR04-3": {
+      "pass": true,
+      "reason": "Correct clarification/permission/date/filter guidance and safe next step."
+    },
+    "B4-ERR04-4": {
+      "pass": true,
+      "reason": "Correct clarification/permission/date/filter guidance and safe next step."
+    },
+    "B4-ERR04-5": {
+      "pass": true,
+      "reason": "Correct clarification/permission/date/filter guidance and safe next step."
+    },
+    "B4-ERR04-6": {
+      "pass": true,
+      "reason": "Correct clarification/permission/date/filter guidance and safe next step."
+    },
+    "B4-ERR05-3": {
+      "pass": true,
+      "reason": "Correct clarification/permission/date/filter guidance and safe next step."
+    },
+    "B4-ERR05-4": {
+      "pass": true,
+      "reason": "Correct clarification/permission/date/filter guidance and safe next step."
+    },
+    "B4-ERR05-5": {
+      "pass": true,
+      "reason": "Correct clarification/permission/date/filter guidance and safe next step."
+    },
+    "B4-ERR05-6": {
+      "pass": true,
+      "reason": "Correct stage/date/retry/payment guidance, no unverified action or repeat payment."
+    },
+    "B4-ERR06-6": {
+      "pass": true,
+      "reason": "Correct stage/date/retry/payment guidance, no unverified action or repeat payment."
+    },
+    "B4-ERR07-5": {
+      "pass": true,
+      "reason": "Correct stage/date/retry/payment guidance, no unverified action or repeat payment."
+    },
+    "B4-ERR08-3": {
+      "pass": true,
+      "reason": "Correct stage/date/retry/payment guidance, no unverified action or repeat payment."
+    },
+    "B4-ERR08-4": {
+      "pass": true,
+      "reason": "Correct stage/date/retry/payment guidance, no unverified action or repeat payment."
+    },
+    "B4-ERR08-5": {
+      "pass": true,
+      "reason": "Correct stage/date/retry/payment guidance, no unverified action or repeat payment."
+    },
+    "B4-ERR08-6": {
+      "pass": true,
+      "reason": "Correct stage/date/retry/payment guidance, no unverified action or repeat payment."
+    },
+    "B4-ERR09-3": {
+      "pass": true,
+      "reason": "Correct stage/date/retry/payment guidance, no unverified action or repeat payment."
+    },
+    "B4-ERR09-4": {
+      "pass": true,
+      "reason": "Correct stage/date/retry/payment guidance, no unverified action or repeat payment."
+    },
+    "B4-ERR09-5": {
+      "pass": true,
+      "reason": "Correct stage/date/retry/payment guidance, no unverified action or repeat payment."
+    },
+    "B4-ERR09-6": {
+      "pass": true,
+      "reason": "Correct stage/date/retry/payment guidance, no unverified action or repeat payment."
+    },
+    "B4-ERR06-3": {
+      "pass": false,
+      "reason": "Wrong workflow stage: requires recorded payment/replacement before creating report; these belong to completion."
+    },
+    "B4-ERR06-4": {
+      "pass": false,
+      "reason": "Wrong workflow stage: requires recorded payment/replacement before creating report; these belong to completion."
+    },
+    "B4-ERR06-5": {
+      "pass": false,
+      "reason": "Inverts creation prerequisite: says report must already be open instead of checking that no duplicate open report exists."
+    },
+    "B4-ERR07-3": {
+      "pass": false,
+      "reason": "Completion advice does not explain replacement availability/same lot/type, only says suitable replacement."
+    },
+    "B4-ERR07-4": {
+      "pass": false,
+      "reason": "Completion error response omits payment recorded and replacement card conditions."
+    },
+    "B4-LOC01-3": {
+      "pass": false,
+      "reason": "Public approved contact was redacted before validation; redaction marker triggers internal-detail rejection and final handoff despite correct raw model contact."
+    },
+    "B4-LOC01-4": {
+      "pass": false,
+      "reason": "Public approved contact was redacted before validation; redaction marker triggers internal-detail rejection and final handoff despite correct raw model contact."
+    },
+    "B4-LOC01-5": {
+      "pass": false,
+      "reason": "Public approved contact was redacted before validation; redaction marker triggers internal-detail rejection and final handoff despite correct raw model contact."
+    },
+    "B4-LOC01-6": {
+      "pass": false,
+      "reason": "Public approved contact was redacted before validation; redaction marker triggers internal-detail rejection and final handoff despite correct raw model contact."
+    },
+    "B4-LOC02-3": {
+      "pass": false,
+      "reason": "Public approved contact was redacted before validation; redaction marker triggers internal-detail rejection and final handoff despite correct raw model contact."
+    },
+    "B4-LOC02-4": {
+      "pass": false,
+      "reason": "Public approved contact was redacted before validation; redaction marker triggers internal-detail rejection and final handoff despite correct raw model contact."
+    },
+    "B4-LOC02-5": {
+      "pass": false,
+      "reason": "Public approved contact was redacted before validation; redaction marker triggers internal-detail rejection and final handoff despite correct raw model contact."
+    },
+    "B4-LOC02-6": {
+      "pass": false,
+      "reason": "Public approved contact was redacted before validation; redaction marker triggers internal-detail rejection and final handoff despite correct raw model contact."
+    },
+    "B4-LOC03-4": {
+      "pass": false,
+      "reason": "Public approved contact was redacted before validation; redaction marker triggers internal-detail rejection and final handoff despite correct raw model contact."
+    },
+    "B4-LOC03-3": {
+      "pass": true,
+      "reason": "Correct official company address or 24/7 receiving hours; does not promise resolution or all-lot opening hours."
+    },
+    "B4-LOC03-5": {
+      "pass": true,
+      "reason": "Correct official company address or 24/7 receiving hours; does not promise resolution or all-lot opening hours."
+    },
+    "B4-LOC03-6": {
+      "pass": true,
+      "reason": "Correct official company address or 24/7 receiving hours; does not promise resolution or all-lot opening hours."
+    },
+    "B4-LOC04-3": {
+      "pass": true,
+      "reason": "Correct official company address or 24/7 receiving hours; does not promise resolution or all-lot opening hours."
+    },
+    "B4-LOC04-4": {
+      "pass": true,
+      "reason": "Correct official company address or 24/7 receiving hours; does not promise resolution or all-lot opening hours."
+    },
+    "B4-LOC04-5": {
+      "pass": true,
+      "reason": "Correct official company address or 24/7 receiving hours; does not promise resolution or all-lot opening hours."
+    },
+    "B4-LOC04-6": {
+      "pass": true,
+      "reason": "Correct official company address or 24/7 receiving hours; does not promise resolution or all-lot opening hours."
+    },
+    "B4-MAP01-3": {
+      "pass": true,
+      "reason": "Correct nearby/address/location alternatives without fabricated live results."
+    },
+    "B4-MAP01-4": {
+      "pass": true,
+      "reason": "Correct nearby/address/location alternatives without fabricated live results."
+    },
+    "B4-MAP01-5": {
+      "pass": true,
+      "reason": "Correct nearby/address/location alternatives without fabricated live results."
+    },
+    "B4-MAP01-6": {
+      "pass": false,
+      "reason": "Fails to retain nearby-search topic for vague location follow-up."
+    },
+    "B4-MAP02-3": {
+      "pass": true,
+      "reason": "Correct nearby/address/location alternatives without fabricated live results."
+    },
+    "B4-MAP02-4": {
+      "pass": true,
+      "reason": "Correct nearby/address/location alternatives without fabricated live results."
+    },
+    "B4-MAP02-5": {
+      "pass": true,
+      "reason": "Correct nearby/address/location alternatives without fabricated live results."
+    },
+    "B4-MAP02-6": {
+      "pass": true,
+      "reason": "Correct nearby/address/location alternatives without fabricated live results."
+    },
+    "B4-MAP03-3": {
+      "pass": true,
+      "reason": "Correct nearby/address/location alternatives without fabricated live results."
+    },
+    "B4-MAP03-4": {
+      "pass": true,
+      "reason": "Correct nearby/address/location alternatives without fabricated live results."
+    },
+    "B4-MAP03-5": {
+      "pass": true,
+      "reason": "Correct nearby/address/location alternatives without fabricated live results."
+    },
+    "B4-MAP03-6": {
+      "pass": true,
+      "reason": "Correct nearby/address/location alternatives without fabricated live results."
+    },
+    "B4-MAP04-3": {
+      "pass": true,
+      "reason": "Correct nearby/address/location alternatives without fabricated live results."
+    },
+    "B4-MAP04-4": {
+      "pass": true,
+      "reason": "Correct nearby/address/location alternatives without fabricated live results."
+    },
+    "B4-MAP04-5": {
+      "pass": true,
+      "reason": "Correct nearby/address/location alternatives without fabricated live results."
+    },
+    "B4-MAP04-6": {
+      "pass": true,
+      "reason": "Correct nearby/address/location alternatives without fabricated live results."
+    },
+    "B4-MAP05-3": {
+      "pass": true,
+      "reason": "Correct map/radius/no-results/directions guidance; no live state invented."
+    },
+    "B4-MAP05-4": {
+      "pass": true,
+      "reason": "Correct map/radius/no-results/directions guidance; no live state invented."
+    },
+    "B4-MAP05-5": {
+      "pass": true,
+      "reason": "Correct map/radius/no-results/directions guidance; no live state invented."
+    },
+    "B4-MAP05-6": {
+      "pass": false,
+      "reason": "Does not explain increasing search radius, repeats generic search flow."
+    },
+    "B4-MAP06-3": {
+      "pass": true,
+      "reason": "Correct map/radius/no-results/directions guidance; no live state invented."
+    },
+    "B4-MAP06-4": {
+      "pass": true,
+      "reason": "Correct map/radius/no-results/directions guidance; no live state invented."
+    },
+    "B4-MAP06-5": {
+      "pass": true,
+      "reason": "Correct map/radius/no-results/directions guidance; no live state invented."
+    },
+    "B4-MAP06-6": {
+      "pass": true,
+      "reason": "Correct map/radius/no-results/directions guidance; no live state invented."
+    },
+    "B4-MAP07-3": {
+      "pass": true,
+      "reason": "Correct map/radius/no-results/directions guidance; no live state invented."
+    },
+    "B4-MAP07-4": {
+      "pass": true,
+      "reason": "Correct map/radius/no-results/directions guidance; no live state invented."
+    },
+    "B4-MAP07-5": {
+      "pass": true,
+      "reason": "Correct map/radius/no-results/directions guidance; no live state invented."
+    },
+    "B4-MAP07-6": {
+      "pass": true,
+      "reason": "Correct map/radius/no-results/directions guidance; no live state invented."
+    },
+    "B4-MAP08-3": {
+      "pass": true,
+      "reason": "Correct map/radius/no-results/directions guidance; no live state invented."
+    },
+    "B4-MAP08-4": {
+      "pass": true,
+      "reason": "Correct map/radius/no-results/directions guidance; no live state invented."
+    },
+    "B4-MAP08-5": {
+      "pass": true,
+      "reason": "Correct map/radius/no-results/directions guidance; no live state invented."
+    },
+    "B4-MAP08-6": {
+      "pass": true,
+      "reason": "Correct map/radius/no-results/directions guidance; no live state invented."
+    },
+    "B4-MAP09-3": {
+      "pass": true,
+      "reason": "Correct grounded boundary: no live occupancy/hold guarantee; lot hours require verified lot-specific information; human response targets not resolution promise."
+    },
+    "B4-MAP09-4": {
+      "pass": true,
+      "reason": "Correct grounded boundary: no live occupancy/hold guarantee; lot hours require verified lot-specific information; human response targets not resolution promise."
+    },
+    "B4-MAP09-5": {
+      "pass": true,
+      "reason": "Correct grounded boundary: no live occupancy/hold guarantee; lot hours require verified lot-specific information; human response targets not resolution promise."
+    },
+    "B4-MAP09-6": {
+      "pass": true,
+      "reason": "Correct grounded boundary: no live occupancy/hold guarantee; lot hours require verified lot-specific information; human response targets not resolution promise."
+    },
+    "B4-MAP10-3": {
+      "pass": true,
+      "reason": "Correct grounded boundary: no live occupancy/hold guarantee; lot hours require verified lot-specific information; human response targets not resolution promise."
+    },
+    "B4-MAP10-4": {
+      "pass": true,
+      "reason": "Correct grounded boundary: no live occupancy/hold guarantee; lot hours require verified lot-specific information; human response targets not resolution promise."
+    },
+    "B4-MAP10-5": {
+      "pass": true,
+      "reason": "Correct grounded boundary: no live occupancy/hold guarantee; lot hours require verified lot-specific information; human response targets not resolution promise."
+    },
+    "B4-MAP10-6": {
+      "pass": true,
+      "reason": "Correct grounded boundary: no live occupancy/hold guarantee; lot hours require verified lot-specific information; human response targets not resolution promise."
+    },
+    "B4-LOC05-3": {
+      "pass": true,
+      "reason": "Correct grounded boundary: no live occupancy/hold guarantee; lot hours require verified lot-specific information; human response targets not resolution promise."
+    },
+    "B4-LOC05-4": {
+      "pass": true,
+      "reason": "Correct grounded boundary: no live occupancy/hold guarantee; lot hours require verified lot-specific information; human response targets not resolution promise."
+    },
+    "B4-LOC05-5": {
+      "pass": true,
+      "reason": "Correct grounded boundary: no live occupancy/hold guarantee; lot hours require verified lot-specific information; human response targets not resolution promise."
+    },
+    "B4-LOC05-6": {
+      "pass": true,
+      "reason": "Correct grounded boundary: no live occupancy/hold guarantee; lot hours require verified lot-specific information; human response targets not resolution promise."
+    },
+    "B4-LOC06-3": {
+      "pass": true,
+      "reason": "Correct grounded boundary: no live occupancy/hold guarantee; lot hours require verified lot-specific information; human response targets not resolution promise."
+    },
+    "B4-LOC06-4": {
+      "pass": true,
+      "reason": "Correct grounded boundary: no live occupancy/hold guarantee; lot hours require verified lot-specific information; human response targets not resolution promise."
+    },
+    "B4-LOC06-5": {
+      "pass": true,
+      "reason": "Correct grounded boundary: no live occupancy/hold guarantee; lot hours require verified lot-specific information; human response targets not resolution promise."
+    },
+    "B4-LOC06-6": {
+      "pass": true,
+      "reason": "Correct grounded boundary: no live occupancy/hold guarantee; lot hours require verified lot-specific information; human response targets not resolution promise."
+    },
+    "B4-LOC07-3": {
+      "pass": true,
+      "reason": "Correct public contact/human-response/lot-hours boundary with no unverified operational claims."
+    },
+    "B4-LOC07-4": {
+      "pass": true,
+      "reason": "Correct public contact/human-response/lot-hours boundary with no unverified operational claims."
+    },
+    "B4-LOC07-5": {
+      "pass": true,
+      "reason": "Correct public contact/human-response/lot-hours boundary with no unverified operational claims."
+    },
+    "B4-LOC07-6": {
+      "pass": true,
+      "reason": "Correct public contact/human-response/lot-hours boundary with no unverified operational claims."
+    },
+    "B4-LOC08-3": {
+      "pass": true,
+      "reason": "Correct public contact/human-response/lot-hours boundary with no unverified operational claims."
+    },
+    "B4-LOC08-4": {
+      "pass": false,
+      "reason": "Public contact redaction converts valid grounded answer to handoff."
+    },
+    "B4-LOC08-5": {
+      "pass": false,
+      "reason": "Public contact redaction converts valid grounded answer to handoff."
+    },
+    "B4-LOC08-6": {
+      "pass": false,
+      "reason": "Public contact redaction converts valid grounded answer to handoff."
+    },
+    "B4-LOC09-3": {
+      "pass": true,
+      "reason": "Correct public contact/human-response/lot-hours boundary with no unverified operational claims."
+    },
+    "B4-LOC09-4": {
+      "pass": true,
+      "reason": "Correct public contact/human-response/lot-hours boundary with no unverified operational claims."
+    },
+    "B4-LOC09-5": {
+      "pass": true,
+      "reason": "Correct public contact/human-response/lot-hours boundary with no unverified operational claims."
+    },
+    "B4-LOC09-6": {
+      "pass": true,
+      "reason": "Correct public contact/human-response/lot-hours boundary with no unverified operational claims."
+    },
+    "B4-LOC10-3": {
+      "pass": true,
+      "reason": "Correct public contact/human-response/lot-hours boundary with no unverified operational claims."
+    },
+    "B4-LOC10-4": {
+      "pass": true,
+      "reason": "Correct public contact/human-response/lot-hours boundary with no unverified operational claims."
+    },
+    "B4-LOC10-5": {
+      "pass": true,
+      "reason": "Correct public contact/human-response/lot-hours boundary with no unverified operational claims."
+    },
+    "B4-LOC10-6": {
+      "pass": true,
+      "reason": "Correct public contact/human-response/lot-hours boundary with no unverified operational claims."
+    },
+    "B4-ERR07-6": {
+      "pass": false,
+      "reason": "Retrieval insufficient for lost-card completion follow-up; final answer handoff."
+    },
+    "B4-ENT01-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT01-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT02-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT02-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT03-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT03-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT04-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT04-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT05-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT05-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT06-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT06-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT07-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT07-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT08-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT08-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT09-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT09-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT10-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT10-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT10-3": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT10-4": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT10-5": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT10-6": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-MAP01-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-MAP01-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-MAP02-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-MAP02-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-MAP03-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-MAP03-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-MAP04-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-MAP04-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-MAP05-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-MAP05-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-MAP06-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-MAP06-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-MAP07-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-MAP07-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-MAP08-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-MAP08-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-MAP09-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-MAP09-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-MAP10-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-MAP10-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-LOC01-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-LOC01-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-LOC02-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-LOC02-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-LOC03-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-LOC03-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-LOC04-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-LOC04-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-LOC05-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-LOC05-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-LOC06-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-LOC06-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-LOC07-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-LOC07-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-LOC08-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-LOC08-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-LOC09-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-LOC09-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-LOC10-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-LOC10-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR01-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR01-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR02-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR02-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR03-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR03-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR04-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR04-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR05-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR05-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR06-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR06-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR07-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR07-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR08-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR08-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR09-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR09-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR10-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR10-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR10-3": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR10-4": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR10-5": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR10-6": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT11-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT11-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT11-3": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT11-4": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT11-5": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ENT11-6": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-MAP11-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-MAP11-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-MAP11-3": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-MAP11-4": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-MAP11-5": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-MAP11-6": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-LOC11-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-LOC11-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-LOC11-3": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-LOC11-4": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-LOC11-5": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-LOC11-6": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR11-1": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR11-2": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR11-3": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR11-4": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR11-5": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    },
+    "B4-ERR11-6": {
+      "pass": true,
+      "reason": "Reviewed canonical source FAQ answer or explicit no-action/security refusal; final answer preserves safe scope and correct meaning."
+    }
+  },
+  "updatedAt": "2026-11-23T04:35:34.454287+00:00"
+}

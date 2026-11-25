@@ -138,6 +138,17 @@ public class KnowledgeIngestionJob {
         this.updatedAt = now;
     }
 
+    public void pauseForRuntime(Instant nextAttempt) {
+        scheduleRetry(nextAttempt);
+        this.attemptCount = Math.max(0, this.attemptCount - 1);
+        this.lockedBy = null;
+        this.lockedAt = null;
+        this.lockExpiresAt = null;
+        this.lastHeartbeatAt = null;
+        this.errorCode = "AI_RUNTIME_PAUSED";
+        this.errorMessageRedacted = null;
+    }
+
     public void scheduleRetry(Instant nextAttempt) {
         this.status = KnowledgeIngestionJobStatus.RETRYING;
         this.currentStage = null;

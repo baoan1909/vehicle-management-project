@@ -24,8 +24,11 @@ import com.ban.vehicle_management.domain.ai.model.AiFunctionCall;
 import com.ban.vehicle_management.domain.ai.model.AiFunctionResponse;
 import com.ban.vehicle_management.domain.ai.model.AiMessageCitation;
 import com.ban.vehicle_management.domain.ai.model.AiModelConfiguration;
+import com.ban.vehicle_management.domain.ai.model.AiProviderAttempt;
 import com.ban.vehicle_management.domain.ai.model.AssistantIntent;
 import com.ban.vehicle_management.domain.ai.model.AssistantIntentRouter;
+import com.ban.vehicle_management.domain.ai.model.AssistantOwnReadRouter;
+import com.ban.vehicle_management.domain.ai.model.AssistantQuestionResolver;
 import com.ban.vehicle_management.domain.ai.model.AssistantOutputValidator;
 import com.ban.vehicle_management.domain.ai.model.AssistantResponseEnvelope;
 import com.ban.vehicle_management.domain.ai.model.GroundedConfidenceCalculator;
@@ -77,7 +80,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
-public class AssistantOrchestrator {
+public class AssistantOrchestrator implements AutoCloseable {
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.ban.vehicle_management.application.ai.service.AiRuntimeModeService runtimeMode;
+    @org.springframework.beans.factory.annotation.Value("${app.ai.lm-studio.max-input-bytes:1200}")
+    private int localInputBytes = 1200;
+
+    private boolean localMode() { return runtimeMode != null && runtimeMode.provider() == AiProvider.LM_STUDIO; }
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AssistantOrchestrator.class);
     private static final int JOB_BATCH_SIZE = 4;
@@ -116,6 +126,8 @@ public class AssistantOrchestrator {
             }
             """;
     private final String workerId = "assistant-worker-" + UUID.randomUUID();
+    private final java.util.concurrent.ExecutorService jobExecutor;
+    private final java.util.concurrent.Semaphore jobPermits;
 
     private final AiAssistantProperties properties;
     private final AssistantJobPortOut assistantJobPortOut;
@@ -254,17 +266,39 @@ public class AssistantOrchestrator {
         this.cacheMapper = cacheMapper;
         this.indexVersionPortOut = indexVersionPortOut;
         this.cacheMetrics = cacheMetrics;
+        this.jobPermits = new java.util.concurrent.Semaphore(Math.max(1, Math.min(4, properties.getAssistantJobConcurrency())));
+        this.jobExecutor = java.util.concurrent.Executors.newThreadPerTaskExecutor(
+                Thread.ofVirtual().name("support-assistant-", 0).factory());
     }
 
-    @Scheduled(fixedDelayString = "${app.ai.assistant-job-fixed-delay-ms:2500}", initialDelayString = "${app.ai.assistant-job-initial-delay-ms:5000}")
-    public void processDueJobs() {
-        if (!properties.isProviderCallAllowed()) {
+    @Scheduled(fixedDelayString = "${app.ai.assistant-job-fixed-delay-ms:500}", initialDelayString = "${app.ai.assistant-job-initial-delay-ms:5000}")
+    public synchronized void processDueJobs() {
+        if (!(runtimeMode == null ? properties.isProviderCallAllowed() : runtimeMode.callsAllowed(properties)) || (runtimeMode != null && runtimeMode.current().switching())) {
             return;
         }
+        int available = jobPermits.availablePermits();
+        if (available == 0) return;
         Instant now = Instant.now();
-        List<AssistantJob> dueJobs = assistantJobPortOut.claimDueJobs(now, now.plus(lockDuration()), workerId, JOB_BATCH_SIZE);
-        dueJobs.forEach(this::processJobSafely);
+        List<AssistantJob> dueJobs = assistantJobPortOut.claimDueJobs(
+                now, now.plus(lockDuration()), workerId, Math.min(JOB_BATCH_SIZE, available));
+        for (AssistantJob job : dueJobs) {
+            if (!jobPermits.tryAcquire()) break;
+            try {
+                jobExecutor.execute(() -> {
+                    try { processJobSafely(job); }
+                    finally { jobPermits.release(); }
+                });
+            } catch (java.util.concurrent.RejectedExecutionException exception) {
+                jobPermits.release();
+                // Shutdown leaves the durable lease recoverable by another worker after expiry.
+                LOGGER.info("Assistant dispatcher shutting down; job lease remains recoverable jobId={}", job.getJobId());
+            }
+        }
     }
+
+    @Override
+    @jakarta.annotation.PreDestroy
+    public void close() { jobExecutor.shutdown(); }
 
     private void processJobSafely(AssistantJob job) {
         try {
@@ -282,6 +316,19 @@ public class AssistantOrchestrator {
     }
 
     public void processJob(AssistantJob job) {
+        if (runtimeMode == null) { processJobInMode(job); return; }
+        try (var scope = runtimeMode.openScope()) {
+            if (!runtimeMode.jobMatches(job.getJobId())) throw new AiRuntimeModeChangedException();
+            processJobInMode(job);
+        } catch (AiRuntimeModeChangedException exception) {
+            transactionTemplate.executeWithoutResult(status -> {
+                aiRunPortOut.failRunningForInputMessage(job.getInputMessageId(), "AI_MODE_CHANGED", false);
+                failOrRetry(job, "AI_MODE_CHANGED", false);
+            });
+        }
+    }
+
+    private void processJobInMode(AssistantJob job) {
         JobContext context = transactionTemplate.execute(status -> loadJobContext(job));
         if (context == null || context.terminal()) {
             return;
@@ -317,8 +364,25 @@ public class AssistantOrchestrator {
      */
     private void processJobWithIntent(
             JobContext context, AssistantJob job, String redactedInput) {
-        AssistantIntentRouter.IntentDecision decision = AssistantIntentRouter.route(redactedInput);
-        switch (decision.intent()) {
+        List<String> previousQuestions = AssistantQuestionResolver.requiresContext(redactedInput)
+                && context.inputMessage().getCreatedAt() != null
+                ? chatPortOut.findMessageHistory(context.conversation().getConversationId(), context.inputMessage().getCreatedAt(), 8).stream()
+                    .filter(message -> !message.isDeleted()
+                            && !job.getInputMessageId().equals(message.getMessageId())
+                            && context.inputMessage().getSenderAccountId().equals(message.getSenderAccountId())
+                            && message.getCreatedAt() != null
+                            && message.getCreatedAt().isBefore(context.inputMessage().getCreatedAt())
+                            && message.getMessageType() == ChatMessageType.TEXT)
+                    .map(ChatMessage::getContent).limit(3).toList()
+                : List.of();
+        AssistantQuestionResolver.ResolvedQuestion resolved = AssistantQuestionResolver.resolve(redactedInput, previousQuestions);
+        switch (resolved.decision().intent()) {
+            case CLARIFICATION -> {
+                transactionTemplate.executeWithoutResult(status -> {
+                    saveAssistantMessage(context.conversation(), job, AssistantQuestionResolver.CLARIFICATION_TEXT);
+                    completeJob(job);
+                });
+            }
             case GREETING -> {
                 transactionTemplate.executeWithoutResult(status -> {
                     saveAssistantMessage(context.conversation(), job, greetingText());
@@ -332,19 +396,42 @@ public class AssistantOrchestrator {
                     completeJob(job);
                 });
             }
-            case HANDOFF_REQUEST, OUT_OF_SCOPE -> {
+            case OUT_OF_SCOPE -> {
+                transactionTemplate.executeWithoutResult(status -> {
+                    saveAssistantMessage(context.conversation(), job, "Tôi hỗ trợ sử dụng CoParking. Bạn có thể hỏi về tài khoản, phương tiện, vé tháng, thẻ gửi xe hoặc lịch sử gửi xe.");
+                    completeJob(job);
+                });
+            }
+            case HANDOFF_REQUEST -> {
                 transactionTemplate.executeWithoutResult(status -> {
                     saveAssistantMessage(context.conversation(), job, handoffText());
                     completeJob(job);
                 });
             }
-            case STATIC_KNOWLEDGE -> processStaticKnowledge(context, job, redactedInput);
-            case PERSONAL_DATA, WRITE_ACTION -> processModelFlow(context, job, decision.intent(), 0);
+            case STATIC_KNOWLEDGE -> processStaticKnowledge(context, job, resolved.query());
+            case PERSONAL_DATA, WRITE_ACTION -> {
+                String unsupported = unsupportedBusinessRequest(resolved.decision().intent(), redactedInput);
+                if (unsupported != null) {
+                    transactionTemplate.executeWithoutResult(status -> {
+                        saveAssistantMessage(context.conversation(), job, unsupported);
+                        completeJob(job);
+                    });
+                } else {
+                    var ownRead = resolved.decision().intent() == AssistantIntent.PERSONAL_DATA
+                            ? AssistantOwnReadRouter.resolve(redactedInput) : java.util.Optional.<String>empty();
+                    if (ownRead.isPresent()) processDirectOwnRead(context, job, ownRead.get());
+                    else processModelFlow(context, job, resolved.decision().intent(), 0);
+                }
+            }
         }
     }
 
     private String greetingText() {
         return "Xin chào! Tôi là trợ lý hỗ trợ CoParking. Bạn cần hỗ trợ về thẻ xe, vé tháng, phí gửi xe hay tra cứu phiếu hỗ trợ?";
+    }
+
+    private String unsupportedBusinessRequest(AssistantIntent intent, String question) {
+        return com.ban.vehicle_management.domain.ai.model.AssistantBusinessRequestPolicy.unsupported(intent, question);
     }
 
     private String handoffText() {
@@ -385,6 +472,17 @@ public class AssistantOrchestrator {
             });
             return;
         }
+        if (KnowledgeRetrievalService.isInfrastructureFailure(retrieval)) {
+            transactionTemplate.executeWithoutResult(status -> {
+                ChatMessage output = saveAssistantMessage(context.conversation(), job,
+                        com.ban.vehicle_management.domain.ai.model.AssistantResponseStyle.RETRIEVAL_UNAVAILABLE_TEXT);
+                finalizeRetrievalAudit(retrieval, null, output.getMessageId(), Set.of());
+                // EmbeddingService has already exhausted its bounded retries. Avoid repeatedly
+                // requeueing a quota/configuration failure as if the corpus lacked evidence.
+                failOrRetry(job, retrieval.diagnosticCode(), false);
+            });
+            return;
+        }
         if (!retrieval.hasResults() || !retrieval.evidenceSufficient()) {
             transactionTemplate.executeWithoutResult(status -> {
                 ChatMessage output = saveAssistantMessage(context.conversation(), job, handoffText());
@@ -393,11 +491,7 @@ public class AssistantOrchestrator {
             });
             return;
         }
-        List<KnowledgeSearchResult> safeEvidence = retrieval.results().stream()
-                .filter(result -> !PromptInjectionScreening.scan(
-                        (result.title() == null ? "" : result.title() + "\n")
-                                + (result.content() == null ? "" : result.content())).highRisk())
-                .toList();
+        List<KnowledgeSearchResult> safeEvidence = GroundedContextPack.safeResults(retrieval.results());
         if (safeEvidence.isEmpty()) {
             transactionTemplate.executeWithoutResult(status -> {
                 ChatMessage output = saveAssistantMessage(context.conversation(), job, handoffText());
@@ -406,14 +500,54 @@ public class AssistantOrchestrator {
             });
             return;
         }
-        GroundedContextPack.ContextPack pack =
-                GroundedContextPack.build(redactedInput, safeEvidence);
+        var faq = retrieval.isCommonFaq()
+                ? java.util.Optional.of(new com.ban.vehicle_management.domain.ai.model.GroundedFaqLookup.Match(
+                        retrieval.canonicalAnswer(),retrieval.results().getFirst().chunkId()))
+                : com.ban.vehicle_management.domain.ai.model.GroundedFaqLookup.find(redactedInput, safeEvidence);
+        GroundedContextPack.ContextPack pack = retrieval.isCommonFaq()
+                ? GroundedContextPack.canonical(safeEvidence.getFirst())
+                : (localMode() ? com.ban.vehicle_management.domain.ai.model.LocalGroundedProfile.pack(redactedInput, safeEvidence, localInputBytes)
+                : GroundedContextPack.build(redactedInput, safeEvidence));
         Map<UUID, String> allowlist = pack.chunks().stream().collect(
                 java.util.stream.Collectors.toMap(
                         GroundedContextPack.PackChunk::chunkId,
                         GroundedContextPack.PackChunk::label,
                         (first, second) -> first,
                         java.util.LinkedHashMap::new));
+        if (faq.isPresent() && allowlist.containsKey(faq.get().chunkId())) {
+            var answer = faq.get();
+            String safeAnswer = sanitizeGroundedOutput(answer.answer(), safeEvidence.stream()
+                    .filter(source -> answer.chunkId().equals(source.chunkId())).map(KnowledgeSearchResult::content).toList());
+            List<AiMessageCitation> citations = allowlistedCitations(List.of(allowlist.get(answer.chunkId())), retrieval, pack);
+            var envelope = new AssistantResponseEnvelope(safeAnswer, toEnvelopeCitations(citations), List.of(),
+                    retrieval.groundedConfidence() == null ? 0.0 : retrieval.groundedConfidence().doubleValue(), false);
+            var checked = AssistantOutputValidator.validate(envelope,
+                    new AssistantOutputValidator.ValidationContext(Set.copyOf(allowlist.values()), allowlist.keySet(),
+                            redactedInput, safeEvidence.stream().map(KnowledgeSearchResult::content).toList(), List.of(), false, true));
+            if (checked.valid()) {
+                transactionTemplate.executeWithoutResult(status -> {
+                    if (retrieval.isCommonFaq() && !retrievalService.verifyCommonEvidence(
+                            new KnowledgeRetrievalContext(null,context.conversation().getConversationId(),job.getInputMessageId(),
+                                    context.inputMessage().getSenderAccountId(),null), accessContextResolver.resolveScopes(),retrieval)) {
+                        ChatMessage unavailable = saveAssistantMessage(context.conversation(),job,
+                                com.ban.vehicle_management.domain.ai.model.AssistantResponseStyle.RETRIEVAL_UNAVAILABLE_TEXT);
+                        finalizeRetrievalAudit(retrieval,null,unavailable.getMessageId(),Set.of());completeJob(job);return;
+                    }
+                    ChatMessage message = saveAssistantMessage(context.conversation(), job, safeAnswer);
+                    finalizeRetrievalAudit(retrieval, null, message.getMessageId(), Set.of(answer.chunkId()));
+                    citationPortOut.saveAll(message.getMessageId(), withMessage(citations, message.getMessageId()));
+                    completeJob(job);
+                });
+                return;
+            }
+        }
+        if (retrieval.isCommonFaq()) {
+            transactionTemplate.executeWithoutResult(status -> {
+                ChatMessage unavailable = saveAssistantMessage(context.conversation(),job,handoffText());
+                finalizeRetrievalAudit(retrieval,null,unavailable.getMessageId(),Set.of());completeJob(job);
+            });
+            return;
+        }
         // Safe grounded-answer cache: hit still persists fresh message/citations/audit.
         if (tryServeGroundedAnswerCache(context, job, redactedInput, scopes, retrieval, safeEvidence, pack, allowlist)) {
             return;
@@ -439,7 +573,15 @@ public class AssistantOrchestrator {
             }
             String lastFailureCode = "AI_PROVIDER_FAILED";
             boolean lastRetryable = false;
-            for (AiModelConfiguration configuration : candidates) {
+            for (var providerAttempt : AiProviderAttemptPlanner.plan(candidates, providerPorts)) {
+                if (providerBudgetExpired(providerAttempt)) {
+                    if ("AI_PROVIDER_FAILED".equals(lastFailureCode)) {
+                        lastFailureCode = "GEMINI_REQUEST_BUDGET_EXHAUSTED";
+                        lastRetryable = true;
+                    }
+                    break;
+                }
+                AiModelConfiguration configuration = providerAttempt.configuration();
                 String circuitKeyForConfig = circuitKeyFor(configuration);
                 AiProviderPortOut providerPort = providerPorts.get(resolveProvider(configuration));
                 if (providerPort == null) {
@@ -451,7 +593,7 @@ public class AssistantOrchestrator {
                 AiResponse response;
                 Instant startedAt = Instant.now();
                 try {
-                    response = providerPort.generate(groundedRequest(context.conversation(), pack), configuration);
+                    response = AiProviderAttemptPlanner.generate(providerPort, groundedRequest(redactedInput, pack), providerAttempt);
                 } catch (RuntimeException exception) {
                     lastFailureCode = "PROVIDER_EXCEPTION";
                     lastRetryable = true;
@@ -467,7 +609,7 @@ public class AssistantOrchestrator {
                 run.setInputTokens(response.inputTokens());
                 run.setOutputTokens(response.outputTokens());
                 if (!response.success()) {
-                    lastFailureCode = response.failureCode();
+                    lastFailureCode = retryFailureCode(lastFailureCode, response.failureCode());
                     lastRetryable = response.retryable();
                     recordProviderOutcome(circuitKeyForConfig, false, response.retryable(),
                             retryAfterOf(response), response.failureCode());
@@ -481,7 +623,7 @@ public class AssistantOrchestrator {
                     continue;
                 }
                 recordProviderOutcome(circuitKeyForConfig, true, false, null, null);
-            GroundedAnswer parsed = parseGroundedAnswer(response.text());
+            GroundedAnswer parsed = parseGroundedAnswer(response.text(), pack);
             if (parsed.text() == null || parsed.text().isBlank()) {
                 lastFailureCode = "INVALID_RESPONSE_SCHEMA";
                 lastRetryable = true;
@@ -591,9 +733,14 @@ public class AssistantOrchestrator {
             String activeIds = candidates == null ? "" : candidates.stream()
                     .map(config -> String.valueOf(config.getConfigurationId()))
                     .sorted().collect(java.util.stream.Collectors.joining(","));
-            String raw = properties.getPromptVersion() + "|" + retrievalProperties.getPolicyVersion()
-                    + "|" + retrievalProperties.getThresholdVersion() + "|citation-v1|safety-v1|"
-                    + activeIds;
+            String raw = (runtimeMode == null ? "legacy" : runtimeMode.current().mode() + ":" + runtimeMode.current().epoch()) + "|" + properties.getPromptVersion() + "|" + retrievalProperties.getPolicyVersion()
+                    + "|" + retrievalProperties.getThresholdVersion() + "|citation-v1|"
+                    + PromptInjectionScreening.VERSION + "|"
+                    + com.ban.vehicle_management.domain.ai.model.VietnameseQueryNormalizer.LEXICAL_VERSION + "|"
+                    + com.ban.vehicle_management.domain.ai.model.AssistantResponseStyle.CONTEXTUAL_VERSION + "|"
+                    + GroundedContextPack.VERSION + "|"
+                    + AssistantOutputValidator.VERSION + "|"
+                    + com.ban.vehicle_management.domain.ai.model.AssistantResponseStyle.VERSION + "|" + activeIds;
             return AiCacheKeyFactory.sha256Hex(raw).substring(0, 16);
         } catch (Exception exception) {
             return "generation-v1";
@@ -672,6 +819,11 @@ public class AssistantOrchestrator {
             if (cachedChunks.isEmpty() || !currentChunks.containsAll(cachedChunks)) {
                 return false;
             }
+            // A configuration/evidence change must not leave an old contact exception in cache.
+            if (!answer.responseText().equals(sanitizeGroundedOutput(answer.responseText(), safeEvidence.stream()
+                    .filter(source -> cachedChunks.contains(source.chunkId())).map(KnowledgeSearchResult::content).toList()))) {
+                return false;
+            }
             // Re-run output validation on cached text.
             List<AssistantResponseEnvelope.AssistantCitation> envelopeCitations = answer.citations().stream()
                     .map(citation -> new AssistantResponseEnvelope.AssistantCitation(
@@ -716,6 +868,7 @@ public class AssistantOrchestrator {
     private void storeGroundedAnswerCache(JobContext context, String redactedInput, List<String> scopes,
             KnowledgeRetrievalResult retrieval, String responseText,
             List<AiMessageCitation> citations, java.math.BigDecimal groundedConfidence) {
+        if (runtimeMode != null && !runtimeMode.isCurrentScope()) return;
         try {
             if (!cacheInfraReady() || !sensitiveGuard.isCacheable(redactedInput)) {
                 return;
@@ -797,6 +950,8 @@ public class AssistantOrchestrator {
 
     private String circuitKeyFor(AiModelConfiguration configuration) {
         try {
+            AiProviderPortOut managed = providerPorts.get(resolveProvider(configuration));
+            if (managed != null && managed.managesAvailability()) return null;
             if (circuitBreaker == null || cacheKeyFactory == null || configuration == null
                     || configuration.getConfigurationId() == null) {
                 return null;
@@ -840,6 +995,10 @@ public class AssistantOrchestrator {
         if (allowed.isEmpty()) {
             return List.of();
         }
+        if (allowed.stream().allMatch(configuration -> {
+            AiProviderPortOut provider = providerPorts.get(resolveProvider(configuration));
+            return provider != null && provider.managesAvailability();
+        })) return allowed; // The provider plan owns the shared deadline and attempt budget.
         int perAttempt = cacheProperties == null ? 3
                 : Math.max(1, cacheProperties.getMaxModelsPerJobAttempt());
         if (allowed.size() <= perAttempt) {
@@ -891,10 +1050,16 @@ public class AssistantOrchestrator {
         }
     }
 
-    private AiRequest groundedRequest(ChatConversation conversation, GroundedContextPack.ContextPack pack) {
-        List<AiRequestMessage> messages = new ArrayList<>(buildAiRequest(conversation, AssistantIntent.STATIC_KNOWLEDGE).messages());
+    private AiRequest groundedRequest(String question, GroundedContextPack.ContextPack pack) {
+        if (localMode()) return com.ban.vehicle_management.domain.ai.model.LocalGroundedProfile.request(question, pack, GROUNDED_RESPONSE_JSON_SCHEMA);
+        // Topic-only history has already been resolved before retrieval. Do not reload unrelated
+        // conversation turns into a static answer: fewer DB reads/tokens and no stale instructions.
+        List<AiRequestMessage> messages = new ArrayList<>();
         messages.add(new AiRequestMessage("user",
-                "Chỉ trả lời câu hỏi bằng bằng chứng được cung cấp. Nếu trả lời được, citations phải có ít nhất "
+                "CÂU HỎI HIỆN TẠI:\n" + question + "\n\n"
+                        + "Trả lời đúng câu hỏi này, không chuyển sang câu hỏi khác trong phần tài liệu tham khảo. "
+                        + com.ban.vehicle_management.domain.ai.model.AssistantResponseStyle.contextualInstruction(question)
+                        + "Chỉ trả lời bằng bằng chứng được cung cấp. Nếu trả lời được, citations phải có ít nhất "
                         + "một nhãn đúng nguyên dạng C1, C2, ... đã cho; không đặt nhãn trong dấu ngoặc. "
                         + "Nếu bằng chứng không đủ, trả responseText rỗng và citations rỗng."));
         String system = groundedSystemInstruction()
@@ -908,7 +1073,7 @@ public class AssistantOrchestrator {
     private record GroundedAnswer(String text, List<String> labels) {
     }
 
-    private GroundedAnswer parseGroundedAnswer(String rawText) {
+    private GroundedAnswer parseGroundedAnswer(String rawText, GroundedContextPack.ContextPack pack) {
         if (rawText == null) {
             return new GroundedAnswer(null, List.of());
         }
@@ -921,7 +1086,7 @@ public class AssistantOrchestrator {
                 JsonNode root = objectMapper.readTree(candidate);
                 JsonNode responseText = root.get("responseText");
                 String text = responseText != null && responseText.isTextual()
-                        ? sanitizeAssistantOutput(responseText.asText()) : null;
+                        ? responseText.asText() : null;
                 List<String> labels = new ArrayList<>();
                 JsonNode citations = root.get("citations");
                 if (citations != null && citations.isArray()) {
@@ -934,7 +1099,9 @@ public class AssistantOrchestrator {
                         }
                     }
                 }
-                return new GroundedAnswer(text, List.copyOf(labels));
+                return new GroundedAnswer(sanitizeGroundedOutput(text, pack.chunks().stream()
+                        .filter(chunk -> labels.contains(chunk.label())).map(GroundedContextPack.PackChunk::content).toList()),
+                        List.copyOf(labels));
             } catch (Exception exception) {
                 return new GroundedAnswer(null, List.of());
             }
@@ -1040,6 +1207,47 @@ public class AssistantOrchestrator {
      * intent on the server side; the model never receives the full registry.
      * Tool rounds are capped at {@link #MAX_TOOL_ROUNDS}.
      */
+    /** Typed own-list summaries need no language-model request or personal answer cache. */
+    private void processDirectOwnRead(JobContext context, AssistantJob job, String toolName) {
+        AiToolDefinition definition = toolRegistry.require(toolName);
+        AiToolCall toolCall = transactionTemplate.execute(status -> {
+            AiToolCall requested = aiToolCallPortOut.findByInputMessageId(job.getInputMessageId()).stream()
+                    .filter(call -> toolName.equals(call.getToolName())).findFirst()
+                    .orElseGet(() -> newToolCall(null, context, toolName, definition.toolType(), "{}"));
+            requested.setStatus(AiToolCallStatus.EXECUTING);
+            requested.setFailureCode(null);
+            return aiToolCallPortOut.save(requested);
+        });
+        try {
+            currentAccountPortIn.requirePermission(definition.requiredPermission());
+            JsonNode arguments = objectMapper.createObjectNode();
+            definition.validate(arguments);
+            var result = toolExecutionService.executeFromAssistantWorker(toolName, arguments);
+            String safeJson = redactionService.redact(result.responseJson()).value();
+            String answer = objectMapper.readTree(safeJson).path("responseText").asText("");
+            var envelope = new AssistantResponseEnvelope(answer, List.of(), List.of(), 1.0, false);
+            var validation = AssistantOutputValidator.validate(envelope,
+                    new AssistantOutputValidator.ValidationContext(Set.of(), Set.of(),
+                            context.inputMessage().getContent(), List.of(), List.of(safeJson), true, false));
+            if (!validation.valid()) throw new IllegalStateException("OWN_SUMMARY_VALIDATION_FAILED");
+            transactionTemplate.executeWithoutResult(status -> {
+                toolCall.setStatus(AiToolCallStatus.SUCCEEDED);
+                toolCall.setExecutedAt(Instant.now());
+                toolCall.setResponsePayloadRedacted(safeJson);
+                aiToolCallPortOut.save(toolCall);
+                saveAssistantMessage(context.conversation(), job, answer);
+                completeJob(job);
+            });
+        } catch (Exception exception) {
+            transactionTemplate.executeWithoutResult(status -> {
+                toolCall.setStatus(AiToolCallStatus.FAILED);
+                toolCall.setFailureCode(exception.getClass().getSimpleName());
+                aiToolCallPortOut.save(toolCall);
+            });
+            finishDeniedToolRequest(context, job, null);
+        }
+    }
+
     private void processModelFlow(JobContext context, AssistantJob job, AssistantIntent intent, int round) {
         if (round >= MAX_TOOL_ROUNDS) {
             transactionTemplate.executeWithoutResult(status -> {
@@ -1061,7 +1269,15 @@ public class AssistantOrchestrator {
         }
         String lastFailureCode = null;
         boolean lastFailureRetryable = false;
-        for (AiModelConfiguration configuration : candidates) {
+        for (var providerAttempt : AiProviderAttemptPlanner.plan(candidates, providerPorts)) {
+            if (providerBudgetExpired(providerAttempt)) {
+                if (lastFailureCode == null) {
+                    lastFailureCode = "GEMINI_REQUEST_BUDGET_EXHAUSTED";
+                    lastFailureRetryable = true;
+                }
+                break;
+            }
+                AiModelConfiguration configuration = providerAttempt.configuration();
             String circuitKeyForConfig = circuitKeyFor(configuration);
             AiProviderPortOut providerPort = providerPorts.get(resolveProvider(configuration));
             if (providerPort == null) {
@@ -1073,7 +1289,7 @@ public class AssistantOrchestrator {
             Instant startedAt = Instant.now();
             AiResponse response;
             try {
-                response = providerPort.generate(buildAiRequest(context.conversation(), intent), configuration);
+                response = AiProviderAttemptPlanner.generate(providerPort, buildAiRequest(context, intent), providerAttempt);
             } catch (RuntimeException exception) {
                 lastFailureCode = "PROVIDER_EXCEPTION";
                 lastFailureRetryable = true;
@@ -1110,7 +1326,7 @@ public class AssistantOrchestrator {
                 break;
             }
 
-            lastFailureCode = response.failureCode();
+            lastFailureCode = retryFailureCode(lastFailureCode, response.failureCode());
             lastFailureRetryable = response.retryable();
             recordProviderOutcome(circuitKeyForConfig, false, response.retryable(),
                     retryAfterOf(response), response.failureCode());
@@ -1151,23 +1367,31 @@ public class AssistantOrchestrator {
         return new JobContext(conversation, inputMessage, false);
     }
 
-    private AiRequest buildAiRequest(ChatConversation conversation, AssistantIntent intent) {
+    private AiRequest buildAiRequest(JobContext context, AssistantIntent intent) {
         List<ChatMessage> history = chatPortOut.findMessageHistory(
-                conversation.getConversationId(),
-                null,
+                context.conversation().getConversationId(),
+                context.inputMessage().getCreatedAt(),
                 Math.max(1, properties.getRecentMessageLimit())
         );
         List<AiRequestMessage> messages = new ArrayList<>();
         List<ChatMessage> chronological = new ArrayList<>(history);
         Collections.reverse(chronological);
         for (ChatMessage message : chronological) {
-            if (message.isDeleted() || message.getContent() == null || message.getContent().isBlank()) {
+            if (message.isDeleted() || message.getContent() == null || message.getContent().isBlank()
+                    || context.inputMessage().getMessageId().equals(message.getMessageId())
+                    || (message.getSenderAccountId() != null
+                        && !context.inputMessage().getSenderAccountId().equals(message.getSenderAccountId()))
+                    || (message.getMessageType() != ChatMessageType.TEXT
+                        && message.getMessageType() != ChatMessageType.ASSISTANT_TEXT)
+                    || (message.getCreatedAt() != null && context.inputMessage().getCreatedAt() != null
+                        && !message.getCreatedAt().isBefore(context.inputMessage().getCreatedAt()))) {
                 continue;
             }
             String role = message.getSenderAccountId() == null ? "model" : "user";
             String content = redactionService.redact(message.getContent()).value();
             messages.add(new AiRequestMessage(role, content));
         }
+        messages.add(new AiRequestMessage("user", redactionService.redact(context.inputMessage().getContent()).value()));
         return new AiRequest(
                 systemInstruction(),
                 messages,
@@ -1189,9 +1413,9 @@ public class AssistantOrchestrator {
         }
         Set<String> allowed = switch (intent) {
             case PERSONAL_DATA -> Set.of(
-                    "get_my_support_ticket", "list_my_support_tickets", "get_my_subscription_status");
+                    "get_my_support_ticket", "list_my_support_tickets", "get_my_subscription_status", "list_my_vehicles", "list_my_parking_history");
             case WRITE_ACTION -> Set.of("create_support_ticket");
-            case STATIC_KNOWLEDGE, GREETING, HANDOFF_REQUEST, OUT_OF_SCOPE, SECURITY_REFUSAL -> Set.of();
+            case CLARIFICATION, STATIC_KNOWLEDGE, GREETING, HANDOFF_REQUEST, OUT_OF_SCOPE, SECURITY_REFUSAL -> Set.of();
         };
         return toolRegistry.all().stream()
                 .filter(definition -> allowed.contains(definition.name()))
@@ -1205,18 +1429,18 @@ public class AssistantOrchestrator {
         }
         return switch (intent) {
             case PERSONAL_DATA -> Set.of(
-                    "get_my_support_ticket", "list_my_support_tickets", "get_my_subscription_status");
+                    "get_my_support_ticket", "list_my_support_tickets", "get_my_subscription_status", "list_my_vehicles", "list_my_parking_history");
             case WRITE_ACTION -> Set.of("create_support_ticket");
-            case STATIC_KNOWLEDGE, GREETING, HANDOFF_REQUEST, OUT_OF_SCOPE, SECURITY_REFUSAL -> Set.of();
+            case CLARIFICATION, STATIC_KNOWLEDGE, GREETING, HANDOFF_REQUEST, OUT_OF_SCOPE, SECURITY_REFUSAL -> Set.of();
         };
     }
 
     private AiRequest buildAiRequestWithFunctionResponses(
-            ChatConversation conversation,
+            JobContext context,
             AssistantIntent intent,
             List<AiFunctionCall> functionCalls,
             List<AiFunctionResponse> functionResponses) {
-        AiRequest base = buildAiRequest(conversation, intent);
+        AiRequest base = buildAiRequest(context, intent);
         return new AiRequest(
                 base.systemInstruction(),
                 base.messages(),
@@ -1236,8 +1460,9 @@ public class AssistantOrchestrator {
                 You are CoParking support assistant. Answer in Vietnamese.
                 Use only the provided conversation context. Do not ask for secrets, tokens, payment card data, or full identity numbers.
                 Do not claim a support ticket was created unless the backend has confirmed it.
-                If the customer needs an official support ticket, ask them to use the create-ticket confirmation action in the widget.
-                """;
+                Do not assume a confirmation card is displayed. Describe only controls supported by the evidence.
+                A ticket form and a chat confirmation are separate paths; never require both or invent a card for a guidance-only answer.
+                """ + com.ban.vehicle_management.domain.ai.model.AssistantResponseStyle.INSTRUCTION;
     }
 
     private String systemInstruction() {
@@ -1273,9 +1498,17 @@ public class AssistantOrchestrator {
         return null;
     }
 
+    private String sanitizeGroundedOutput(String value, List<String> citedEvidence) {
+        return clampAssistantOutput(redactionService.redactGroundedPublicContacts(value,
+                properties.getPublicContactValues(), citedEvidence).value());
+    }
+
     private String sanitizeAssistantOutput(String value) {
-        String sanitized = redactionService.redact(value == null ? "" : value).value()
-                .replace('<', '[')
+        return clampAssistantOutput(redactionService.redact(value == null ? "" : value).value());
+    }
+
+    private String clampAssistantOutput(String value) {
+        String sanitized = value.replace('<', '[')
                 .replace('>', ']')
                 .trim();
         if (sanitized.length() > ChatMessagePolicy.MAX_TEXT_CONTENT_LENGTH) {
@@ -1345,6 +1578,10 @@ public class AssistantOrchestrator {
                     denied.setFailureCode(exception.getClass().getSimpleName());
                     aiToolCallPortOut.save(denied);
                 });
+                if (exception instanceof org.springframework.security.access.AccessDeniedException) {
+                    finishDeniedToolRequest(context, job, run);
+                    return true;
+                }
                 return false;
             }
 
@@ -1381,7 +1618,30 @@ public class AssistantOrchestrator {
                     toolCall.setFailureCode(exception.getClass().getSimpleName());
                     aiToolCallPortOut.save(toolCall);
                 });
+                if (exception instanceof org.springframework.security.access.AccessDeniedException
+                        || exception instanceof com.ban.vehicle_management.shared.exception.NotFoundException) {
+                    finishDeniedToolRequest(context, job, run);
+                    return true;
+                }
                 return false;
+            }
+
+            // These read tools return backend-built Vietnamese summaries, not model prose.
+            // No second provider request, raw domain payload or personal answer cache is needed.
+            if (Set.of("get_my_support_ticket", "list_my_support_tickets", "get_my_subscription_status", "list_my_vehicles", "list_my_parking_history").contains(definition.name())) {
+                try {
+                    String answer = objectMapper.readTree(toolResult.responseJson()).path("responseText").asText("");
+                    var envelope = new AssistantResponseEnvelope(answer, List.of(), List.of(), 1.0, false);
+                    var checked = AssistantOutputValidator.validate(envelope,
+                            new AssistantOutputValidator.ValidationContext(Set.of(), Set.of(),
+                                    context.inputMessage().getContent(), List.of(), List.of(toolResult.responseJson()), true, false));
+                    if (!checked.valid()) return false;
+                    transactionTemplate.executeWithoutResult(status -> storeSuccessfulResponse(
+                            context.conversation(), job, run, answer));
+                    return true;
+                } catch (com.fasterxml.jackson.core.JsonProcessingException exception) {
+                    return false;
+                }
             }
 
             functionCalls.add(currentCall);
@@ -1394,7 +1654,7 @@ public class AssistantOrchestrator {
             try {
                 nextResponse = providerPort.generate(
                         buildAiRequestWithFunctionResponses(
-                                context.conversation(), intent, functionCalls, functionResponses),
+                                context, intent, functionCalls, functionResponses),
                         configuration);
             } catch (RuntimeException exception) {
                 transactionTemplate.executeWithoutResult(status -> markRunFailed(run, "PROVIDER_EXCEPTION"));
@@ -1439,6 +1699,18 @@ public class AssistantOrchestrator {
         return false;
     }
 
+    private void finishDeniedToolRequest(JobContext context, AssistantJob job, AiRun run) {
+        transactionTemplate.executeWithoutResult(status -> {
+            if (run != null) {
+                run.setFailureRetryable(false);
+                markRunFailed(run, "TOOL_REQUEST_UNAVAILABLE");
+            }
+            saveAssistantMessage(context.conversation(), job,
+                    "Trợ lý chưa thể thực hiện yêu cầu này với tài khoản hiện tại. Bạn hãy kiểm tra quyền hoặc xem thông tin trên màn hình tương ứng.");
+            completeJob(job);
+        });
+    }
+
     private void createPendingActionCard(
             JobContext context,
             AssistantJob job,
@@ -1462,7 +1734,7 @@ public class AssistantOrchestrator {
     private AiToolCall newToolCall(AiRun run, JobContext context, String toolName, AiToolType toolType, String argumentsJson) {
         AiToolCall toolCall = new AiToolCall();
         toolCall.setToolCallId(UUID.randomUUID());
-        toolCall.setRunId(run.getRunId());
+        toolCall.setRunId(run == null ? null : run.getRunId());
         toolCall.setConversationId(context.conversation().getConversationId());
         toolCall.setInputMessageId(context.inputMessage().getMessageId());
         toolCall.setRequestedBy(context.inputMessage().getSenderAccountId());
@@ -1474,7 +1746,8 @@ public class AssistantOrchestrator {
         toolCall.setStatus(AiToolCallStatus.REQUESTED);
         toolCall.setIdempotencyKey("ai-tool:" + context.inputMessage().getMessageId() + ":" + toolName);
         toolCall.setCreatedAt(Instant.now());
-        toolCall.setVersion(0);
+        // A null @Version marks a new assigned-UUID entity; JPA seeds version 0 on insert.
+        toolCall.setVersion(null);
         return toolCall;
     }
 
@@ -1484,6 +1757,7 @@ public class AssistantOrchestrator {
             AiToolCall toolCall,
             AiToolDefinition definition
     ) {
+        if (runtimeMode != null) runtimeMode.publicationFence();
         ChatMessage message = new ChatMessage();
         message.setMessageId(UUID.randomUUID());
         message.setConversationId(conversation.getConversationId());
@@ -1619,11 +1893,12 @@ public class AssistantOrchestrator {
     }
 
     private ChatMessage saveAssistantMessage(ChatConversation conversation, AssistantJob job, String content) {
+        if (runtimeMode != null) runtimeMode.publicationFence();
         ChatMessage message = new ChatMessage();
         message.setMessageId(UUID.randomUUID());
         message.setConversationId(conversation.getConversationId());
         message.setSenderAccountId(null);
-        message.setContent(content);
+        message.setContent(com.ban.vehicle_management.domain.ai.model.AssistantResponseStyle.formatForDisplay(content));
         message.setReplyToMessageId(job.getInputMessageId());
         message.setRelatedSchema("ai");
         message.setRelatedTable("assistant_jobs");
@@ -1646,6 +1921,18 @@ public class AssistantOrchestrator {
         assistantJobPortOut.save(job);
     }
 
+    private static boolean providerBudgetExpired(AiProviderAttempt attempt) {
+        return attempt.deadline() != null && !Instant.now().isBefore(attempt.deadline());
+    }
+
+    private static String retryFailureCode(String previous, String candidate) {
+        // Skipped candidates after the shared deadline are not new HTTP failures.
+        // Keep the actual timeout/quota error for diagnostics and worker backoff.
+        if ("GEMINI_CANDIDATE_UNAVAILABLE".equals(candidate) && previous != null
+                && !"AI_PROVIDER_FAILED".equals(previous)) return previous;
+        return candidate;
+    }
+
     private void failOrRetry(AssistantJob job, String errorCode, boolean retryable) {
         int attempts = job.getAttemptCount() == null ? 1 : job.getAttemptCount();
         job.setErrorCode(errorCode);
@@ -1653,7 +1940,14 @@ public class AssistantOrchestrator {
         if (retryable && attempts < Math.max(1, properties.getMaxAttempts())) {
             long multiplier = 1L << Math.min(5, Math.max(0, attempts - 1));
             job.setStatus(AssistantJobStatus.RETRYING);
-            job.setNextAttemptAt(Instant.now().plus(properties.getRetryInitialDelay().multipliedBy(multiplier)));
+            Duration delay = properties.getRetryInitialDelay().multipliedBy(multiplier);
+            if (("TIMEOUT".equals(errorCode) || "GEMINI_REQUEST_BUDGET_EXHAUSTED".equals(errorCode))
+                    && delay.compareTo(Duration.ofSeconds(1)) > 0) {
+                // Provider availability/pacing still enforces quota and cooldown. Only
+                // avoid an additional 20/40s worker sleep after the HTTP budget expired.
+                delay = Duration.ofSeconds(1);
+            }
+            job.setNextAttemptAt(Instant.now().plus(delay));
         } else {
             job.setStatus(AssistantJobStatus.FAILED);
         }

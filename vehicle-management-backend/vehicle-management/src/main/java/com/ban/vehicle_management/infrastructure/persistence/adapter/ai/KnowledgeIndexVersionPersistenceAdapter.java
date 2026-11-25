@@ -15,6 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 @Transactional(readOnly = true)
 public class KnowledgeIndexVersionPersistenceAdapter implements KnowledgeIndexVersionPortOut {
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.ban.vehicle_management.application.ai.service.AiRuntimeModeService runtimeMode;
+
 
     private static final String CANDIDATE_ADVISORY_LOCK_KEY = "ai_knowledge_auto_candidate";
 
@@ -49,16 +52,24 @@ public class KnowledgeIndexVersionPersistenceAdapter implements KnowledgeIndexVe
 
     @Override
     public Optional<KnowledgeIndexVersion> findActive() {
-        return repository.findByStatusAndActivatedAtIsNotNull(KnowledgeIndexVersionStatus.ACTIVE)
-                .map(mapper::toDomain);
+        return findActive(runtimeMode == null ? com.ban.vehicle_management.shared.enumeration.ai.AiProvider.GEMINI : runtimeMode.provider());
     }
 
     @Override
     @Transactional
     public Optional<KnowledgeIndexVersion> findActiveForUpdate() {
-        return repository.findActiveForUpdate(KnowledgeIndexVersionStatus.ACTIVE).map(mapper::toDomain);
+        return findActiveForUpdate(runtimeMode == null ? com.ban.vehicle_management.shared.enumeration.ai.AiProvider.GEMINI : runtimeMode.provider());
     }
 
+    @Override
+    public Optional<KnowledgeIndexVersion> findActive(com.ban.vehicle_management.shared.enumeration.ai.AiProvider provider) {
+        return repository.findByProviderAndStatusAndActivatedAtIsNotNull(provider, KnowledgeIndexVersionStatus.ACTIVE).map(mapper::toDomain);
+    }
+    @Override
+    @Transactional
+    public Optional<KnowledgeIndexVersion> findActiveForUpdate(com.ban.vehicle_management.shared.enumeration.ai.AiProvider provider) {
+        return repository.findActiveForProviderUpdate(provider, KnowledgeIndexVersionStatus.ACTIVE).map(mapper::toDomain);
+    }
     @Override
     public List<KnowledgeIndexVersion> findByStatus(KnowledgeIndexVersionStatus status) {
         return repository.findByStatus(status).stream()
@@ -68,15 +79,15 @@ public class KnowledgeIndexVersionPersistenceAdapter implements KnowledgeIndexVe
 
     @Override
     public Optional<KnowledgeIndexVersion> findFirstPendingCandidate() {
-        return repository.findFirstByStatusInOrderByCreatedAtAsc(
-                        List.of(KnowledgeIndexVersionStatus.DRAFT, KnowledgeIndexVersionStatus.BUILDING))
+        return repository.findFirstByProviderAndStatusInOrderByCreatedAtAsc(
+                        runtimeMode == null ? com.ban.vehicle_management.shared.enumeration.ai.AiProvider.GEMINI : runtimeMode.provider(), List.of(KnowledgeIndexVersionStatus.DRAFT, KnowledgeIndexVersionStatus.BUILDING))
                 .map(mapper::toDomain);
     }
 
     @Override
     public long countPendingCandidates() {
-        return repository.countByStatusIn(
-                List.of(KnowledgeIndexVersionStatus.DRAFT, KnowledgeIndexVersionStatus.BUILDING));
+        return repository.countByProviderAndStatusIn(
+                runtimeMode == null ? com.ban.vehicle_management.shared.enumeration.ai.AiProvider.GEMINI : runtimeMode.provider(), List.of(KnowledgeIndexVersionStatus.DRAFT, KnowledgeIndexVersionStatus.BUILDING));
     }
 
     @Override

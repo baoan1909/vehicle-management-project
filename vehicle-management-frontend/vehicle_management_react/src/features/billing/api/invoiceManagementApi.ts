@@ -76,6 +76,7 @@ export type InvoiceManagementDetail = {
 };
 
 export type InvoiceManagementFilter = {
+  source?: InvoiceSource;
   organizationId?: string;
   parkingLotId?: string;
   status?: InvoiceStatus;

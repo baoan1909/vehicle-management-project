@@ -1,0 +1,144 @@
+[
+  {
+    "log": "target/chatbox-phase1/baseline-tests.log",
+    "sha256": "99531f58a4d5c1414670b9aea1eaba440d500040ddcfb416a3c5b58511f2b299",
+    "status": "PASS",
+    "lastSummary": {
+      "tests": 22,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "selectedOutput": [
+      "[INFO] Tests run: 22, Failures: 0, Errors: 0, Skipped: 0",
+      "[INFO] BUILD SUCCESS"
+    ]
+  },
+  {
+    "log": "target/chatbox-phase1/backend-regression-final.log",
+    "sha256": "ad9c28a24ed682e5361bea6582f2db627daff692f84a78891d853ec03f54b4de",
+    "status": "PASS",
+    "lastSummary": {
+      "tests": 2498,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "selectedOutput": [
+      "[INFO] Tests run: 2498, Failures: 0, Errors: 0, Skipped: 1",
+      "[INFO] BUILD SUCCESS"
+    ]
+  },
+  {
+    "log": "target/chatbox-phase1/retrieval-paced.log",
+    "sha256": "e91fc45230db9f0efb30d0a280237cca861aa600bc4c2191a97b5f97f8f0e7e2",
+    "status": "PASS",
+    "lastSummary": {
+      "tests": 18,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "selectedOutput": [
+      "[INFO] Tests run: 18, Failures: 0, Errors: 0, Skipped: 1",
+      "[INFO] BUILD SUCCESS"
+    ]
+  },
+  {
+    "log": "target/chatbox-phase1/verification-policy-v2.log",
+    "sha256": "ea086cb14eabf1026be57d7dba3f3827e0bd87920cd0dca054e00aacab6469b8",
+    "status": "FAIL_OR_CHECK_LOG",
+    "lastSummary": {
+      "tests": 339,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 1
+    },
+    "selectedOutput": [
+      "[ERROR] Tests run: 339, Failures: 1, Errors: 0, Skipped: 1",
+      "[INFO] BUILD FAILURE"
+    ]
+  },
+  {
+    "log": "target/chatbox-phase1/final-regression.log",
+    "sha256": "d7f418c73e342ba5fd2e937f20f64469912674e5ea099c1a85250b6fb73a7a7b",
+    "status": "PASS",
+    "lastSummary": {
+      "tests": 2541,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 2
+    },
+    "selectedOutput": [
+      "[INFO] Tests run: 2541, Failures: 0, Errors: 0, Skipped: 2",
+      "[INFO] BUILD SUCCESS"
+    ]
+  },
+  {
+    "log": "target/chatbox-phase1/browser-final.log",
+    "sha256": "242b33cf2bb507149fcc182d740685cdea32892f14a98b80f3a9e1a714cae42a",
+    "status": "PASS",
+    "selectedOutput": [
+      "  40 passed (45.0s)"
+    ]
+  },
+  {
+    "log": "target/chatbox-phase1/frontend-lint.log",
+    "sha256": "237d54b39d3408bad137c9afdc2d8faa7590a123aa303a9fda4114a1ff56e776",
+    "status": "PASS",
+    "selectedOutput": [],
+    "basis": "Command exitCode=0 observed during this run; output retained in target/chatbox-phase1."
+  },
+  {
+    "log": "target/chatbox-phase1/frontend-regression.log",
+    "sha256": "bc79b60934bea5ae0cb5d56280552e2627984d560b8b38d55c2b1af5459e56f1",
+    "status": "PASS",
+    "selectedOutput": [
+      "Parking structure delete actions and icons passed.",
+      "Parking structure CRUD, mock removal and detail panels passed.",
+      "Parking lot creation wizard and level CTAs passed.",
+      "Employee parking-lot assignment permission, scope, API, and UI checks passed.",
+      "User guide API, runtime, accessibility, permission gating, and routing checks passed.",
+      "Guest support widget, memory lifecycle, public API boundary, and capability checks passed.",
+      "oidc-client-ts migration, single-manager, refresh, access-gate, logout, and realtime guards passed.",
+      "Auth lifecycle, sole-source, mutation refresh, and actor-role static guards passed.",
+      "Current-access sole-source, permission-first, landing, and scope-policy checks passed.",
+      "Account-state invalidation policy, single-flight queue, and provider ownership checks passed.",
+      "Account deletion permission, confirmation, countdown, cancel and logout guards passed.",
+      "Platform fee three-step creation flow checks passed."
+    ],
+    "basis": "Command exitCode=0 observed during this run; output retained in target/chatbox-phase1."
+  },
+  {
+    "log": "target/chatbox-phase1/frontend-build.log",
+    "sha256": "e9ea384adb28a92ae3d9d538de24051d2c3331711818f19c251ac37901f435db",
+    "status": "PASS",
+    "selectedOutput": [
+      "✓ built in 11.38s"
+    ],
+    "basis": "Command exitCode=0 observed during this run; output retained in target/chatbox-phase1."
+  },
+  {
+    "log": "target/chatbox-phase1/postgres-live-final.log",
+    "sha256": "5ee896cfe50674ef7d01f11e3fa0034848180bf957f5b3f9801d872df637db8b",
+    "status": "FAIL_OR_CHECK_LOG",
+    "lastSummary": {
+      "tests": 4,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    "selectedOutput": [
+      "[ERROR] Tests run: 4, Failures: 1, Errors: 0, Skipped: 0",
+      "[INFO] BUILD FAILURE"
+    ]
+  },
+  {
+    "log": "target/chatbox-phase1/artifact-validation-final.log",
+    "sha256": "e0de5703f80ef26074627ebacba1f7542b593883c29cb841c39806d696fc41ad",
+    "status": "PASS",
+    "selectedOutput": [
+      "PHASE0_ARTIFACT_VALIDATION=PASS"
+    ]
+  }
+]

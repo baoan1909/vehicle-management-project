@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.operations.chatconversation.mapper;
 
 import com.ban.vehicle_management.application.operations.chatconversation.model.ChatAttachmentReadUrl;
+import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionChatOrder;
 import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatConversation;
 import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatConversationParticipant;
 import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatInboxItem;
@@ -9,6 +10,7 @@ import com.ban.vehicle_management.domain.operations.chatmessage.model.ChatMessag
 import com.ban.vehicle_management.entrypoint.dto.operations.chatconversation.response.ChatConversationParticipantUserResponse;
 import com.ban.vehicle_management.entrypoint.dto.operations.chatconversation.response.ChatConversationUserResponse;
 import com.ban.vehicle_management.entrypoint.dto.operations.chatconversation.response.ChatInboxItemUserResponse;
+import com.ban.vehicle_management.entrypoint.dto.operations.chatconversation.response.ChatSubscriptionOrderUserResponse;
 import com.ban.vehicle_management.entrypoint.dto.operations.chatmessage.response.ChatAttachmentReadUrlResponse;
 import com.ban.vehicle_management.entrypoint.dto.operations.chatmessage.response.ChatAttachmentUserResponse;
 import com.ban.vehicle_management.entrypoint.dto.operations.chatmessage.response.ChatMessageUserResponse;
@@ -41,6 +43,10 @@ public interface ChatConversationApiMapper {
     ChatInboxItemUserResponse toInboxItemUserResponse(ChatInboxItem item);
 
     List<ChatInboxItemUserResponse> toInboxItemUserResponses(List<ChatInboxItem> items);
+
+    ChatSubscriptionOrderUserResponse toSubscriptionOrderUserResponse(SubscriptionChatOrder order);
+
+    List<ChatSubscriptionOrderUserResponse> toSubscriptionOrderUserResponses(List<SubscriptionChatOrder> orders);
 
     ChatMessageUserResponse toMessageUserResponse(ChatMessage message);
 

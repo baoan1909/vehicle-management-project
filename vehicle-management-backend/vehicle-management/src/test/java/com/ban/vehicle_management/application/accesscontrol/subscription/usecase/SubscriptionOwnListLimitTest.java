@@ -68,7 +68,7 @@ class SubscriptionOwnListLimitTest {
 
     @Test
     void shouldDefaultOwnListLimitTo100() {
-        when(subscriptionAccessGuard.resolveCustomerIdForList(null)).thenReturn(CUSTOMER_ID);
+        when(subscriptionAccessGuard.resolveOwnCustomerId()).thenReturn(CUSTOMER_ID);
         when(subscriptionPortOut.findOwnSubscriptions(eq(CUSTOMER_ID), eq(100))).thenReturn(List.of());
 
         assertEquals(List.of(), subscriptionUseCase.getMySubscriptions(null));
@@ -76,7 +76,7 @@ class SubscriptionOwnListLimitTest {
 
     @Test
     void shouldClampOwnListLimitTo200() {
-        when(subscriptionAccessGuard.resolveCustomerIdForList(null)).thenReturn(CUSTOMER_ID);
+        when(subscriptionAccessGuard.resolveOwnCustomerId()).thenReturn(CUSTOMER_ID);
         when(subscriptionPortOut.findOwnSubscriptions(eq(CUSTOMER_ID), eq(200))).thenReturn(List.of());
 
         subscriptionUseCase.getMySubscriptions(5000);
@@ -85,7 +85,7 @@ class SubscriptionOwnListLimitTest {
 
     @Test
     void shouldClampOwnListLimitToAtLeastOne() {
-        when(subscriptionAccessGuard.resolveCustomerIdForList(null)).thenReturn(CUSTOMER_ID);
+        when(subscriptionAccessGuard.resolveOwnCustomerId()).thenReturn(CUSTOMER_ID);
         when(subscriptionPortOut.findOwnSubscriptions(eq(CUSTOMER_ID), eq(1))).thenReturn(List.of());
 
         subscriptionUseCase.getMySubscriptions(0);
@@ -94,7 +94,7 @@ class SubscriptionOwnListLimitTest {
 
     @Test
     void shouldPassThroughExplicitOwnListLimit() {
-        when(subscriptionAccessGuard.resolveCustomerIdForList(null)).thenReturn(CUSTOMER_ID);
+        when(subscriptionAccessGuard.resolveOwnCustomerId()).thenReturn(CUSTOMER_ID);
         Subscription subscription = new Subscription();
         when(subscriptionPortOut.findOwnSubscriptions(eq(CUSTOMER_ID), eq(25))).thenReturn(List.of(subscription));
 

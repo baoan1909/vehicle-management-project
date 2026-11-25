@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface SupportTicketCategoryPortOut {
+    boolean existsPublicAvailableCategory(UUID categoryId);
 
     SupportTicketCategory save(SupportTicketCategory category);
     Optional<SupportTicketCategory> findById(UUID categoryId);

@@ -115,6 +115,22 @@ export type CreateCustomerSupportConversationRequest = {
   title?: string | null;
 };
 
+export type ChatSubscriptionOrderResponse = {
+  subscriptionId: string;
+  parkingLotId: string;
+  parkingLotCode: string;
+  parkingLotName: string;
+  ticketTypeCode: string;
+  ticketTypeName: string;
+  licensePlate: string | null;
+  vehicleTypeName: string;
+  effectiveFrom: string;
+  effectiveTo: string;
+  price: number;
+  status: string;
+  createdAt: string;
+};
+
 export function getChatInbox() {
   return apiClient<ApiResponse<ChatInboxItemResponse[]>>(`${apiEndpoints.operations.chat}/conversations`);
 }
@@ -135,6 +151,26 @@ export function createCustomerSupportConversation(payload: CreateCustomerSupport
     body: payload,
     method: "POST",
   });
+}
+
+export function createParkingLotCustomerConversation(parkingLotId: string) {
+  return apiClient<ApiResponse<ChatConversationResponse>>(
+    `${apiEndpoints.operations.chat}/conversations/parking-lots/${parkingLotId}`,
+    { method: "POST" },
+  );
+}
+
+export function getChatSubscriptionOrders(conversationId: string) {
+  return apiClient<ApiResponse<ChatSubscriptionOrderResponse[]>>(
+    `${apiEndpoints.operations.chat}/conversations/${conversationId}/subscription-orders`,
+  );
+}
+
+export function shareChatSubscriptionOrder(conversationId: string, subscriptionId: string) {
+  return apiClient<ApiResponse<ChatMessageResponse>>(
+    `${apiEndpoints.operations.chat}/conversations/${conversationId}/subscription-orders/${subscriptionId}`,
+    { method: "POST" },
+  );
 }
 
 export function getChatMessages(conversationId: string, options: { beforeCreatedAt?: string; limit?: number } = {}) {

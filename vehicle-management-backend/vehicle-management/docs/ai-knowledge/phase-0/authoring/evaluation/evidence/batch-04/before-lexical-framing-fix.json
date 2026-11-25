@@ -1,0 +1,537 @@
+[ {
+  "attempts" : [ {
+    "model" : "gemini-3.1-flash-lite",
+    "credential" : "primary",
+    "ms" : 8183,
+    "success" : false,
+    "failure" : "HTTP_5XX",
+    "inputTokens" : null,
+    "outputTokens" : null,
+    "rawResponse" : null
+  }, {
+    "model" : "gemini-3.5-flash-lite",
+    "credential" : "primary",
+    "ms" : 1288,
+    "success" : true,
+    "failure" : null,
+    "inputTokens" : 1535,
+    "outputTokens" : 72,
+    "rawResponse" : "{\n  \"responseText\": \"Khách chưa có vé đăng ký là khách vãng lai và có thể gửi xe theo quy trình: đưa xe vào đúng làn, dùng thẻ vãng lai theo hướng dẫn của nhân viên và đảm bảo bãi còn chỗ phù hợp.\",\n  \"citations\": [\n    \"C1\"\n  ]\n}"
+  } ],
+  "queryVectorMode" : "LIVE_PROVIDER_OR_RECORDED_REAL_VECTOR",
+  "caseId" : "B4-ENT01-6",
+  "batch" : "batch-04-questions.jsonl",
+  "split" : "acceptance",
+  "question" : "Nếu chưa có vé đăng ký thì cần làm gì?",
+  "expectedDocument" : "parking-entry-exit",
+  "personalProbe" : false,
+  "resolvedRetrievalQuery" : "Hướng dẫn xe vào. Nếu chưa có vé đăng ký thì cần làm gì?",
+  "retrievalMs" : 604,
+  "citations" : [ {
+    "citationId" : "f9b8a248-66a0-4d91-8721-73e0a2ff6410",
+    "messageId" : "7a406b49-162f-4966-b9ea-6ac51c8997f4",
+    "documentId" : "6064df3c-b887-4c61-a061-755b7d6297ef",
+    "chunkId" : "9a2c2a8b-d863-43c7-8380-ffa54ebc56af",
+    "label" : "C1",
+    "title" : "Quy trình xe vào và xe ra",
+    "sourcePage" : null,
+    "sourceSection" : "Quy trình xe vào và xe ra",
+    "retrievalScore" : 0.01623480,
+    "retrievalAuditId" : "44655764-2fe4-4b43-8a2e-effa7cf8b457",
+    "indexVersionId" : "15597356-a17f-4b79-9ba1-6cf664d8eca6",
+    "citationOrder" : 0
+  } ],
+  "retryEvents" : [ ],
+  "attemptCount" : 1,
+  "jobStatus" : "COMPLETED",
+  "jobError" : null,
+  "answer" : "Khách chưa có vé đăng ký là khách vãng lai và có thể gửi xe theo quy trình: đưa xe vào đúng làn, dùng thẻ vãng lai theo hướng dẫn của nhân viên và đảm bảo bãi còn chỗ phù hợp.",
+  "totalMs" : 10159,
+  "evidenceSufficient" : true,
+  "groundedConfidence" : 0.778,
+  "diagnostic" : null,
+  "hitAt5" : true,
+  "evidence" : [ {
+    "documentId" : "6064df3c-b887-4c61-a061-755b7d6297ef",
+    "chunkId" : "9a2c2a8b-d863-43c7-8380-ffa54ebc56af",
+    "title" : "Quy trình xe vào và xe ra",
+    "content" : "Quy trình xe vào và xe ra\nMục đích và đối tượng\nHướng dẫn khách vãng lai và khách dùng vé đăng ký chuẩn bị khi xe vào/ra, nhận biết tình huống cần nhân viên tại bãi. Khách không vận hành cổng qua chat.\nPhạm vi và điều kiện trước\nXe cần đi đúng làn vào/ra tại bãi phù hợp. Làn, cổng, khu vực và bãi phải đáp ứng điều kiện hoạt động; chỗ phù hợp loại xe phải còn khả dụng. Thẻ hoặc QR phải hợp lệ theo loại lượt gửi. Vé đăng ký, phương tiện và chủ vé cần đáp ứng các kiểm tra hiện hành. Không mặc định mọi bãi nhận mọi loại xe.\nGửi xe khi chưa có vé đăng ký\nKhách chưa có vé đăng ký là khách vãng lai trong quy trình vào bãi này. Có thể đến làn vào và dùng thẻ vãng lai theo hướng dẫn nhân viên nếu bãi còn chỗ phù hợp. QR của vé đăng ký không dành cho khách chưa có vé hợp lệ. QR đặt chỗ dùng để đối chiếu đặt chỗ, không tự thay thẻ vãng lai khi ghi nhận xe vào. Không bắt buộc đăng ký vé tháng hoặc đặt chỗ trước chỉ để gửi xe vãng lai. Đặt chỗ trước là lựa chọn khác, chỉ giải thích khi người dùng hỏi hoặc muốn đặt trước.\nLuồng chính\nĐến đúng làn và làm theo nhân viên. Khách vãng lai dùng thẻ vãng lai; khách có vé đăng ký dùng thẻ đã gán hoặc QR của vé hợp lệ. Không dùng đồng thời thẻ và QR của vé đăng ký cho cùng lần ghi nhận.\nNhân viên đối chiếu biển số, hình ảnh, loại xe, thẻ/vé và khả năng nhận xe. Chỉ khi xác nhận thành công mới có lượt gửi đang mở.\nKhi ra, đi đúng làn ra, dùng thông tin phù hợp để tìm lượt đang mở và đối chiếu xe.\nVới lượt cần thu phí, nhân viên kiểm tra hóa đơn và thanh toán trước khi hoàn tất. Khách có vé đăng ký cũng phải đáp ứng điều kiện lượt gửi; không suy ra luôn miễn phí.\nXem trước, ghi nhận thanh toán, kết thúc lượt gửi và điều khiển cổng là các bước khác nhau. Chưa có kết quả từng bước thì không nói tất cả đã hoàn tất.\nNhận dạng sai biển số tại cổng\nNếu hệ thống nhận dạng sai biển số hoặc biển số xe ra không khớp lúc vào, dừng theo hướng dẫn và nhờ nhân viên tại bãi đối chiếu xe, hình ảnh và thẻ hoặc mã QR phù hợp. Người dùng không tự sửa biển số, xác nhận nhận dạng hoặc bỏ qua kiểm tra để ra bãi. Ảnh khó đọc cần kiểm tra thực tế, không kết luận xe đã ra chỉ từ màn hình."
+  }, {
+    "documentId" : "6064df3c-b887-4c61-a061-755b7d6297ef",
+    "chunkId" : "f8167ea4-4c0d-48d1-990a-af9c68e08b16",
+    "title" : "Quy trình xe vào và xe ra",
+    "content" : "Vào bãi bằng vé đăng ký như thế nào? Dùng thẻ đã được gán hoặc mã QR còn hợp lệ của vé đăng ký, đi đúng bãi và làn phù hợp rồi để nhân viên kiểm tra. Vé, xe và chủ vé phải đáp ứng điều kiện hiện hành; biển số phải khớp. Không dùng đồng thời QR của vé đăng ký và thẻ cho cùng một lần ghi nhận.\nVì sao thẻ đang có lượt gửi xe chưa kết thúc không vào lại được? Một thẻ hoặc vé đăng ký không được tạo thêm lượt gửi khi còn lượt chưa kết thúc. Nhờ nhân viên tại bãi kiểm tra lượt trước và tình trạng xe thực tế; không dùng chat để đóng lượt hoặc quét nhiều lần để bỏ qua kiểm tra.\nXe vãng lai ra bãi cần làm gì? Đi đúng làn ra, đưa thẻ và để nhân viên đối chiếu biển số, lượt gửi. Nhân viên kiểm tra phí và hóa đơn; lượt gửi chỉ được hoàn tất khi đáp ứng điều kiện thanh toán và xác nhận. Màn hình báo đã trả tiền không tự chứng minh xe đã ra hoặc cổng đã mở.\nXe dùng vé đăng ký ra bãi như thế nào? Đưa xe đến đúng làn ra và dùng thẻ hoặc mã QR hợp lệ theo vé. Nhân viên kiểm tra lượt gửi đang mở và thông tin xe trước khi hoàn tất. Không tự kết luận mọi vé đăng ký đều được ra miễn phí hoặc bỏ qua điều kiện của lượt gửi.\nBiển số xe ra không khớp lúc vào thì làm sao? Dừng theo hướng dẫn và nhờ nhân viên tại bãi đối chiếu biển số, thẻ hoặc QR và hình ảnh của lượt gửi. Không tự sửa biển số để qua cổng hoặc bỏ qua xác minh. Trợ lý không xác nhận kết quả nhận dạng thay nhân viên.\nCổng bãi xe không mở thì cần làm gì? Giữ xe ở vị trí an toàn theo hướng dẫn và báo nhân viên tại bãi. Cho biết bạn đang vào hay ra, dùng thẻ hay QR và thông báo hiện trên màn hình. Cần kiểm tra lượt gửi, thanh toán và tình trạng cổng; trợ lý không mở cổng hoặc đoán một nguyên nhân duy nhất.\nĐã trả tiền nhưng xe vẫn chưa ra bãi được thì sao? Không thanh toán lại ngay. Báo nhân viên tại bãi để kiểm tra giao dịch đã được ghi nhận, hóa đơn và bước hoàn tất lượt gửi. Giữ thông tin giao dịch cần thiết, không gửi OTP hoặc thông tin thẻ ngân hàng; cần đối chiếu bước kết thúc lượt gửi riêng, không suy ra chỉ từ việc bị trừ tiền.\nVì sao bãi còn chỗ trên bản đồ mà xe không vào được? Số chỗ trên bản đồ là thông tin tại lần tra cứu, không phải chỗ đã được giữ cho bạn. Khi đến, bãi còn phải kiểm tra chỗ phù hợp loại xe, khu vực, thẻ hoặc vé và tình trạng hoạt động. Nhờ nhân viên tại bãi kiểm tra; không coi bản đồ là bảo đảm được vào."
+  }, {
+    "documentId" : "6064df3c-b887-4c61-a061-755b7d6297ef",
+    "chunkId" : "5e2a8db5-8cd7-4398-a2f8-47bb54c16708",
+    "title" : "Quy trình xe vào và xe ra",
+    "content" : "Bản đồ còn chỗ nhưng cổng từ chối xe\nBãi hiển thị còn chỗ không bảo đảm xe được nhận ngay. Khi cổng từ chối xe dù còn chỗ, nhân viên cần kiểm tra chỗ phù hợp loại xe/khu vực, thẻ hoặc vé, lượt gửi và tình trạng hoạt động. Số chỗ là thông tin tại thời điểm tra cứu, không phải chỗ đã được giữ. Báo nhân viên tại bãi để kiểm tra, không tự đặt thêm chỗ hay trả tiền để vượt kiểm tra.\nLuồng thay thế, lỗi và trạng thái\nVé đăng ký có luồng QR và thẻ vật lý; QR hết hiệu lực hoặc đã thay đổi cần được kiểm tra tại bãi.\nCòn lượt chưa kết thúc, thẻ không phù hợp, vé/xe không hợp lệ, bãi đầy hoặc khu vực không nhận loại xe có thể làm xe không vào được.\nBiển số không khớp, ảnh không đọc được hoặc sự cố cổng cần nhân viên đối chiếu. Không hướng dẫn tự sửa dữ liệu hay bỏ qua kiểm tra.\nLượt đang gửi khác lượt đã kết thúc. Báo mất thẻ và hủy lượt có quy trình riêng; chat không đổi các trạng thái này.\nSố chỗ từng ô và khu vực quản lý theo sức chứa có điều kiện phân bổ khác nhau. Thông tin bản đồ không thay thế kiểm tra khi xe đến.\nGiới hạn của trợ lý và chuyển hỗ trợ\nTrợ lý chỉ hướng dẫn. Lịch sử chính chủ chỉ được đọc qua công cụ được cấp quyền; hiện chat không có công cụ mở cổng, ghi nhận xe vào/ra, xem hóa đơn hoặc thu tiền. Không bịa trạng thái hiện tại. Sự cố ngay tại cổng cần báo nhân viên tại bãi; lỗi phần mềm có thể được báo qua hỗ trợ hệ thống đúng hội thoại, quyền và xác nhận. Không tạo phiếu thay cho bước xử lý an toàn tại hiện trường.\nCâu hỏi khách hàng thường gặp\nKhách vãng lai vào bãi xe như thế nào? Khi chưa có vé đăng ký, bạn có thể gửi xe vãng lai: đưa xe vào đúng làn và dùng thẻ vãng lai theo hướng dẫn nhân viên, không bắt buộc đặt chỗ trước. QR của vé đăng ký không thay thế thẻ vãng lai. Khách vãng lai được kiểm tra biển số, loại xe và thẻ phù hợp trước khi ghi nhận lượt gửi; bãi phải còn chỗ. Trợ lý không tự ghi nhận xe vào.\nVào bãi bằng vé đăng ký như thế nào? Dùng thẻ đã được gán hoặc mã QR còn hợp lệ của vé đăng ký, đi đúng bãi và làn phù hợp rồi để nhân viên kiểm tra. Vé, xe và chủ vé phải đáp ứng điều kiện hiện hành; biển số phải khớp. Không dùng đồng thời QR của vé đăng ký và thẻ cho cùng một lần ghi nhận."
+  }, {
+    "documentId" : "c60163ca-6ac8-4f31-b89c-db169cae57e4",
+    "chunkId" : "74b45d41-3a43-4aad-87b7-5bd716ba2542",
+    "title" : "Đặt chỗ trước và thời gian giữ chỗ",
+    "content" : "Đặt chỗ trước và thời gian giữ chỗ\nMục đích\nHướng dẫn đặt chỗ thực có, thời hạn thanh toán, hạn vào bãi và quy định tiền đã trả.\nĐối tượng và phạm vi\nCó luồng công khai và luồng khách đăng nhập. Đây là đặt chỗ cho lượt gửi xe; không phải mua vé tháng và không bảo đảm giữ vô thời hạn hoặc đặt một khung giờ tương lai tùy ý.\nĐiều kiện trước\nBãi và khu vực đang phục vụ, phù hợp loại xe, còn chỗ, biển số hợp lệ và không có yêu cầu/lượt gửi xung đột. Cần đồng ý quy định tính phí, hạn vào bãi và không hoàn tiền đang hiển thị.\nLuồng chính\nMở Đặt chỗ trước, chọn bãi, loại xe, khu vực và ô nếu được chọn.\nNhập biển số thật, đọc và đồng ý quy định.\nChọn Xác nhận và thanh toán; hoàn tất trong mười phút theo thời hạn trang hiển thị.\nChờ hệ thống xác minh thanh toán, rồi vào bãi trước hạn sáu mươi phút tính từ thanh toán thành công.\nKhi ra bãi, hệ thống tính phí từ thời điểm trả tiền và trừ phần đã trả trước.\nLuồng thay thế và lỗi\nChỗ cuối và thay đổi số chỗ trống\nVừa thấy còn chỗ trên màn hình không bảo đảm đặt chỗ cuối sẽ thành công. Nhiều người có thể đang chọn cùng lúc; hệ thống kiểm tra lại chỗ trống khi xác nhận giữ. Nếu người khác vừa giữ chỗ cuối hoặc chỗ không còn phù hợp, hãy chọn lại vị trí hay khu vực còn trống. Chỉ thanh toán cho đặt chỗ được tạo hợp lệ; không đổi biển số giả để tránh kiểm tra trùng.\nNhận tiền trễ và thanh toán cần đối soát\nVới đặt chỗ nhận tiền trễ, hệ thống cần kiểm tra lại giao dịch vì thời gian giữ chỗ có thể đã hết và chỗ đã được giải phóng. Khoản thanh toán cần nhân viên đối soát chưa xác nhận có chỗ cho khách. Hãy liên hệ bộ phận phụ trách để kiểm tra thời điểm, số tiền và giao dịch thực tế; không trả thêm tiền hoặc mặc định được hoàn tiền tự động. Đối soát không đồng nghĩa khôi phục lại chỗ cũ.\nChọn phương thức thanh toán\nLuồng công khai hiện chọn SePay cho khoản dưới mười nghìn đồng và VNPay từ ngưỡng đó theo giao diện/code đã đối chiếu. Phương thức chỉ dùng được khi có cấu hình hợp lệ; luồng tài khoản có thể khác, hãy theo giao diện thực tế.Với khách chưa đăng nhập, thông tin truy cập được lưu theo trình duyệt. Mất thông tin thì nhờ nhân viên kiểm tra với biển số; không gửi mã truy cập hoặc QR vào chat công khai."
+  }, {
+    "documentId" : "ad4ff79c-3b08-4810-85a8-faeba5dff452",
+    "chunkId" : "eb6b08d2-e478-4946-8f25-4e1812e5b0bd",
+    "title" : "Lỗi thường gặp và hướng xử lý",
+    "content" : "Câu hỏi khách hàng thường gặp\nTôi không đăng nhập được thì phải làm sao? Bạn đang đăng nhập bằng Google hay bằng tài khoản và mật khẩu? Màn hình hiện thông báo gì và lỗi ở bước nào? Chỉ hướng dẫn Quên mật khẩu khi phù hợp với phương thức và lỗi; không tự cho rằng bạn quên mật khẩu.\nĐăng nhập Google chỉ lỗi ở cửa sổ thường thì làm sao? So sánh thông báo lỗi, thử tắt tiện ích liên quan hoặc xóa dữ liệu trang đăng nhập khi phù hợp, rồi đăng nhập lại. Xóa dữ liệu trang có thể làm bạn đăng xuất. Việc ẩn danh vào được chưa đủ chứng minh backend hỏng; không gửi cookie hoặc token để nhờ kiểm tra.\nLỗi kết nối Failed to fetch là gì? Đây là thông báo không kết nối được, chưa đủ để xác định nguyên nhân. Kiểm tra mạng và thử lại thao tác đọc khi phù hợp; nếu đang gửi thanh toán hoặc tạo yêu cầu, kiểm tra kết quả trước khi gửi lại để tránh trùng. Ghi màn hình, thời điểm và thông báo, không gửi bí mật đăng nhập.\nBáo không có quyền dùng chức năng thì làm sao? Kiểm tra bạn đang dùng đúng tài khoản, chức năng và bãi được phân công. Nếu công việc cần quyền đó, nhờ người quản lý kiểm tra phân quyền; đăng nhập lại không tự cấp thêm quyền. Không mượn tài khoản hoặc tìm cách bỏ qua kiểm tra.\nKhông thấy lượt gửi xe theo ngày thì làm sao? Mở Lịch sử gửi xe, chọn Khoảng ngày với ngày bắt đầu và ngày kết thúc phù hợp, ngày kết thúc không trước ngày bắt đầu, rồi kiểm tra phương tiện và trạng thái đang lọc. Xóa lọc chỉ để bỏ bộ lọc cũ không phù hợp, không thay thế việc chọn ngày cần tìm. Nếu vẫn thiếu, nhờ nhân viên đối chiếu; chat chưa tự lọc lịch sử theo ngày.\nĐiều kiện lập phiếu báo mất thẻ là gì? Nhờ nhân viên bãi kiểm tra quyền và phạm vi bãi, đúng thẻ và lượt gửi, thông tin xác minh và có phiếu đang mở cho cùng thẻ hoặc lượt gửi hay chưa. Không lập nhiều phiếu khi chưa rõ kết quả. Phiếu hỗ trợ báo lỗi phần mềm không thay thế phiếu báo mất thẻ. Thanh toán và thẻ thay thế được kiểm tra ở bước hoàn tất, không phải điều kiện chung để lập phiếu lần đầu.\nVì sao chưa hoàn tất phiếu báo mất thẻ được? Nhờ nhân viên kiểm tra thanh toán đã được ghi nhận đầy đủ và điều kiện hoàn tất của phiếu. Nếu cần thay thẻ, thẻ thay thế phải còn sẵn sàng, đúng loại và cùng bãi. Không tự dùng lại thẻ đã báo mất hoặc trả tiền lại khi chưa đối chiếu giao dịch."
+  } ]
+}, {
+  "attempts" : [ {
+    "model" : "gemini-3.5-flash-lite",
+    "credential" : "primary",
+    "ms" : 4906,
+    "success" : true,
+    "failure" : null,
+    "inputTokens" : 1701,
+    "outputTokens" : 58,
+    "rawResponse" : "{\"responseText\":\"Đưa xe đến đúng làn vào và dùng thẻ hoặc mã QR hợp lệ theo vé đăng ký. Phương tiện, chủ vé và vé đăng ký cần đáp ứng các kiểm tra hiện hành và bãi phải còn chỗ phù hợp.\",\"citations\":[\"C1\",\"C2\"]}"
+  } ],
+  "queryVectorMode" : "LIVE_PROVIDER_OR_RECORDED_REAL_VECTOR",
+  "caseId" : "B4-ENT02-6",
+  "batch" : "batch-04-questions.jsonl",
+  "split" : "acceptance",
+  "question" : "Nếu dùng vé đăng ký thì cần làm gì?",
+  "expectedDocument" : "parking-entry-exit",
+  "personalProbe" : false,
+  "resolvedRetrievalQuery" : "Hướng dẫn xe vào. Nếu dùng vé đăng ký thì cần làm gì?",
+  "retrievalMs" : 403,
+  "citations" : [ {
+    "citationId" : "05524f4e-2e87-456b-a1dc-fda97588d5a8",
+    "messageId" : "20905047-6440-4a0e-85bc-46d3d3e26721",
+    "documentId" : "6064df3c-b887-4c61-a061-755b7d6297ef",
+    "chunkId" : "9a2c2a8b-d863-43c7-8380-ffa54ebc56af",
+    "label" : "C1",
+    "title" : "Quy trình xe vào và xe ra",
+    "sourcePage" : null,
+    "sourceSection" : "Quy trình xe vào và xe ra",
+    "retrievalScore" : 0.01623480,
+    "retrievalAuditId" : "26617739-75ab-4f80-b72d-a90ced297581",
+    "indexVersionId" : "15597356-a17f-4b79-9ba1-6cf664d8eca6",
+    "citationOrder" : 0
+  }, {
+    "citationId" : "7c78e96c-8f3b-4fd9-a2a6-2c2e86a3cb6e",
+    "messageId" : "20905047-6440-4a0e-85bc-46d3d3e26721",
+    "documentId" : "6064df3c-b887-4c61-a061-755b7d6297ef",
+    "chunkId" : "f8167ea4-4c0d-48d1-990a-af9c68e08b16",
+    "label" : "C2",
+    "title" : "Quy trình xe vào và xe ra",
+    "sourcePage" : null,
+    "sourceSection" : "Câu hỏi khách hàng thường gặp",
+    "retrievalScore" : 0.00983607,
+    "retrievalAuditId" : "26617739-75ab-4f80-b72d-a90ced297581",
+    "indexVersionId" : "15597356-a17f-4b79-9ba1-6cf664d8eca6",
+    "citationOrder" : 1
+  } ],
+  "retryEvents" : [ ],
+  "attemptCount" : 1,
+  "jobStatus" : "COMPLETED",
+  "jobError" : null,
+  "answer" : "Đưa xe đến đúng làn vào và dùng thẻ hoặc mã QR hợp lệ theo vé đăng ký. Phương tiện, chủ vé và vé đăng ký cần đáp ứng các kiểm tra hiện hành và bãi phải còn chỗ phù hợp.",
+  "totalMs" : 5329,
+  "evidenceSufficient" : true,
+  "groundedConfidence" : 0.782,
+  "diagnostic" : null,
+  "hitAt5" : true,
+  "evidence" : [ {
+    "documentId" : "6064df3c-b887-4c61-a061-755b7d6297ef",
+    "chunkId" : "9a2c2a8b-d863-43c7-8380-ffa54ebc56af",
+    "title" : "Quy trình xe vào và xe ra",
+    "content" : "Quy trình xe vào và xe ra\nMục đích và đối tượng\nHướng dẫn khách vãng lai và khách dùng vé đăng ký chuẩn bị khi xe vào/ra, nhận biết tình huống cần nhân viên tại bãi. Khách không vận hành cổng qua chat.\nPhạm vi và điều kiện trước\nXe cần đi đúng làn vào/ra tại bãi phù hợp. Làn, cổng, khu vực và bãi phải đáp ứng điều kiện hoạt động; chỗ phù hợp loại xe phải còn khả dụng. Thẻ hoặc QR phải hợp lệ theo loại lượt gửi. Vé đăng ký, phương tiện và chủ vé cần đáp ứng các kiểm tra hiện hành. Không mặc định mọi bãi nhận mọi loại xe.\nGửi xe khi chưa có vé đăng ký\nKhách chưa có vé đăng ký là khách vãng lai trong quy trình vào bãi này. Có thể đến làn vào và dùng thẻ vãng lai theo hướng dẫn nhân viên nếu bãi còn chỗ phù hợp. QR của vé đăng ký không dành cho khách chưa có vé hợp lệ. QR đặt chỗ dùng để đối chiếu đặt chỗ, không tự thay thẻ vãng lai khi ghi nhận xe vào. Không bắt buộc đăng ký vé tháng hoặc đặt chỗ trước chỉ để gửi xe vãng lai. Đặt chỗ trước là lựa chọn khác, chỉ giải thích khi người dùng hỏi hoặc muốn đặt trước.\nLuồng chính\nĐến đúng làn và làm theo nhân viên. Khách vãng lai dùng thẻ vãng lai; khách có vé đăng ký dùng thẻ đã gán hoặc QR của vé hợp lệ. Không dùng đồng thời thẻ và QR của vé đăng ký cho cùng lần ghi nhận.\nNhân viên đối chiếu biển số, hình ảnh, loại xe, thẻ/vé và khả năng nhận xe. Chỉ khi xác nhận thành công mới có lượt gửi đang mở.\nKhi ra, đi đúng làn ra, dùng thông tin phù hợp để tìm lượt đang mở và đối chiếu xe.\nVới lượt cần thu phí, nhân viên kiểm tra hóa đơn và thanh toán trước khi hoàn tất. Khách có vé đăng ký cũng phải đáp ứng điều kiện lượt gửi; không suy ra luôn miễn phí.\nXem trước, ghi nhận thanh toán, kết thúc lượt gửi và điều khiển cổng là các bước khác nhau. Chưa có kết quả từng bước thì không nói tất cả đã hoàn tất.\nNhận dạng sai biển số tại cổng\nNếu hệ thống nhận dạng sai biển số hoặc biển số xe ra không khớp lúc vào, dừng theo hướng dẫn và nhờ nhân viên tại bãi đối chiếu xe, hình ảnh và thẻ hoặc mã QR phù hợp. Người dùng không tự sửa biển số, xác nhận nhận dạng hoặc bỏ qua kiểm tra để ra bãi. Ảnh khó đọc cần kiểm tra thực tế, không kết luận xe đã ra chỉ từ màn hình."
+  }, {
+    "documentId" : "6064df3c-b887-4c61-a061-755b7d6297ef",
+    "chunkId" : "f8167ea4-4c0d-48d1-990a-af9c68e08b16",
+    "title" : "Quy trình xe vào và xe ra",
+    "content" : "Vào bãi bằng vé đăng ký như thế nào? Dùng thẻ đã được gán hoặc mã QR còn hợp lệ của vé đăng ký, đi đúng bãi và làn phù hợp rồi để nhân viên kiểm tra. Vé, xe và chủ vé phải đáp ứng điều kiện hiện hành; biển số phải khớp. Không dùng đồng thời QR của vé đăng ký và thẻ cho cùng một lần ghi nhận.\nVì sao thẻ đang có lượt gửi xe chưa kết thúc không vào lại được? Một thẻ hoặc vé đăng ký không được tạo thêm lượt gửi khi còn lượt chưa kết thúc. Nhờ nhân viên tại bãi kiểm tra lượt trước và tình trạng xe thực tế; không dùng chat để đóng lượt hoặc quét nhiều lần để bỏ qua kiểm tra.\nXe vãng lai ra bãi cần làm gì? Đi đúng làn ra, đưa thẻ và để nhân viên đối chiếu biển số, lượt gửi. Nhân viên kiểm tra phí và hóa đơn; lượt gửi chỉ được hoàn tất khi đáp ứng điều kiện thanh toán và xác nhận. Màn hình báo đã trả tiền không tự chứng minh xe đã ra hoặc cổng đã mở.\nXe dùng vé đăng ký ra bãi như thế nào? Đưa xe đến đúng làn ra và dùng thẻ hoặc mã QR hợp lệ theo vé. Nhân viên kiểm tra lượt gửi đang mở và thông tin xe trước khi hoàn tất. Không tự kết luận mọi vé đăng ký đều được ra miễn phí hoặc bỏ qua điều kiện của lượt gửi.\nBiển số xe ra không khớp lúc vào thì làm sao? Dừng theo hướng dẫn và nhờ nhân viên tại bãi đối chiếu biển số, thẻ hoặc QR và hình ảnh của lượt gửi. Không tự sửa biển số để qua cổng hoặc bỏ qua xác minh. Trợ lý không xác nhận kết quả nhận dạng thay nhân viên.\nCổng bãi xe không mở thì cần làm gì? Giữ xe ở vị trí an toàn theo hướng dẫn và báo nhân viên tại bãi. Cho biết bạn đang vào hay ra, dùng thẻ hay QR và thông báo hiện trên màn hình. Cần kiểm tra lượt gửi, thanh toán và tình trạng cổng; trợ lý không mở cổng hoặc đoán một nguyên nhân duy nhất.\nĐã trả tiền nhưng xe vẫn chưa ra bãi được thì sao? Không thanh toán lại ngay. Báo nhân viên tại bãi để kiểm tra giao dịch đã được ghi nhận, hóa đơn và bước hoàn tất lượt gửi. Giữ thông tin giao dịch cần thiết, không gửi OTP hoặc thông tin thẻ ngân hàng; cần đối chiếu bước kết thúc lượt gửi riêng, không suy ra chỉ từ việc bị trừ tiền.\nVì sao bãi còn chỗ trên bản đồ mà xe không vào được? Số chỗ trên bản đồ là thông tin tại lần tra cứu, không phải chỗ đã được giữ cho bạn. Khi đến, bãi còn phải kiểm tra chỗ phù hợp loại xe, khu vực, thẻ hoặc vé và tình trạng hoạt động. Nhờ nhân viên tại bãi kiểm tra; không coi bản đồ là bảo đảm được vào."
+  }, {
+    "documentId" : "6064df3c-b887-4c61-a061-755b7d6297ef",
+    "chunkId" : "5e2a8db5-8cd7-4398-a2f8-47bb54c16708",
+    "title" : "Quy trình xe vào và xe ra",
+    "content" : "Bản đồ còn chỗ nhưng cổng từ chối xe\nBãi hiển thị còn chỗ không bảo đảm xe được nhận ngay. Khi cổng từ chối xe dù còn chỗ, nhân viên cần kiểm tra chỗ phù hợp loại xe/khu vực, thẻ hoặc vé, lượt gửi và tình trạng hoạt động. Số chỗ là thông tin tại thời điểm tra cứu, không phải chỗ đã được giữ. Báo nhân viên tại bãi để kiểm tra, không tự đặt thêm chỗ hay trả tiền để vượt kiểm tra.\nLuồng thay thế, lỗi và trạng thái\nVé đăng ký có luồng QR và thẻ vật lý; QR hết hiệu lực hoặc đã thay đổi cần được kiểm tra tại bãi.\nCòn lượt chưa kết thúc, thẻ không phù hợp, vé/xe không hợp lệ, bãi đầy hoặc khu vực không nhận loại xe có thể làm xe không vào được.\nBiển số không khớp, ảnh không đọc được hoặc sự cố cổng cần nhân viên đối chiếu. Không hướng dẫn tự sửa dữ liệu hay bỏ qua kiểm tra.\nLượt đang gửi khác lượt đã kết thúc. Báo mất thẻ và hủy lượt có quy trình riêng; chat không đổi các trạng thái này.\nSố chỗ từng ô và khu vực quản lý theo sức chứa có điều kiện phân bổ khác nhau. Thông tin bản đồ không thay thế kiểm tra khi xe đến.\nGiới hạn của trợ lý và chuyển hỗ trợ\nTrợ lý chỉ hướng dẫn. Lịch sử chính chủ chỉ được đọc qua công cụ được cấp quyền; hiện chat không có công cụ mở cổng, ghi nhận xe vào/ra, xem hóa đơn hoặc thu tiền. Không bịa trạng thái hiện tại. Sự cố ngay tại cổng cần báo nhân viên tại bãi; lỗi phần mềm có thể được báo qua hỗ trợ hệ thống đúng hội thoại, quyền và xác nhận. Không tạo phiếu thay cho bước xử lý an toàn tại hiện trường.\nCâu hỏi khách hàng thường gặp\nKhách vãng lai vào bãi xe như thế nào? Khi chưa có vé đăng ký, bạn có thể gửi xe vãng lai: đưa xe vào đúng làn và dùng thẻ vãng lai theo hướng dẫn nhân viên, không bắt buộc đặt chỗ trước. QR của vé đăng ký không thay thế thẻ vãng lai. Khách vãng lai được kiểm tra biển số, loại xe và thẻ phù hợp trước khi ghi nhận lượt gửi; bãi phải còn chỗ. Trợ lý không tự ghi nhận xe vào.\nVào bãi bằng vé đăng ký như thế nào? Dùng thẻ đã được gán hoặc mã QR còn hợp lệ của vé đăng ký, đi đúng bãi và làn phù hợp rồi để nhân viên kiểm tra. Vé, xe và chủ vé phải đáp ứng điều kiện hiện hành; biển số phải khớp. Không dùng đồng thời QR của vé đăng ký và thẻ cho cùng một lần ghi nhận."
+  }, {
+    "documentId" : "c60163ca-6ac8-4f31-b89c-db169cae57e4",
+    "chunkId" : "74b45d41-3a43-4aad-87b7-5bd716ba2542",
+    "title" : "Đặt chỗ trước và thời gian giữ chỗ",
+    "content" : "Đặt chỗ trước và thời gian giữ chỗ\nMục đích\nHướng dẫn đặt chỗ thực có, thời hạn thanh toán, hạn vào bãi và quy định tiền đã trả.\nĐối tượng và phạm vi\nCó luồng công khai và luồng khách đăng nhập. Đây là đặt chỗ cho lượt gửi xe; không phải mua vé tháng và không bảo đảm giữ vô thời hạn hoặc đặt một khung giờ tương lai tùy ý.\nĐiều kiện trước\nBãi và khu vực đang phục vụ, phù hợp loại xe, còn chỗ, biển số hợp lệ và không có yêu cầu/lượt gửi xung đột. Cần đồng ý quy định tính phí, hạn vào bãi và không hoàn tiền đang hiển thị.\nLuồng chính\nMở Đặt chỗ trước, chọn bãi, loại xe, khu vực và ô nếu được chọn.\nNhập biển số thật, đọc và đồng ý quy định.\nChọn Xác nhận và thanh toán; hoàn tất trong mười phút theo thời hạn trang hiển thị.\nChờ hệ thống xác minh thanh toán, rồi vào bãi trước hạn sáu mươi phút tính từ thanh toán thành công.\nKhi ra bãi, hệ thống tính phí từ thời điểm trả tiền và trừ phần đã trả trước.\nLuồng thay thế và lỗi\nChỗ cuối và thay đổi số chỗ trống\nVừa thấy còn chỗ trên màn hình không bảo đảm đặt chỗ cuối sẽ thành công. Nhiều người có thể đang chọn cùng lúc; hệ thống kiểm tra lại chỗ trống khi xác nhận giữ. Nếu người khác vừa giữ chỗ cuối hoặc chỗ không còn phù hợp, hãy chọn lại vị trí hay khu vực còn trống. Chỉ thanh toán cho đặt chỗ được tạo hợp lệ; không đổi biển số giả để tránh kiểm tra trùng.\nNhận tiền trễ và thanh toán cần đối soát\nVới đặt chỗ nhận tiền trễ, hệ thống cần kiểm tra lại giao dịch vì thời gian giữ chỗ có thể đã hết và chỗ đã được giải phóng. Khoản thanh toán cần nhân viên đối soát chưa xác nhận có chỗ cho khách. Hãy liên hệ bộ phận phụ trách để kiểm tra thời điểm, số tiền và giao dịch thực tế; không trả thêm tiền hoặc mặc định được hoàn tiền tự động. Đối soát không đồng nghĩa khôi phục lại chỗ cũ.\nChọn phương thức thanh toán\nLuồng công khai hiện chọn SePay cho khoản dưới mười nghìn đồng và VNPay từ ngưỡng đó theo giao diện/code đã đối chiếu. Phương thức chỉ dùng được khi có cấu hình hợp lệ; luồng tài khoản có thể khác, hãy theo giao diện thực tế.Với khách chưa đăng nhập, thông tin truy cập được lưu theo trình duyệt. Mất thông tin thì nhờ nhân viên kiểm tra với biển số; không gửi mã truy cập hoặc QR vào chat công khai."
+  }, {
+    "documentId" : "0eb4738a-b7fe-4d8a-ad98-1de9f1459061",
+    "chunkId" : "88320f11-3807-4020-b579-1b166df48399",
+    "title" : "Bảng giá và cách tính phí",
+    "content" : "Bảng giá và cách tính phí\nMục đích\nHướng dẫn xem bảng giá và hiểu cách tính phí mà không đoán số tiền phải trả.\nĐối tượng và phạm vi\nKhách xem thông tin công khai; người dùng hỏi về bảng giá theo bãi, loại xe, loại vé và thời điểm. Không dùng tài liệu này để xác nhận hóa đơn của một người cụ thể.\nĐiều kiện trước\nChọn đúng bãi, loại xe, loại vé và thời gian áp dụng. Số tiền hiện hành phải lấy từ dữ liệu hệ thống; ví dụ trong tài liệu không phải báo giá.\nLuồng chính\nMức phí riêng của mỗi bãi\nMức phí khác nhau vì mỗi bãi có bảng giá và thời gian hiệu lực riêng, theo loại xe và loại vé. Khi so sánh, chọn cùng loại xe, loại vé và thời điểm; không kết luận tính sai chỉ vì giá khác bãi khác. Trợ lý không dùng số tiền trong ví dụ làm giá hiện hành.\nXem bảng giá\nMở Bảng giá và chọn bãi xe.\nXem đúng loại xe, loại vé và thời gian áp dụng.\nKiểm tra số tiền trên hóa đơn trước khi thanh toán; khi có đặt chỗ, kiểm tra khoản đã trả trước.\nLuồng thay thế và lỗi\nThiếu hoặc không tìm thấy bảng giá\nKhi bảng giá bị thiếu hoặc chưa hiển thị mức phí, kiểm tra lại bãi, loại xe và loại vé đã chọn. Nếu vẫn chưa có, liên hệ nhân viên bãi hoặc gửi phản ánh lỗi chức năng để được kiểm tra. Không coi giá đang thiếu là miễn phí, không tự lấy giá của bãi khác. Việc chưa có bảng giá khác với hóa đơn có số tiền cần đối chiếu.\nChưa có giá, giá không phù hợp hoặc hóa đơn khác dự kiến: kiểm tra lại lựa chọn và liên hệ bãi để đối chiếu. Không tự thêm phụ thu hoặc dùng giá của bãi khác.\nTrạng thái và giới hạn\nBảng giá có thời gian hiệu lực và có thể ngừng áp dụng. Quy tắc tính lượt gửi được giải thích bên dưới theo code ngày kiểm chứng; không áp nguyên cách này cho giá vé tháng hoặc mọi nghiệp vụ khác.\nCâu hỏi khách hàng thường gặp\nXem bảng giá gửi xe như thế nào? Mở Bảng giá, chọn bãi xe rồi xem đúng loại xe và loại vé. Giá hiển thị phụ thuộc bãi và thời điểm áp dụng; trợ lý không lấy số tiền minh họa làm giá hiện hành.\nVì sao phí gửi xe khác giữa các bãi? Mỗi bãi có bảng giá và thời gian áp dụng riêng. Hãy kiểm tra cùng loại xe, loại vé và thời điểm ở bãi cần gửi; không dùng giá của bãi khác để kết luận hóa đơn bị tính sai."
+  } ]
+}, {
+  "attempts" : [ {
+    "model" : "gemini-3.5-flash-lite",
+    "credential" : "primary",
+    "ms" : 8305,
+    "success" : true,
+    "failure" : null,
+    "inputTokens" : 1436,
+    "outputTokens" : 69,
+    "rawResponse" : "{\"responseText\": \"Khi hệ thống nhận dạng sai biển số ở cổng, bạn cần dừng theo hướng dẫn và nhờ nhân viên tại bãi đối chiếu xe, hình ảnh và thẻ hoặc mã QR phù hợp. Không tự sửa biển số, xác nhận nhận dạng hoặc bỏ qua kiểm tra để ra bãi.\", \"citations\": [\"C1\"]}"
+  } ],
+  "queryVectorMode" : "LIVE_PROVIDER_OR_RECORDED_REAL_VECTOR",
+  "caseId" : "B4-ENT06-4",
+  "batch" : "batch-04-questions.jsonl",
+  "split" : "acceptance",
+  "question" : "minh muon bit can lam gi khi he thong nhan dang sai bien so o cong?",
+  "expectedDocument" : "parking-entry-exit",
+  "personalProbe" : false,
+  "resolvedRetrievalQuery" : "minh muon bit can lam gi khi he thong nhan dang sai bien so o cong?",
+  "retrievalMs" : 22,
+  "citations" : [ {
+    "citationId" : "8f1932ff-6839-4fa8-aed7-d71e50957793",
+    "messageId" : "6f3817c7-7940-4e91-b814-73e36da6fa5c",
+    "documentId" : "6064df3c-b887-4c61-a061-755b7d6297ef",
+    "chunkId" : "9a2c2a8b-d863-43c7-8380-ffa54ebc56af",
+    "label" : "C1",
+    "title" : "Quy trình xe vào và xe ra",
+    "sourcePage" : null,
+    "sourceSection" : "Quy trình xe vào và xe ra",
+    "retrievalScore" : 0.00983607,
+    "retrievalAuditId" : "803be9ee-a8b3-4eff-bf39-80ed65219313",
+    "indexVersionId" : "15597356-a17f-4b79-9ba1-6cf664d8eca6",
+    "citationOrder" : 0
+  } ],
+  "retryEvents" : [ ],
+  "attemptCount" : 1,
+  "jobStatus" : "COMPLETED",
+  "jobError" : null,
+  "answer" : "Khi hệ thống nhận dạng sai biển số ở cổng, bạn cần dừng theo hướng dẫn và nhờ nhân viên tại bãi đối chiếu xe, hình ảnh và thẻ hoặc mã QR phù hợp. Không tự sửa biển số, xác nhận nhận dạng hoặc bỏ qua kiểm tra để ra bãi.",
+  "totalMs" : 8342,
+  "evidenceSufficient" : true,
+  "groundedConfidence" : 0.555,
+  "diagnostic" : null,
+  "hitAt5" : true,
+  "evidence" : [ {
+    "documentId" : "6064df3c-b887-4c61-a061-755b7d6297ef",
+    "chunkId" : "9a2c2a8b-d863-43c7-8380-ffa54ebc56af",
+    "title" : "Quy trình xe vào và xe ra",
+    "content" : "Quy trình xe vào và xe ra\nMục đích và đối tượng\nHướng dẫn khách vãng lai và khách dùng vé đăng ký chuẩn bị khi xe vào/ra, nhận biết tình huống cần nhân viên tại bãi. Khách không vận hành cổng qua chat.\nPhạm vi và điều kiện trước\nXe cần đi đúng làn vào/ra tại bãi phù hợp. Làn, cổng, khu vực và bãi phải đáp ứng điều kiện hoạt động; chỗ phù hợp loại xe phải còn khả dụng. Thẻ hoặc QR phải hợp lệ theo loại lượt gửi. Vé đăng ký, phương tiện và chủ vé cần đáp ứng các kiểm tra hiện hành. Không mặc định mọi bãi nhận mọi loại xe.\nGửi xe khi chưa có vé đăng ký\nKhách chưa có vé đăng ký là khách vãng lai trong quy trình vào bãi này. Có thể đến làn vào và dùng thẻ vãng lai theo hướng dẫn nhân viên nếu bãi còn chỗ phù hợp. QR của vé đăng ký không dành cho khách chưa có vé hợp lệ. QR đặt chỗ dùng để đối chiếu đặt chỗ, không tự thay thẻ vãng lai khi ghi nhận xe vào. Không bắt buộc đăng ký vé tháng hoặc đặt chỗ trước chỉ để gửi xe vãng lai. Đặt chỗ trước là lựa chọn khác, chỉ giải thích khi người dùng hỏi hoặc muốn đặt trước.\nLuồng chính\nĐến đúng làn và làm theo nhân viên. Khách vãng lai dùng thẻ vãng lai; khách có vé đăng ký dùng thẻ đã gán hoặc QR của vé hợp lệ. Không dùng đồng thời thẻ và QR của vé đăng ký cho cùng lần ghi nhận.\nNhân viên đối chiếu biển số, hình ảnh, loại xe, thẻ/vé và khả năng nhận xe. Chỉ khi xác nhận thành công mới có lượt gửi đang mở.\nKhi ra, đi đúng làn ra, dùng thông tin phù hợp để tìm lượt đang mở và đối chiếu xe.\nVới lượt cần thu phí, nhân viên kiểm tra hóa đơn và thanh toán trước khi hoàn tất. Khách có vé đăng ký cũng phải đáp ứng điều kiện lượt gửi; không suy ra luôn miễn phí.\nXem trước, ghi nhận thanh toán, kết thúc lượt gửi và điều khiển cổng là các bước khác nhau. Chưa có kết quả từng bước thì không nói tất cả đã hoàn tất.\nNhận dạng sai biển số tại cổng\nNếu hệ thống nhận dạng sai biển số hoặc biển số xe ra không khớp lúc vào, dừng theo hướng dẫn và nhờ nhân viên tại bãi đối chiếu xe, hình ảnh và thẻ hoặc mã QR phù hợp. Người dùng không tự sửa biển số, xác nhận nhận dạng hoặc bỏ qua kiểm tra để ra bãi. Ảnh khó đọc cần kiểm tra thực tế, không kết luận xe đã ra chỉ từ màn hình."
+  }, {
+    "documentId" : "6064df3c-b887-4c61-a061-755b7d6297ef",
+    "chunkId" : "f8167ea4-4c0d-48d1-990a-af9c68e08b16",
+    "title" : "Quy trình xe vào và xe ra",
+    "content" : "Vào bãi bằng vé đăng ký như thế nào? Dùng thẻ đã được gán hoặc mã QR còn hợp lệ của vé đăng ký, đi đúng bãi và làn phù hợp rồi để nhân viên kiểm tra. Vé, xe và chủ vé phải đáp ứng điều kiện hiện hành; biển số phải khớp. Không dùng đồng thời QR của vé đăng ký và thẻ cho cùng một lần ghi nhận.\nVì sao thẻ đang có lượt gửi xe chưa kết thúc không vào lại được? Một thẻ hoặc vé đăng ký không được tạo thêm lượt gửi khi còn lượt chưa kết thúc. Nhờ nhân viên tại bãi kiểm tra lượt trước và tình trạng xe thực tế; không dùng chat để đóng lượt hoặc quét nhiều lần để bỏ qua kiểm tra.\nXe vãng lai ra bãi cần làm gì? Đi đúng làn ra, đưa thẻ và để nhân viên đối chiếu biển số, lượt gửi. Nhân viên kiểm tra phí và hóa đơn; lượt gửi chỉ được hoàn tất khi đáp ứng điều kiện thanh toán và xác nhận. Màn hình báo đã trả tiền không tự chứng minh xe đã ra hoặc cổng đã mở.\nXe dùng vé đăng ký ra bãi như thế nào? Đưa xe đến đúng làn ra và dùng thẻ hoặc mã QR hợp lệ theo vé. Nhân viên kiểm tra lượt gửi đang mở và thông tin xe trước khi hoàn tất. Không tự kết luận mọi vé đăng ký đều được ra miễn phí hoặc bỏ qua điều kiện của lượt gửi.\nBiển số xe ra không khớp lúc vào thì làm sao? Dừng theo hướng dẫn và nhờ nhân viên tại bãi đối chiếu biển số, thẻ hoặc QR và hình ảnh của lượt gửi. Không tự sửa biển số để qua cổng hoặc bỏ qua xác minh. Trợ lý không xác nhận kết quả nhận dạng thay nhân viên.\nCổng bãi xe không mở thì cần làm gì? Giữ xe ở vị trí an toàn theo hướng dẫn và báo nhân viên tại bãi. Cho biết bạn đang vào hay ra, dùng thẻ hay QR và thông báo hiện trên màn hình. Cần kiểm tra lượt gửi, thanh toán và tình trạng cổng; trợ lý không mở cổng hoặc đoán một nguyên nhân duy nhất.\nĐã trả tiền nhưng xe vẫn chưa ra bãi được thì sao? Không thanh toán lại ngay. Báo nhân viên tại bãi để kiểm tra giao dịch đã được ghi nhận, hóa đơn và bước hoàn tất lượt gửi. Giữ thông tin giao dịch cần thiết, không gửi OTP hoặc thông tin thẻ ngân hàng; cần đối chiếu bước kết thúc lượt gửi riêng, không suy ra chỉ từ việc bị trừ tiền.\nVì sao bãi còn chỗ trên bản đồ mà xe không vào được? Số chỗ trên bản đồ là thông tin tại lần tra cứu, không phải chỗ đã được giữ cho bạn. Khi đến, bãi còn phải kiểm tra chỗ phù hợp loại xe, khu vực, thẻ hoặc vé và tình trạng hoạt động. Nhờ nhân viên tại bãi kiểm tra; không coi bản đồ là bảo đảm được vào."
+  }, {
+    "documentId" : "6064df3c-b887-4c61-a061-755b7d6297ef",
+    "chunkId" : "5e2a8db5-8cd7-4398-a2f8-47bb54c16708",
+    "title" : "Quy trình xe vào và xe ra",
+    "content" : "Bản đồ còn chỗ nhưng cổng từ chối xe\nBãi hiển thị còn chỗ không bảo đảm xe được nhận ngay. Khi cổng từ chối xe dù còn chỗ, nhân viên cần kiểm tra chỗ phù hợp loại xe/khu vực, thẻ hoặc vé, lượt gửi và tình trạng hoạt động. Số chỗ là thông tin tại thời điểm tra cứu, không phải chỗ đã được giữ. Báo nhân viên tại bãi để kiểm tra, không tự đặt thêm chỗ hay trả tiền để vượt kiểm tra.\nLuồng thay thế, lỗi và trạng thái\nVé đăng ký có luồng QR và thẻ vật lý; QR hết hiệu lực hoặc đã thay đổi cần được kiểm tra tại bãi.\nCòn lượt chưa kết thúc, thẻ không phù hợp, vé/xe không hợp lệ, bãi đầy hoặc khu vực không nhận loại xe có thể làm xe không vào được.\nBiển số không khớp, ảnh không đọc được hoặc sự cố cổng cần nhân viên đối chiếu. Không hướng dẫn tự sửa dữ liệu hay bỏ qua kiểm tra.\nLượt đang gửi khác lượt đã kết thúc. Báo mất thẻ và hủy lượt có quy trình riêng; chat không đổi các trạng thái này.\nSố chỗ từng ô và khu vực quản lý theo sức chứa có điều kiện phân bổ khác nhau. Thông tin bản đồ không thay thế kiểm tra khi xe đến.\nGiới hạn của trợ lý và chuyển hỗ trợ\nTrợ lý chỉ hướng dẫn. Lịch sử chính chủ chỉ được đọc qua công cụ được cấp quyền; hiện chat không có công cụ mở cổng, ghi nhận xe vào/ra, xem hóa đơn hoặc thu tiền. Không bịa trạng thái hiện tại. Sự cố ngay tại cổng cần báo nhân viên tại bãi; lỗi phần mềm có thể được báo qua hỗ trợ hệ thống đúng hội thoại, quyền và xác nhận. Không tạo phiếu thay cho bước xử lý an toàn tại hiện trường.\nCâu hỏi khách hàng thường gặp\nKhách vãng lai vào bãi xe như thế nào? Khi chưa có vé đăng ký, bạn có thể gửi xe vãng lai: đưa xe vào đúng làn và dùng thẻ vãng lai theo hướng dẫn nhân viên, không bắt buộc đặt chỗ trước. QR của vé đăng ký không thay thế thẻ vãng lai. Khách vãng lai được kiểm tra biển số, loại xe và thẻ phù hợp trước khi ghi nhận lượt gửi; bãi phải còn chỗ. Trợ lý không tự ghi nhận xe vào.\nVào bãi bằng vé đăng ký như thế nào? Dùng thẻ đã được gán hoặc mã QR còn hợp lệ của vé đăng ký, đi đúng bãi và làn phù hợp rồi để nhân viên kiểm tra. Vé, xe và chủ vé phải đáp ứng điều kiện hiện hành; biển số phải khớp. Không dùng đồng thời QR của vé đăng ký và thẻ cho cùng một lần ghi nhận."
+  }, {
+    "documentId" : "ad4ff79c-3b08-4810-85a8-faeba5dff452",
+    "chunkId" : "ff89ce4a-aa3c-4d44-8210-07b914dcb7c8",
+    "title" : "Lỗi thường gặp và hướng xử lý",
+    "content" : "Lỗi thường gặp và hướng xử lý\nMục đích và nguyên tắc\nGiúp người dùng xử lý lỗi theo đúng chức năng và bước thực hiện. Không chẩn đoán một nguyên nhân duy nhất khi chưa có bằng chứng, không mặc định lỗi nào cũng cần làm mới, đăng nhập lại hoặc tạo phiếu.\nThông tin nên hỏi\nHỏi ngắn gọn chức năng, bước đang làm, thời điểm và thông báo trên màn hình. Khi cần đăng nhập, hỏi phương thức Google hay tài khoản/mật khẩu nếu chưa biết. Nếu người dùng đã nêu phương thức hoặc bước thì không hỏi lại điều đó. Không yêu cầu mật khẩu, OTP, cookie, token, API key hoặc ảnh giấy tờ đầy đủ.\nLuồng xử lý an toàn\nPhân biệt đang hỏi cách làm, đang báo lỗi hay cần kiểm tra dữ liệu riêng. Chỉ đọc dữ liệu chính chủ qua công cụ thực sự có quyền.\nVới đăng nhập chung chưa rõ lỗi: hỏi phương thức và thông báo trước; không bắt đầu bằng Quên mật khẩu. Chỉ dùng khôi phục mật khẩu khi phù hợp.\nVới lỗi kết nối: kiểm tra mạng và kết quả thao tác cũ. Thử lại thao tác đọc khác với lặp thanh toán/tạo yêu cầu.\nVới thiếu quyền: kiểm tra đúng tài khoản và phạm vi bãi, nhờ quản lý phân quyền khi cần. Làm mới hay đăng nhập lại không tự cấp quyền.\nVới dữ liệu chưa thấy: kiểm tra bộ lọc và phạm vi của đúng màn hình. Lịch sử theo ngày phải chọn Khoảng ngày; Xóa lọc không thay thế việc chọn ngày.\nVới mất thẻ: tách điều kiện lập phiếu và điều kiện hoàn tất. Lập phiếu cần kiểm tra quyền/bãi, đúng thẻ/lượt gửi, xác minh và phiếu đang mở. Hoàn tất cần thanh toán ghi nhận và thẻ thay thế phù hợp nếu có.\nVới đã trừ tiền: không trả lại ngay. Đối chiếu hóa đơn và giao dịch, nhờ bộ phận phụ trách kiểm tra. Chat chưa có công cụ xem hóa đơn hay hoàn tiền.\nVới trợ lý đang xử lý/thử lại: chờ kết quả, tránh gửi trùng. Khi đã dừng và có Thử lại thì dùng một lần phù hợp; kiểm tra thao tác cũ trước khi lặp nghiệp vụ.\nChuyển hỗ trợ và giới hạn\nSự cố tại cổng cần nhân viên tại bãi; thiếu quyền cần người quản lý; lỗi chức năng tái diễn dùng hỗ trợ hệ thống đúng kênh; sai lệch giao dịch cần đối soát. Không tự tạo phiếu, chuyển tiền, hoàn tiền hoặc gửi thông báo. Dữ liệu thẻ, hóa đơn và trạng thái job không được giả vờ tra cứu khi chưa có công cụ đó. Không hướng dẫn tắt bảo mật, mượn tài khoản hoặc vượt quyền."
+  }, {
+    "documentId" : "ad4ff79c-3b08-4810-85a8-faeba5dff452",
+    "chunkId" : "eb6b08d2-e478-4946-8f25-4e1812e5b0bd",
+    "title" : "Lỗi thường gặp và hướng xử lý",
+    "content" : "Câu hỏi khách hàng thường gặp\nTôi không đăng nhập được thì phải làm sao? Bạn đang đăng nhập bằng Google hay bằng tài khoản và mật khẩu? Màn hình hiện thông báo gì và lỗi ở bước nào? Chỉ hướng dẫn Quên mật khẩu khi phù hợp với phương thức và lỗi; không tự cho rằng bạn quên mật khẩu.\nĐăng nhập Google chỉ lỗi ở cửa sổ thường thì làm sao? So sánh thông báo lỗi, thử tắt tiện ích liên quan hoặc xóa dữ liệu trang đăng nhập khi phù hợp, rồi đăng nhập lại. Xóa dữ liệu trang có thể làm bạn đăng xuất. Việc ẩn danh vào được chưa đủ chứng minh backend hỏng; không gửi cookie hoặc token để nhờ kiểm tra.\nLỗi kết nối Failed to fetch là gì? Đây là thông báo không kết nối được, chưa đủ để xác định nguyên nhân. Kiểm tra mạng và thử lại thao tác đọc khi phù hợp; nếu đang gửi thanh toán hoặc tạo yêu cầu, kiểm tra kết quả trước khi gửi lại để tránh trùng. Ghi màn hình, thời điểm và thông báo, không gửi bí mật đăng nhập.\nBáo không có quyền dùng chức năng thì làm sao? Kiểm tra bạn đang dùng đúng tài khoản, chức năng và bãi được phân công. Nếu công việc cần quyền đó, nhờ người quản lý kiểm tra phân quyền; đăng nhập lại không tự cấp thêm quyền. Không mượn tài khoản hoặc tìm cách bỏ qua kiểm tra.\nKhông thấy lượt gửi xe theo ngày thì làm sao? Mở Lịch sử gửi xe, chọn Khoảng ngày với ngày bắt đầu và ngày kết thúc phù hợp, ngày kết thúc không trước ngày bắt đầu, rồi kiểm tra phương tiện và trạng thái đang lọc. Xóa lọc chỉ để bỏ bộ lọc cũ không phù hợp, không thay thế việc chọn ngày cần tìm. Nếu vẫn thiếu, nhờ nhân viên đối chiếu; chat chưa tự lọc lịch sử theo ngày.\nĐiều kiện lập phiếu báo mất thẻ là gì? Nhờ nhân viên bãi kiểm tra quyền và phạm vi bãi, đúng thẻ và lượt gửi, thông tin xác minh và có phiếu đang mở cho cùng thẻ hoặc lượt gửi hay chưa. Không lập nhiều phiếu khi chưa rõ kết quả. Phiếu hỗ trợ báo lỗi phần mềm không thay thế phiếu báo mất thẻ. Thanh toán và thẻ thay thế được kiểm tra ở bước hoàn tất, không phải điều kiện chung để lập phiếu lần đầu.\nVì sao chưa hoàn tất phiếu báo mất thẻ được? Nhờ nhân viên kiểm tra thanh toán đã được ghi nhận đầy đủ và điều kiện hoàn tất của phiếu. Nếu cần thay thẻ, thẻ thay thế phải còn sẵn sàng, đúng loại và cùng bãi. Không tự dùng lại thẻ đã báo mất hoặc trả tiền lại khi chưa đối chiếu giao dịch."
+  } ]
+}, {
+  "attempts" : [ {
+    "model" : "gemini-3.5-flash-lite",
+    "credential" : "primary",
+    "ms" : 1393,
+    "success" : true,
+    "failure" : null,
+    "inputTokens" : 1566,
+    "outputTokens" : 70,
+    "rawResponse" : "{\n  \"responseText\": \"Bạn hãy dừng lại theo hướng dẫn và nhờ nhân viên tại bãi đối chiếu xe, hình ảnh và thẻ hoặc mã QR phù hợp. Bạn không được tự sửa biển số, xác nhận nhận dạng hay bỏ qua kiểm tra.\",\n  \"citations\": [\n    \"C1\"\n  ]\n}"
+  } ],
+  "queryVectorMode" : "LIVE_PROVIDER_OR_RECORDED_REAL_VECTOR",
+  "caseId" : "B4-ENT06-6",
+  "batch" : "batch-04-questions.jsonl",
+  "split" : "acceptance",
+  "question" : "Nếu biển số không khớp thì phải làm sao?",
+  "expectedDocument" : "parking-entry-exit",
+  "personalProbe" : false,
+  "resolvedRetrievalQuery" : "Nếu biển số không khớp thì phải làm sao?",
+  "retrievalMs" : 25,
+  "citations" : [ {
+    "citationId" : "8e617252-da68-41e2-9e5f-3c84ed6ff174",
+    "messageId" : "6a2b1785-10e4-4bb7-9c7b-df1d763c3a78",
+    "documentId" : "6064df3c-b887-4c61-a061-755b7d6297ef",
+    "chunkId" : "9a2c2a8b-d863-43c7-8380-ffa54ebc56af",
+    "label" : "C1",
+    "title" : "Quy trình xe vào và xe ra",
+    "sourcePage" : null,
+    "sourceSection" : "Quy trình xe vào và xe ra",
+    "retrievalScore" : 0.01639344,
+    "retrievalAuditId" : "1fde7a1e-94ce-4024-bf5c-6dd24304f601",
+    "indexVersionId" : "15597356-a17f-4b79-9ba1-6cf664d8eca6",
+    "citationOrder" : 0
+  } ],
+  "retryEvents" : [ ],
+  "attemptCount" : 1,
+  "jobStatus" : "COMPLETED",
+  "jobError" : null,
+  "answer" : "Bạn hãy dừng lại theo hướng dẫn và nhờ nhân viên tại bãi đối chiếu xe, hình ảnh và thẻ hoặc mã QR phù hợp. Bạn không được tự sửa biển số, xác nhận nhận dạng hay bỏ qua kiểm tra.",
+  "totalMs" : 1435,
+  "evidenceSufficient" : true,
+  "groundedConfidence" : 0.727,
+  "diagnostic" : null,
+  "hitAt5" : true,
+  "evidence" : [ {
+    "documentId" : "6064df3c-b887-4c61-a061-755b7d6297ef",
+    "chunkId" : "9a2c2a8b-d863-43c7-8380-ffa54ebc56af",
+    "title" : "Quy trình xe vào và xe ra",
+    "content" : "Quy trình xe vào và xe ra\nMục đích và đối tượng\nHướng dẫn khách vãng lai và khách dùng vé đăng ký chuẩn bị khi xe vào/ra, nhận biết tình huống cần nhân viên tại bãi. Khách không vận hành cổng qua chat.\nPhạm vi và điều kiện trước\nXe cần đi đúng làn vào/ra tại bãi phù hợp. Làn, cổng, khu vực và bãi phải đáp ứng điều kiện hoạt động; chỗ phù hợp loại xe phải còn khả dụng. Thẻ hoặc QR phải hợp lệ theo loại lượt gửi. Vé đăng ký, phương tiện và chủ vé cần đáp ứng các kiểm tra hiện hành. Không mặc định mọi bãi nhận mọi loại xe.\nGửi xe khi chưa có vé đăng ký\nKhách chưa có vé đăng ký là khách vãng lai trong quy trình vào bãi này. Có thể đến làn vào và dùng thẻ vãng lai theo hướng dẫn nhân viên nếu bãi còn chỗ phù hợp. QR của vé đăng ký không dành cho khách chưa có vé hợp lệ. QR đặt chỗ dùng để đối chiếu đặt chỗ, không tự thay thẻ vãng lai khi ghi nhận xe vào. Không bắt buộc đăng ký vé tháng hoặc đặt chỗ trước chỉ để gửi xe vãng lai. Đặt chỗ trước là lựa chọn khác, chỉ giải thích khi người dùng hỏi hoặc muốn đặt trước.\nLuồng chính\nĐến đúng làn và làm theo nhân viên. Khách vãng lai dùng thẻ vãng lai; khách có vé đăng ký dùng thẻ đã gán hoặc QR của vé hợp lệ. Không dùng đồng thời thẻ và QR của vé đăng ký cho cùng lần ghi nhận.\nNhân viên đối chiếu biển số, hình ảnh, loại xe, thẻ/vé và khả năng nhận xe. Chỉ khi xác nhận thành công mới có lượt gửi đang mở.\nKhi ra, đi đúng làn ra, dùng thông tin phù hợp để tìm lượt đang mở và đối chiếu xe.\nVới lượt cần thu phí, nhân viên kiểm tra hóa đơn và thanh toán trước khi hoàn tất. Khách có vé đăng ký cũng phải đáp ứng điều kiện lượt gửi; không suy ra luôn miễn phí.\nXem trước, ghi nhận thanh toán, kết thúc lượt gửi và điều khiển cổng là các bước khác nhau. Chưa có kết quả từng bước thì không nói tất cả đã hoàn tất.\nNhận dạng sai biển số tại cổng\nNếu hệ thống nhận dạng sai biển số hoặc biển số xe ra không khớp lúc vào, dừng theo hướng dẫn và nhờ nhân viên tại bãi đối chiếu xe, hình ảnh và thẻ hoặc mã QR phù hợp. Người dùng không tự sửa biển số, xác nhận nhận dạng hoặc bỏ qua kiểm tra để ra bãi. Ảnh khó đọc cần kiểm tra thực tế, không kết luận xe đã ra chỉ từ màn hình."
+  }, {
+    "documentId" : "6064df3c-b887-4c61-a061-755b7d6297ef",
+    "chunkId" : "f8167ea4-4c0d-48d1-990a-af9c68e08b16",
+    "title" : "Quy trình xe vào và xe ra",
+    "content" : "Vào bãi bằng vé đăng ký như thế nào? Dùng thẻ đã được gán hoặc mã QR còn hợp lệ của vé đăng ký, đi đúng bãi và làn phù hợp rồi để nhân viên kiểm tra. Vé, xe và chủ vé phải đáp ứng điều kiện hiện hành; biển số phải khớp. Không dùng đồng thời QR của vé đăng ký và thẻ cho cùng một lần ghi nhận.\nVì sao thẻ đang có lượt gửi xe chưa kết thúc không vào lại được? Một thẻ hoặc vé đăng ký không được tạo thêm lượt gửi khi còn lượt chưa kết thúc. Nhờ nhân viên tại bãi kiểm tra lượt trước và tình trạng xe thực tế; không dùng chat để đóng lượt hoặc quét nhiều lần để bỏ qua kiểm tra.\nXe vãng lai ra bãi cần làm gì? Đi đúng làn ra, đưa thẻ và để nhân viên đối chiếu biển số, lượt gửi. Nhân viên kiểm tra phí và hóa đơn; lượt gửi chỉ được hoàn tất khi đáp ứng điều kiện thanh toán và xác nhận. Màn hình báo đã trả tiền không tự chứng minh xe đã ra hoặc cổng đã mở.\nXe dùng vé đăng ký ra bãi như thế nào? Đưa xe đến đúng làn ra và dùng thẻ hoặc mã QR hợp lệ theo vé. Nhân viên kiểm tra lượt gửi đang mở và thông tin xe trước khi hoàn tất. Không tự kết luận mọi vé đăng ký đều được ra miễn phí hoặc bỏ qua điều kiện của lượt gửi.\nBiển số xe ra không khớp lúc vào thì làm sao? Dừng theo hướng dẫn và nhờ nhân viên tại bãi đối chiếu biển số, thẻ hoặc QR và hình ảnh của lượt gửi. Không tự sửa biển số để qua cổng hoặc bỏ qua xác minh. Trợ lý không xác nhận kết quả nhận dạng thay nhân viên.\nCổng bãi xe không mở thì cần làm gì? Giữ xe ở vị trí an toàn theo hướng dẫn và báo nhân viên tại bãi. Cho biết bạn đang vào hay ra, dùng thẻ hay QR và thông báo hiện trên màn hình. Cần kiểm tra lượt gửi, thanh toán và tình trạng cổng; trợ lý không mở cổng hoặc đoán một nguyên nhân duy nhất.\nĐã trả tiền nhưng xe vẫn chưa ra bãi được thì sao? Không thanh toán lại ngay. Báo nhân viên tại bãi để kiểm tra giao dịch đã được ghi nhận, hóa đơn và bước hoàn tất lượt gửi. Giữ thông tin giao dịch cần thiết, không gửi OTP hoặc thông tin thẻ ngân hàng; cần đối chiếu bước kết thúc lượt gửi riêng, không suy ra chỉ từ việc bị trừ tiền.\nVì sao bãi còn chỗ trên bản đồ mà xe không vào được? Số chỗ trên bản đồ là thông tin tại lần tra cứu, không phải chỗ đã được giữ cho bạn. Khi đến, bãi còn phải kiểm tra chỗ phù hợp loại xe, khu vực, thẻ hoặc vé và tình trạng hoạt động. Nhờ nhân viên tại bãi kiểm tra; không coi bản đồ là bảo đảm được vào."
+  }, {
+    "documentId" : "c60163ca-6ac8-4f31-b89c-db169cae57e4",
+    "chunkId" : "dd95df8f-02f0-4861-bae3-6d76df5e9bc0",
+    "title" : "Đặt chỗ trước và thời gian giữ chỗ",
+    "content" : "Hai người cùng đặt chỗ cuối cùng thì sao? Số chỗ hiển thị có thể thay đổi trước khi bạn xác nhận. Hệ thống kiểm tra lại khi giữ chỗ; nếu chỗ cuối vừa được người khác giữ, yêu cầu có thể bị từ chối. Chọn lại chỗ hoặc khu vực khác, không thanh toán cho một đặt chỗ chưa được tạo hợp lệ.\nĐặt chỗ báo biển số đã có yêu cầu còn hiệu lực thì làm sao? Kiểm tra đặt chỗ đang còn hiệu lực của biển số trong khu vực và xem xe có lượt gửi chưa kết thúc tại bãi không. Hệ thống chặn các trường hợp trùng đang hoạt động; không đổi biển số giả để tạo thêm yêu cầu.\nThanh toán đặt chỗ bị báo cần nhân viên đối soát thì sao? Khoản thanh toán có thể đến khi thời gian giữ chỗ đã hết hoặc không còn đủ điều kiện xác nhận. Trạng thái cần nhân viên đối soát chưa bảo đảm có chỗ đã được giữ. Liên hệ bộ phận phụ trách với thông tin giao dịch cần thiết; không tự trả thêm hoặc mặc định đã có chỗ.\nĐặt chỗ chọn vị trí cụ thể khác giữ số lượng thế nào? Khu vực quản lý từng ô cho chọn chỗ cụ thể còn phù hợp. Khu vực quản lý theo sức chứa chỉ giữ số lượng chỗ, không chọn một ô riêng. Cả hai đều phải còn chỗ và phù hợp loại xe tại thời điểm xác nhận.\nĐiều chatbot được phép trả lời\nGiải thích hướng dẫn, điều kiện và giới hạn đã được kiểm chứng. Trả lời bằng từ ngữ dễ hiểu; không đưa tên trạng thái kỹ thuật vào câu trả lời.\nĐiều chatbot phải dùng business tool\nThông tin cá nhân, giá hiện hành, số tiền hoặc trạng thái cụ thể chỉ được xác nhận bằng nguồn dữ liệu có thẩm quyền và đúng quyền. Nếu chưa có tool phù hợp, hướng dẫn mở module nghiệp vụ hoặc liên hệ bộ phận phụ trách; không giả lập kết quả.\nĐiều chatbot phải từ chối\nKhông tự thực hiện thanh toán, hoàn tiền, đặt/hủy chỗ, áp mã hay sửa hóa đơn. Không yêu cầu mật khẩu, mã xác minh, thông tin thẻ bí mật, mã truy cập đặt chỗ hoặc QR riêng tư. Không hứa chắc số tiền, hiệu lực hoặc thời hạn chưa có nguồn.\nKhi nào chuyển nhân viên\nGiao dịch bất thường, tiền đã trừ chưa rõ kết quả, tranh chấp hoặc cần kiểm tra dữ liệu riêng ngoài khả năng tra cứu được cấp. Phân biệt liên hệ bãi xử lý nghiệp vụ với báo lỗi chức năng hệ thống; không tự tạo phiếu thay cho mọi yêu cầu tài chính."
+  }, {
+    "documentId" : "6064df3c-b887-4c61-a061-755b7d6297ef",
+    "chunkId" : "5e2a8db5-8cd7-4398-a2f8-47bb54c16708",
+    "title" : "Quy trình xe vào và xe ra",
+    "content" : "Bản đồ còn chỗ nhưng cổng từ chối xe\nBãi hiển thị còn chỗ không bảo đảm xe được nhận ngay. Khi cổng từ chối xe dù còn chỗ, nhân viên cần kiểm tra chỗ phù hợp loại xe/khu vực, thẻ hoặc vé, lượt gửi và tình trạng hoạt động. Số chỗ là thông tin tại thời điểm tra cứu, không phải chỗ đã được giữ. Báo nhân viên tại bãi để kiểm tra, không tự đặt thêm chỗ hay trả tiền để vượt kiểm tra.\nLuồng thay thế, lỗi và trạng thái\nVé đăng ký có luồng QR và thẻ vật lý; QR hết hiệu lực hoặc đã thay đổi cần được kiểm tra tại bãi.\nCòn lượt chưa kết thúc, thẻ không phù hợp, vé/xe không hợp lệ, bãi đầy hoặc khu vực không nhận loại xe có thể làm xe không vào được.\nBiển số không khớp, ảnh không đọc được hoặc sự cố cổng cần nhân viên đối chiếu. Không hướng dẫn tự sửa dữ liệu hay bỏ qua kiểm tra.\nLượt đang gửi khác lượt đã kết thúc. Báo mất thẻ và hủy lượt có quy trình riêng; chat không đổi các trạng thái này.\nSố chỗ từng ô và khu vực quản lý theo sức chứa có điều kiện phân bổ khác nhau. Thông tin bản đồ không thay thế kiểm tra khi xe đến.\nGiới hạn của trợ lý và chuyển hỗ trợ\nTrợ lý chỉ hướng dẫn. Lịch sử chính chủ chỉ được đọc qua công cụ được cấp quyền; hiện chat không có công cụ mở cổng, ghi nhận xe vào/ra, xem hóa đơn hoặc thu tiền. Không bịa trạng thái hiện tại. Sự cố ngay tại cổng cần báo nhân viên tại bãi; lỗi phần mềm có thể được báo qua hỗ trợ hệ thống đúng hội thoại, quyền và xác nhận. Không tạo phiếu thay cho bước xử lý an toàn tại hiện trường.\nCâu hỏi khách hàng thường gặp\nKhách vãng lai vào bãi xe như thế nào? Khi chưa có vé đăng ký, bạn có thể gửi xe vãng lai: đưa xe vào đúng làn và dùng thẻ vãng lai theo hướng dẫn nhân viên, không bắt buộc đặt chỗ trước. QR của vé đăng ký không thay thế thẻ vãng lai. Khách vãng lai được kiểm tra biển số, loại xe và thẻ phù hợp trước khi ghi nhận lượt gửi; bãi phải còn chỗ. Trợ lý không tự ghi nhận xe vào.\nVào bãi bằng vé đăng ký như thế nào? Dùng thẻ đã được gán hoặc mã QR còn hợp lệ của vé đăng ký, đi đúng bãi và làn phù hợp rồi để nhân viên kiểm tra. Vé, xe và chủ vé phải đáp ứng điều kiện hiện hành; biển số phải khớp. Không dùng đồng thời QR của vé đăng ký và thẻ cho cùng một lần ghi nhận."
+  }, {
+    "documentId" : "ad4ff79c-3b08-4810-85a8-faeba5dff452",
+    "chunkId" : "a7062f07-de34-41e1-9b41-f5128ffd5a41",
+    "title" : "Lỗi thường gặp và hướng xử lý",
+    "content" : "Vì sao chưa hoàn tất phiếu báo mất thẻ được? Nhờ nhân viên kiểm tra thanh toán đã được ghi nhận đầy đủ và điều kiện hoàn tất của phiếu. Nếu cần thay thẻ, thẻ thay thế phải còn sẵn sàng, đúng loại và cùng bãi. Không tự dùng lại thẻ đã báo mất hoặc trả tiền lại khi chưa đối chiếu giao dịch.\nChatbot đang thử lại thì cần làm gì? Khi trợ lý đang xử lý hoặc thử lại, hãy chờ kết quả thay vì gửi cùng yêu cầu nhiều lần. Nếu đã báo dừng hoặc thất bại và có nút Thử lại, có thể thử lại một lần; trước khi lặp thao tác nghiệp vụ, kiểm tra kết quả cũ. Trợ lý nhận tin chưa chứng minh yêu cầu đã được thực hiện; hãy kiểm tra kết quả trên chức năng tương ứng.\nĐã trừ tiền nhưng trạng thái thanh toán chưa cập nhật thì làm sao? Không thanh toán lại ngay. Xem kết quả giao dịch và hóa đơn trong chức năng đã dùng, giữ mã giao dịch cần thiết rồi liên hệ bộ phận phụ trách hoặc nhân viên bãi để đối soát. Trợ lý chưa tra trực tiếp hóa đơn hoặc hoàn tiền trong chat; trang trả về từ cổng thanh toán chưa tự chứng minh đã ghi nhận thành công."
+  } ]
+}, {
+  "attempts" : [ ],
+  "queryVectorMode" : "LIVE_PROVIDER_OR_RECORDED_REAL_VECTOR",
+  "caseId" : "B4-ENT09-4",
+  "batch" : "batch-04-questions.jsonl",
+  "split" : "acceptance",
+  "question" : "minh muon bit bai hien thi con cho nhung cong tu choi xe thi can kiem tra gi?",
+  "expectedDocument" : "parking-entry-exit",
+  "personalProbe" : false,
+  "resolvedRetrievalQuery" : "minh muon bit bai hien thi con cho nhung cong tu choi xe thi can kiem tra gi?",
+  "retrievalMs" : 19,
+  "retryEvents" : [ ],
+  "attemptCount" : 1,
+  "jobStatus" : "COMPLETED",
+  "jobError" : null,
+  "answer" : "Tôi chưa tìm thấy thông tin chính thức để trả lời chắc chắn. Bạn vui lòng tạo phiếu hỗ trợ để nhân viên CoParking xử lý trực tiếp nhé.",
+  "totalMs" : 20,
+  "evidenceSufficient" : false,
+  "groundedConfidence" : 0.545,
+  "diagnostic" : "INSUFFICIENT_EVIDENCE",
+  "hitAt5" : true,
+  "evidence" : [ {
+    "documentId" : "6064df3c-b887-4c61-a061-755b7d6297ef",
+    "chunkId" : "5e2a8db5-8cd7-4398-a2f8-47bb54c16708",
+    "title" : "Quy trình xe vào và xe ra",
+    "content" : "Bản đồ còn chỗ nhưng cổng từ chối xe\nBãi hiển thị còn chỗ không bảo đảm xe được nhận ngay. Khi cổng từ chối xe dù còn chỗ, nhân viên cần kiểm tra chỗ phù hợp loại xe/khu vực, thẻ hoặc vé, lượt gửi và tình trạng hoạt động. Số chỗ là thông tin tại thời điểm tra cứu, không phải chỗ đã được giữ. Báo nhân viên tại bãi để kiểm tra, không tự đặt thêm chỗ hay trả tiền để vượt kiểm tra.\nLuồng thay thế, lỗi và trạng thái\nVé đăng ký có luồng QR và thẻ vật lý; QR hết hiệu lực hoặc đã thay đổi cần được kiểm tra tại bãi.\nCòn lượt chưa kết thúc, thẻ không phù hợp, vé/xe không hợp lệ, bãi đầy hoặc khu vực không nhận loại xe có thể làm xe không vào được.\nBiển số không khớp, ảnh không đọc được hoặc sự cố cổng cần nhân viên đối chiếu. Không hướng dẫn tự sửa dữ liệu hay bỏ qua kiểm tra.\nLượt đang gửi khác lượt đã kết thúc. Báo mất thẻ và hủy lượt có quy trình riêng; chat không đổi các trạng thái này.\nSố chỗ từng ô và khu vực quản lý theo sức chứa có điều kiện phân bổ khác nhau. Thông tin bản đồ không thay thế kiểm tra khi xe đến.\nGiới hạn của trợ lý và chuyển hỗ trợ\nTrợ lý chỉ hướng dẫn. Lịch sử chính chủ chỉ được đọc qua công cụ được cấp quyền; hiện chat không có công cụ mở cổng, ghi nhận xe vào/ra, xem hóa đơn hoặc thu tiền. Không bịa trạng thái hiện tại. Sự cố ngay tại cổng cần báo nhân viên tại bãi; lỗi phần mềm có thể được báo qua hỗ trợ hệ thống đúng hội thoại, quyền và xác nhận. Không tạo phiếu thay cho bước xử lý an toàn tại hiện trường.\nCâu hỏi khách hàng thường gặp\nKhách vãng lai vào bãi xe như thế nào? Khi chưa có vé đăng ký, bạn có thể gửi xe vãng lai: đưa xe vào đúng làn và dùng thẻ vãng lai theo hướng dẫn nhân viên, không bắt buộc đặt chỗ trước. QR của vé đăng ký không thay thế thẻ vãng lai. Khách vãng lai được kiểm tra biển số, loại xe và thẻ phù hợp trước khi ghi nhận lượt gửi; bãi phải còn chỗ. Trợ lý không tự ghi nhận xe vào.\nVào bãi bằng vé đăng ký như thế nào? Dùng thẻ đã được gán hoặc mã QR còn hợp lệ của vé đăng ký, đi đúng bãi và làn phù hợp rồi để nhân viên kiểm tra. Vé, xe và chủ vé phải đáp ứng điều kiện hiện hành; biển số phải khớp. Không dùng đồng thời QR của vé đăng ký và thẻ cho cùng một lần ghi nhận."
+  }, {
+    "documentId" : "244dc11d-6cfe-464b-b34a-16ba5ea13311",
+    "chunkId" : "bb125e47-63b9-4b7d-8119-f2c2596d4a35",
+    "title" : "Giờ hoạt động, liên hệ và thời gian phản hồi",
+    "content" : "Bãi còn hoạt động có nghĩa đang mở cửa không? Không. Trạng thái hoạt động của bãi không tự xác nhận giờ mở cửa hoặc khả năng nhận xe ngay lúc này. Còn phải kiểm tra thông tin giờ của bãi, chỗ phù hợp loại xe và điều kiện vận hành; liên hệ nhân viên bãi khi chưa rõ.\nThông tin liên hệ hoặc giờ mở cửa mâu thuẫn thì làm sao? Không tự chọn một giá trị để khẳng định. Cho biết bãi và thông tin đang mâu thuẫn, rồi xác nhận với kênh chính thức hoặc nhân viên bãi. Không lấy địa chỉ mẫu, bản cũ hoặc nội dung đã hết hiệu lực làm cam kết."
+  }, {
+    "documentId" : "7d79c270-1503-4f72-bf90-5d0b51fb893d",
+    "chunkId" : "fe10076e-e19c-444b-a5d0-8672ef52f614",
+    "title" : "Tìm bãi, bản đồ và chỉ đường",
+    "content" : "Chỉ đường đến bãi xe như thế nào? Chọn bãi trong kết quả và dùng nút chỉ đường để mở Google Maps. Khoảng cách tìm bãi là khoảng cách địa lý quanh điểm đã chọn, không phải cam kết quãng đường hoặc thời gian lái xe. Xem tuyến đường thực tế trên ứng dụng bản đồ.\nBãi xe nào gần tôi hiện còn chỗ? Trợ lý chưa tra cứu trực tiếp vị trí và số chỗ hiện tại trong chat. Mở Tìm bãi xe, chọn vị trí và xem kết quả của bãi phù hợp loại xe. Số chỗ có thể thay đổi; xem trên bản đồ chưa phải đặt hoặc giữ chỗ.\nTìm bãi trên bản đồ có tự giữ chỗ không? Không. Tìm bãi và chỉ đường chỉ giúp xem thông tin, không tạo đặt chỗ hoặc giữ chỗ. Muốn đặt trước, mở Đặt chỗ trước và kiểm tra điều kiện, thời hạn, số tiền rồi xác nhận theo giao diện; thông tin còn chỗ có thể thay đổi."
+  }, {
+    "documentId" : "6064df3c-b887-4c61-a061-755b7d6297ef",
+    "chunkId" : "9a2c2a8b-d863-43c7-8380-ffa54ebc56af",
+    "title" : "Quy trình xe vào và xe ra",
+    "content" : "Quy trình xe vào và xe ra\nMục đích và đối tượng\nHướng dẫn khách vãng lai và khách dùng vé đăng ký chuẩn bị khi xe vào/ra, nhận biết tình huống cần nhân viên tại bãi. Khách không vận hành cổng qua chat.\nPhạm vi và điều kiện trước\nXe cần đi đúng làn vào/ra tại bãi phù hợp. Làn, cổng, khu vực và bãi phải đáp ứng điều kiện hoạt động; chỗ phù hợp loại xe phải còn khả dụng. Thẻ hoặc QR phải hợp lệ theo loại lượt gửi. Vé đăng ký, phương tiện và chủ vé cần đáp ứng các kiểm tra hiện hành. Không mặc định mọi bãi nhận mọi loại xe.\nGửi xe khi chưa có vé đăng ký\nKhách chưa có vé đăng ký là khách vãng lai trong quy trình vào bãi này. Có thể đến làn vào và dùng thẻ vãng lai theo hướng dẫn nhân viên nếu bãi còn chỗ phù hợp. QR của vé đăng ký không dành cho khách chưa có vé hợp lệ. QR đặt chỗ dùng để đối chiếu đặt chỗ, không tự thay thẻ vãng lai khi ghi nhận xe vào. Không bắt buộc đăng ký vé tháng hoặc đặt chỗ trước chỉ để gửi xe vãng lai. Đặt chỗ trước là lựa chọn khác, chỉ giải thích khi người dùng hỏi hoặc muốn đặt trước.\nLuồng chính\nĐến đúng làn và làm theo nhân viên. Khách vãng lai dùng thẻ vãng lai; khách có vé đăng ký dùng thẻ đã gán hoặc QR của vé hợp lệ. Không dùng đồng thời thẻ và QR của vé đăng ký cho cùng lần ghi nhận.\nNhân viên đối chiếu biển số, hình ảnh, loại xe, thẻ/vé và khả năng nhận xe. Chỉ khi xác nhận thành công mới có lượt gửi đang mở.\nKhi ra, đi đúng làn ra, dùng thông tin phù hợp để tìm lượt đang mở và đối chiếu xe.\nVới lượt cần thu phí, nhân viên kiểm tra hóa đơn và thanh toán trước khi hoàn tất. Khách có vé đăng ký cũng phải đáp ứng điều kiện lượt gửi; không suy ra luôn miễn phí.\nXem trước, ghi nhận thanh toán, kết thúc lượt gửi và điều khiển cổng là các bước khác nhau. Chưa có kết quả từng bước thì không nói tất cả đã hoàn tất.\nNhận dạng sai biển số tại cổng\nNếu hệ thống nhận dạng sai biển số hoặc biển số xe ra không khớp lúc vào, dừng theo hướng dẫn và nhờ nhân viên tại bãi đối chiếu xe, hình ảnh và thẻ hoặc mã QR phù hợp. Người dùng không tự sửa biển số, xác nhận nhận dạng hoặc bỏ qua kiểm tra để ra bãi. Ảnh khó đọc cần kiểm tra thực tế, không kết luận xe đã ra chỉ từ màn hình."
+  }, {
+    "documentId" : "6064df3c-b887-4c61-a061-755b7d6297ef",
+    "chunkId" : "f8167ea4-4c0d-48d1-990a-af9c68e08b16",
+    "title" : "Quy trình xe vào và xe ra",
+    "content" : "Vào bãi bằng vé đăng ký như thế nào? Dùng thẻ đã được gán hoặc mã QR còn hợp lệ của vé đăng ký, đi đúng bãi và làn phù hợp rồi để nhân viên kiểm tra. Vé, xe và chủ vé phải đáp ứng điều kiện hiện hành; biển số phải khớp. Không dùng đồng thời QR của vé đăng ký và thẻ cho cùng một lần ghi nhận.\nVì sao thẻ đang có lượt gửi xe chưa kết thúc không vào lại được? Một thẻ hoặc vé đăng ký không được tạo thêm lượt gửi khi còn lượt chưa kết thúc. Nhờ nhân viên tại bãi kiểm tra lượt trước và tình trạng xe thực tế; không dùng chat để đóng lượt hoặc quét nhiều lần để bỏ qua kiểm tra.\nXe vãng lai ra bãi cần làm gì? Đi đúng làn ra, đưa thẻ và để nhân viên đối chiếu biển số, lượt gửi. Nhân viên kiểm tra phí và hóa đơn; lượt gửi chỉ được hoàn tất khi đáp ứng điều kiện thanh toán và xác nhận. Màn hình báo đã trả tiền không tự chứng minh xe đã ra hoặc cổng đã mở.\nXe dùng vé đăng ký ra bãi như thế nào? Đưa xe đến đúng làn ra và dùng thẻ hoặc mã QR hợp lệ theo vé. Nhân viên kiểm tra lượt gửi đang mở và thông tin xe trước khi hoàn tất. Không tự kết luận mọi vé đăng ký đều được ra miễn phí hoặc bỏ qua điều kiện của lượt gửi.\nBiển số xe ra không khớp lúc vào thì làm sao? Dừng theo hướng dẫn và nhờ nhân viên tại bãi đối chiếu biển số, thẻ hoặc QR và hình ảnh của lượt gửi. Không tự sửa biển số để qua cổng hoặc bỏ qua xác minh. Trợ lý không xác nhận kết quả nhận dạng thay nhân viên.\nCổng bãi xe không mở thì cần làm gì? Giữ xe ở vị trí an toàn theo hướng dẫn và báo nhân viên tại bãi. Cho biết bạn đang vào hay ra, dùng thẻ hay QR và thông báo hiện trên màn hình. Cần kiểm tra lượt gửi, thanh toán và tình trạng cổng; trợ lý không mở cổng hoặc đoán một nguyên nhân duy nhất.\nĐã trả tiền nhưng xe vẫn chưa ra bãi được thì sao? Không thanh toán lại ngay. Báo nhân viên tại bãi để kiểm tra giao dịch đã được ghi nhận, hóa đơn và bước hoàn tất lượt gửi. Giữ thông tin giao dịch cần thiết, không gửi OTP hoặc thông tin thẻ ngân hàng; cần đối chiếu bước kết thúc lượt gửi riêng, không suy ra chỉ từ việc bị trừ tiền.\nVì sao bãi còn chỗ trên bản đồ mà xe không vào được? Số chỗ trên bản đồ là thông tin tại lần tra cứu, không phải chỗ đã được giữ cho bạn. Khi đến, bãi còn phải kiểm tra chỗ phù hợp loại xe, khu vực, thẻ hoặc vé và tình trạng hoạt động. Nhờ nhân viên tại bãi kiểm tra; không coi bản đồ là bảo đảm được vào."
+  } ]
+}, {
+  "attempts" : [ {
+    "model" : "gemini-3.5-flash-lite",
+    "credential" : "primary",
+    "ms" : 5142,
+    "success" : true,
+    "failure" : null,
+    "inputTokens" : 1536,
+    "outputTokens" : 100,
+    "rawResponse" : "{\n  \"responseText\": \"Bãi hiển thị còn chỗ không bảo đảm xe được nhận ngay. Khi cổng từ chối xe dù còn chỗ, số chỗ chỉ là thông tin tại thời điểm tra cứu và không phải chỗ đã được giữ. Bạn hãy báo nhân viên tại bãi để kiểm tra lại chỗ phù hợp loại xe hoặc khu vực, thẻ hoặc vé, lượt gửi và tình trạng hoạt động.\",\n  \"citations\": [\n    \"C1\"\n  ]\n}"
+  } ],
+  "queryVectorMode" : "LIVE_PROVIDER_OR_RECORDED_REAL_VECTOR",
+  "caseId" : "B4-ENT09-6",
+  "batch" : "batch-04-questions.jsonl",
+  "split" : "acceptance",
+  "question" : "Nếu còn chỗ mà vẫn bị từ chối thì sao?",
+  "expectedDocument" : "parking-entry-exit",
+  "personalProbe" : false,
+  "resolvedRetrievalQuery" : "Hướng dẫn bản đồ. Nếu còn chỗ mà vẫn bị từ chối thì sao?",
+  "retrievalMs" : 18,
+  "citations" : [ {
+    "citationId" : "4645a598-cc28-4c09-bf1a-9efbaaab6eca",
+    "messageId" : "5246e2c5-de55-412d-be58-fc702733b665",
+    "documentId" : "6064df3c-b887-4c61-a061-755b7d6297ef",
+    "chunkId" : "5e2a8db5-8cd7-4398-a2f8-47bb54c16708",
+    "label" : "C1",
+    "title" : "Quy trình xe vào và xe ra",
+    "sourcePage" : null,
+    "sourceSection" : "Bản đồ còn chỗ nhưng cổng từ chối xe",
+    "retrievalScore" : 0.00983607,
+    "retrievalAuditId" : "5a955187-5690-43ba-a517-7c12836a202d",
+    "indexVersionId" : "15597356-a17f-4b79-9ba1-6cf664d8eca6",
+    "citationOrder" : 0
+  } ],
+  "retryEvents" : [ ],
+  "attemptCount" : 1,
+  "jobStatus" : "COMPLETED",
+  "jobError" : null,
+  "answer" : "Bãi hiển thị còn chỗ không bảo đảm xe được nhận ngay. Khi cổng từ chối xe dù còn chỗ, số chỗ chỉ là thông tin tại thời điểm tra cứu và không phải chỗ đã được giữ. Bạn hãy báo nhân viên tại bãi để kiểm tra lại chỗ phù hợp loại xe hoặc khu vực, thẻ hoặc vé, lượt gửi và tình trạng hoạt động.",
+  "totalMs" : 5196,
+  "evidenceSufficient" : true,
+  "groundedConfidence" : 0.557,
+  "diagnostic" : null,
+  "hitAt5" : true,
+  "evidence" : [ {
+    "documentId" : "6064df3c-b887-4c61-a061-755b7d6297ef",
+    "chunkId" : "5e2a8db5-8cd7-4398-a2f8-47bb54c16708",
+    "title" : "Quy trình xe vào và xe ra",
+    "content" : "Bản đồ còn chỗ nhưng cổng từ chối xe\nBãi hiển thị còn chỗ không bảo đảm xe được nhận ngay. Khi cổng từ chối xe dù còn chỗ, nhân viên cần kiểm tra chỗ phù hợp loại xe/khu vực, thẻ hoặc vé, lượt gửi và tình trạng hoạt động. Số chỗ là thông tin tại thời điểm tra cứu, không phải chỗ đã được giữ. Báo nhân viên tại bãi để kiểm tra, không tự đặt thêm chỗ hay trả tiền để vượt kiểm tra.\nLuồng thay thế, lỗi và trạng thái\nVé đăng ký có luồng QR và thẻ vật lý; QR hết hiệu lực hoặc đã thay đổi cần được kiểm tra tại bãi.\nCòn lượt chưa kết thúc, thẻ không phù hợp, vé/xe không hợp lệ, bãi đầy hoặc khu vực không nhận loại xe có thể làm xe không vào được.\nBiển số không khớp, ảnh không đọc được hoặc sự cố cổng cần nhân viên đối chiếu. Không hướng dẫn tự sửa dữ liệu hay bỏ qua kiểm tra.\nLượt đang gửi khác lượt đã kết thúc. Báo mất thẻ và hủy lượt có quy trình riêng; chat không đổi các trạng thái này.\nSố chỗ từng ô và khu vực quản lý theo sức chứa có điều kiện phân bổ khác nhau. Thông tin bản đồ không thay thế kiểm tra khi xe đến.\nGiới hạn của trợ lý và chuyển hỗ trợ\nTrợ lý chỉ hướng dẫn. Lịch sử chính chủ chỉ được đọc qua công cụ được cấp quyền; hiện chat không có công cụ mở cổng, ghi nhận xe vào/ra, xem hóa đơn hoặc thu tiền. Không bịa trạng thái hiện tại. Sự cố ngay tại cổng cần báo nhân viên tại bãi; lỗi phần mềm có thể được báo qua hỗ trợ hệ thống đúng hội thoại, quyền và xác nhận. Không tạo phiếu thay cho bước xử lý an toàn tại hiện trường.\nCâu hỏi khách hàng thường gặp\nKhách vãng lai vào bãi xe như thế nào? Khi chưa có vé đăng ký, bạn có thể gửi xe vãng lai: đưa xe vào đúng làn và dùng thẻ vãng lai theo hướng dẫn nhân viên, không bắt buộc đặt chỗ trước. QR của vé đăng ký không thay thế thẻ vãng lai. Khách vãng lai được kiểm tra biển số, loại xe và thẻ phù hợp trước khi ghi nhận lượt gửi; bãi phải còn chỗ. Trợ lý không tự ghi nhận xe vào.\nVào bãi bằng vé đăng ký như thế nào? Dùng thẻ đã được gán hoặc mã QR còn hợp lệ của vé đăng ký, đi đúng bãi và làn phù hợp rồi để nhân viên kiểm tra. Vé, xe và chủ vé phải đáp ứng điều kiện hiện hành; biển số phải khớp. Không dùng đồng thời QR của vé đăng ký và thẻ cho cùng một lần ghi nhận."
+  }, {
+    "documentId" : "c60163ca-6ac8-4f31-b89c-db169cae57e4",
+    "chunkId" : "dd95df8f-02f0-4861-bae3-6d76df5e9bc0",
+    "title" : "Đặt chỗ trước và thời gian giữ chỗ",
+    "content" : "Hai người cùng đặt chỗ cuối cùng thì sao? Số chỗ hiển thị có thể thay đổi trước khi bạn xác nhận. Hệ thống kiểm tra lại khi giữ chỗ; nếu chỗ cuối vừa được người khác giữ, yêu cầu có thể bị từ chối. Chọn lại chỗ hoặc khu vực khác, không thanh toán cho một đặt chỗ chưa được tạo hợp lệ.\nĐặt chỗ báo biển số đã có yêu cầu còn hiệu lực thì làm sao? Kiểm tra đặt chỗ đang còn hiệu lực của biển số trong khu vực và xem xe có lượt gửi chưa kết thúc tại bãi không. Hệ thống chặn các trường hợp trùng đang hoạt động; không đổi biển số giả để tạo thêm yêu cầu.\nThanh toán đặt chỗ bị báo cần nhân viên đối soát thì sao? Khoản thanh toán có thể đến khi thời gian giữ chỗ đã hết hoặc không còn đủ điều kiện xác nhận. Trạng thái cần nhân viên đối soát chưa bảo đảm có chỗ đã được giữ. Liên hệ bộ phận phụ trách với thông tin giao dịch cần thiết; không tự trả thêm hoặc mặc định đã có chỗ.\nĐặt chỗ chọn vị trí cụ thể khác giữ số lượng thế nào? Khu vực quản lý từng ô cho chọn chỗ cụ thể còn phù hợp. Khu vực quản lý theo sức chứa chỉ giữ số lượng chỗ, không chọn một ô riêng. Cả hai đều phải còn chỗ và phù hợp loại xe tại thời điểm xác nhận.\nĐiều chatbot được phép trả lời\nGiải thích hướng dẫn, điều kiện và giới hạn đã được kiểm chứng. Trả lời bằng từ ngữ dễ hiểu; không đưa tên trạng thái kỹ thuật vào câu trả lời.\nĐiều chatbot phải dùng business tool\nThông tin cá nhân, giá hiện hành, số tiền hoặc trạng thái cụ thể chỉ được xác nhận bằng nguồn dữ liệu có thẩm quyền và đúng quyền. Nếu chưa có tool phù hợp, hướng dẫn mở module nghiệp vụ hoặc liên hệ bộ phận phụ trách; không giả lập kết quả.\nĐiều chatbot phải từ chối\nKhông tự thực hiện thanh toán, hoàn tiền, đặt/hủy chỗ, áp mã hay sửa hóa đơn. Không yêu cầu mật khẩu, mã xác minh, thông tin thẻ bí mật, mã truy cập đặt chỗ hoặc QR riêng tư. Không hứa chắc số tiền, hiệu lực hoặc thời hạn chưa có nguồn.\nKhi nào chuyển nhân viên\nGiao dịch bất thường, tiền đã trừ chưa rõ kết quả, tranh chấp hoặc cần kiểm tra dữ liệu riêng ngoài khả năng tra cứu được cấp. Phân biệt liên hệ bãi xử lý nghiệp vụ với báo lỗi chức năng hệ thống; không tự tạo phiếu thay cho mọi yêu cầu tài chính."
+  }, {
+    "documentId" : "7d79c270-1503-4f72-bf90-5d0b51fb893d",
+    "chunkId" : "cb4341fb-2066-4629-942b-195df0a3e004",
+    "title" : "Tìm bãi, bản đồ và chỉ đường",
+    "content" : "Tìm bãi, bản đồ và chỉ đường\nMục đích và đối tượng\nHướng dẫn mọi người dùng tìm bãi và đường đi bằng giao diện công khai. Dữ liệu vị trí, chỗ trống hoặc giá hiện tại không được suy ra từ tài liệu này.\nĐiều kiện và nguồn dữ liệu\nChức năng phụ thuộc cấu hình công bố bản đồ, tìm gần đây và tra địa chỉ. Dữ liệu công khai có bộ lọc và trạng thái riêng. Tìm gần đây kiểm tra tọa độ, bán kính nguyên từ 1 đến 50 km và giới hạn số kết quả. Không tự suy ra tính năng đang bật từ việc code tồn tại.\nLuồng chính\nMở Tìm bãi xe. Chọn Tìm bãi gần tôi và cho phép vị trí, hoặc dùng Tìm địa chỉ/chọn điểm thủ công nếu được bật.\nNhập ít nhất 3 ký tự khi tra địa chỉ và chọn đúng kết quả. Kiểm tra lại khu vực trước khi tìm.\nChọn Bán kính tìm kiếm, bấm Áp dụng và xem danh sách quanh điểm đã chọn.\nChọn đúng bãi, loại xe và thông tin đang hiển thị; dùng nút chỉ đường để mở Google Maps khi cần.\nNếu muốn đặt trước, dùng luồng Đặt chỗ trước riêng. Xem bản đồ không phát sinh đặt chỗ hoặc thanh toán.\nLuồng thay thế và lỗi\nKhông muốn bật định vị: dùng địa chỉ hoặc chọn điểm trên bản đồ. Không bắt buộc gửi tọa độ vào chat.\nVị trí chỉ được lấy sau thao tác đồng ý, không tự thu thập khi mở trang. Vị trí chính xác là thông tin nhạy cảm; tránh chép vào log hoặc tài liệu đánh giá.\nĐịnh vị có thể bị từ chối, hết thời gian, không hỗ trợ hoặc bị hạn chế bởi kết nối không an toàn. Không tự kết luận lỗi backend.\nKhông có bãi: kiểm tra điểm, tăng bán kính hoặc đổi khu vực; không có kết quả khác với xác nhận mọi bãi đều đầy.\nNền bản đồ không tải: danh sách và chỉ đường vẫn có thể dùng nếu dữ liệu đã tải. Tra địa chỉ và tìm gần đây có thể bị tắt độc lập.\nÝ nghĩa kết quả và giới hạn\nKhoảng cách gần đây được tính theo vị trí địa lý, không phải thời gian lái xe. Số chỗ và giá phải lấy từ nguồn nghiệp vụ hiện tại, phụ thuộc bãi, loại xe và thời điểm; không bảo đảm còn chỗ khi đến. Không suy ra giờ mở cửa từ trạng thái hoạt động. Chat hiện chưa có công cụ tra bãi, vị trí hoặc số chỗ trực tiếp, dù ứng dụng đã có chức năng tìm kiếm và bản đồ. Không trả bãi cụ thể hay số chỗ giả; hướng dẫn người dùng tra trên giao diện."
+  }, {
+    "documentId" : "7d79c270-1503-4f72-bf90-5d0b51fb893d",
+    "chunkId" : "fe10076e-e19c-444b-a5d0-8672ef52f614",
+    "title" : "Tìm bãi, bản đồ và chỉ đường",
+    "content" : "Chỉ đường đến bãi xe như thế nào? Chọn bãi trong kết quả và dùng nút chỉ đường để mở Google Maps. Khoảng cách tìm bãi là khoảng cách địa lý quanh điểm đã chọn, không phải cam kết quãng đường hoặc thời gian lái xe. Xem tuyến đường thực tế trên ứng dụng bản đồ.\nBãi xe nào gần tôi hiện còn chỗ? Trợ lý chưa tra cứu trực tiếp vị trí và số chỗ hiện tại trong chat. Mở Tìm bãi xe, chọn vị trí và xem kết quả của bãi phù hợp loại xe. Số chỗ có thể thay đổi; xem trên bản đồ chưa phải đặt hoặc giữ chỗ.\nTìm bãi trên bản đồ có tự giữ chỗ không? Không. Tìm bãi và chỉ đường chỉ giúp xem thông tin, không tạo đặt chỗ hoặc giữ chỗ. Muốn đặt trước, mở Đặt chỗ trước và kiểm tra điều kiện, thời hạn, số tiền rồi xác nhận theo giao diện; thông tin còn chỗ có thể thay đổi."
+  }, {
+    "documentId" : "7d79c270-1503-4f72-bf90-5d0b51fb893d",
+    "chunkId" : "fbed4f9a-4e7b-4c6d-997c-75567cec117b",
+    "title" : "Tìm bãi, bản đồ và chỉ đường",
+    "content" : "Câu hỏi khách hàng thường gặp\nTìm bãi xe gần tôi như thế nào? Mở Tìm bãi xe và chọn Tìm bãi gần tôi, sau đó cho phép trình duyệt dùng vị trí cho lần tìm kiếm. Nếu không muốn chia sẻ vị trí, dùng Tìm địa chỉ hoặc chọn điểm trên bản đồ. Trợ lý chưa tự biết vị trí của bạn.\nKhông cho phép định vị thì tìm bãi xe được không? Bạn có thể dùng Tìm địa chỉ hoặc chọn điểm trên bản đồ để tìm bãi mà không bật định vị. Chỉ bật lại quyền vị trí trong trình duyệt nếu bạn muốn dùng Tìm bãi gần tôi; không cần gửi tọa độ chính xác qua chat.\nĐịnh vị tìm bãi xe hết thời gian thì làm sao? Kiểm tra quyền vị trí, tín hiệu định vị và kết nối rồi thử lại khi phù hợp. Có thể dùng Tìm địa chỉ hoặc chọn điểm trên bản đồ thay thế. Trình duyệt không hỗ trợ, kết nối không an toàn hoặc tín hiệu yếu đều có thể ảnh hưởng; chưa đủ thông tin để khẳng định một nguyên nhân.\nTìm bãi xe theo địa chỉ như thế nào? Chọn Tìm địa chỉ, nhập địa chỉ có ít nhất 3 ký tự và chọn kết quả phù hợp, rồi tìm bãi quanh điểm đó. Nếu không ra kết quả, bổ sung số nhà, đường hoặc khu vực; khi tra địa chỉ tạm dừng, dùng định vị hoặc chọn điểm trên bản đồ nếu tính năng đó đang bật.\nĐổi bán kính tìm bãi xe như thế nào? Ở Bán kính tìm kiếm, chọn hoặc nhập số nguyên từ 1 đến 50 km rồi bấm Áp dụng. Có thể chọn lại điểm tìm kiếm nếu cần; kết quả phụ thuộc vị trí và dữ liệu bãi hiện có.\nKhông tìm thấy bãi xe gần đây thì làm sao? Kiểm tra điểm tìm kiếm và thử tăng bán kính hoặc chọn khu vực khác. Không có kết quả không có nghĩa mọi bãi đều đầy: còn phụ thuộc phạm vi, tọa độ và dữ liệu bãi đang được cung cấp. Nếu tính năng đang tạm dừng, thử lại sau; không bịa một bãi thay thế.\nBản đồ bãi xe không tải được thì làm sao? Bạn vẫn có thể xem danh sách kết quả và dùng nút chỉ đường nếu dữ liệu bãi đã tải. Kiểm tra kết nối rồi thử lại bản đồ; bản đồ lỗi không tự có nghĩa bãi đã đóng hoặc yêu cầu đặt chỗ đã mất.\nChỉ đường đến bãi xe như thế nào? Chọn bãi trong kết quả và dùng nút chỉ đường để mở Google Maps. Khoảng cách tìm bãi là khoảng cách địa lý quanh điểm đã chọn, không phải cam kết quãng đường hoặc thời gian lái xe. Xem tuyến đường thực tế trên ứng dụng bản đồ."
+  } ]
+}, {
+  "attempts" : [ ],
+  "queryVectorMode" : "LIVE_PROVIDER_OR_RECORDED_REAL_VECTOR",
+  "caseId" : "B4-MAP02-6",
+  "batch" : "batch-04-questions.jsonl",
+  "split" : "acceptance",
+  "question" : "Nếu vẫn bị từ chối quyền vị trí thì sao?",
+  "expectedDocument" : "parking-search-and-map",
+  "personalProbe" : false,
+  "resolvedRetrievalQuery" : "Nếu vẫn bị từ chối quyền vị trí thì sao?",
+  "retrievalMs" : 18,
+  "retryEvents" : [ ],
+  "attemptCount" : 1,
+  "jobStatus" : "COMPLETED",
+  "jobError" : null,
+  "answer" : "Tôi chưa tìm thấy thông tin chính thức để trả lời chắc chắn. Bạn vui lòng tạo phiếu hỗ trợ để nhân viên CoParking xử lý trực tiếp nhé.",
+  "totalMs" : 20,
+  "evidenceSufficient" : false,
+  "groundedConfidence" : 0.536,
+  "diagnostic" : "INSUFFICIENT_EVIDENCE",
+  "hitAt5" : false,
+  "evidence" : [ {
+    "documentId" : "c60163ca-6ac8-4f31-b89c-db169cae57e4",
+    "chunkId" : "dd95df8f-02f0-4861-bae3-6d76df5e9bc0",
+    "title" : "Đặt chỗ trước và thời gian giữ chỗ",
+    "content" : "Hai người cùng đặt chỗ cuối cùng thì sao? Số chỗ hiển thị có thể thay đổi trước khi bạn xác nhận. Hệ thống kiểm tra lại khi giữ chỗ; nếu chỗ cuối vừa được người khác giữ, yêu cầu có thể bị từ chối. Chọn lại chỗ hoặc khu vực khác, không thanh toán cho một đặt chỗ chưa được tạo hợp lệ.\nĐặt chỗ báo biển số đã có yêu cầu còn hiệu lực thì làm sao? Kiểm tra đặt chỗ đang còn hiệu lực của biển số trong khu vực và xem xe có lượt gửi chưa kết thúc tại bãi không. Hệ thống chặn các trường hợp trùng đang hoạt động; không đổi biển số giả để tạo thêm yêu cầu.\nThanh toán đặt chỗ bị báo cần nhân viên đối soát thì sao? Khoản thanh toán có thể đến khi thời gian giữ chỗ đã hết hoặc không còn đủ điều kiện xác nhận. Trạng thái cần nhân viên đối soát chưa bảo đảm có chỗ đã được giữ. Liên hệ bộ phận phụ trách với thông tin giao dịch cần thiết; không tự trả thêm hoặc mặc định đã có chỗ.\nĐặt chỗ chọn vị trí cụ thể khác giữ số lượng thế nào? Khu vực quản lý từng ô cho chọn chỗ cụ thể còn phù hợp. Khu vực quản lý theo sức chứa chỉ giữ số lượng chỗ, không chọn một ô riêng. Cả hai đều phải còn chỗ và phù hợp loại xe tại thời điểm xác nhận.\nĐiều chatbot được phép trả lời\nGiải thích hướng dẫn, điều kiện và giới hạn đã được kiểm chứng. Trả lời bằng từ ngữ dễ hiểu; không đưa tên trạng thái kỹ thuật vào câu trả lời.\nĐiều chatbot phải dùng business tool\nThông tin cá nhân, giá hiện hành, số tiền hoặc trạng thái cụ thể chỉ được xác nhận bằng nguồn dữ liệu có thẩm quyền và đúng quyền. Nếu chưa có tool phù hợp, hướng dẫn mở module nghiệp vụ hoặc liên hệ bộ phận phụ trách; không giả lập kết quả.\nĐiều chatbot phải từ chối\nKhông tự thực hiện thanh toán, hoàn tiền, đặt/hủy chỗ, áp mã hay sửa hóa đơn. Không yêu cầu mật khẩu, mã xác minh, thông tin thẻ bí mật, mã truy cập đặt chỗ hoặc QR riêng tư. Không hứa chắc số tiền, hiệu lực hoặc thời hạn chưa có nguồn.\nKhi nào chuyển nhân viên\nGiao dịch bất thường, tiền đã trừ chưa rõ kết quả, tranh chấp hoặc cần kiểm tra dữ liệu riêng ngoài khả năng tra cứu được cấp. Phân biệt liên hệ bãi xử lý nghiệp vụ với báo lỗi chức năng hệ thống; không tự tạo phiếu thay cho mọi yêu cầu tài chính."
+  }, {
+    "documentId" : "6064df3c-b887-4c61-a061-755b7d6297ef",
+    "chunkId" : "5e2a8db5-8cd7-4398-a2f8-47bb54c16708",
+    "title" : "Quy trình xe vào và xe ra",
+    "content" : "Bản đồ còn chỗ nhưng cổng từ chối xe\nBãi hiển thị còn chỗ không bảo đảm xe được nhận ngay. Khi cổng từ chối xe dù còn chỗ, nhân viên cần kiểm tra chỗ phù hợp loại xe/khu vực, thẻ hoặc vé, lượt gửi và tình trạng hoạt động. Số chỗ là thông tin tại thời điểm tra cứu, không phải chỗ đã được giữ. Báo nhân viên tại bãi để kiểm tra, không tự đặt thêm chỗ hay trả tiền để vượt kiểm tra.\nLuồng thay thế, lỗi và trạng thái\nVé đăng ký có luồng QR và thẻ vật lý; QR hết hiệu lực hoặc đã thay đổi cần được kiểm tra tại bãi.\nCòn lượt chưa kết thúc, thẻ không phù hợp, vé/xe không hợp lệ, bãi đầy hoặc khu vực không nhận loại xe có thể làm xe không vào được.\nBiển số không khớp, ảnh không đọc được hoặc sự cố cổng cần nhân viên đối chiếu. Không hướng dẫn tự sửa dữ liệu hay bỏ qua kiểm tra.\nLượt đang gửi khác lượt đã kết thúc. Báo mất thẻ và hủy lượt có quy trình riêng; chat không đổi các trạng thái này.\nSố chỗ từng ô và khu vực quản lý theo sức chứa có điều kiện phân bổ khác nhau. Thông tin bản đồ không thay thế kiểm tra khi xe đến.\nGiới hạn của trợ lý và chuyển hỗ trợ\nTrợ lý chỉ hướng dẫn. Lịch sử chính chủ chỉ được đọc qua công cụ được cấp quyền; hiện chat không có công cụ mở cổng, ghi nhận xe vào/ra, xem hóa đơn hoặc thu tiền. Không bịa trạng thái hiện tại. Sự cố ngay tại cổng cần báo nhân viên tại bãi; lỗi phần mềm có thể được báo qua hỗ trợ hệ thống đúng hội thoại, quyền và xác nhận. Không tạo phiếu thay cho bước xử lý an toàn tại hiện trường.\nCâu hỏi khách hàng thường gặp\nKhách vãng lai vào bãi xe như thế nào? Khi chưa có vé đăng ký, bạn có thể gửi xe vãng lai: đưa xe vào đúng làn và dùng thẻ vãng lai theo hướng dẫn nhân viên, không bắt buộc đặt chỗ trước. QR của vé đăng ký không thay thế thẻ vãng lai. Khách vãng lai được kiểm tra biển số, loại xe và thẻ phù hợp trước khi ghi nhận lượt gửi; bãi phải còn chỗ. Trợ lý không tự ghi nhận xe vào.\nVào bãi bằng vé đăng ký như thế nào? Dùng thẻ đã được gán hoặc mã QR còn hợp lệ của vé đăng ký, đi đúng bãi và làn phù hợp rồi để nhân viên kiểm tra. Vé, xe và chủ vé phải đáp ứng điều kiện hiện hành; biển số phải khớp. Không dùng đồng thời QR của vé đăng ký và thẻ cho cùng một lần ghi nhận."
+  }, {
+    "documentId" : "ad4ff79c-3b08-4810-85a8-faeba5dff452",
+    "chunkId" : "eb6b08d2-e478-4946-8f25-4e1812e5b0bd",
+    "title" : "Lỗi thường gặp và hướng xử lý",
+    "content" : "Câu hỏi khách hàng thường gặp\nTôi không đăng nhập được thì phải làm sao? Bạn đang đăng nhập bằng Google hay bằng tài khoản và mật khẩu? Màn hình hiện thông báo gì và lỗi ở bước nào? Chỉ hướng dẫn Quên mật khẩu khi phù hợp với phương thức và lỗi; không tự cho rằng bạn quên mật khẩu.\nĐăng nhập Google chỉ lỗi ở cửa sổ thường thì làm sao? So sánh thông báo lỗi, thử tắt tiện ích liên quan hoặc xóa dữ liệu trang đăng nhập khi phù hợp, rồi đăng nhập lại. Xóa dữ liệu trang có thể làm bạn đăng xuất. Việc ẩn danh vào được chưa đủ chứng minh backend hỏng; không gửi cookie hoặc token để nhờ kiểm tra.\nLỗi kết nối Failed to fetch là gì? Đây là thông báo không kết nối được, chưa đủ để xác định nguyên nhân. Kiểm tra mạng và thử lại thao tác đọc khi phù hợp; nếu đang gửi thanh toán hoặc tạo yêu cầu, kiểm tra kết quả trước khi gửi lại để tránh trùng. Ghi màn hình, thời điểm và thông báo, không gửi bí mật đăng nhập.\nBáo không có quyền dùng chức năng thì làm sao? Kiểm tra bạn đang dùng đúng tài khoản, chức năng và bãi được phân công. Nếu công việc cần quyền đó, nhờ người quản lý kiểm tra phân quyền; đăng nhập lại không tự cấp thêm quyền. Không mượn tài khoản hoặc tìm cách bỏ qua kiểm tra.\nKhông thấy lượt gửi xe theo ngày thì làm sao? Mở Lịch sử gửi xe, chọn Khoảng ngày với ngày bắt đầu và ngày kết thúc phù hợp, ngày kết thúc không trước ngày bắt đầu, rồi kiểm tra phương tiện và trạng thái đang lọc. Xóa lọc chỉ để bỏ bộ lọc cũ không phù hợp, không thay thế việc chọn ngày cần tìm. Nếu vẫn thiếu, nhờ nhân viên đối chiếu; chat chưa tự lọc lịch sử theo ngày.\nĐiều kiện lập phiếu báo mất thẻ là gì? Nhờ nhân viên bãi kiểm tra quyền và phạm vi bãi, đúng thẻ và lượt gửi, thông tin xác minh và có phiếu đang mở cho cùng thẻ hoặc lượt gửi hay chưa. Không lập nhiều phiếu khi chưa rõ kết quả. Phiếu hỗ trợ báo lỗi phần mềm không thay thế phiếu báo mất thẻ. Thanh toán và thẻ thay thế được kiểm tra ở bước hoàn tất, không phải điều kiện chung để lập phiếu lần đầu.\nVì sao chưa hoàn tất phiếu báo mất thẻ được? Nhờ nhân viên kiểm tra thanh toán đã được ghi nhận đầy đủ và điều kiện hoàn tất của phiếu. Nếu cần thay thẻ, thẻ thay thế phải còn sẵn sàng, đúng loại và cùng bãi. Không tự dùng lại thẻ đã báo mất hoặc trả tiền lại khi chưa đối chiếu giao dịch."
+  }, {
+    "documentId" : "c60163ca-6ac8-4f31-b89c-db169cae57e4",
+    "chunkId" : "d747ad7a-3d7b-42c0-8c08-0305c8eeb306",
+    "title" : "Đặt chỗ trước và thời gian giữ chỗ",
+    "content" : "Khi nào chuyển nhân viên\nGiao dịch bất thường, tiền đã trừ chưa rõ kết quả, tranh chấp hoặc cần kiểm tra dữ liệu riêng ngoài khả năng tra cứu được cấp. Phân biệt liên hệ bãi xử lý nghiệp vụ với báo lỗi chức năng hệ thống; không tự tạo phiếu thay cho mọi yêu cầu tài chính.\nNguồn đối chiếu\nĐường dẫn code, quyền, API, UI và bằng chứng kiểm thử được lưu ở hồ sơ traceability đợt 3 ngoài bản tri thức xuất. Không nhúng chi tiết quản trị hoặc bí mật vào nội dung người dùng.\nNội dung TBD\nChưa nghiệm thu/publish trên corpus DB dev. Cấu hình cổng thanh toán và số tiền hiện hành cần kiểm tra tại môi trường thực tế. Xem báo cáo đợt 3 để biết giới hạn kiểm chứng.\nLịch sử phiên bản\n2.0.0: rà soát code ngày 20/11/2026; giữ DRAFT, không thay chính sách nghiệp vụ."
+  }, {
+    "documentId" : "18949a03-12ab-41f3-af9c-e6a4e8adb22b",
+    "chunkId" : "c3317f13-25b4-4892-8224-7a29209dabd9",
+    "title" : "Đăng ký, đăng nhập và hồ sơ",
+    "content" : "Trùng email/username: dùng chức năng phù hợp hoặc hỗ trợ; không tự liên kết identity Google.\nKhông nhận email: kiểm tra địa chỉ đã nhập, spam và gửi lại theo giới hạn; không hứa thời gian email chưa được kiểm chứng.\nLOCKED/DISABLED: không khuyên vượt quyền hoặc tạo tài khoản để né hạn chế; liên hệ hỗ trợ hệ thống.\nCâu “vẫn lỗi” sau hướng dẫn đăng nhập dùng đúng chủ đề gần nhất; nếu chưa có chủ đề thì hỏi chức năng và bước gặp lỗi.\nTrạng thái và chuyển trạng thái\nAccount có PENDING, ACTIVE, LOCKED, DISABLED. Khách hàng còn có approval/operational status riêng; trạng thái thực của người dùng chỉ xác định qua nguồn đã được phân quyền. Tài liệu này không tự thay đổi trạng thái.\nCâu hỏi khách hàng thường gặp\nKhông đăng nhập được thì kiểm tra gì trước? Hỏi người dùng đang đăng nhập bằng Google hay tài khoản và mật khẩu, màn hình hiện thông báo gì và lỗi ở bước nào. Không mặc định cần Quên mật khẩu; chỉ hướng dẫn khôi phục khi phương thức và lỗi phù hợp. Nếu người dùng đã nêu phương thức thì không hỏi lại.\n“dang ky tai khoan nhu the nao” → các bước đăng ký và xác minh email.\n“quen mat khau phai lam sao” → dùng Quên mật khẩu và email chính thức.\n“dang nhap ko dc” → hướng dẫn theo lỗi đăng nhập, hỏi bước còn thiếu.\n“hồ sơ của tôi duyệt chưa?” → dữ liệu cá nhân; không trả trạng thái bằng RAG.\n“lỗi” → hỏi chức năng/bước, không tự suy ra đăng nhập.\nLàm sao đăng ký CoParking? Mở Đăng ký, điền tài khoản, email, mật khẩu và họ tên; làm theo email xác minh rồi đăng nhập.\nĐặt lại mật khẩu thế nào? Dùng Quên mật khẩu, nhập email tại trang chính thức và làm theo thư nhận được. Không chia sẻ mật khẩu, mã xác thực hoặc đường dẫn khôi phục.\nGoogle login không thành công cần làm gì? Kiểm tra thông báo và email Google đã xác minh; nếu vẫn lỗi, báo bước gặp lỗi cho nhân viên, không tự liên kết tài khoản trùng email.\nXem trạng thái hồ sơ trên giao diện ở đâu? Mở hồ sơ cá nhân, đọc thông báo duyệt; chat chưa có chức năng tra cứu hồ sơ thực tế của bạn.\nHồ sơ cần sửa thì làm sao? Đọc lý do yêu cầu bổ sung, cập nhật thông tin trên hồ sơ cá nhân và gửi lại theo nút đang được phép."
+  } ]
+}, {
+  "attempts" : [ {
+    "model" : "gemini-3.5-flash-lite",
+    "credential" : "primary",
+    "ms" : 4244,
+    "success" : true,
+    "failure" : null,
+    "inputTokens" : 1759,
+    "outputTokens" : 59,
+    "rawResponse" : "{\"responseText\":\"Trụ sở CoParking ở 10/5 Đường Tỉnh Lộ 19, Phường An Phú Đông, Thành phố Hồ Chí Minh. Đây là địa chỉ cấp công ty, không phải địa chỉ của mọi bãi xe.\",\"citations\":[\"C1\"]}"
+  } ],
+  "queryVectorMode" : "LIVE_PROVIDER_OR_RECORDED_REAL_VECTOR",
+  "caseId" : "B4-LOC03-6",
+  "batch" : "batch-04-questions.jsonl",
+  "split" : "acceptance",
+  "question" : "Địa chỉ đó ở đâu?",
+  "expectedDocument" : "locations-hours-sla-contact",
+  "personalProbe" : false,
+  "resolvedRetrievalQuery" : "Hướng dẫn trụ sở CoParking. Địa chỉ đó ở đâu?",
+  "retrievalMs" : 412,
+  "citations" : [ {
+    "citationId" : "1cb94790-017c-4732-ad30-6eda5040d515",
+    "messageId" : "f5f6a09b-0214-471f-bc8f-5b5b23d6888e",
+    "documentId" : "244dc11d-6cfe-464b-b34a-16ba5ea13311",
+    "chunkId" : "f8377716-8088-4ce9-9f8e-db2bdd63df0e",
+    "label" : "C1",
+    "title" : "Giờ hoạt động, liên hệ và thời gian phản hồi",
+    "sourcePage" : null,
+    "sourceSection" : "Câu hỏi khách hàng thường gặp",
+    "retrievalScore" : 0.01639344,
+    "retrievalAuditId" : "4faa2541-c781-4716-a2b8-bca7dd6a9777",
+    "indexVersionId" : "15597356-a17f-4b79-9ba1-6cf664d8eca6",
+    "citationOrder" : 0
+  } ],
+  "retryEvents" : [ ],
+  "attemptCount" : 1,
+  "jobStatus" : "COMPLETED",
+  "jobError" : null,
+  "answer" : "Trụ sở CoParking ở 10/5 Đường Tỉnh Lộ 19, Phường An Phú Đông, Thành phố Hồ Chí Minh. Đây là địa chỉ cấp công ty, không phải địa chỉ của mọi bãi xe.",
+  "totalMs" : 4676,
+  "evidenceSufficient" : true,
+  "groundedConfidence" : 0.724,
+  "diagnostic" : null,
+  "hitAt5" : true,
+  "evidence" : [ {
+    "documentId" : "244dc11d-6cfe-464b-b34a-16ba5ea13311",
+    "chunkId" : "f8377716-8088-4ce9-9f8e-db2bdd63df0e",
+    "title" : "Giờ hoạt động, liên hệ và thời gian phản hồi",
+    "content" : "Câu hỏi khách hàng thường gặp\nHotline hỗ trợ CoParking là gì? Hotline chính thức của CoParking là 0912345678, tiếp nhận hỗ trợ 24/7. Đây là kênh hỗ trợ cấp công ty; nếu đang gặp lỗi tại cổng, hãy báo nhân viên tại bãi để được kiểm tra trực tiếp.\nEmail hỗ trợ CoParking là gì? Bạn có thể gửi email đến support@coparking.vn. Nêu chức năng đang gặp vấn đề, bước thực hiện, thời điểm và thông báo lỗi; không gửi mật khẩu, OTP, cookie, API key hoặc giấy tờ định danh đầy đủ.\nTrụ sở CoParking ở đâu? Trụ sở CoParking ở 10/5 Đường Tỉnh Lộ 19, Phường An Phú Đông, Thành phố Hồ Chí Minh. Đây là địa chỉ cấp công ty, không phải địa chỉ của mọi bãi xe. Muốn tìm bãi cụ thể, dùng Tìm bãi xe và xem đúng bãi.\nHỗ trợ CoParking nhận yêu cầu vào giờ nào? CoParking tiếp nhận hỗ trợ 24/7 theo quyết định nghiệp vụ hiện hành. Tiếp nhận liên tục không có nghĩa nhân viên phản hồi hoặc giải quyết ngay. Giờ mở cửa từng bãi cần được kiểm tra riêng.\nBãi xe mở cửa lúc mấy giờ? Cần biết bạn hỏi bãi nào và kiểm tra thông tin đã xác minh của bãi đó. Trợ lý chưa có nguồn giờ mở cửa riêng từng bãi để xác nhận trong chat; không suy ra bãi mở 24/7 từ giờ tiếp nhận hỗ trợ. Hãy xem thông tin bãi hoặc liên hệ nhân viên bãi để xác nhận.\nBao lâu nhân viên phản hồi yêu cầu hỗ trợ? Mục tiêu phản hồi đầu tiên của nhân viên theo mức ưu tiên là: khẩn cấp 30 phút, cao 2 giờ, bình thường 8 giờ và thấp 48 giờ, tính liên tục theo giờ Việt Nam. Đây là mục tiêu nghiệp vụ, không phải thời hạn giải quyết hay xác nhận đang được hệ thống giám sát đầy đủ.\nChatbot trả lời có tính là nhân viên đã phản hồi không? Không. Tin nhắn tự động hoặc câu trả lời của chatbot không được tính là phản hồi đầu tiên của nhân viên. Mục tiêu phản hồi người thật cũng không đồng nghĩa sự cố đã được giải quyết.\nGửi biểu mẫu liên hệ CoParking như thế nào? Biểu mẫu tại trang Liên hệ hiện chưa nhận yêu cầu vì luồng gửi chưa được triển khai đầy đủ. Bạn có thể gọi hotline 0912345678 hoặc gửi email support@coparking.vn. Không coi việc điền biểu mẫu là yêu cầu đã được gửi.\nBãi còn hoạt động có nghĩa đang mở cửa không? Không. Trạng thái hoạt động của bãi không tự xác nhận giờ mở cửa hoặc khả năng nhận xe ngay lúc này. Còn phải kiểm tra thông tin giờ của bãi, chỗ phù hợp loại xe và điều kiện vận hành; liên hệ nhân viên bãi khi chưa rõ."
+  }, {
+    "documentId" : "244dc11d-6cfe-464b-b34a-16ba5ea13311",
+    "chunkId" : "66c789e0-c66c-4930-910d-00739b5d78fa",
+    "title" : "Giờ hoạt động, liên hệ và thời gian phản hồi",
+    "content" : "Giờ hoạt động, liên hệ và thời gian phản hồi\nMục đích và nguồn quyết định\nHướng dẫn liên hệ CoParking và giải thích giờ tiếp nhận, giờ từng bãi và mục tiêu phản hồi. Thông tin cấp công ty và mục tiêu được phê duyệt tại sổ quyết định nghiệp vụ; không đồng nghĩa mọi chức năng giám sát hoặc gửi yêu cầu đã triển khai.\nThông tin cấp công ty\nHotline: 0912345678.\nEmail: support@coparking.vn.\nTrụ sở: 10/5 Đường Tỉnh Lộ 19, Phường An Phú Đông, Thành phố Hồ Chí Minh.\nTiếp nhận hỗ trợ 24/7. Đây không phải giờ mở cửa của tất cả bãi và không phải cam kết xử lý ngay.\nMục tiêu phản hồi đầu tiên\nKhẩn cấp: 30 phút; cao: 2 giờ; bình thường: 8 giờ; thấp: 48 giờ. Tính liên tục, gồm cuối tuần và ngày lễ theo giờ Việt Nam. Tin tự động/chatbot không tính là phản hồi người thật. Đây là mục tiêu nghiệp vụ đã phê duyệt, không phải thời gian giải quyết xong, cũng không phải xác nhận hệ thống đang theo dõi đủ mọi mốc. Chat chưa tra được thời hạn riêng của yêu cầu hiện tại.\nLuồng liên hệ\nNếu đang bị kẹt tại cổng hoặc có vấn đề vào/ra, báo nhân viên tại bãi.\nVới câu hỏi cấp công ty hoặc lỗi chức năng, gọi hotline hoặc email. Nêu bước thực hiện, thời điểm, thông báo và mã yêu cầu cần thiết; không gửi bí mật hoặc giấy tờ đầy đủ.\nPhiếu hỗ trợ hệ thống tuân theo kênh, quyền và xác nhận riêng. Chat với nhân sự đối tác không tự trở thành hội thoại hỗ trợ hệ thống.\nBiểu mẫu tại trang Liên hệ hiện chưa nhận yêu cầu. Chưa có luồng gửi đầy đủ; điền form không có nghĩa đã gửi. Giao diện cần thể hiện rõ chưa gửi được và nêu kênh thay thế.\nGiờ từng bãi và xử lý mâu thuẫn\nChưa có nguồn công bố giờ mở cửa riêng từng bãi được kiểm chứng trong phạm vi này. Hỏi bãi nào và xác nhận bằng thông tin chính thức của bãi hoặc nhân viên. Trạng thái hoạt động, dữ liệu demo hoặc giờ hỗ trợ công ty không thay thế giờ bãi. Với nguồn thiếu, cũ hoặc mâu thuẫn, nói chưa thể xác nhận thay vì chọn một giá trị. Không lấy địa chỉ trụ sở làm địa chỉ mọi bãi.\nPhần đã làm và phần chưa triển khai\nThông tin liên hệ FE được đồng bộ với quyết định hiện hành trong đợt 4; form không gửi được được thể hiện rõ. Chức năng tiếp nhận liên hệ qua biểu mẫu với xác minh chống gửi tự động, giới hạn số lần gửi và theo dõi vẫn cần triển khai riêng. Không công bố đã có hàng đợi hoặc email tự động chỉ từ thiết kế."
+  }, {
+    "documentId" : "7d79c270-1503-4f72-bf90-5d0b51fb893d",
+    "chunkId" : "cb4341fb-2066-4629-942b-195df0a3e004",
+    "title" : "Tìm bãi, bản đồ và chỉ đường",
+    "content" : "Tìm bãi, bản đồ và chỉ đường\nMục đích và đối tượng\nHướng dẫn mọi người dùng tìm bãi và đường đi bằng giao diện công khai. Dữ liệu vị trí, chỗ trống hoặc giá hiện tại không được suy ra từ tài liệu này.\nĐiều kiện và nguồn dữ liệu\nChức năng phụ thuộc cấu hình công bố bản đồ, tìm gần đây và tra địa chỉ. Dữ liệu công khai có bộ lọc và trạng thái riêng. Tìm gần đây kiểm tra tọa độ, bán kính nguyên từ 1 đến 50 km và giới hạn số kết quả. Không tự suy ra tính năng đang bật từ việc code tồn tại.\nLuồng chính\nMở Tìm bãi xe. Chọn Tìm bãi gần tôi và cho phép vị trí, hoặc dùng Tìm địa chỉ/chọn điểm thủ công nếu được bật.\nNhập ít nhất 3 ký tự khi tra địa chỉ và chọn đúng kết quả. Kiểm tra lại khu vực trước khi tìm.\nChọn Bán kính tìm kiếm, bấm Áp dụng và xem danh sách quanh điểm đã chọn.\nChọn đúng bãi, loại xe và thông tin đang hiển thị; dùng nút chỉ đường để mở Google Maps khi cần.\nNếu muốn đặt trước, dùng luồng Đặt chỗ trước riêng. Xem bản đồ không phát sinh đặt chỗ hoặc thanh toán.\nLuồng thay thế và lỗi\nKhông muốn bật định vị: dùng địa chỉ hoặc chọn điểm trên bản đồ. Không bắt buộc gửi tọa độ vào chat.\nVị trí chỉ được lấy sau thao tác đồng ý, không tự thu thập khi mở trang. Vị trí chính xác là thông tin nhạy cảm; tránh chép vào log hoặc tài liệu đánh giá.\nĐịnh vị có thể bị từ chối, hết thời gian, không hỗ trợ hoặc bị hạn chế bởi kết nối không an toàn. Không tự kết luận lỗi backend.\nKhông có bãi: kiểm tra điểm, tăng bán kính hoặc đổi khu vực; không có kết quả khác với xác nhận mọi bãi đều đầy.\nNền bản đồ không tải: danh sách và chỉ đường vẫn có thể dùng nếu dữ liệu đã tải. Tra địa chỉ và tìm gần đây có thể bị tắt độc lập.\nÝ nghĩa kết quả và giới hạn\nKhoảng cách gần đây được tính theo vị trí địa lý, không phải thời gian lái xe. Số chỗ và giá phải lấy từ nguồn nghiệp vụ hiện tại, phụ thuộc bãi, loại xe và thời điểm; không bảo đảm còn chỗ khi đến. Không suy ra giờ mở cửa từ trạng thái hoạt động. Chat hiện chưa có công cụ tra bãi, vị trí hoặc số chỗ trực tiếp, dù ứng dụng đã có chức năng tìm kiếm và bản đồ. Không trả bãi cụ thể hay số chỗ giả; hướng dẫn người dùng tra trên giao diện."
+  }, {
+    "documentId" : "0151a9f6-9758-4814-8cf4-b3d460c4680f",
+    "chunkId" : "f0a74b9e-2005-475c-b647-c81fbcee9d70",
+    "title" : "Loại hội thoại và giới hạn hỗ trợ CoParking",
+    "content" : "Loại hội thoại và giới hạn hỗ trợ CoParking\nMục đích\nGiúp người dùng chọn đúng kênh: trao đổi khách hàng–đối tác, trợ lý tự động hoặc hỗ trợ hệ thống. Không hướng dẫn gửi phiếu hỗ trợ giữa khách hàng và đối tác.\nĐối tượng\nKhách hàng và nhân sự đối tác; nội dung chỉ mô tả ranh giới công khai, không cấp quyền quản trị.\nPhạm vi\nChat thường, chia sẻ đơn hàng, trợ lý tự động, tạo/xem phiếu và trao đổi với người xử lý. Không mô tả truy cập quản trị nội bộ hoặc dữ liệu của người khác.\nThuật ngữ\nCUSTOMER_DIRECT: khách hàng trao đổi với nhân sự đối tác.\nASSISTANT_SUPPORT: hội thoại với trợ lý CoParking, trả lời tự động.\nSUPPORT_REQUESTER_DIRECT: người gửi yêu cầu trao đổi với người xử lý hỗ trợ hệ thống.\nQuyền tài khoản và thành viên hội thoại được kiểm tra tại server; tên kênh không tự cấp quyền.\nĐiều kiện trước\nCó quyền đọc/gửi và là thành viên hợp lệ. Chia sẻ đơn hàng cần thêm quyền đọc đơn phù hợp; người dùng không thể dùng URL/ID để mở dữ liệu ngoài phạm vi.\nLuồng chính\nMuốn hỏi đối tác về đơn hàng: mở chat khách hàng–đối tác và gửi tin nhắn.\nMuốn hướng dẫn dùng CoParking: mở Trợ lý hỗ trợ CoParking; đây không phải người thật.\nCần báo lỗi hệ thống: dùng Tạo phiếu trong luồng hỗ trợ hệ thống hoặc trang Yêu cầu của tôi.\nKhách hàng xem tại /customer/support; nhân sự đối tác xem tại /admin/my-support nếu có quyền.\nKhi đã có người xử lý và liên kết hội thoại, dùng Tiếp tục trao đổi/Xem trao đổi theo nút trên phiếu.\nTạo phiếu và lịch sử yêu cầu không xuất hiện trong chat CUSTOMER_DIRECT. Quyền tạo phiếu không làm thay đổi giới hạn này.\nLuồng thay thế\nGuest dùng trợ lý công khai và form gửi yêu cầu với thông tin liên hệ/cơ chế bảo vệ tương ứng.\nIcon đơn hàng chỉ hiện khi đủ quyền; CUSTOMER cần quyền đọc OWN, phía đối tác cần quyền đọc ALL theo chính sách hiện tại.\nTrợ lý CoParking có nền xanh nhạt và được đặt đầu danh sách, nhưng không thay đổi kênh người dùng đang chủ động chọn.\nLuồng lỗi\nKhông có nút tạo phiếu trong chat đối tác là đúng thiết kế, không phải lỗi dropdown.\nKhông có icon đơn hàng: kiểm tra quyền/ngữ cảnh, không khuyên đổi ID request."
+  }, {
+    "documentId" : "7d79c270-1503-4f72-bf90-5d0b51fb893d",
+    "chunkId" : "fe10076e-e19c-444b-a5d0-8672ef52f614",
+    "title" : "Tìm bãi, bản đồ và chỉ đường",
+    "content" : "Chỉ đường đến bãi xe như thế nào? Chọn bãi trong kết quả và dùng nút chỉ đường để mở Google Maps. Khoảng cách tìm bãi là khoảng cách địa lý quanh điểm đã chọn, không phải cam kết quãng đường hoặc thời gian lái xe. Xem tuyến đường thực tế trên ứng dụng bản đồ.\nBãi xe nào gần tôi hiện còn chỗ? Trợ lý chưa tra cứu trực tiếp vị trí và số chỗ hiện tại trong chat. Mở Tìm bãi xe, chọn vị trí và xem kết quả của bãi phù hợp loại xe. Số chỗ có thể thay đổi; xem trên bản đồ chưa phải đặt hoặc giữ chỗ.\nTìm bãi trên bản đồ có tự giữ chỗ không? Không. Tìm bãi và chỉ đường chỉ giúp xem thông tin, không tạo đặt chỗ hoặc giữ chỗ. Muốn đặt trước, mở Đặt chỗ trước và kiểm tra điều kiện, thời hạn, số tiền rồi xác nhận theo giao diện; thông tin còn chỗ có thể thay đổi."
+  } ]
+} ]

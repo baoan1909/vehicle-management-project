@@ -1,0 +1,25 @@
+
+> vehicle-management-react@1.0.0 lint
+> tsc --noEmit
+
+
+<--- Last few GCs --->
+
+[15612:000001AA4CA57000]    24676 ms: Scavenge (interleaved) 380.8 (386.1) -> 379.0 (386.3) MB, pooled: 1 MB, 0.93 / 0.00 ms  (average mu = 0.274, current mu = 0.392) allocation failure; 
+[15612:000001AA4CA57000]    24818 ms: Mark-Compact (reduce) 381.1 (386.3) -> 379.1 (383.6) MB, pooled: 0 MB, 137.37 / 0.00 ms  (+ 0.4 ms in 30 steps since start of marking, biggest step 0.1 ms, walltime since start of marking 141 ms) (average mu = 0.209, 
+FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
+----- Native stack trace -----
+
+ 1: 00007FF7D528403F node::OnFatalError+1343
+ 2: 00007FF7D5ECFAA7 v8::Function::NewInstance+423
+ 3: 00007FF7D5CD04D7 v8::base::AddressSpaceReservation::AddressSpaceReservation+322071
+ 4: 00007FF7D5CD41E4 v8::base::AddressSpaceReservation::AddressSpaceReservation+337700
+ 5: 00007FF7D5CE313C v8::internal::StrongRootAllocatorBase::deallocate_impl+16604
+ 6: 00007FF7D5CE297B v8::internal::StrongRootAllocatorBase::deallocate_impl+14619
+ 7: 00007FF7D716A2AD v8::base::UnsignedDivisionByConstant<unsigned __int64>+2794653
+ 8: 00007FF7D5CCDFA0 v8::base::AddressSpaceReservation::AddressSpaceReservation+312544
+ 9: 00007FF7D5CE87EA X509_STORE_set_cleanup+5098
+10: 00007FF7D5CF4C86 uv_timer_set_repeat+20694
+11: 00007FF7D58C69C7 v8::String::Utf8Value::~Utf8Value+144199
+12: 00007FF7D701B33A v8::base::UnsignedDivisionByConstant<unsigned __int64>+1422634
+13: 000001AA00499206 

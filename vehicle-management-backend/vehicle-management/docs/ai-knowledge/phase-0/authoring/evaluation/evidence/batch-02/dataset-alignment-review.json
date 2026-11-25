@@ -1,0 +1,34 @@
+[
+  {
+    "caseId": "B2-VEH04-4",
+    "previousQuestion": "Xe đã ngưng dùng có kích hoạt lại được không?",
+    "question": "Ngưng dùng xe có làm mất các lượt gửi trước đó không?",
+    "reason": "Câu cũ hỏi kích hoạt lại, khác mục tiêu giữ lịch sử khi ngưng dùng.",
+    "expectedIntentUnchanged": "STATIC_KNOWLEDGE",
+    "splitUnchanged": "acceptance"
+  },
+  {
+    "caseId": "B2-HIST04-5",
+    "previousQuestion": "cach xoa loc lich su gui xe",
+    "question": "chon ngay bat dau va ngay ket thuc de loc lich su gui xe nhu nao",
+    "reason": "Câu cũ hỏi xóa lọc, khác mục tiêu chọn khoảng ngày.",
+    "expectedIntentUnchanged": "STATIC_KNOWLEDGE",
+    "splitUnchanged": "acceptance"
+  },
+  {
+    "caseId": "B2-HIST04-6",
+    "previousQuestion": "lich su gui xe ko thay du lieu can lam gi",
+    "question": "Muốn xem lượt gửi trong một khoảng ngày thì cần làm gì?",
+    "reason": "Câu cũ hỏi thiếu dữ liệu nói chung, khác mục tiêu chọn khoảng ngày.",
+    "expectedIntentUnchanged": "STATIC_KNOWLEDGE",
+    "splitUnchanged": "acceptance"
+  },
+  {
+    "caseId": "B2-VEH02-6",
+    "previousQuestion": "sua bien so ko dc thi phai lam sao",
+    "question": "sua bien so khongg dc thi phai lam sao",
+    "reason": "Dùng lỗi gõ lặp ký tự khongg thay vì chỉ viết tắt ko; giữ nguyên ý sửa biển số không được.",
+    "expectedIntentUnchanged": "STATIC_KNOWLEDGE",
+    "splitUnchanged": "regression"
+  }
+]

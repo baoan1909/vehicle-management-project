@@ -1,0 +1,42 @@
+[
+  {
+    "stage": "full-offline-maven",
+    "minimumFreeMb": 1024,
+    "observedFreeMb": 389,
+    "status": "DEFERRED_LOW_MEMORY",
+    "measuredAt": "2026-11-24T22:10:58.238060+07:00",
+    "testExecuted": false
+  },
+  {
+    "stage": "postgres-isolated",
+    "minimumFreeMb": 1024,
+    "observedFreeMb": 389,
+    "status": "DEFERRED_LOW_MEMORY",
+    "measuredAt": "2026-11-24T22:10:58.238072+07:00",
+    "testExecuted": false
+  },
+  {
+    "stage": "full-typescript",
+    "minimumFreeMb": 1024,
+    "observedFreeMb": 389,
+    "status": "DEFERRED_LOW_MEMORY",
+    "measuredAt": "2026-11-24T22:10:58.238075+07:00",
+    "testExecuted": false
+  },
+  {
+    "stage": "browser",
+    "minimumFreeMb": 1024,
+    "observedFreeMb": 389,
+    "status": "DEFERRED_LOW_MEMORY",
+    "measuredAt": "2026-11-24T22:10:58.238078+07:00",
+    "testExecuted": false
+  },
+  {
+    "stage": "qwen-live",
+    "minimumFreeMb": 1536,
+    "observedFreeMb": 389,
+    "status": "DEFERRED_LOW_MEMORY",
+    "measuredAt": "2026-11-24T22:10:58.238081+07:00",
+    "testExecuted": false
+  }
+]

@@ -1,0 +1,33 @@
+{
+  "verifiedAt": "2026-11-19",
+  "files": [
+    {
+      "file": "before-fallback-live-transcript.json",
+      "sha256": "6fce21fd893b3236f8a6330fbff1dcdb9549e9f74f80b2d8c6775e5190bb7390"
+    },
+    {
+      "file": "live-transcript.json",
+      "sha256": "382c629bca5b8c7bcdc6d1fbf4738af87f76a95f5d6ebc43bb45d448ac546312"
+    },
+    {
+      "file": "runtime-model-configurations.json",
+      "sha256": "83383be86e7d9bfdc07dd5e7a8a17149b64c6935b3a36cb9f263df590a762d7c"
+    },
+    {
+      "file": "semantic-review.json",
+      "sha256": "fbc878d72baaaaadf7e356a1d2a721e6275800d573c3a05b65c5f1ba8b23dab8"
+    },
+    {
+      "file": "structured-probe-results.json",
+      "sha256": "ed0db58b1b25e563f03175acde3232903f6785bcb69011c539f93f41c666c862"
+    },
+    {
+      "file": "summary.json",
+      "sha256": "3a5a11ce59aedf41a97937f86f179eb10040994a4ab73acb93ba651062145601"
+    },
+    {
+      "file": "test-log-summary.json",
+      "sha256": "ce2edd84af93f0caacb66307abc691c66a83cf24a6840d9516c4fcc9a31bb95b"
+    }
+  ]
+}

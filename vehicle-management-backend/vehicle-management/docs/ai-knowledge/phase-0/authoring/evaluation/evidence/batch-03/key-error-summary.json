@@ -1,0 +1,114 @@
+{
+  "scope": "Only opt-in real-provider live-test.log files; excludes synthetic-error unit test logs.",
+  "authenticationFailures": [],
+  "transientOrQuotaEvents": [
+    {
+      "run": "final-runtime",
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite"
+    },
+    {
+      "run": "final-runtime",
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite"
+    },
+    {
+      "run": "final-runtime",
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite"
+    },
+    {
+      "run": "final-runtime",
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite"
+    },
+    {
+      "run": "final-runtime",
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite"
+    },
+    {
+      "run": "release-candidate",
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite"
+    },
+    {
+      "run": "repeat-2",
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite"
+    },
+    {
+      "run": "repeat-3",
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite"
+    },
+    {
+      "run": "repeat-3-fixed",
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite"
+    },
+    {
+      "run": "repeat-3-fixed",
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite"
+    },
+    {
+      "run": "verified-runtime",
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite"
+    },
+    {
+      "run": "verified-runtime",
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite"
+    },
+    {
+      "run": "verified-runtime",
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite"
+    },
+    {
+      "run": "verified-runtime",
+      "variable": "GEMINI_API_KEY_1",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite"
+    }
+  ],
+  "byVariable": {
+    "GEMINI_API_KEY": {
+      "TRANSIENT": 13
+    },
+    "GEMINI_API_KEY_1": {
+      "TRANSIENT": 1
+    }
+  },
+  "catalogPreflight": "credential-preflight.json",
+  "warning": "Catalog success does not prove remaining generation/embedding quota."
+}

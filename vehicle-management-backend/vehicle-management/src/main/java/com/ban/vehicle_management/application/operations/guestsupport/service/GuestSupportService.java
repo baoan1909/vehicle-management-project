@@ -73,9 +73,7 @@ public class GuestSupportService {
                 input.sessionId(),
                 remoteAddress);
 
-        if (!categoryPortIn.isActiveCategory(input.categoryId())) {
-            throw new BadRequestException("Danh mục hỗ trợ không còn hoạt động");
-        }
+        categoryPortIn.ensurePublicAvailableCategory(input.categoryId());
 
         String ipHash = tokenService.hash(remoteAddress == null ? "unknown" : remoteAddress);
         String sessionHash = isBlank(input.sessionId()) ? null : tokenService.hash(input.sessionId().strip());

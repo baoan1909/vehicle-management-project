@@ -1,0 +1,56 @@
+{
+  "documentSlug": {
+    "authentication-and-profile": {
+      "total": 60,
+      "passed": 60
+    },
+    "chat-conversations-and-support-boundaries": {
+      "total": 60,
+      "passed": 60
+    },
+    "chatbot-privacy-and-prohibited-data": {
+      "total": 60,
+      "passed": 60
+    },
+    "support-ticket-and-escalation": {
+      "total": 60,
+      "passed": 60
+    }
+  },
+  "split": {
+    "acceptance": {
+      "total": 48,
+      "passed": 48
+    },
+    "regression": {
+      "total": 192,
+      "passed": 192
+    }
+  },
+  "variantType": {
+    "ACCENTED": {
+      "total": 40,
+      "passed": 40
+    },
+    "ALTERNATIVE": {
+      "total": 40,
+      "passed": 40
+    },
+    "CONTEXTUAL": {
+      "total": 40,
+      "passed": 40
+    },
+    "PARAPHRASE": {
+      "total": 40,
+      "passed": 40
+    },
+    "SHORT_OR_TYPO": {
+      "total": 40,
+      "passed": 40
+    },
+    "UNACCENTED": {
+      "total": 40,
+      "passed": 40
+    }
+  }
+}

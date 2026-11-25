@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { Badge, Button, Card, DateRangeInput, PaginationFooter, SelectMenu, useToast } from "@/components/ui";
 import {
@@ -18,6 +18,9 @@ import { cn } from "@/lib/cn";
 import { endOfApplicationDayIso, startOfApplicationDayIso, todayApplicationIsoDate } from "@/shared/time/applicationTime";
 import { getParkingLots, type ParkingLotApiResponse } from "@/features/parking/api/parkingLotsApi";
 import { usePlatformMonitoringScope } from "@/shared/monitoring/PlatformMonitoringScope";
+import { useAuth } from "@/core/auth/useAuth";
+import { hasAnyPermission } from "@/shared/auth/permissions";
+import { createCustomerSupportConversation, shareChatSubscriptionOrder } from "@/features/support/api/chatApi";
 
 const emptySummary: InvoiceManagementSummary = {
   total: 0,
@@ -229,13 +232,29 @@ function InvoiceDetailPanel({ detail, loading, lotName, onPrint }: { detail: Inv
   );
 }
 
+function InvoiceDetailDrawer({ detail, loading, lotName, onClose, onPrint, open }: { detail: InvoiceManagementDetail | null; loading: boolean; lotName: string; onClose: () => void; onPrint: () => void; open: boolean }) {
+  if (!open) return null;
+  return (
+    <div className="tw-fixed tw-inset-0 tw-z-[140] tw-flex tw-justify-end" role="dialog" aria-modal="true" aria-label="Chi tiết hóa đơn">
+      <button className="tw-absolute tw-inset-0 tw-border-0 tw-bg-slate-950/45" type="button" aria-label="Đóng chi tiết hóa đơn" onClick={onClose} />
+      <aside className="tw-relative tw-h-full tw-w-full tw-max-w-[520px] tw-overflow-y-auto tw-bg-white tw-shadow-[-18px_0_48px_rgba(15,23,42,0.2)]">
+        <button className="tw-absolute tw-right-4 tw-top-4 tw-z-10 tw-grid tw-h-9 tw-w-9 tw-place-items-center tw-rounded-full tw-border-0 tw-bg-vm-slate-25 tw-text-vm-slate-700 hover:tw-bg-vm-slate-100" type="button" aria-label="Đóng" onClick={onClose}><i className="fas fa-times" /></button>
+        <InvoiceDetailPanel detail={detail} loading={loading} lotName={lotName} onPrint={onPrint} />
+      </aside>
+    </div>
+  );
+}
+
 export function InvoiceManagementPage() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const requestedInvoiceId = searchParams.get("invoiceId")?.trim() ?? "";
   const toast = useToast();
   const { scope, permittedLotIds } = usePlatformMonitoringScope();
   const [parkingLots, setParkingLots] = useState<ParkingLotApiResponse[]>([]);
   const [selectedLotId, setSelectedLotId] = useState("all");
+  const [audience, setAudience] = useState<"GUEST" | "SUBSCRIPTION">("GUEST");
   const [summary, setSummary] = useState(emptySummary);
   const [items, setItems] = useState<InvoiceManagementItem[]>([]);
   const [detail, setDetail] = useState<InvoiceManagementDetail | null>(null);
@@ -252,6 +271,10 @@ export function InvoiceManagementPage() {
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [chatOpeningInvoiceId, setChatOpeningInvoiceId] = useState("");
+  const canMessageSubscriptionCustomer = hasAnyPermission(user, ["CHAT_CONVERSATION_CREATE_CUSTOMER_DIRECT"])
+    && hasAnyPermission(user, ["CHAT_MESSAGE_SEND_OWN"])
+    && hasAnyPermission(user, ["SUBSCRIPTION_READ_ALL"]);
 
   useEffect(() => {
     let active = true;
@@ -291,6 +314,7 @@ export function InvoiceManagementPage() {
 
     return {
       ...selectedScope,
+      source: audience === "SUBSCRIPTION" ? "SUBSCRIPTION" : "PARKING_SESSION",
       fromDate: toBoundaryInstant(fromDate),
       keyword: keyword || undefined,
       page: page - 1,
@@ -299,7 +323,7 @@ export function InvoiceManagementPage() {
       status: status === "all" ? undefined : status as InvoiceStatus,
       toDate: toBoundaryInstant(toDate, true),
     };
-  }, [dateRange, keyword, page, pageSize, paymentMethod, selectedScope, status]);
+  }, [audience, dateRange, keyword, page, pageSize, paymentMethod, selectedScope, status]);
 
   const loadList = useCallback(async () => {
     setLoading(true);
@@ -308,7 +332,7 @@ export function InvoiceManagementPage() {
       setItems(response.data.items);
       setTotalRecords(response.data.totalElements);
       setTotalPages(Math.max(response.data.totalPages, 1));
-      setSelectedId((current) => current && response.data.items.some((item) => item.invoiceId === current) ? current : response.data.items[0]?.invoiceId ?? null);
+      setSelectedId((current) => current && response.data.items.some((item) => item.invoiceId === current) ? current : null);
     } catch (error) {
       setItems([]);
       setSelectedId(null);
@@ -350,6 +374,30 @@ export function InvoiceManagementPage() {
     setKeywordInput("");
     setKeyword("");
     setPage(1);
+  };
+
+  const selectAudience = (value: "GUEST" | "SUBSCRIPTION") => {
+    setAudience(value);
+    setSelectedId(null);
+    setDetail(null);
+    setPage(1);
+  };
+
+  const openSubscriptionConversation = async (invoice: InvoiceManagementItem) => {
+    if (!canMessageSubscriptionCustomer || invoice.source !== "SUBSCRIPTION" || !invoice.customerId || !invoice.sourceId || chatOpeningInvoiceId) return;
+    setChatOpeningInvoiceId(invoice.invoiceId);
+    try {
+      const conversation = await createCustomerSupportConversation({
+        customerId: invoice.customerId,
+        title: `Trao đổi đơn hàng ${invoice.invoiceNo}`,
+      });
+      await shareChatSubscriptionOrder(conversation.data.conversationId, invoice.sourceId);
+      navigate(`/admin/support-center?conversationId=${encodeURIComponent(conversation.data.conversationId)}`);
+    } catch (error) {
+      toast.error(getErrorMessage(error), "Không thể mở hội thoại đơn hàng");
+    } finally {
+      setChatOpeningInvoiceId("");
+    }
   };
 
   const exportData = async () => {
@@ -433,10 +481,13 @@ export function InvoiceManagementPage() {
         <Button variant="secondary" onClick={clearFilters}><i className="fas fa-undo-alt" /> Xóa lọc</Button>
       </Card>
 
-      <section className="tw-grid tw-grid-cols-[minmax(0,1fr)_minmax(330px,0.38fr)] tw-items-start tw-gap-3 max-[1100px]:tw-grid-cols-1">
+      <section>
         <Card className="tw-min-w-0 tw-overflow-hidden">
-          <div className="tw-flex tw-items-center tw-justify-between tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-px-4 tw-py-3">
-            <h2 className="tw-m-0 tw-text-[1rem] tw-font-black tw-text-vm-slate-900">Danh sách hóa đơn</h2>
+          <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-px-4 tw-py-3">
+            <div className="tw-flex tw-items-center tw-gap-2 tw-rounded-vm-md tw-bg-vm-slate-25 tw-p-1">
+              <button className={cn("tw-rounded-vm-sm tw-border-0 tw-px-4 tw-py-2 tw-text-sm tw-font-black", audience === "GUEST" ? "tw-bg-white tw-text-vm-primary tw-shadow-sm" : "tw-bg-transparent tw-text-vm-slate-500")} type="button" onClick={() => selectAudience("GUEST")}><i className="fas fa-car tw-mr-2" />Khách vãng lai</button>
+              <button className={cn("tw-rounded-vm-sm tw-border-0 tw-px-4 tw-py-2 tw-text-sm tw-font-black", audience === "SUBSCRIPTION" ? "tw-bg-white tw-text-vm-primary tw-shadow-sm" : "tw-bg-transparent tw-text-vm-slate-500")} type="button" onClick={() => selectAudience("SUBSCRIPTION")}><i className="fas fa-ticket-alt tw-mr-2" />Khách đăng ký</button>
+            </div>
             {loading ? <i className="fas fa-spinner fa-spin tw-text-vm-primary" aria-label="Đang tải" /> : null}
           </div>
           <div className="tw-overflow-x-auto">
@@ -455,7 +506,26 @@ export function InvoiceManagementPage() {
                   >
                     <td className={cn("tw-max-w-[180px] tw-truncate tw-px-3 tw-py-3 tw-font-black tw-text-vm-primary", selectedId === item.invoiceId ? "tw-border-0 tw-border-l-4 tw-border-solid tw-border-vm-primary" : "") } title={item.invoiceNo}>{item.invoiceNo}</td>
                     <td className="tw-px-3 tw-py-3 tw-font-semibold tw-text-vm-slate-700">{item.parkingLotId ? lotNames.get(item.parkingLotId) ?? "Bãi không còn hoạt động" : "Chưa xác định"}</td>
-                    <td className="tw-px-3 tw-py-3"><strong className="tw-block tw-text-vm-slate-900">{item.customerName}</strong><span className="tw-mt-0.5 tw-block tw-text-[0.7rem] tw-text-vm-slate-500">{item.licensePlate || "Không có biển số"}</span></td>
+                    <td className="tw-px-3 tw-py-3">
+                      <div className="tw-min-w-0">
+                        <div className="tw-flex tw-items-center tw-gap-1.5">
+                          <strong className="tw-block tw-truncate tw-text-vm-slate-900">{item.customerName}</strong>
+                          {audience === "SUBSCRIPTION" && canMessageSubscriptionCustomer && item.customerId && item.sourceId ? (
+                            <button
+                              className="tw-inline-flex tw-h-5 tw-w-5 tw-shrink-0 tw-items-center tw-justify-center tw-border-0 tw-bg-transparent tw-p-0 tw-text-[0.75rem] tw-text-vm-primary hover:tw-text-blue-700 disabled:tw-cursor-wait disabled:tw-opacity-50"
+                              type="button"
+                              aria-label={`Nhắn tin với ${item.customerName}`}
+                              title="Mở chat và gửi đơn hàng"
+                              disabled={Boolean(chatOpeningInvoiceId)}
+                              onClick={(event) => { event.stopPropagation(); void openSubscriptionConversation(item); }}
+                            >
+                              <i className={chatOpeningInvoiceId === item.invoiceId ? "fas fa-spinner fa-spin" : "far fa-comment-dots"} />
+                            </button>
+                          ) : null}
+                        </div>
+                        <span className="tw-mt-0.5 tw-block tw-text-[0.7rem] tw-text-vm-slate-500">{item.licensePlate || "Không có biển số"}</span>
+                      </div>
+                    </td>
                     <td className="tw-px-3 tw-py-3 tw-font-semibold tw-text-vm-slate-700">{sourceLabels[item.source]}</td>
                     <td className="tw-whitespace-nowrap tw-px-3 tw-py-3 tw-text-vm-slate-600">{formatDisplayDate(item.createdAt)}</td>
                     <td className="tw-whitespace-nowrap tw-px-3 tw-py-3 tw-font-black tw-text-vm-slate-900">{formatMoney(item.finalAmount)}</td>
@@ -479,8 +549,8 @@ export function InvoiceManagementPage() {
             totalRecords={totalRecords}
           />
         </Card>
-        <InvoiceDetailPanel detail={detail} loading={detailLoading} lotName={detail?.invoice.parkingLotId ? lotNames.get(detail.invoice.parkingLotId) ?? "Bãi không còn hoạt động" : "Chưa xác định"} onPrint={printInvoice} />
       </section>
+      <InvoiceDetailDrawer open={Boolean(selectedId)} detail={detail} loading={detailLoading} lotName={detail?.invoice.parkingLotId ? lotNames.get(detail.invoice.parkingLotId) ?? "Bãi không còn hoạt động" : "Chưa xác định"} onClose={() => { setSelectedId(null); setDetail(null); }} onPrint={printInvoice} />
     </main>
   );
 }

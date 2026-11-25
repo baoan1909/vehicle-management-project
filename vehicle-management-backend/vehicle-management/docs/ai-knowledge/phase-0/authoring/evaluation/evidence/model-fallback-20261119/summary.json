@@ -1,0 +1,28 @@
+{
+  "verifiedAt": "2026-11-19",
+  "generationResponses": 8,
+  "cases": 8,
+  "validCitationLabels": 8,
+  "agentRubricPassed": 8,
+  "selectedModels": {
+    "gemini-3.1-flash-lite": 7,
+    "gemini-3.5-flash-lite": 1
+  },
+  "requestsPerCase": [
+    2,
+    3,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2
+  ],
+  "totalLatencyMs": {
+    "min": 3422,
+    "median": 9117.5,
+    "max": 45667
+  },
+  "scope": "isolated PostgreSQL corpus; real Gemini adapter; direct bounded generation evaluation; not full UI E2E",
+  "runtimeDatabaseModified": false
+}

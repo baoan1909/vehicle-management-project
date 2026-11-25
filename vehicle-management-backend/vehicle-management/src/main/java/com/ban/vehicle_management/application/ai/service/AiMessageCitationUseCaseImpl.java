@@ -3,6 +3,7 @@ package com.ban.vehicle_management.application.ai.service;
 import com.ban.vehicle_management.application.ai.port.in.AiMessageCitationPortIn;
 import com.ban.vehicle_management.application.ai.port.out.AiMessageCitationPortOut;
 import com.ban.vehicle_management.application.ai.port.out.KnowledgeRetrievalAuditPortOut;
+import com.ban.vehicle_management.application.ai.port.out.KnowledgeRetrievalPortOut;
 import com.ban.vehicle_management.application.ai.query.MessageCitationsResult;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.operations.chatconversation.port.out.ChatConversationPortOut;
@@ -28,16 +29,21 @@ public class AiMessageCitationUseCaseImpl implements AiMessageCitationPortIn {
     private final ChatConversationPortOut chatPortOut;
     private final AiMessageCitationPortOut citationPortOut;
     private final KnowledgeRetrievalAuditPortOut auditPortOut;
+    private final KnowledgeRetrievalPortOut retrievalPortOut;
+    private final KnowledgeAccessContextResolver accessResolver;
 
     public AiMessageCitationUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
             ChatConversationPortOut chatPortOut,
             AiMessageCitationPortOut citationPortOut,
-            KnowledgeRetrievalAuditPortOut auditPortOut) {
+            KnowledgeRetrievalAuditPortOut auditPortOut, KnowledgeRetrievalPortOut retrievalPortOut,
+            KnowledgeAccessContextResolver accessResolver) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.chatPortOut = chatPortOut;
         this.citationPortOut = citationPortOut;
         this.auditPortOut = auditPortOut;
+        this.retrievalPortOut = retrievalPortOut;
+        this.accessResolver = accessResolver;
     }
 
     @Override
@@ -50,7 +56,14 @@ public class AiMessageCitationUseCaseImpl implements AiMessageCitationPortIn {
         if (!member) {
             throw new AccessDeniedException("Access is denied");
         }
-        List<AiMessageCitation> citations = citationPortOut.findByMessageId(messageId);
+        // Membership does not preserve a knowledge permission after it is revoked.
+        // This endpoint has no current trusted tenant binding, so it only serves global evidence.
+        List<String> currentScopes = accessResolver.resolveScopes();
+        List<AiMessageCitation> citations = citationPortOut.findByMessageId(messageId).stream()
+                .filter(citation -> citation.chunkId() != null && citation.indexVersionId() != null
+                        && retrievalPortOut.areChunksEligible(null, citation.indexVersionId(), currentScopes,
+                                List.of(citation.chunkId())))
+                .toList();
         RetrievalAudit audit = citations.stream()
                 .map(AiMessageCitation::retrievalAuditId)
                 .filter(java.util.Objects::nonNull)

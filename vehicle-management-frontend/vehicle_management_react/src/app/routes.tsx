@@ -135,7 +135,7 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/admin/support-categories", title: "Danh mục hỗ trợ và quy trình xử lý yêu cầu", layout: "admin", element: <SupportCategoryWorkflowPage /> },
   { path: "/admin/support-tickets", title: "Yêu cầu hỗ trợ", layout: "admin", element: <SupportTicketManagementPage /> },
   { path: "/admin/my-support", title: "Hỗ trợ của tôi", layout: "admin", element: <InternalSupportPage /> },
-  { path: "/admin/my-support/chat", title: "Hội thoại hỗ trợ", layout: "admin", element: <Navigate to="/admin/my-support?chat=open" replace /> },
+  { path: "/admin/my-support/chat", title: "Hội thoại hỗ trợ", layout: "fullscreen", element: <OperationsSupportCenterPage /> },
   { path: "/admin/parking-reviews", title: "Đánh giá bãi xe", layout: "admin", element: <ParkingLotReviewManagementPage /> },
   { path: "/admin/announcements", title: "Quản lý thông báo", layout: "admin", element: <AnnouncementManagementPage /> },
   { path: "/admin/user-guides", title: "Hướng dẫn sử dụng", layout: "admin", element: <UserGuideManagementPage /> },

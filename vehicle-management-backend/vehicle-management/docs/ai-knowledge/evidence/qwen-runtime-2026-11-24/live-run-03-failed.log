@@ -1,0 +1,888 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ---------------------< com.ban:vehicle-management >---------------------
+[INFO] Building  0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ vehicle-management ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 172 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.14.1:compile (default-compile) @ vehicle-management ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ vehicle-management ---
+[INFO] Copying 4 resources from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.14.1:testCompile (default-testCompile) @ vehicle-management ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 460 source files with javac [debug parameters release 21] to target\test-classes
+[INFO] /C:/DiskD/VehicleManagementProject/vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/application/accesscontrol/subscription/usecase/SubscriptionUseCaseImplTest.java: Some input files use or override a deprecated API.
+[INFO] /C:/DiskD/VehicleManagementProject/vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/application/accesscontrol/subscription/usecase/SubscriptionUseCaseImplTest.java: Recompile with -Xlint:deprecation for details.
+[INFO] /C:/DiskD/VehicleManagementProject/vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/application/accesscontrol/subscription/usecase/SubscriptionUseCaseImplTest.java: Some input files use unchecked or unsafe operations.
+[INFO] /C:/DiskD/VehicleManagementProject/vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/application/accesscontrol/subscription/usecase/SubscriptionUseCaseImplTest.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- surefire:3.5.6:test (default-test) @ vehicle-management ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.ban.vehicle_management.ai.golden.QwenLocalAcceptanceIT
+15:10:57.159 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.ban.vehicle_management.ai.golden.QwenLocalAcceptanceIT]: QwenLocalAcceptanceIT does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+15:10:58.343 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.ban.vehicle_management.VehicleManagementApplication for test class com.ban.vehicle_management.ai.golden.QwenLocalAcceptanceIT
+15:10:58.543 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.ban.vehicle_management.ai.golden.QwenLocalAcceptanceIT]: QwenLocalAcceptanceIT does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+15:10:58.544 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.ban.vehicle_management.testsupport.PostgresIntegrationTestSupport]: PostgresIntegrationTestSupport does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+15:10:58.548 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.ban.vehicle_management.VehicleManagementApplication for test class com.ban.vehicle_management.ai.golden.QwenLocalAcceptanceIT
+15:10:58.832 [main] INFO org.testcontainers.images.PullPolicy -- Image pull policy will be performed by: DefaultPullPolicy()
+15:10:58.837 [main] INFO org.testcontainers.utility.ImageNameSubstitutor -- Image name substitution will be performed by: DefaultImageNameSubstitutor (composite of 'ConfigurationFileImageNameSubstitutor' and 'PrefixingImageNameSubstitutor')
+15:10:59.366 [main] INFO org.testcontainers.DockerClientFactory -- Testcontainers version: 2.0.5
+15:11:00.616 [main] INFO org.testcontainers.dockerclient.DockerClientProviderStrategy -- Loaded org.testcontainers.dockerclient.NpipeSocketClientProviderStrategy from ~/.testcontainers.properties, will try it first
+15:11:02.839 [main] INFO org.testcontainers.dockerclient.DockerClientProviderStrategy -- Found Docker environment with local Npipe socket (npipe:////./pipe/docker_engine)
+15:11:02.842 [main] INFO org.testcontainers.DockerClientFactory -- Docker host IP address is localhost
+15:11:02.911 [main] INFO org.testcontainers.DockerClientFactory -- Connected to docker: 
+  Server Version: 29.6.1
+  API Version: 1.55
+  Operating System: Docker Desktop
+  Total Memory: 3734 MB
+  Labels: 
+    com.docker.desktop.address=npipe://\\.\pipe\docker_cli
+15:11:03.326 [main] INFO tc.testcontainers/ryuk:0.14.0 -- Creating container for image: testcontainers/ryuk:0.14.0
+15:11:03.877 [main] INFO org.testcontainers.utility.RegistryAuthLocator -- Credential helper/store (docker-credential-desktop) does not have credentials for https://index.docker.io/v1/
+15:11:05.513 [main] INFO tc.testcontainers/ryuk:0.14.0 -- Container testcontainers/ryuk:0.14.0 is starting: c1eea7bc29193b35bc22da62f226a6d9c7f2fd48ae1928df6a86e7a99b8e8ed9
+15:11:20.921 [main] INFO tc.testcontainers/ryuk:0.14.0 -- Container testcontainers/ryuk:0.14.0 started in PT17.5939581S
+15:11:20.975 [main] INFO org.testcontainers.utility.RyukResourceReaper -- Ryuk started - will monitor and terminate Testcontainers containers on JVM exit
+15:11:20.975 [main] INFO org.testcontainers.DockerClientFactory -- Checking the system...
+15:11:20.977 [main] INFO org.testcontainers.DockerClientFactory -- ?? Docker server version should be at least 1.6.0
+15:11:20.978 [main] INFO tc.vehicle-management/postgres-pgvector-postgis:17 -- Creating container for image: vehicle-management/postgres-pgvector-postgis:17
+15:11:22.064 [main] INFO tc.vehicle-management/postgres-pgvector-postgis:17 -- Container vehicle-management/postgres-pgvector-postgis:17 is starting: c43390ef0e9c9eea4f234e792cf9b21d5c23bf167a341f4c8fac521f833249c3
+15:11:30.894 [main] INFO tc.vehicle-management/postgres-pgvector-postgis:17 -- Container vehicle-management/postgres-pgvector-postgis:17 started in PT9.9152921S
+15:11:30.900 [main] INFO tc.vehicle-management/postgres-pgvector-postgis:17 -- Container is started (JDBC URL: jdbc:postgresql://localhost:56674/vehicle_management_test?loggerLevel=OFF)
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.0.8)
+
+2026-11-24T15:11:32.060+07:00  INFO 23048 --- [           main] c.b.v.ai.golden.QwenLocalAcceptanceIT    : Starting QwenLocalAcceptanceIT using Java 23.0.2 with PID 23048 (started by baoan in C:\DiskD\VehicleManagementProject\vehicle-management-backend\vehicle-management)
+2026-11-24T15:11:32.062+07:00  INFO 23048 --- [           main] c.b.v.ai.golden.QwenLocalAcceptanceIT    : The following 1 profile is active: "test"
+2026-11-24T15:11:37.857+07:00  INFO 23048 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2026-11-24T15:11:37.860+07:00  INFO 23048 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-11-24T15:11:39.371+07:00  INFO 23048 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 1493 ms. Found 121 JPA repository interfaces.
+2026-11-24T15:11:41.012+07:00  INFO 23048 --- [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 0 (http)
+2026-11-24T15:11:41.043+07:00  INFO 23048 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-11-24T15:11:41.043+07:00  INFO 23048 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.25]
+2026-11-24T15:11:41.211+07:00  INFO 23048 --- [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 9122 ms
+2026-11-24T15:11:42.132+07:00  INFO 23048 --- [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://localhost:56674/vehicle_management_test?loggerLevel=OFF (PostgreSQL 17.12)
+2026-11-24T15:11:42.917+07:00  INFO 23048 --- [           main] o.f.c.i.s.JdbcTableSchemaHistory         : Schema history table "public"."flyway_schema_history" does not exist yet
+2026-11-24T15:11:42.925+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbValidate     : Successfully validated 164 migrations (execution time 00:00.729s)
+2026-11-24T15:11:42.960+07:00  INFO 23048 --- [           main] o.f.c.i.s.JdbcTableSchemaHistory         : Creating Schema History table "public"."flyway_schema_history" ...
+2026-11-24T15:11:43.018+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": << Empty Schema >>
+2026-11-24T15:11:43.159+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260818110000 - baseline schema"
+2026-11-24T15:11:43.170+07:00  INFO 23048 --- [           main] o.f.c.i.s.DefaultSqlScriptExecutor       : +------------+
+| set_config |
++------------+
+|            |
++------------+
+
+2026-11-24T15:11:43.803+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260818120000 - seed security reference data"
+2026-11-24T15:11:44.314+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260818120100 - seed catalog reference data"
+2026-11-24T15:11:44.374+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260818120200 - seed support ticket categories"
+2026-11-24T15:11:44.409+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260821234837 - create account identities"
+2026-11-24T15:11:44.447+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260825180000 - add onboarding approval permissions"
+2026-11-24T15:11:44.474+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260826090000 - grant employee customer chat creation"
+2026-11-24T15:11:44.497+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260826100000 - ensure parking manager customer chat permissions"
+2026-11-24T15:11:44.520+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260826190000 - activate approved customer accounts"
+2026-11-24T15:11:44.549+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260826191000 - grant customer subscription permissions"
+2026-11-24T15:11:44.572+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260826192000 - grant customer vehicle permissions"
+2026-11-24T15:11:44.593+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260826193000 - activate approved customer profiles"
+2026-11-24T15:11:44.610+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260827123000 - support ticket permission first chat flow"
+2026-11-24T15:11:44.636+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260901103000 - support chat intake queue"
+2026-11-24T15:11:44.666+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260901120000 - assistant support conversation"
+2026-11-24T15:11:44.715+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260901130000 - support ticket chat message context"
+2026-11-24T15:11:44.768+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260905100000 - complete customer support flow"
+2026-11-24T15:11:44.821+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260906100000 - validate support flow integrity"
+2026-11-24T15:11:44.846+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260906110000 - support ticket escalation flow"
+2026-11-24T15:11:44.882+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260907100000 - ai assistant model job audit"
+2026-11-24T15:11:44.946+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260907101000 - ai assistant reply idempotency"
+2026-11-24T15:11:44.982+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260907102000 - assistant job lock expiry"
+2026-11-24T15:11:45.013+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260908100000 - ai tool call rag admin runtime"
+2026-11-24T15:11:45.105+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260908101000 - seed default support knowledge"
+2026-11-24T15:11:45.134+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260912090000 - add subscription vouchers"
+2026-11-24T15:11:45.194+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260912100000 - ai run provider error details"
+2026-11-24T15:11:45.216+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260913100000 - add voucher customer banner configuration"
+2026-11-24T15:11:45.240+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260917100000 - ai pgvector index versioning"
+2026-11-24T15:11:45.290+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260917101000 - seed ai embedding config and knowledge permissions"
+2026-11-24T15:11:45.315+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260918100000 - ai knowledge source document identity"
+2026-11-24T15:11:45.376+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260918100010 - ai knowledge blocks chunks staged"
+2026-11-24T15:11:45.421+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260918100020 - ai knowledge ingestion jobs and lease"
+2026-11-24T15:11:45.458+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260918100030 - ai knowledge documents versioned reindex"
+2026-11-24T15:11:45.479+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260918100040 - ai knowledge candidate and reindex guards"
+2026-11-24T15:11:45.506+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260919100000 - ai retrieval unaccent and audit"
+2026-11-24T15:11:45.556+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260923130000 - ai knowledge retrieval scope permissions"
+2026-11-24T15:11:45.585+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260923140000 - add partner multi tenant foundation"
+2026-11-24T15:11:45.638+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260924163000 - backfill partner created parking manager memberships"
+2026-11-24T15:11:45.659+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260924170000 - grant partner admin parking manager onboarding review"
+2026-11-24T15:11:45.676+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260924173000 - add parking lot setup lifecycle"
+2026-11-24T15:11:45.696+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260924180000 - add parking lot location coordinates"
+2026-11-24T15:11:45.717+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260924200000 - add parking lot activation request"
+2026-11-24T15:11:45.735+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260925100000 - grant partner admin shared catalog read permissions"
+2026-11-24T15:11:45.755+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260925110000 - align system admin platform governance permissions"
+2026-11-24T15:11:45.783+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260925120000 - scope cards to parking lots"
+2026-11-24T15:11:45.810+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260925130000 - allow multiple vehicle types per zone"
+2026-11-24T15:11:45.832+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926100000 - grant partner admin scoped parking operations"
+2026-11-24T15:11:45.843+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926110000 - grant partner admin scoped device operations"
+2026-11-24T15:11:45.857+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926120000 - anchor parking sessions to parking lots"
+2026-11-24T15:11:45.876+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926130000 - grant partner admin scoped shift operations"
+2026-11-24T15:11:45.892+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926140000 - backfill employee partner memberships"
+2026-11-24T15:11:45.909+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926150000 - grant partner admin employee onboarding review"
+2026-11-24T15:11:45.928+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926160000 - grant partner admin scoped employee management"
+2026-11-24T15:11:45.947+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926170000 - remove system admin partner lot write permissions"
+2026-11-24T15:11:45.966+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926180000 - scope partner card and lost card access"
+2026-11-24T15:11:45.989+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926190000 - snapshot lost card report parking lot"
+2026-11-24T15:11:46.016+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926200000 - scope catalog to organizations"
+2026-11-24T15:11:46.088+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926210000 - anchor subscriptions to parking lots"
+2026-11-24T15:11:46.115+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926220000 - grant scoped subscription operations"
+2026-11-24T15:11:46.139+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926230000 - backfill unambiguous subscription lots"
+2026-11-24T15:11:46.164+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926240000 - anchor invoices to parking lots"
+2026-11-24T15:11:46.192+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926250000 - grant scoped invoice operations"
+2026-11-24T15:11:46.219+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926260000 - scope employee payments to open shifts"
+2026-11-24T15:11:46.247+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926270000 - grant scoped customer read access"
+2026-11-24T15:11:46.505+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926280000 - move customer onboarding review to platform"
+2026-11-24T15:11:46.554+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926290000 - configure catalog availability by parking lot"
+2026-11-24T15:11:46.583+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260926300000 - set database default timezone"
+2026-11-24T15:11:46.607+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260927100000 - normalize license plate identity"
+2026-11-24T15:11:46.685+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260928100000 - add postgis parking lot location"
+2026-11-24T15:11:46.771+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260928110000 - create administrative reference schema"
+2026-11-24T15:11:46.904+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260928111000 - seed current administrative divisions v5 2 0"
+2026-11-24T15:11:47.377+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260928112000 - seed legacy administrative divisions v2 4 1"
+2026-11-24T15:11:48.038+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260929100000 - add parking lot address management"
+2026-11-24T15:11:48.067+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260929100100 - create current ward gis schema"
+2026-11-24T15:11:50.467+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260929100101 - seed current ward gis part 01"
+2026-11-24T15:11:56.761+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260929100102 - seed current ward gis part 02"
+2026-11-24T15:12:02.036+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260929100103 - seed current ward gis part 03"
+2026-11-24T15:12:06.716+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260929100104 - seed current ward gis part 04"
+2026-11-24T15:12:08.165+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20260929100200 - validate current ward gis and active parking lots"
+2026-11-24T15:12:09.868+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261003100000 - secure partner self registration"
+2026-11-24T15:12:09.914+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261004120000 - add onboarding approval policies"
+2026-11-24T15:12:09.946+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261004130000 - add structured address columns"
+2026-11-24T15:12:09.981+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261004131000 - add structured address province code"
+2026-11-24T15:12:10.003+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261005160000 - add avatar moderation workflow"
+2026-11-24T15:12:10.047+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261006120000 - remove legacy user profile address"
+2026-11-24T15:12:10.069+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261007130000 - remove remaining legacy address columns"
+2026-11-24T15:12:10.095+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261008090000 - backfill partner request data"
+2026-11-24T15:12:10.128+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261008100000 - parking levels spaces layout allocations"
+2026-11-24T15:12:10.239+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261008100001 - parking space topology and allocation guards"
+2026-11-24T15:12:10.460+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261009100000 - seed parking space layout permissions"
+2026-11-24T15:12:10.483+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261010000000 - draft layout snapshot and revision"
+2026-11-24T15:12:10.509+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261013090000 - allow unbound draft layout items"
+2026-11-24T15:12:10.529+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261014010000 - create wallet core ledger"
+2026-11-24T15:12:10.611+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261014010100 - create wallet topup orders"
+2026-11-24T15:12:10.638+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261014010200 - add wallet payment method"
+2026-11-24T15:12:10.691+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261014010300 - create settlement payout"
+2026-11-24T15:12:10.758+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261014090000 - create platform fee tables"
+2026-11-24T15:12:11.061+07:00  WARN 23048 --- [           main] o.f.c.i.s.DefaultSqlScriptExecutor       : DB: there is already a transaction in progress (SQL State: 25001 - Error Code: 0)
+2026-11-24T15:12:11.107+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261014100000 - seed platform fee permissions"
+2026-11-24T15:12:11.126+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261015090000 - subscription idempotency key"
+2026-11-24T15:12:11.144+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261015100000 - add partner organization profile approval permissions"
+2026-11-24T15:12:11.166+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261016090000 - separate platform fee permission module"
+2026-11-24T15:12:11.185+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261016100000 - create platform fee configuration"
+2026-11-24T15:12:11.209+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261016102000 - create user guide foundation"
+2026-11-24T15:12:11.283+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261016103000 - seed user guide permissions"
+2026-11-24T15:12:11.323+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261016104000 - user guide state progress"
+2026-11-24T15:12:11.353+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261021190000 - retire partner organization profile access"
+2026-11-24T15:12:11.376+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261022100000 - scope parking manager onboarding to creator"
+2026-11-24T15:12:11.397+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261022210000 - index public nearby parking lots"
+2026-11-24T15:12:11.421+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261024100000 - grant partner admin plate operation permissions"
+2026-11-24T15:12:11.451+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261026100000 - add account access changed notification"
+2026-11-24T15:12:11.479+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261026110000 - create guest support requests"
+2026-11-24T15:12:11.525+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261027100000 - subscription zone entitlements and capacity maintenance"
+2026-11-24T15:12:11.573+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261028100000 - add subscription period quantity"
+2026-11-24T15:12:11.597+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261028110000 - add subscription physical card preference"
+2026-11-24T15:12:11.621+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261028170000 - add lane status notification types"
+2026-11-24T15:12:11.642+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261029100000 - grant partner admin scoped payment operations"
+2026-11-24T15:12:11.658+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261029110000 - add subscription qr credentials"
+2026-11-24T15:12:11.679+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261029120000 - add subscription access blocking"
+2026-11-24T15:12:11.698+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261029130000 - allow subscription qr parking sessions"
+2026-11-24T15:12:11.712+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261102100000 - add customer favorite parking lots"
+2026-11-24T15:12:11.733+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261102110000 - parking lot workforce scope and manager handover"
+2026-11-24T15:12:11.818+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261102230000 - index latest onboarding approval lookup"
+2026-11-24T15:12:11.832+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261103100000 - create parking lot reviews"
+2026-11-24T15:12:11.858+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261103110000 - grant scoped parking lot vehicle service management"
+2026-11-24T15:12:11.870+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261104100000 - grant partner admin review chat permissions"
+2026-11-24T15:12:11.883+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261104110000 - allow open ended vouchers"
+2026-11-24T15:12:11.902+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261104120000 - create customer account deletion lifecycle"
+2026-11-24T15:12:11.935+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261104130000 - generalize account deletion for internal accounts"
+2026-11-24T15:12:11.961+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261105100000 - add three level voucher scope"
+2026-11-24T15:12:11.986+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261105110000 - add subscription space selection"
+2026-11-24T15:12:12.007+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261105120000 - decouple physical card fulfillment"
+2026-11-24T15:12:12.024+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261105130000 - add subscription physical card fulfillment"
+2026-11-24T15:12:12.053+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261106100000 - add subscription renewals"
+2026-11-24T15:12:12.084+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261106110000 - allow subscription renewal invoice purpose"
+2026-11-24T15:12:12.101+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261107100000 - parking customer reservations"
+2026-11-24T15:12:12.131+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261107110000 - allow guest customer reservations"
+2026-11-24T15:12:12.144+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261109120000 - allow stripe reservation payments"
+2026-11-24T15:12:12.162+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261110100000 - check in space holds"
+2026-11-24T15:12:12.193+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261110100001 - generalize platform fee scope"
+2026-11-24T15:12:12.235+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261110101000 - create billing outbox"
+2026-11-24T15:12:12.256+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261110102000 - create revenue allocation reversals"
+2026-11-24T15:12:12.274+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261110110000 - add vehicle parking evidence"
+2026-11-24T15:12:12.288+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261110120000 - organization account deletion closure"
+2026-11-24T15:12:12.343+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261111100000 - account deletion archive identity fingerprints"
+2026-11-24T15:12:12.362+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261111170000 - account deletion active subscription no refund consent"
+2026-11-24T15:12:12.378+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261111171000 - terminate subscription for account deletion"
+2026-11-24T15:12:12.397+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261113100000 - add sepay reservation payments"
+2026-11-24T15:12:12.415+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261113120000 - seed business workflow user guide drafts"
+2026-11-24T15:12:12.468+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261114100000 - seed customer portal user guide drafts"
+2026-11-24T15:12:12.499+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261115100000 - partner catalog draft lifecycle"
+2026-11-24T15:12:12.555+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261115105000 - scope price rules to parking lots"
+2026-11-24T15:12:12.603+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261115110000 - seed post onboarding operations journeys"
+2026-11-24T15:12:12.637+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261115120000 - seed workflow coach mark coverage"
+2026-11-24T15:12:12.672+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261116100000 - user guide journey configuration"
+2026-11-24T15:12:12.721+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261116110000 - align price rule drafts with parking lot scope"
+2026-11-24T15:12:12.740+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261116111000 - version price rule guides for parking lot flow"
+2026-11-24T15:12:12.760+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261116112000 - repair price rule guide version metadata"
+2026-11-24T15:12:12.780+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261117100000 - account owned support workflow"
+2026-11-24T15:12:12.933+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261118010000 - support ticket snapshot events"
+2026-11-24T15:12:12.991+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261118020000 - support ticket inactivity auto close"
+2026-11-24T15:12:13.015+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261118030000 - support ticket category administration"
+2026-11-24T15:12:13.059+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261119100000 - standardize support category catalog"
+2026-11-24T15:12:13.169+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261119110000 - allow tool audit without model run"
+2026-11-24T15:12:13.210+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "20261124120000 - strict ai runtime provider modes"
+2026-11-24T15:12:14.922+07:00  INFO 23048 --- [           main] o.f.core.internal.command.DbMigrate      : Successfully applied 164 migrations to schema "public", now at version v20261124120000 (execution time 00:17.427s)
+2026-11-24T15:12:16.772+07:00  INFO 23048 --- [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-11-24T15:12:16.959+07:00  INFO 23048 --- [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.24.Final
+2026-11-24T15:12:17.806+07:00  INFO 23048 --- [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-11-24T15:12:17.859+07:00  INFO 23048 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-11-24T15:12:17.972+07:00  INFO 23048 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-11-24T15:12:18.099+07:00  INFO 23048 --- [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://localhost:56674/vehicle_management_test?loggerLevel=OFF]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 17.12
+	Default catalog/schema: vehicle_management_test/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-11-24T15:12:21.716+07:00  INFO 23048 --- [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-11-24T15:12:21.920+07:00  INFO 23048 --- [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-11-24T15:12:22.022+07:00  INFO 23048 --- [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-11-24T15:12:25.786+07:00  INFO 23048 --- [           main] c.b.v.i.c.t.ApplicationTimeConfiguration : Application timezone resolved to Asia/Ho_Chi_Minh
+2026-11-24T15:12:29.892+07:00  INFO 23048 --- [           main] f.a.AutowiredAnnotationBeanPostProcessor : Inconsistent constructor declaration on bean with name 'knowledgeRetrievalService': single autowire-marked constructor flagged as optional - this constructor is effectively required since there is no default constructor to fall back to: public com.ban.vehicle_management.application.ai.service.KnowledgeRetrievalService(com.ban.vehicle_management.application.ai.port.out.KnowledgeRetrievalPortOut,com.ban.vehicle_management.application.ai.port.out.KnowledgeIndexVersionPortOut,com.ban.vehicle_management.application.ai.port.out.AiModelConfigurationPortOut,com.ban.vehicle_management.application.ai.port.out.KnowledgeRetrievalAuditPortOut,com.ban.vehicle_management.application.ai.service.EmbeddingService,com.ban.vehicle_management.application.ai.service.EmbeddingPromptFormatter,com.ban.vehicle_management.application.ai.service.PiiRedactionService,com.ban.vehicle_management.application.ai.service.EmbeddingProperties,com.ban.vehicle_management.application.ai.service.RetrievalProperties,com.ban.vehicle_management.application.ai.service.KnowledgeAccessContextResolver,com.ban.vehicle_management.application.ai.service.ResolveQueryEmbeddingService,com.ban.vehicle_management.application.ai.port.out.KnowledgeRetrievalCachePortOut,com.ban.vehicle_management.infrastructure.cache.AiCacheKeyFactory,com.ban.vehicle_management.application.ai.service.SensitiveQueryGuard,com.ban.vehicle_management.application.ai.service.AiCacheProperties,com.ban.vehicle_management.application.ai.mapper.AiCacheMapper)
+2026-11-24T15:12:30.008+07:00  INFO 23048 --- [           main] f.a.AutowiredAnnotationBeanPostProcessor : Inconsistent constructor declaration on bean with name 'assistantOrchestrator': single autowire-marked constructor flagged as optional - this constructor is effectively required since there is no default constructor to fall back to: public com.ban.vehicle_management.application.ai.service.AssistantOrchestrator(com.ban.vehicle_management.application.ai.service.AiAssistantProperties,com.ban.vehicle_management.application.ai.port.out.AssistantJobPortOut,com.ban.vehicle_management.application.operations.chatconversation.port.out.ChatConversationPortOut,com.ban.vehicle_management.application.ai.service.AiModelRouter,com.ban.vehicle_management.application.ai.service.AiModelPolicyService,java.util.List,com.ban.vehicle_management.application.ai.port.out.AiRunPortOut,com.ban.vehicle_management.application.ai.port.out.AiModelWarningPortOut,com.ban.vehicle_management.application.ai.port.out.AiToolCallPortOut,com.ban.vehicle_management.application.ai.service.AiToolExecutionService,com.ban.vehicle_management.domain.ai.policy.AiToolRegistry,com.ban.vehicle_management.application.operations.chatconversation.port.out.ChatRealtimeEventPublisherPortOut,com.ban.vehicle_management.application.operations.chatconversation.mapper.ChatRealtimeEventMapper,com.ban.vehicle_management.application.ai.service.PiiRedactionService,com.ban.vehicle_management.application.ai.service.KnowledgeAccessContextResolver,com.ban.vehicle_management.application.ai.service.KnowledgeRetrievalService,com.ban.vehicle_management.application.ai.service.RetrievalProperties,com.ban.vehicle_management.application.ai.port.out.KnowledgeRetrievalAuditPortOut,com.ban.vehicle_management.application.ai.port.out.AiMessageCitationPortOut,com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn,com.ban.vehicle_management.infrastructure.security.assistant.AssistantActorScope,com.fasterxml.jackson.databind.ObjectMapper,org.springframework.transaction.support.TransactionTemplate,com.ban.vehicle_management.application.ai.port.out.GroundedAnswerCachePortOut,com.ban.vehicle_management.application.ai.port.out.AiModelCircuitBreakerPortOut,com.ban.vehicle_management.application.ai.service.AiSingleFlightService,com.ban.vehicle_management.infrastructure.cache.AiCacheKeyFactory,com.ban.vehicle_management.application.ai.service.SensitiveQueryGuard,com.ban.vehicle_management.application.ai.service.AiCacheProperties,com.ban.vehicle_management.application.ai.mapper.AiCacheMapper,com.ban.vehicle_management.application.ai.port.out.KnowledgeIndexVersionPortOut,com.ban.vehicle_management.infrastructure.cache.AiCacheMetrics)
+2026-11-24T15:12:31.867+07:00  WARN 23048 --- [           main] c.b.v.a.o.g.s.GuestSupportTokenService   : PUBLIC_SUPPORT_CAPABILITY_SECRET is missing; guest capability tokens will not survive a restart
+2026-11-24T15:12:34.292+07:00  WARN 23048 --- [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-11-24T15:12:35.787+07:00  INFO 23048 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 4 endpoints beneath base path '/actuator'
+2026-11-24T15:12:35.899+07:00  INFO 23048 --- [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : Starting...
+2026-11-24T15:12:35.900+07:00  INFO 23048 --- [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : BrokerAvailabilityEvent[available=true, SimpleBrokerMessageHandler [org.springframework.messaging.simp.broker.DefaultSubscriptionRegistry@6cdbe19f]]
+2026-11-24T15:12:35.902+07:00  INFO 23048 --- [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : Started.
+2026-11-24T15:12:35.928+07:00  INFO 23048 --- [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 56685 (http) with context path '/vehicle-management'
+2026-11-24T15:12:35.950+07:00  INFO 23048 --- [           main] c.b.v.ai.golden.QwenLocalAcceptanceIT    : Started QwenLocalAcceptanceIT in 64.54 seconds (process running for 100.521)
+Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (C:\DiskD\VehicleManagementProject\vehicle-management-backend\vehicle-management\.m2-local\net\bytebuddy\byte-buddy-agent\1.17.8\byte-buddy-agent-1.17.8.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+Java HotSpot(TM) 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+2026-11-24T15:13:40.420+07:00  INFO 23048 --- [essageBroker-16] o.s.w.s.c.WebSocketMessageBrokerStats    : WebSocketSession[0 current WS(0)-HttpStream(0)-HttpPoll(0), 0 total, 0 closed abnormally (0 connect failure, 0 send limit, 0 transport error)], stompSubProtocol[processed CONNECT(0)-CONNECTED(0)-DISCONNECT(0)], stompBrokerRelay[null], inboundChannel[pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 0], outboundChannel[pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 0], sockJsScheduler[pool size = 16, active threads = 7, queued tasks = 13, completed tasks = 151]
+2026-11-24T15:15:04.810+07:00  WARN 23048 --- [essageBroker-16] org.hibernate.orm.jdbc.error             : HHH000247: ErrorCode: 0, SQLState: null
+2026-11-24T15:15:04.810+07:00  WARN 23048 --- [essageBroker-13] org.hibernate.orm.jdbc.error             : HHH000247: ErrorCode: 0, SQLState: null
+2026-11-24T15:15:04.810+07:00  WARN 23048 --- [essageBroker-11] org.hibernate.orm.jdbc.error             : HHH000247: ErrorCode: 0, SQLState: null
+2026-11-24T15:15:05.455+07:00  WARN 23048 --- [essageBroker-16] org.hibernate.orm.jdbc.error             : HikariPool-1 - Connection is not available, request timed out after 30027ms (total=4, active=4, idle=0, waiting=5)
+2026-11-24T15:15:05.455+07:00  WARN 23048 --- [essageBroker-13] org.hibernate.orm.jdbc.error             : HikariPool-1 - Connection is not available, request timed out after 30049ms (total=4, active=4, idle=0, waiting=4)
+2026-11-24T15:15:05.455+07:00  WARN 23048 --- [essageBroker-11] org.hibernate.orm.jdbc.error             : HikariPool-1 - Connection is not available, request timed out after 30181ms (total=4, active=4, idle=0, waiting=3)
+2026-11-24T15:15:07.336+07:00 ERROR 23048 --- [essageBroker-13] .v.i.s.p.CheckInSpaceHoldExpiryScheduler : Check-in parking-space hold expiry failed
+
+org.springframework.transaction.CannotCreateTransactionException: Could not open JPA EntityManager for transaction
+	at org.springframework.orm.jpa.JpaTransactionManager.doBegin(JpaTransactionManager.java:457) ~[spring-orm-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.support.AbstractPlatformTransactionManager.startTransaction(AbstractPlatformTransactionManager.java:532) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.support.AbstractPlatformTransactionManager.getTransaction(AbstractPlatformTransactionManager.java:405) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.createTransactionIfNecessary(TransactionAspectSupport.java:628) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:365) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:130) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:179) ~[spring-aop-7.0.9.jar:7.0.9]
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:719) ~[spring-aop-7.0.9.jar:7.0.9]
+	at com.ban.vehicle_management.application.parking.checkinspacehold.usecase.CheckInSpaceHoldUseCaseImpl$$SpringCGLIB$$0.expireDue(<generated>) ~[classes/:na]
+	at com.ban.vehicle_management.infrastructure.scheduler.parking.CheckInSpaceHoldExpiryScheduler.expireDue(CheckInSpaceHoldExpiryScheduler.java:25) ~[classes/:na]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.runInternal(ScheduledMethodRunnable.java:128) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.lambda$run$1(ScheduledMethodRunnable.java:122) ~[spring-context-7.0.9.jar:7.0.9]
+	at io.micrometer.observation.Observation.observe(Observation.java:569) ~[micrometer-observation-1.16.7.jar:1.16.7]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.run(ScheduledMethodRunnable.java:122) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.config.Task$OutcomeTrackingRunnable.run(Task.java:88) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.support.DelegatingErrorHandlingRunnable.run(DelegatingErrorHandlingRunnable.java:54) ~[spring-context-7.0.9.jar:7.0.9]
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572) ~[na:na]
+	at java.base/java.util.concurrent.FutureTask.runAndReset(FutureTask.java:358) ~[na:na]
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:305) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[na:na]
+	at java.base/java.lang.Thread.run(Thread.java:1575) ~[na:na]
+Caused by: org.hibernate.exception.JDBCConnectionException: Unable to acquire JDBC Connection [HikariPool-1 - Connection is not available, request timed out after 30049ms (total=4, active=4, idle=0, waiting=4)] [n/a]
+	at org.hibernate.exception.internal.SQLExceptionTypeDelegate.convert(SQLExceptionTypeDelegate.java:49) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:34) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:115) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:101) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquire(LogicalConnectionManagedImpl.java:190) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquireConnectionIfNeeded(LogicalConnectionManagedImpl.java:87) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.getPhysicalConnection(LogicalConnectionManagedImpl.java:126) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.getConnectionForTransactionManagement(LogicalConnectionManagedImpl.java:277) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.begin(LogicalConnectionManagedImpl.java:286) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.transaction.backend.jdbc.internal.JdbcResourceLocalTransactionCoordinatorImpl$TransactionDriverControlImpl.begin(JdbcResourceLocalTransactionCoordinatorImpl.java:226) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.engine.transaction.internal.TransactionImpl.begin(TransactionImpl.java:75) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.springframework.orm.jpa.vendor.HibernateJpaDialect.beginTransaction(HibernateJpaDialect.java:147) ~[spring-orm-7.0.9.jar:7.0.9]
+	at org.springframework.orm.jpa.JpaTransactionManager.doBegin(JpaTransactionManager.java:411) ~[spring-orm-7.0.9.jar:7.0.9]
+	... 23 common frames omitted
+Caused by: java.sql.SQLTransientConnectionException: HikariPool-1 - Connection is not available, request timed out after 30049ms (total=4, active=4, idle=0, waiting=4)
+	at com.zaxxer.hikari.pool.HikariPool.createTimeoutException(HikariPool.java:714) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:184) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:142) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.HikariDataSource.getConnection(HikariDataSource.java:127) ~[HikariCP-7.0.2.jar:na]
+	at org.hibernate.engine.jdbc.connections.internal.DataSourceConnectionProvider.getConnection(DataSourceConnectionProvider.java:137) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.internal.NonContextualJdbcConnectionAccess.obtainConnection(NonContextualJdbcConnectionAccess.java:47) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquire(LogicalConnectionManagedImpl.java:187) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	... 31 common frames omitted
+
+2026-11-24T15:15:07.506+07:00 ERROR 23048 --- [essageBroker-11] o.s.s.s.TaskUtils$LoggingErrorHandler    : Unexpected error occurred in scheduled task
+
+org.springframework.transaction.CannotCreateTransactionException: Could not open JPA EntityManager for transaction
+	at org.springframework.orm.jpa.JpaTransactionManager.doBegin(JpaTransactionManager.java:457) ~[spring-orm-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.support.AbstractPlatformTransactionManager.startTransaction(AbstractPlatformTransactionManager.java:532) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.support.AbstractPlatformTransactionManager.getTransaction(AbstractPlatformTransactionManager.java:405) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.createTransactionIfNecessary(TransactionAspectSupport.java:628) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:365) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:130) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:179) ~[spring-aop-7.0.9.jar:7.0.9]
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:719) ~[spring-aop-7.0.9.jar:7.0.9]
+	at com.ban.vehicle_management.application.iam.partnerregistration.usecase.PartnerRegistrationUseCaseImpl$$SpringCGLIB$$0.getAutoApprovalCandidateIds(<generated>) ~[classes/:na]
+	at com.ban.vehicle_management.infrastructure.scheduler.iam.PartnerRegistrationAutoApprovalScheduler.approveEligibleRegistrations(PartnerRegistrationAutoApprovalScheduler.java:27) ~[classes/:na]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.runInternal(ScheduledMethodRunnable.java:128) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.lambda$run$1(ScheduledMethodRunnable.java:122) ~[spring-context-7.0.9.jar:7.0.9]
+	at io.micrometer.observation.Observation.observe(Observation.java:569) ~[micrometer-observation-1.16.7.jar:1.16.7]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.run(ScheduledMethodRunnable.java:122) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.config.Task$OutcomeTrackingRunnable.run(Task.java:88) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.support.DelegatingErrorHandlingRunnable.run(DelegatingErrorHandlingRunnable.java:54) ~[spring-context-7.0.9.jar:7.0.9]
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572) ~[na:na]
+	at java.base/java.util.concurrent.FutureTask.runAndReset(FutureTask.java:358) ~[na:na]
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:305) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[na:na]
+	at java.base/java.lang.Thread.run(Thread.java:1575) ~[na:na]
+Caused by: org.hibernate.exception.JDBCConnectionException: Unable to acquire JDBC Connection [HikariPool-1 - Connection is not available, request timed out after 30181ms (total=4, active=4, idle=0, waiting=3)] [n/a]
+	at org.hibernate.exception.internal.SQLExceptionTypeDelegate.convert(SQLExceptionTypeDelegate.java:49) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:34) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:115) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:101) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquire(LogicalConnectionManagedImpl.java:190) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquireConnectionIfNeeded(LogicalConnectionManagedImpl.java:87) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.getPhysicalConnection(LogicalConnectionManagedImpl.java:126) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.springframework.orm.jpa.vendor.HibernateJpaDialect.beginTransaction(HibernateJpaDialect.java:135) ~[spring-orm-7.0.9.jar:7.0.9]
+	at org.springframework.orm.jpa.JpaTransactionManager.doBegin(JpaTransactionManager.java:411) ~[spring-orm-7.0.9.jar:7.0.9]
+	... 23 common frames omitted
+Caused by: java.sql.SQLTransientConnectionException: HikariPool-1 - Connection is not available, request timed out after 30181ms (total=4, active=4, idle=0, waiting=3)
+	at com.zaxxer.hikari.pool.HikariPool.createTimeoutException(HikariPool.java:714) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:184) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:142) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.HikariDataSource.getConnection(HikariDataSource.java:127) ~[HikariCP-7.0.2.jar:na]
+	at org.hibernate.engine.jdbc.connections.internal.DataSourceConnectionProvider.getConnection(DataSourceConnectionProvider.java:137) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.internal.NonContextualJdbcConnectionAccess.obtainConnection(NonContextualJdbcConnectionAccess.java:47) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquire(LogicalConnectionManagedImpl.java:187) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	... 27 common frames omitted
+
+2026-11-24T15:15:07.506+07:00 ERROR 23048 --- [essageBroker-16] o.s.s.s.TaskUtils$LoggingErrorHandler    : Unexpected error occurred in scheduled task
+
+org.springframework.transaction.CannotCreateTransactionException: Could not open JPA EntityManager for transaction
+	at org.springframework.orm.jpa.JpaTransactionManager.doBegin(JpaTransactionManager.java:457) ~[spring-orm-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.support.AbstractPlatformTransactionManager.startTransaction(AbstractPlatformTransactionManager.java:532) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.support.AbstractPlatformTransactionManager.getTransaction(AbstractPlatformTransactionManager.java:405) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.createTransactionIfNecessary(TransactionAspectSupport.java:628) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:365) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:130) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:179) ~[spring-aop-7.0.9.jar:7.0.9]
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:719) ~[spring-aop-7.0.9.jar:7.0.9]
+	at com.ban.vehicle_management.infrastructure.persistence.adapter.iam.AccountDeletionPersistenceAdapter$$SpringCGLIB$$0.claimDue(<generated>) ~[classes/:na]
+	at com.ban.vehicle_management.application.iam.account.usecase.AccountDeletionScheduler.processDueRequests(AccountDeletionScheduler.java:33) ~[classes/:na]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.runInternal(ScheduledMethodRunnable.java:128) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.lambda$run$1(ScheduledMethodRunnable.java:122) ~[spring-context-7.0.9.jar:7.0.9]
+	at io.micrometer.observation.Observation.observe(Observation.java:569) ~[micrometer-observation-1.16.7.jar:1.16.7]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.run(ScheduledMethodRunnable.java:122) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.config.Task$OutcomeTrackingRunnable.run(Task.java:88) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.support.DelegatingErrorHandlingRunnable.run(DelegatingErrorHandlingRunnable.java:54) ~[spring-context-7.0.9.jar:7.0.9]
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572) ~[na:na]
+	at java.base/java.util.concurrent.FutureTask.runAndReset(FutureTask.java:358) ~[na:na]
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:305) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[na:na]
+	at java.base/java.lang.Thread.run(Thread.java:1575) ~[na:na]
+Caused by: org.hibernate.exception.JDBCConnectionException: Unable to acquire JDBC Connection [HikariPool-1 - Connection is not available, request timed out after 30027ms (total=4, active=4, idle=0, waiting=5)] [n/a]
+	at org.hibernate.exception.internal.SQLExceptionTypeDelegate.convert(SQLExceptionTypeDelegate.java:49) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:34) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:115) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:101) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquire(LogicalConnectionManagedImpl.java:190) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquireConnectionIfNeeded(LogicalConnectionManagedImpl.java:87) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.getPhysicalConnection(LogicalConnectionManagedImpl.java:126) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.getConnectionForTransactionManagement(LogicalConnectionManagedImpl.java:277) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.begin(LogicalConnectionManagedImpl.java:286) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.transaction.backend.jdbc.internal.JdbcResourceLocalTransactionCoordinatorImpl$TransactionDriverControlImpl.begin(JdbcResourceLocalTransactionCoordinatorImpl.java:226) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.engine.transaction.internal.TransactionImpl.begin(TransactionImpl.java:75) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.springframework.orm.jpa.vendor.HibernateJpaDialect.beginTransaction(HibernateJpaDialect.java:147) ~[spring-orm-7.0.9.jar:7.0.9]
+	at org.springframework.orm.jpa.JpaTransactionManager.doBegin(JpaTransactionManager.java:411) ~[spring-orm-7.0.9.jar:7.0.9]
+	... 23 common frames omitted
+Caused by: java.sql.SQLTransientConnectionException: HikariPool-1 - Connection is not available, request timed out after 30027ms (total=4, active=4, idle=0, waiting=5)
+	at com.zaxxer.hikari.pool.HikariPool.createTimeoutException(HikariPool.java:714) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:184) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:142) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.HikariDataSource.getConnection(HikariDataSource.java:127) ~[HikariCP-7.0.2.jar:na]
+	at org.hibernate.engine.jdbc.connections.internal.DataSourceConnectionProvider.getConnection(DataSourceConnectionProvider.java:137) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.internal.NonContextualJdbcConnectionAccess.obtainConnection(NonContextualJdbcConnectionAccess.java:47) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquire(LogicalConnectionManagedImpl.java:187) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	... 31 common frames omitted
+
+2026-11-24T15:15:56.577+07:00  WARN 23048 --- [essageBroker-11] com.zaxxer.hikari.pool.PoolBase          : HikariPool-1 - Failed to validate connection org.postgresql.jdbc.PgConnection@5d7379dc (This connection has been closed.). Possibly consider using a shorter maxLifetime value.
+2026-11-24T15:17:58.014+07:00  WARN 23048 --- [MessageBroker-7] org.hibernate.orm.jdbc.error             : HHH000247: ErrorCode: 0, SQLState: null
+2026-11-24T15:18:01.601+07:00  WARN 23048 --- [MessageBroker-7] org.hibernate.orm.jdbc.error             : HikariPool-1 - Connection is not available, request timed out after 30181ms (total=4, active=4, idle=0, waiting=6)
+2026-11-24T15:18:01.806+07:00  WARN 23048 --- [MessageBroker-5] org.hibernate.orm.jdbc.error             : HHH000247: ErrorCode: 0, SQLState: null
+2026-11-24T15:18:03.771+07:00  WARN 23048 --- [MessageBroker-5] org.hibernate.orm.jdbc.error             : HikariPool-1 - Connection is not available, request timed out after 30023ms (total=4, active=4, idle=0, waiting=6)
+2026-11-24T15:18:03.753+07:00  WARN 23048 --- [essageBroker-14] org.hibernate.orm.jdbc.error             : HHH000247: ErrorCode: 0, SQLState: null
+2026-11-24T15:18:03.784+07:00  WARN 23048 --- [essageBroker-14] org.hibernate.orm.jdbc.error             : HikariPool-1 - Connection is not available, request timed out after 30776ms (total=4, active=4, idle=0, waiting=5)
+2026-11-24T15:18:03.844+07:00 ERROR 23048 --- [MessageBroker-5] o.s.s.s.TaskUtils$LoggingErrorHandler    : Unexpected error occurred in scheduled task
+
+org.springframework.transaction.CannotCreateTransactionException: Could not open JPA EntityManager for transaction
+	at org.springframework.orm.jpa.JpaTransactionManager.doBegin(JpaTransactionManager.java:457) ~[spring-orm-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.support.AbstractPlatformTransactionManager.startTransaction(AbstractPlatformTransactionManager.java:532) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.support.AbstractPlatformTransactionManager.getTransaction(AbstractPlatformTransactionManager.java:405) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.createTransactionIfNecessary(TransactionAspectSupport.java:628) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:365) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:130) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:179) ~[spring-aop-7.0.9.jar:7.0.9]
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:719) ~[spring-aop-7.0.9.jar:7.0.9]
+	at com.ban.vehicle_management.application.iam.partnerregistration.usecase.PartnerRegistrationUseCaseImpl$$SpringCGLIB$$0.getAutoApprovalCandidateIds(<generated>) ~[classes/:na]
+	at com.ban.vehicle_management.infrastructure.scheduler.iam.PartnerRegistrationAutoApprovalScheduler.approveEligibleRegistrations(PartnerRegistrationAutoApprovalScheduler.java:27) ~[classes/:na]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.runInternal(ScheduledMethodRunnable.java:128) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.lambda$run$1(ScheduledMethodRunnable.java:122) ~[spring-context-7.0.9.jar:7.0.9]
+	at io.micrometer.observation.Observation.observe(Observation.java:569) ~[micrometer-observation-1.16.7.jar:1.16.7]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.run(ScheduledMethodRunnable.java:122) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.config.Task$OutcomeTrackingRunnable.run(Task.java:88) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.support.DelegatingErrorHandlingRunnable.run(DelegatingErrorHandlingRunnable.java:54) ~[spring-context-7.0.9.jar:7.0.9]
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572) ~[na:na]
+	at java.base/java.util.concurrent.FutureTask.runAndReset(FutureTask.java:358) ~[na:na]
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:305) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[na:na]
+	at java.base/java.lang.Thread.run(Thread.java:1575) ~[na:na]
+Caused by: org.hibernate.exception.JDBCConnectionException: Unable to acquire JDBC Connection [HikariPool-1 - Connection is not available, request timed out after 30023ms (total=4, active=4, idle=0, waiting=6)] [n/a]
+	at org.hibernate.exception.internal.SQLExceptionTypeDelegate.convert(SQLExceptionTypeDelegate.java:49) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:34) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:115) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:101) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquire(LogicalConnectionManagedImpl.java:190) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquireConnectionIfNeeded(LogicalConnectionManagedImpl.java:87) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.getPhysicalConnection(LogicalConnectionManagedImpl.java:126) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.springframework.orm.jpa.vendor.HibernateJpaDialect.beginTransaction(HibernateJpaDialect.java:135) ~[spring-orm-7.0.9.jar:7.0.9]
+	at org.springframework.orm.jpa.JpaTransactionManager.doBegin(JpaTransactionManager.java:411) ~[spring-orm-7.0.9.jar:7.0.9]
+	... 23 common frames omitted
+Caused by: java.sql.SQLTransientConnectionException: HikariPool-1 - Connection is not available, request timed out after 30023ms (total=4, active=4, idle=0, waiting=6)
+	at com.zaxxer.hikari.pool.HikariPool.createTimeoutException(HikariPool.java:714) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:184) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:142) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.HikariDataSource.getConnection(HikariDataSource.java:127) ~[HikariCP-7.0.2.jar:na]
+	at org.hibernate.engine.jdbc.connections.internal.DataSourceConnectionProvider.getConnection(DataSourceConnectionProvider.java:137) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.internal.NonContextualJdbcConnectionAccess.obtainConnection(NonContextualJdbcConnectionAccess.java:47) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquire(LogicalConnectionManagedImpl.java:187) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	... 27 common frames omitted
+
+2026-11-24T15:18:04.013+07:00 ERROR 23048 --- [essageBroker-14] o.s.s.s.TaskUtils$LoggingErrorHandler    : Unexpected error occurred in scheduled task
+
+org.springframework.transaction.CannotCreateTransactionException: Could not open JPA EntityManager for transaction
+	at org.springframework.orm.jpa.JpaTransactionManager.doBegin(JpaTransactionManager.java:457) ~[spring-orm-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.support.AbstractPlatformTransactionManager.startTransaction(AbstractPlatformTransactionManager.java:532) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.support.AbstractPlatformTransactionManager.getTransaction(AbstractPlatformTransactionManager.java:405) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.createTransactionIfNecessary(TransactionAspectSupport.java:628) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:365) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:130) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:179) ~[spring-aop-7.0.9.jar:7.0.9]
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:719) ~[spring-aop-7.0.9.jar:7.0.9]
+	at com.ban.vehicle_management.infrastructure.persistence.adapter.ai.KnowledgeIndexVersionPersistenceAdapter$$SpringCGLIB$$0.findByStatus(<generated>) ~[classes/:na]
+	at com.ban.vehicle_management.application.ai.service.KnowledgeIndexBuildScheduler.buildPendingIndexVersions(KnowledgeIndexBuildScheduler.java:44) ~[classes/:na]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.runInternal(ScheduledMethodRunnable.java:128) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.lambda$run$1(ScheduledMethodRunnable.java:122) ~[spring-context-7.0.9.jar:7.0.9]
+	at io.micrometer.observation.Observation.observe(Observation.java:569) ~[micrometer-observation-1.16.7.jar:1.16.7]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.run(ScheduledMethodRunnable.java:122) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.config.Task$OutcomeTrackingRunnable.run(Task.java:88) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.support.DelegatingErrorHandlingRunnable.run(DelegatingErrorHandlingRunnable.java:54) ~[spring-context-7.0.9.jar:7.0.9]
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572) ~[na:na]
+	at java.base/java.util.concurrent.FutureTask.runAndReset(FutureTask.java:358) ~[na:na]
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:305) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[na:na]
+	at java.base/java.lang.Thread.run(Thread.java:1575) ~[na:na]
+Caused by: org.hibernate.exception.JDBCConnectionException: Unable to acquire JDBC Connection [HikariPool-1 - Connection is not available, request timed out after 30776ms (total=4, active=4, idle=0, waiting=5)] [n/a]
+	at org.hibernate.exception.internal.SQLExceptionTypeDelegate.convert(SQLExceptionTypeDelegate.java:49) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:34) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:115) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:101) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquire(LogicalConnectionManagedImpl.java:190) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquireConnectionIfNeeded(LogicalConnectionManagedImpl.java:87) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.getPhysicalConnection(LogicalConnectionManagedImpl.java:126) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.springframework.orm.jpa.vendor.HibernateJpaDialect.beginTransaction(HibernateJpaDialect.java:135) ~[spring-orm-7.0.9.jar:7.0.9]
+	at org.springframework.orm.jpa.JpaTransactionManager.doBegin(JpaTransactionManager.java:411) ~[spring-orm-7.0.9.jar:7.0.9]
+	... 23 common frames omitted
+Caused by: java.sql.SQLTransientConnectionException: HikariPool-1 - Connection is not available, request timed out after 30776ms (total=4, active=4, idle=0, waiting=5)
+	at com.zaxxer.hikari.pool.HikariPool.createTimeoutException(HikariPool.java:714) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:184) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:142) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.HikariDataSource.getConnection(HikariDataSource.java:127) ~[HikariCP-7.0.2.jar:na]
+	at org.hibernate.engine.jdbc.connections.internal.DataSourceConnectionProvider.getConnection(DataSourceConnectionProvider.java:137) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.internal.NonContextualJdbcConnectionAccess.obtainConnection(NonContextualJdbcConnectionAccess.java:47) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquire(LogicalConnectionManagedImpl.java:187) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	... 27 common frames omitted
+
+2026-11-24T15:18:04.013+07:00 ERROR 23048 --- [MessageBroker-7] o.s.s.s.TaskUtils$LoggingErrorHandler    : Unexpected error occurred in scheduled task
+
+org.springframework.transaction.CannotCreateTransactionException: Could not open JPA EntityManager for transaction
+	at org.springframework.orm.jpa.JpaTransactionManager.doBegin(JpaTransactionManager.java:457) ~[spring-orm-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.support.AbstractPlatformTransactionManager.startTransaction(AbstractPlatformTransactionManager.java:532) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.support.AbstractPlatformTransactionManager.getTransaction(AbstractPlatformTransactionManager.java:405) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.createTransactionIfNecessary(TransactionAspectSupport.java:628) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:365) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:130) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:179) ~[spring-aop-7.0.9.jar:7.0.9]
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:719) ~[spring-aop-7.0.9.jar:7.0.9]
+	at com.ban.vehicle_management.infrastructure.persistence.adapter.billing.BillingOutboxPersistenceAdapter$$SpringCGLIB$$0.claimDue(<generated>) ~[classes/:na]
+	at com.ban.vehicle_management.application.billing.outbox.scheduler.BillingOutboxScheduler.processDue(BillingOutboxScheduler.java:34) ~[classes/:na]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.runInternal(ScheduledMethodRunnable.java:128) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.lambda$run$1(ScheduledMethodRunnable.java:122) ~[spring-context-7.0.9.jar:7.0.9]
+	at io.micrometer.observation.Observation.observe(Observation.java:569) ~[micrometer-observation-1.16.7.jar:1.16.7]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.run(ScheduledMethodRunnable.java:122) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.config.Task$OutcomeTrackingRunnable.run(Task.java:88) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.support.DelegatingErrorHandlingRunnable.run(DelegatingErrorHandlingRunnable.java:54) ~[spring-context-7.0.9.jar:7.0.9]
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572) ~[na:na]
+	at java.base/java.util.concurrent.FutureTask.runAndReset(FutureTask.java:358) ~[na:na]
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:305) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[na:na]
+	at java.base/java.lang.Thread.run(Thread.java:1575) ~[na:na]
+Caused by: org.hibernate.exception.JDBCConnectionException: Unable to acquire JDBC Connection [HikariPool-1 - Connection is not available, request timed out after 30181ms (total=4, active=4, idle=0, waiting=6)] [n/a]
+	at org.hibernate.exception.internal.SQLExceptionTypeDelegate.convert(SQLExceptionTypeDelegate.java:49) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:34) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:115) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:101) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquire(LogicalConnectionManagedImpl.java:190) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquireConnectionIfNeeded(LogicalConnectionManagedImpl.java:87) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.getPhysicalConnection(LogicalConnectionManagedImpl.java:126) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.getConnectionForTransactionManagement(LogicalConnectionManagedImpl.java:277) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.begin(LogicalConnectionManagedImpl.java:286) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.transaction.backend.jdbc.internal.JdbcResourceLocalTransactionCoordinatorImpl$TransactionDriverControlImpl.begin(JdbcResourceLocalTransactionCoordinatorImpl.java:226) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.engine.transaction.internal.TransactionImpl.begin(TransactionImpl.java:75) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.springframework.orm.jpa.vendor.HibernateJpaDialect.beginTransaction(HibernateJpaDialect.java:147) ~[spring-orm-7.0.9.jar:7.0.9]
+	at org.springframework.orm.jpa.JpaTransactionManager.doBegin(JpaTransactionManager.java:411) ~[spring-orm-7.0.9.jar:7.0.9]
+	... 23 common frames omitted
+Caused by: java.sql.SQLTransientConnectionException: HikariPool-1 - Connection is not available, request timed out after 30181ms (total=4, active=4, idle=0, waiting=6)
+	at com.zaxxer.hikari.pool.HikariPool.createTimeoutException(HikariPool.java:714) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:184) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:142) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.HikariDataSource.getConnection(HikariDataSource.java:127) ~[HikariCP-7.0.2.jar:na]
+	at org.hibernate.engine.jdbc.connections.internal.DataSourceConnectionProvider.getConnection(DataSourceConnectionProvider.java:137) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.internal.NonContextualJdbcConnectionAccess.obtainConnection(NonContextualJdbcConnectionAccess.java:47) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquire(LogicalConnectionManagedImpl.java:187) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	... 31 common frames omitted
+
+2026-11-24T15:18:05.902+07:00  WARN 23048 --- [MessageBroker-6] org.hibernate.orm.jdbc.error             : HHH000247: ErrorCode: 0, SQLState: null
+2026-11-24T15:18:06.188+07:00  WARN 23048 --- [MessageBroker-6] org.hibernate.orm.jdbc.error             : HikariPool-1 - Connection is not available, request timed out after 30012ms (total=4, active=4, idle=0, waiting=3)
+2026-11-24T15:18:06.252+07:00 ERROR 23048 --- [MessageBroker-6] o.s.s.s.TaskUtils$LoggingErrorHandler    : Unexpected error occurred in scheduled task
+
+org.springframework.transaction.CannotCreateTransactionException: Could not open JPA EntityManager for transaction
+	at org.springframework.orm.jpa.JpaTransactionManager.doBegin(JpaTransactionManager.java:457) ~[spring-orm-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.support.AbstractPlatformTransactionManager.startTransaction(AbstractPlatformTransactionManager.java:532) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.support.AbstractPlatformTransactionManager.getTransaction(AbstractPlatformTransactionManager.java:405) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.createTransactionIfNecessary(TransactionAspectSupport.java:628) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:365) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:130) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:179) ~[spring-aop-7.0.9.jar:7.0.9]
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:719) ~[spring-aop-7.0.9.jar:7.0.9]
+	at com.ban.vehicle_management.infrastructure.persistence.adapter.iam.AccountDeletionPersistenceAdapter$$SpringCGLIB$$0.claimDue(<generated>) ~[classes/:na]
+	at com.ban.vehicle_management.application.iam.account.usecase.AccountDeletionScheduler.processDueRequests(AccountDeletionScheduler.java:33) ~[classes/:na]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.runInternal(ScheduledMethodRunnable.java:128) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.lambda$run$1(ScheduledMethodRunnable.java:122) ~[spring-context-7.0.9.jar:7.0.9]
+	at io.micrometer.observation.Observation.observe(Observation.java:569) ~[micrometer-observation-1.16.7.jar:1.16.7]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.run(ScheduledMethodRunnable.java:122) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.config.Task$OutcomeTrackingRunnable.run(Task.java:88) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.support.DelegatingErrorHandlingRunnable.run(DelegatingErrorHandlingRunnable.java:54) ~[spring-context-7.0.9.jar:7.0.9]
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572) ~[na:na]
+	at java.base/java.util.concurrent.FutureTask.runAndReset(FutureTask.java:358) ~[na:na]
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:305) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[na:na]
+	at java.base/java.lang.Thread.run(Thread.java:1575) ~[na:na]
+Caused by: org.hibernate.exception.JDBCConnectionException: Unable to acquire JDBC Connection [HikariPool-1 - Connection is not available, request timed out after 30012ms (total=4, active=4, idle=0, waiting=3)] [n/a]
+	at org.hibernate.exception.internal.SQLExceptionTypeDelegate.convert(SQLExceptionTypeDelegate.java:49) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:34) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:115) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:101) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquire(LogicalConnectionManagedImpl.java:190) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquireConnectionIfNeeded(LogicalConnectionManagedImpl.java:87) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.getPhysicalConnection(LogicalConnectionManagedImpl.java:126) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.getConnectionForTransactionManagement(LogicalConnectionManagedImpl.java:277) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.begin(LogicalConnectionManagedImpl.java:286) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.transaction.backend.jdbc.internal.JdbcResourceLocalTransactionCoordinatorImpl$TransactionDriverControlImpl.begin(JdbcResourceLocalTransactionCoordinatorImpl.java:226) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.engine.transaction.internal.TransactionImpl.begin(TransactionImpl.java:75) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.springframework.orm.jpa.vendor.HibernateJpaDialect.beginTransaction(HibernateJpaDialect.java:147) ~[spring-orm-7.0.9.jar:7.0.9]
+	at org.springframework.orm.jpa.JpaTransactionManager.doBegin(JpaTransactionManager.java:411) ~[spring-orm-7.0.9.jar:7.0.9]
+	... 23 common frames omitted
+Caused by: java.sql.SQLTransientConnectionException: HikariPool-1 - Connection is not available, request timed out after 30012ms (total=4, active=4, idle=0, waiting=3)
+	at com.zaxxer.hikari.pool.HikariPool.createTimeoutException(HikariPool.java:714) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:184) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:142) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.HikariDataSource.getConnection(HikariDataSource.java:127) ~[HikariCP-7.0.2.jar:na]
+	at org.hibernate.engine.jdbc.connections.internal.DataSourceConnectionProvider.getConnection(DataSourceConnectionProvider.java:137) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.internal.NonContextualJdbcConnectionAccess.obtainConnection(NonContextualJdbcConnectionAccess.java:47) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquire(LogicalConnectionManagedImpl.java:187) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	... 31 common frames omitted
+
+2026-11-24T15:20:17.485+07:00  WARN 23048 --- [essageBroker-10] org.hibernate.orm.jdbc.error             : HHH000247: ErrorCode: 0, SQLState: null
+2026-11-24T15:20:17.498+07:00  WARN 23048 --- [MessageBroker-6] org.hibernate.orm.jdbc.error             : HHH000247: ErrorCode: 0, SQLState: null
+2026-11-24T15:20:17.770+07:00  WARN 23048 --- [essageBroker-10] org.hibernate.orm.jdbc.error             : HikariPool-1 - Connection is not available, request timed out after 30200ms (total=4, active=4, idle=0, waiting=4)
+2026-11-24T15:20:17.844+07:00  WARN 23048 --- [MessageBroker-6] org.hibernate.orm.jdbc.error             : HikariPool-1 - Connection is not available, request timed out after 30059ms (total=4, active=4, idle=0, waiting=4)
+2026-11-24T15:20:18.315+07:00  WARN 23048 --- [MessageBroker-8] org.hibernate.orm.jdbc.error             : HHH000247: ErrorCode: 0, SQLState: null
+2026-11-24T15:20:21.253+07:00  WARN 23048 --- [MessageBroker-8] org.hibernate.orm.jdbc.error             : HikariPool-1 - Connection is not available, request timed out after 30130ms (total=4, active=4, idle=0, waiting=2)
+2026-11-24T15:20:18.313+07:00 ERROR 23048 --- [MessageBroker-6] o.s.s.s.TaskUtils$LoggingErrorHandler    : Unexpected error occurred in scheduled task
+
+org.springframework.transaction.CannotCreateTransactionException: Could not open JPA EntityManager for transaction
+	at org.springframework.orm.jpa.JpaTransactionManager.doBegin(JpaTransactionManager.java:457) ~[spring-orm-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.support.AbstractPlatformTransactionManager.startTransaction(AbstractPlatformTransactionManager.java:532) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.support.AbstractPlatformTransactionManager.getTransaction(AbstractPlatformTransactionManager.java:405) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.createTransactionIfNecessary(TransactionAspectSupport.java:628) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:365) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:130) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:179) ~[spring-aop-7.0.9.jar:7.0.9]
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:719) ~[spring-aop-7.0.9.jar:7.0.9]
+	at com.ban.vehicle_management.infrastructure.persistence.adapter.iam.AccountDeletionPersistenceAdapter$$SpringCGLIB$$0.claimDue(<generated>) ~[classes/:na]
+	at com.ban.vehicle_management.application.iam.account.usecase.AccountDeletionScheduler.processDueRequests(AccountDeletionScheduler.java:33) ~[classes/:na]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.runInternal(ScheduledMethodRunnable.java:128) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.lambda$run$1(ScheduledMethodRunnable.java:122) ~[spring-context-7.0.9.jar:7.0.9]
+	at io.micrometer.observation.Observation.observe(Observation.java:569) ~[micrometer-observation-1.16.7.jar:1.16.7]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.run(ScheduledMethodRunnable.java:122) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.config.Task$OutcomeTrackingRunnable.run(Task.java:88) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.support.DelegatingErrorHandlingRunnable.run(DelegatingErrorHandlingRunnable.java:54) ~[spring-context-7.0.9.jar:7.0.9]
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572) ~[na:na]
+	at java.base/java.util.concurrent.FutureTask.runAndReset(FutureTask.java:358) ~[na:na]
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:305) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[na:na]
+	at java.base/java.lang.Thread.run(Thread.java:1575) ~[na:na]
+Caused by: org.hibernate.exception.JDBCConnectionException: Unable to acquire JDBC Connection [HikariPool-1 - Connection is not available, request timed out after 30059ms (total=4, active=4, idle=0, waiting=4)] [n/a]
+	at org.hibernate.exception.internal.SQLExceptionTypeDelegate.convert(SQLExceptionTypeDelegate.java:49) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:34) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:115) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:101) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquire(LogicalConnectionManagedImpl.java:190) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquireConnectionIfNeeded(LogicalConnectionManagedImpl.java:87) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.getPhysicalConnection(LogicalConnectionManagedImpl.java:126) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.getConnectionForTransactionManagement(LogicalConnectionManagedImpl.java:277) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.begin(LogicalConnectionManagedImpl.java:286) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.transaction.backend.jdbc.internal.JdbcResourceLocalTransactionCoordinatorImpl$TransactionDriverControlImpl.begin(JdbcResourceLocalTransactionCoordinatorImpl.java:226) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.engine.transaction.internal.TransactionImpl.begin(TransactionImpl.java:75) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.springframework.orm.jpa.vendor.HibernateJpaDialect.beginTransaction(HibernateJpaDialect.java:147) ~[spring-orm-7.0.9.jar:7.0.9]
+	at org.springframework.orm.jpa.JpaTransactionManager.doBegin(JpaTransactionManager.java:411) ~[spring-orm-7.0.9.jar:7.0.9]
+	... 23 common frames omitted
+Caused by: java.sql.SQLTransientConnectionException: HikariPool-1 - Connection is not available, request timed out after 30059ms (total=4, active=4, idle=0, waiting=4)
+	at com.zaxxer.hikari.pool.HikariPool.createTimeoutException(HikariPool.java:714) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:184) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:142) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.HikariDataSource.getConnection(HikariDataSource.java:127) ~[HikariCP-7.0.2.jar:na]
+	at org.hibernate.engine.jdbc.connections.internal.DataSourceConnectionProvider.getConnection(DataSourceConnectionProvider.java:137) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.internal.NonContextualJdbcConnectionAccess.obtainConnection(NonContextualJdbcConnectionAccess.java:47) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquire(LogicalConnectionManagedImpl.java:187) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	... 31 common frames omitted
+
+2026-11-24T15:20:18.002+07:00 ERROR 23048 --- [essageBroker-10] o.s.s.s.TaskUtils$LoggingErrorHandler    : Unexpected error occurred in scheduled task
+
+org.springframework.transaction.CannotCreateTransactionException: Could not open JPA EntityManager for transaction
+	at org.springframework.orm.jpa.JpaTransactionManager.doBegin(JpaTransactionManager.java:457) ~[spring-orm-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.support.AbstractPlatformTransactionManager.startTransaction(AbstractPlatformTransactionManager.java:532) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.support.AbstractPlatformTransactionManager.getTransaction(AbstractPlatformTransactionManager.java:405) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.createTransactionIfNecessary(TransactionAspectSupport.java:628) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:365) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:130) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:179) ~[spring-aop-7.0.9.jar:7.0.9]
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:719) ~[spring-aop-7.0.9.jar:7.0.9]
+	at com.ban.vehicle_management.application.iam.partnerregistration.usecase.PartnerRegistrationUseCaseImpl$$SpringCGLIB$$0.getAutoApprovalCandidateIds(<generated>) ~[classes/:na]
+	at com.ban.vehicle_management.infrastructure.scheduler.iam.PartnerRegistrationAutoApprovalScheduler.approveEligibleRegistrations(PartnerRegistrationAutoApprovalScheduler.java:27) ~[classes/:na]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.runInternal(ScheduledMethodRunnable.java:128) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.lambda$run$1(ScheduledMethodRunnable.java:122) ~[spring-context-7.0.9.jar:7.0.9]
+	at io.micrometer.observation.Observation.observe(Observation.java:569) ~[micrometer-observation-1.16.7.jar:1.16.7]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.run(ScheduledMethodRunnable.java:122) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.config.Task$OutcomeTrackingRunnable.run(Task.java:88) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.support.DelegatingErrorHandlingRunnable.run(DelegatingErrorHandlingRunnable.java:54) ~[spring-context-7.0.9.jar:7.0.9]
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572) ~[na:na]
+	at java.base/java.util.concurrent.FutureTask.runAndReset(FutureTask.java:358) ~[na:na]
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:305) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[na:na]
+	at java.base/java.lang.Thread.run(Thread.java:1575) ~[na:na]
+Caused by: org.hibernate.exception.JDBCConnectionException: Unable to acquire JDBC Connection [HikariPool-1 - Connection is not available, request timed out after 30200ms (total=4, active=4, idle=0, waiting=4)] [n/a]
+	at org.hibernate.exception.internal.SQLExceptionTypeDelegate.convert(SQLExceptionTypeDelegate.java:49) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:34) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:115) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:101) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquire(LogicalConnectionManagedImpl.java:190) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquireConnectionIfNeeded(LogicalConnectionManagedImpl.java:87) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.getPhysicalConnection(LogicalConnectionManagedImpl.java:126) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.springframework.orm.jpa.vendor.HibernateJpaDialect.beginTransaction(HibernateJpaDialect.java:135) ~[spring-orm-7.0.9.jar:7.0.9]
+	at org.springframework.orm.jpa.JpaTransactionManager.doBegin(JpaTransactionManager.java:411) ~[spring-orm-7.0.9.jar:7.0.9]
+	... 23 common frames omitted
+Caused by: java.sql.SQLTransientConnectionException: HikariPool-1 - Connection is not available, request timed out after 30200ms (total=4, active=4, idle=0, waiting=4)
+	at com.zaxxer.hikari.pool.HikariPool.createTimeoutException(HikariPool.java:714) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:184) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:142) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.HikariDataSource.getConnection(HikariDataSource.java:127) ~[HikariCP-7.0.2.jar:na]
+	at org.hibernate.engine.jdbc.connections.internal.DataSourceConnectionProvider.getConnection(DataSourceConnectionProvider.java:137) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.internal.NonContextualJdbcConnectionAccess.obtainConnection(NonContextualJdbcConnectionAccess.java:47) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquire(LogicalConnectionManagedImpl.java:187) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	... 27 common frames omitted
+
+2026-11-24T15:20:21.507+07:00 ERROR 23048 --- [MessageBroker-8] o.s.s.s.TaskUtils$LoggingErrorHandler    : Unexpected error occurred in scheduled task
+
+org.springframework.transaction.CannotCreateTransactionException: Could not open JPA EntityManager for transaction
+	at org.springframework.orm.jpa.JpaTransactionManager.doBegin(JpaTransactionManager.java:457) ~[spring-orm-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.support.AbstractPlatformTransactionManager.startTransaction(AbstractPlatformTransactionManager.java:532) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.support.AbstractPlatformTransactionManager.getTransaction(AbstractPlatformTransactionManager.java:405) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.createTransactionIfNecessary(TransactionAspectSupport.java:628) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:365) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:130) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:179) ~[spring-aop-7.0.9.jar:7.0.9]
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:719) ~[spring-aop-7.0.9.jar:7.0.9]
+	at com.ban.vehicle_management.infrastructure.persistence.adapter.iam.AccountDeletionCleanupPersistenceAdapter$$SpringCGLIB$$0.claimDueForCompletedRequests(<generated>) ~[classes/:na]
+	at com.ban.vehicle_management.application.iam.account.usecase.AccountDeletionExternalCleanupProcessor.processCompletedRequests(AccountDeletionExternalCleanupProcessor.java:52) ~[classes/:na]
+	at com.ban.vehicle_management.application.iam.account.usecase.AccountDeletionCleanupScheduler.processDueCleanupItems(AccountDeletionCleanupScheduler.java:23) ~[classes/:na]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.runInternal(ScheduledMethodRunnable.java:128) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.lambda$run$1(ScheduledMethodRunnable.java:122) ~[spring-context-7.0.9.jar:7.0.9]
+	at io.micrometer.observation.Observation.observe(Observation.java:569) ~[micrometer-observation-1.16.7.jar:1.16.7]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.run(ScheduledMethodRunnable.java:122) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.config.Task$OutcomeTrackingRunnable.run(Task.java:88) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.scheduling.support.DelegatingErrorHandlingRunnable.run(DelegatingErrorHandlingRunnable.java:54) ~[spring-context-7.0.9.jar:7.0.9]
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572) ~[na:na]
+	at java.base/java.util.concurrent.FutureTask.runAndReset(FutureTask.java:358) ~[na:na]
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:305) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[na:na]
+	at java.base/java.lang.Thread.run(Thread.java:1575) ~[na:na]
+Caused by: org.hibernate.exception.JDBCConnectionException: Unable to acquire JDBC Connection [HikariPool-1 - Connection is not available, request timed out after 30130ms (total=4, active=4, idle=0, waiting=2)] [n/a]
+	at org.hibernate.exception.internal.SQLExceptionTypeDelegate.convert(SQLExceptionTypeDelegate.java:49) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:34) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:115) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:101) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquire(LogicalConnectionManagedImpl.java:190) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquireConnectionIfNeeded(LogicalConnectionManagedImpl.java:87) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.getPhysicalConnection(LogicalConnectionManagedImpl.java:126) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.getConnectionForTransactionManagement(LogicalConnectionManagedImpl.java:277) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.begin(LogicalConnectionManagedImpl.java:286) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.transaction.backend.jdbc.internal.JdbcResourceLocalTransactionCoordinatorImpl$TransactionDriverControlImpl.begin(JdbcResourceLocalTransactionCoordinatorImpl.java:226) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.engine.transaction.internal.TransactionImpl.begin(TransactionImpl.java:75) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.springframework.orm.jpa.vendor.HibernateJpaDialect.beginTransaction(HibernateJpaDialect.java:147) ~[spring-orm-7.0.9.jar:7.0.9]
+	at org.springframework.orm.jpa.JpaTransactionManager.doBegin(JpaTransactionManager.java:411) ~[spring-orm-7.0.9.jar:7.0.9]
+	... 24 common frames omitted
+Caused by: java.sql.SQLTransientConnectionException: HikariPool-1 - Connection is not available, request timed out after 30130ms (total=4, active=4, idle=0, waiting=2)
+	at com.zaxxer.hikari.pool.HikariPool.createTimeoutException(HikariPool.java:714) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:184) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:142) ~[HikariCP-7.0.2.jar:na]
+	at com.zaxxer.hikari.HikariDataSource.getConnection(HikariDataSource.java:127) ~[HikariCP-7.0.2.jar:na]
+	at org.hibernate.engine.jdbc.connections.internal.DataSourceConnectionProvider.getConnection(DataSourceConnectionProvider.java:137) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.internal.NonContextualJdbcConnectionAccess.obtainConnection(NonContextualJdbcConnectionAccess.java:47) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	at org.hibernate.resource.jdbc.internal.LogicalConnectionManagedImpl.acquire(LogicalConnectionManagedImpl.java:187) ~[hibernate-core-7.2.24.Final.jar:7.2.24.Final]
+	... 32 common frames omitted
+
+2026-11-24T15:21:07.817+07:00  WARN 23048 --- [MessageBroker-3] com.zaxxer.hikari.pool.PoolBase          : HikariPool-1 - Failed to validate connection org.postgresql.jdbc.PgConnection@ad71ebc (This connection has been closed.). Possibly consider using a shorter maxLifetime value.
+2026-11-24T15:21:08.233+07:00  WARN 23048 --- [MessageBroker-5] com.zaxxer.hikari.pool.PoolBase          : HikariPool-1 - Failed to validate connection org.postgresql.jdbc.PgConnection@271e21a7 (This connection has been closed.). Possibly consider using a shorter maxLifetime value.
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  11:23 min
+[INFO] Finished at: 2026-11-24T15:21:45+07:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.5.6:test (default-test) on project vehicle-management: 
+[ERROR] 
+[ERROR] See C:\DiskD\VehicleManagementProject\vehicle-management-backend\vehicle-management\target\surefire-reports for the individual test results.
+[ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] The forked VM terminated without properly saying goodbye. VM crash or System.exit called?
+[ERROR] Command was cmd.exe /X /C ""C:\Program Files\jdk-23.0.2\bin\java" -Xmx768m -Dfile.encoding=UTF-8 -jar C:\Users\baoan\AppData\Local\Temp\surefire583997224179939282\surefirebooter-20261124151055035_3.jar C:\Users\baoan\AppData\Local\Temp\surefire583997224179939282 2026-11-24T15-10-54_486-jvmRun1 surefire-20261124151055035_1tmp surefire_0-20261124151055035_2tmp"
+[ERROR] Error occurred in starting fork, check output in log
+[ERROR] Process Exit Code: -1
+[ERROR] Crashed tests:
+[ERROR] com.ban.vehicle_management.ai.golden.QwenLocalAcceptanceIT
+[ERROR] org.apache.maven.surefire.booter.SurefireBooterForkException: The forked VM terminated without properly saying goodbye. VM crash or System.exit called?
+[ERROR] Command was cmd.exe /X /C ""C:\Program Files\jdk-23.0.2\bin\java" -Xmx768m -Dfile.encoding=UTF-8 -jar C:\Users\baoan\AppData\Local\Temp\surefire583997224179939282\surefirebooter-20261124151055035_3.jar C:\Users\baoan\AppData\Local\Temp\surefire583997224179939282 2026-11-24T15-10-54_486-jvmRun1 surefire-20261124151055035_1tmp surefire_0-20261124151055035_2tmp"
+[ERROR] Error occurred in starting fork, check output in log
+[ERROR] Process Exit Code: -1
+[ERROR] Crashed tests:
+[ERROR] com.ban.vehicle_management.ai.golden.QwenLocalAcceptanceIT
+[ERROR] 	at org.apache.maven.plugin.surefire.booterclient.ForkStarter.fork(ForkStarter.java:643)
+[ERROR] 	at org.apache.maven.plugin.surefire.booterclient.ForkStarter.run(ForkStarter.java:285)
+[ERROR] 	at org.apache.maven.plugin.surefire.booterclient.ForkStarter.run(ForkStarter.java:250)
+[ERROR] 	at org.apache.maven.plugin.surefire.AbstractSurefireMojo.executeProvider(AbstractSurefireMojo.java:1356)
+[ERROR] 	at org.apache.maven.plugin.surefire.AbstractSurefireMojo.executeAfterPreconditionsChecked(AbstractSurefireMojo.java:1154)
+[ERROR] 	at org.apache.maven.plugin.surefire.AbstractSurefireMojo.execute(AbstractSurefireMojo.java:988)
+[ERROR] 	at org.apache.maven.plugin.DefaultBuildPluginManager.executeMojo(DefaultBuildPluginManager.java:126)
+[ERROR] 	at org.apache.maven.lifecycle.internal.MojoExecutor.doExecute2(MojoExecutor.java:328)
+[ERROR] 	at org.apache.maven.lifecycle.internal.MojoExecutor.doExecute(MojoExecutor.java:316)
+[ERROR] 	at org.apache.maven.lifecycle.internal.MojoExecutor.execute(MojoExecutor.java:212)
+[ERROR] 	at org.apache.maven.lifecycle.internal.MojoExecutor.execute(MojoExecutor.java:174)
+[ERROR] 	at org.apache.maven.lifecycle.internal.MojoExecutor.access$000(MojoExecutor.java:75)
+[ERROR] 	at org.apache.maven.lifecycle.internal.MojoExecutor$1.run(MojoExecutor.java:162)
+[ERROR] 	at org.apache.maven.plugin.DefaultMojosExecutionStrategy.execute(DefaultMojosExecutionStrategy.java:39)
+[ERROR] 	at org.apache.maven.lifecycle.internal.MojoExecutor.execute(MojoExecutor.java:159)
+[ERROR] 	at org.apache.maven.lifecycle.internal.LifecycleModuleBuilder.buildProject(LifecycleModuleBuilder.java:105)
+[ERROR] 	at org.apache.maven.lifecycle.internal.LifecycleModuleBuilder.buildProject(LifecycleModuleBuilder.java:73)
+[ERROR] 	at org.apache.maven.lifecycle.internal.builder.singlethreaded.SingleThreadedBuilder.build(SingleThreadedBuilder.java:53)
+[ERROR] 	at org.apache.maven.lifecycle.internal.LifecycleStarter.execute(LifecycleStarter.java:118)
+[ERROR] 	at org.apache.maven.DefaultMaven.doExecute(DefaultMaven.java:261)
+[ERROR] 	at org.apache.maven.DefaultMaven.doExecute(DefaultMaven.java:173)
+[ERROR] 	at org.apache.maven.DefaultMaven.execute(DefaultMaven.java:101)
+[ERROR] 	at org.apache.maven.cli.MavenCli.execute(MavenCli.java:919)
+[ERROR] 	at org.apache.maven.cli.MavenCli.doMain(MavenCli.java:285)
+[ERROR] 	at org.apache.maven.cli.MavenCli.main(MavenCli.java:207)
+[ERROR] 	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+[ERROR] 	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+[ERROR] 	at org.codehaus.plexus.classworlds.launcher.Launcher.launchEnhanced(Launcher.java:255)
+[ERROR] 	at org.codehaus.plexus.classworlds.launcher.Launcher.launch(Launcher.java:201)
+[ERROR] 	at org.codehaus.plexus.classworlds.launcher.Launcher.mainWithExitCode(Launcher.java:361)
+[ERROR] 	at org.codehaus.plexus.classworlds.launcher.Launcher.main(Launcher.java:314)
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException

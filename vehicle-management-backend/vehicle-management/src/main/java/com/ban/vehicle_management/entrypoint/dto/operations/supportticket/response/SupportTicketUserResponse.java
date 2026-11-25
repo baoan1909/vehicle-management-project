@@ -28,6 +28,7 @@ public class SupportTicketUserResponse {
     private String content;
     private SupportTicketStatus status;
     private UUID assignedTo;
+    private String assignedToUsername;
     private Instant resolvedAt;
     private String resolutionNote;
     private Instant lastContextActivityAt;

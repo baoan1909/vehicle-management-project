@@ -29,9 +29,31 @@ jobs:
           fetch-depth: 0
 
       - name: Scan repository and Git history
+        id: gitleaks
         uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Keep the scanner aligned with the local pre-commit hook. The default
+          # action binary predates the scoped [[allowlists]] in .gitleaks.toml.
+          GITLEAKS_VERSION: "8.30.1"
+          GITLEAKS_CONFIG: ${{ github.workspace }}/.gitleaks.toml
+          # This job only needs read access; publish findings as an artifact.
+          GITLEAKS_ENABLE_COMMENTS: "false"
+          # The action expands every finding into Markdown and can exceed 1 MiB.
+          GITLEAKS_ENABLE_SUMMARY: "false"
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "true"
+      - name: Write bounded secret scan summary
+        if: always()
+        shell: bash
+        env:
+          SCAN_OUTCOME: ${{ steps.gitleaks.outcome }}
+        run: |
+          {
+            echo "## Secret scan"
+            echo "- Scanner: Gitleaks 8.30.1, repository configuration."
+            echo "- Result: ${SCAN_OUTCOME}"
+            echo "- Detailed findings, when generated: gitleaks-results.sarif artifact and scanner logs."
+          } >> "$GITHUB_STEP_SUMMARY"
 
   frontend-build:
     name: 02 - Frontend build

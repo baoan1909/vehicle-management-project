@@ -1,0 +1,168 @@
+{
+  "registryTools": [
+    "create_support_ticket",
+    "get_my_subscription_status",
+    "get_my_support_ticket",
+    "list_my_parking_history",
+    "list_my_support_tickets",
+    "list_my_vehicles",
+    "search_support_knowledge"
+  ],
+  "casesWithUnimplementedExpectedTools": [
+    {
+      "caseId": "AUTH-008",
+      "expectedTool": "get_my_profile_status",
+      "question": "Hồ sơ của tôi đã được duyệt chưa?",
+      "dataset": "golden-questions.jsonl",
+      "status": "EXPECTED_TOOL_NOT_IN_CURRENT_REGISTRY"
+    },
+    {
+      "caseId": "AUTH-009",
+      "expectedTool": "get_my_profile_status",
+      "question": "Lượt 1: Tôi đã gửi hồ sơ. Lượt 2: Kiểm tra giúp tôi đang ở trạng thái nào.",
+      "dataset": "golden-questions.jsonl",
+      "status": "EXPECTED_TOOL_NOT_IN_CURRENT_REGISTRY"
+    },
+    {
+      "caseId": "VEH-006",
+      "expectedTool": "update_my_vehicle",
+      "question": "Đặt xe tôi vừa chọn làm xe mặc định",
+      "dataset": "golden-questions.jsonl",
+      "status": "EXPECTED_TOOL_NOT_IN_CURRENT_REGISTRY"
+    },
+    {
+      "caseId": "VEH-007",
+      "expectedTool": "update_my_vehicle",
+      "question": "Ngừng sử dụng chiếc xe này giúp tôi",
+      "dataset": "golden-questions.jsonl",
+      "status": "EXPECTED_TOOL_NOT_IN_CURRENT_REGISTRY"
+    },
+    {
+      "caseId": "SUB-006",
+      "expectedTool": "manage_my_subscription",
+      "question": "Tạo yêu cầu vé tháng cho xe mặc định của tôi",
+      "dataset": "golden-questions.jsonl",
+      "status": "EXPECTED_TOOL_NOT_IN_CURRENT_REGISTRY"
+    },
+    {
+      "caseId": "SUB-007",
+      "expectedTool": "manage_my_subscription",
+      "question": "Hủy vé đang chờ thanh toán này",
+      "dataset": "golden-questions.jsonl",
+      "status": "EXPECTED_TOOL_NOT_IN_CURRENT_REGISTRY"
+    },
+    {
+      "caseId": "PRICE-003",
+      "expectedTool": "get_current_pricing",
+      "question": "Giá gửi xe máy hiện tại là bao nhiêu?",
+      "dataset": "golden-questions.jsonl",
+      "status": "EXPECTED_TOOL_NOT_IN_CURRENT_REGISTRY"
+    },
+    {
+      "caseId": "PRICE-004",
+      "expectedTool": "get_current_pricing",
+      "question": "gia ve thang o to hom nay",
+      "dataset": "golden-questions.jsonl",
+      "status": "EXPECTED_TOOL_NOT_IN_CURRENT_REGISTRY"
+    },
+    {
+      "caseId": "PRICE-005",
+      "expectedTool": "get_current_pricing",
+      "question": "Gửi từ tối qua đến sáng nay hết bao nhiêu?",
+      "dataset": "golden-questions.jsonl",
+      "status": "EXPECTED_TOOL_NOT_IN_CURRENT_REGISTRY"
+    },
+    {
+      "caseId": "BILL-003",
+      "expectedTool": "get_my_invoice",
+      "question": "Hóa đơn của tôi đã thanh toán chưa?",
+      "dataset": "golden-questions.jsonl",
+      "status": "EXPECTED_TOOL_NOT_IN_CURRENT_REGISTRY"
+    },
+    {
+      "caseId": "BILL-004",
+      "expectedTool": "get_my_invoice",
+      "question": "Tôi bị trừ tiền nhưng hóa đơn còn chưa thanh toán",
+      "dataset": "golden-questions.jsonl",
+      "status": "EXPECTED_TOOL_NOT_IN_CURRENT_REGISTRY"
+    },
+    {
+      "caseId": "BILL-005",
+      "expectedTool": "create_vnpay_payment",
+      "question": "Tạo phiên VNPAY cho hóa đơn chưa thanh toán của tôi",
+      "dataset": "golden-questions.jsonl",
+      "status": "EXPECTED_TOOL_NOT_IN_CURRENT_REGISTRY"
+    },
+    {
+      "caseId": "PARK-004",
+      "expectedTool": "get_my_active_parking_session",
+      "question": "Xe của tôi hiện còn trong bãi không?",
+      "dataset": "golden-questions.jsonl",
+      "status": "EXPECTED_TOOL_NOT_IN_CURRENT_REGISTRY"
+    },
+    {
+      "caseId": "PARK-005",
+      "expectedTool": "get_my_active_parking_session",
+      "question": "kiem tra phien gui xe dang mo cua toi",
+      "dataset": "golden-questions.jsonl",
+      "status": "EXPECTED_TOOL_NOT_IN_CURRENT_REGISTRY"
+    },
+    {
+      "caseId": "CARD-004",
+      "expectedTool": "get_my_card_status",
+      "question": "Kiểm tra trạng thái thẻ gắn với vé của tôi",
+      "dataset": "golden-questions.jsonl",
+      "status": "EXPECTED_TOOL_NOT_IN_CURRENT_REGISTRY"
+    },
+    {
+      "caseId": "CARD-005",
+      "expectedTool": "get_my_card_status",
+      "question": "the cua toi co dang bi mat khong",
+      "dataset": "golden-questions.jsonl",
+      "status": "EXPECTED_TOOL_NOT_IN_CURRENT_REGISTRY"
+    },
+    {
+      "caseId": "SUP-005",
+      "expectedTool": "open_ticket_conversation",
+      "question": "Mở cuộc trò chuyện với nhân viên của phiếu cũ",
+      "dataset": "golden-questions.jsonl",
+      "status": "EXPECTED_TOOL_NOT_IN_CURRENT_REGISTRY"
+    },
+    {
+      "caseId": "SUP-006",
+      "expectedTool": "request_manager_review",
+      "question": "Tôi không hài lòng với nhân viên hiện tại và muốn quản lý xem xét",
+      "dataset": "golden-questions.jsonl",
+      "status": "EXPECTED_TOOL_NOT_IN_CURRENT_REGISTRY"
+    },
+    {
+      "caseId": "SUP-007",
+      "expectedTool": "request_manager_review",
+      "question": "doi nhan vien ho tro cho toi",
+      "dataset": "golden-questions.jsonl",
+      "status": "EXPECTED_TOOL_NOT_IN_CURRENT_REGISTRY"
+    },
+    {
+      "caseId": "SUP-009",
+      "expectedTool": "request_manager_review",
+      "question": "Quản lý phải phân công đúng người tôi chọn ngay",
+      "dataset": "golden-questions.jsonl",
+      "status": "EXPECTED_TOOL_NOT_IN_CURRENT_REGISTRY"
+    },
+    {
+      "caseId": "ERR-005",
+      "expectedTool": "get_assistant_message_status",
+      "question": "Tin nhắn trợ lý của tôi đang RETRYING",
+      "dataset": "golden-questions.jsonl",
+      "status": "EXPECTED_TOOL_NOT_IN_CURRENT_REGISTRY"
+    },
+    {
+      "caseId": "ERR-006",
+      "expectedTool": "get_assistant_message_status",
+      "question": "Trợ lý báo FAILED và terminal bằng true",
+      "dataset": "golden-questions.jsonl",
+      "status": "EXPECTED_TOOL_NOT_IN_CURRENT_REGISTRY"
+    }
+  ],
+  "note": "Preserved original expectations. These are capability gaps to report, not permission to fabricate tool execution or silently change gold."
+}

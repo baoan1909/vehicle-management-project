@@ -1,0 +1,1702 @@
+{
+  "reviewer": "Codex agent",
+  "type": "same-agent transcript review; seen acceptance; not independent UAT",
+  "rubric": "batch-02-rubric.md",
+  "scoreOrder": [
+    "business",
+    "conditionsAndSteps",
+    "truthAndAccess",
+    "readability",
+    "citationSupportOrNotApplicable"
+  ],
+  "sourceSha256": "f36dec2fe2a3baf5df7dab7ab5a149cf2439f91ec6490883343386e9c1fdb7f3",
+  "cases": [
+    {
+      "caseId": "AUTH09-1",
+      "scores": [
+        1,
+        1,
+        2,
+        2,
+        1
+      ],
+      "total": 7,
+      "pass": false,
+      "criticalError": false,
+      "note": "Gọi xác minh email/hồ sơ là cách đăng nhập."
+    },
+    {
+      "caseId": "AUTH09-2",
+      "scores": [
+        1,
+        1,
+        2,
+        2,
+        1
+      ],
+      "total": 7,
+      "pass": false,
+      "criticalError": false,
+      "note": "Gộp xác minh email vào hình thức đăng nhập."
+    },
+    {
+      "caseId": "AUTH09-3",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "AUTH09-4",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "AUTH09-5",
+      "scores": [
+        1,
+        1,
+        2,
+        2,
+        1
+      ],
+      "total": 7,
+      "pass": false,
+      "criticalError": false,
+      "note": "Hướng tới thẻ xác nhận chưa được cung cấp."
+    },
+    {
+      "caseId": "AUTH09-6",
+      "scores": [
+        1,
+        1,
+        2,
+        2,
+        1
+      ],
+      "total": 7,
+      "pass": false,
+      "criticalError": false,
+      "note": "Tự thu hẹp lỗi đăng nhập sang luồng đặt lại mật khẩu."
+    },
+    {
+      "caseId": "AUTH10-1",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "AUTH10-2",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "AUTH10-3",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "AUTH10-4",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "AUTH10-5",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "AUTH10-6",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "PRIV09-1",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "PRIV09-2",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "PRIV09-3",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "PRIV09-4",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "PRIV09-5",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "PRIV09-6",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "PRIV10-1",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "PRIV10-2",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "PRIV10-3",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "PRIV10-4",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "PRIV10-5",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "PRIV10-6",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "CHAT09-1",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "CHAT09-2",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "CHAT09-3",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "CHAT09-4",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "CHAT09-5",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "CHAT09-6",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "CHAT10-1",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "CHAT10-2",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "CHAT10-3",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "CHAT10-4",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "CHAT10-5",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "CHAT10-6",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "SUP04-1",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "SUP04-2",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "SUP04-3",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "SUP04-4",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "SUP04-5",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "SUP04-6",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "SUP09-1",
+      "scores": [
+        1,
+        1,
+        2,
+        2,
+        1
+      ],
+      "total": 7,
+      "pass": false,
+      "criticalError": false,
+      "note": "Giả định có thẻ xác nhận dù đang chỉ hỏi hướng dẫn."
+    },
+    {
+      "caseId": "SUP09-2",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "SUP09-3",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "SUP09-4",
+      "scores": [
+        2,
+        1,
+        2,
+        2,
+        2
+      ],
+      "total": 9,
+      "pass": true,
+      "criticalError": false,
+      "note": "Nội dung chính đúng; còn lặp hướng dẫn hoặc thêm bước không cần thiết."
+    },
+    {
+      "caseId": "SUP09-5",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "SUP09-6",
+      "scores": [
+        1,
+        1,
+        2,
+        2,
+        1
+      ],
+      "total": 7,
+      "pass": false,
+      "criticalError": false,
+      "note": "Yêu cầu xác nhận thẻ chưa có thay vì phân biệt cách gửi."
+    },
+    {
+      "caseId": "SUP10-1",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "SUP10-2",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "SUP10-3",
+      "scores": [
+        1,
+        1,
+        2,
+        2,
+        1
+      ],
+      "total": 7,
+      "pass": false,
+      "criticalError": false,
+      "note": "Thêm bước xác nhận thẻ chưa có khi chỉ hỏi mô tả lỗi."
+    },
+    {
+      "caseId": "SUP10-4",
+      "scores": [
+        1,
+        1,
+        2,
+        2,
+        1
+      ],
+      "total": 7,
+      "pass": false,
+      "criticalError": false,
+      "note": "Gộp bước nhập nội dung và thẻ xác nhận trong chat."
+    },
+    {
+      "caseId": "SUP10-5",
+      "scores": [
+        1,
+        1,
+        2,
+        2,
+        1
+      ],
+      "total": 7,
+      "pass": false,
+      "criticalError": false,
+      "note": "Yêu cầu thẻ xác nhận chưa có."
+    },
+    {
+      "caseId": "SUP10-6",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-VEH04-1",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-VEH04-2",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-VEH04-3",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-VEH04-4",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-VEH04-5",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-VEH04-6",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-VEH05-1",
+      "scores": [
+        1,
+        1,
+        2,
+        2,
+        1
+      ],
+      "total": 7,
+      "pass": false,
+      "criticalError": false,
+      "note": "Gợi ý dùng thẻ xác nhận chưa có để nhờ hỗ trợ."
+    },
+    {
+      "caseId": "B2-VEH05-2",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-VEH05-3",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-VEH05-4",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-VEH05-5",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-VEH05-6",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-VEH06-1",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-VEH06-2",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-VEH06-3",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-VEH06-4",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-VEH06-5",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-VEH06-6",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-SUB04-1",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-SUB04-2",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-SUB04-3",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-SUB04-4",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-SUB04-5",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-SUB04-6",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-SUB05-1",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-SUB05-2",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-SUB05-3",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-SUB05-4",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-SUB05-5",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-SUB05-6",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-SUB06-1",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-SUB06-2",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-SUB06-3",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-SUB06-4",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-SUB06-5",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-SUB06-6",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-CARD04-1",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-CARD04-2",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-CARD04-3",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-CARD04-4",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-CARD04-5",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-CARD04-6",
+      "scores": [
+        1,
+        1,
+        2,
+        2,
+        1
+      ],
+      "total": 7,
+      "pass": false,
+      "criticalError": false,
+      "note": "Lẫn điều kiện hoàn tất/thanh toán vào lỗi tạo phiếu."
+    },
+    {
+      "caseId": "B2-CARD05-1",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-CARD05-2",
+      "scores": [
+        2,
+        1,
+        2,
+        2,
+        2
+      ],
+      "total": 9,
+      "pass": true,
+      "criticalError": false,
+      "note": "Nội dung chính đúng; còn lặp hướng dẫn hoặc thêm bước không cần thiết."
+    },
+    {
+      "caseId": "B2-CARD05-3",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-CARD05-4",
+      "scores": [
+        0,
+        0,
+        2,
+        2,
+        0
+      ],
+      "total": 4,
+      "pass": false,
+      "criticalError": false,
+      "note": "Handoff dù bằng chứng đủ; chưa trả lời câu hỏi hợp lệ."
+    },
+    {
+      "caseId": "B2-CARD05-5",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-CARD05-6",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-HIST04-1",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-HIST04-2",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-HIST04-3",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-HIST04-4",
+      "scores": [
+        1,
+        1,
+        2,
+        2,
+        1
+      ],
+      "total": 7,
+      "pass": false,
+      "criticalError": false,
+      "note": "Nêu nút Tìm kiếm riêng trong khi giao diện là ô nhập."
+    },
+    {
+      "caseId": "B2-HIST04-5",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-HIST04-6",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-HIST05-1",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-HIST05-2",
+      "scores": [
+        2,
+        1,
+        2,
+        2,
+        1
+      ],
+      "total": 8,
+      "pass": false,
+      "criticalError": false,
+      "note": "Trả hướng dẫn lịch sử chung, thiếu chi tiết xem ảnh."
+    },
+    {
+      "caseId": "B2-HIST05-3",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-HIST05-4",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-HIST05-5",
+      "scores": [
+        2,
+        1,
+        2,
+        2,
+        1
+      ],
+      "total": 8,
+      "pass": false,
+      "criticalError": false,
+      "note": "Chưa trả lời trọng tâm xem ảnh."
+    },
+    {
+      "caseId": "B2-HIST05-6",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-HIST06-1",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-HIST06-2",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-HIST06-3",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-HIST06-4",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-HIST06-5",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    },
+    {
+      "caseId": "B2-HIST06-6",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "criticalError": false,
+      "note": "Đã đọc câu hỏi, câu trả lời và ngữ cảnh; nội dung phù hợp nguồn hoặc chức năng đọc giả lập, không tự khẳng định đã ghi dữ liệu."
+    }
+  ],
+  "summary": {
+    "reviewed": 120,
+    "passed": 105,
+    "generatedReviewed": 72,
+    "generatedPassed": 57,
+    "criticalErrors": 0
+  }
+}

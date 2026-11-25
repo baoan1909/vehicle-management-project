@@ -3,6 +3,7 @@ package com.ban.vehicle_management.application.operations.supportticket.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -24,6 +25,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import com.ban.vehicle_management.shared.exception.BadRequestException;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -42,6 +46,25 @@ class SupportTicketChatMessageContextServiceTest {
     private SupportTicketConversationService ticketConversationService;
     @InjectMocks
     private SupportTicketChatMessageContextService service;
+
+    @ParameterizedTest
+    @EnumSource(value = ChatConversationType.class, names = {"ASSISTANT_SUPPORT", "SUPPORT_REQUESTER_DIRECT"}, mode = EnumSource.Mode.EXCLUDE)
+    void ordinaryChatCannotAttachPrivateSupportTicketContext(ChatConversationType type) {
+        ChatConversation conversation = new ChatConversation();
+        conversation.setConversationType(type);
+        assertThrows(BadRequestException.class,
+                () -> service.resolveContextForSend(conversation, UUID.randomUUID(), UUID.randomUUID()));
+        verifyNoInteractions(currentAccountPortIn, supportTicketPortOut, linkPortOut, ticketConversationService);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ChatConversationType.class, names = {"ASSISTANT_SUPPORT", "SUPPORT_REQUESTER_DIRECT"}, mode = EnumSource.Mode.EXCLUDE)
+    void ordinaryChatWithoutTicketContextIsUnchanged(ChatConversationType type) {
+        ChatConversation conversation = new ChatConversation();
+        conversation.setConversationType(type);
+        assertNull(service.resolveContextForSend(conversation, null, UUID.randomUUID()));
+        verifyNoInteractions(currentAccountPortIn, supportTicketPortOut, linkPortOut, ticketConversationService);
+    }
 
     @Test
     void allowsGenericRequesterDirectMessageWithoutTicketContext() {

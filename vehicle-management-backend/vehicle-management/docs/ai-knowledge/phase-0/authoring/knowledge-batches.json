@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "baselineDatasets": [
+    {
+      "file": "golden-questions.jsonl",
+      "kind": "baseline",
+      "expectedCount": 120
+    }
+  ],
+  "batches": [
+    {
+      "batch": 1,
+      "documentSlugs": [
+        "authentication-and-profile",
+        "chatbot-privacy-and-prohibited-data",
+        "chat-conversations-and-support-boundaries",
+        "support-ticket-and-escalation"
+      ],
+      "dataset": "batch-01-questions.jsonl",
+      "scenarios": "batch-01-scenarios.json",
+      "scenarioCount": 40,
+      "variantsPerScenario": 6
+    },
+    {
+      "batch": 2,
+      "documentSlugs": [
+        "customer-vehicle-management",
+        "subscription-lifecycle",
+        "cards-and-lost-card",
+        "parking-history"
+      ],
+      "dataset": "batch-02-questions.jsonl",
+      "scenarios": "batch-02-scenarios.json",
+      "scenarioCount": 40,
+      "variantsPerScenario": 6
+    },
+    {
+      "batch": 3,
+      "documentSlugs": [
+        "pricing-and-fee-calculation",
+        "invoice-vnpay-payment-refund",
+        "voucher-and-promotions",
+        "reservations-and-holds"
+      ],
+      "dataset": "batch-03-questions.jsonl",
+      "scenarios": "batch-03-scenarios.json",
+      "scenarioCount": 40,
+      "variantsPerScenario": 6
+    },
+    {
+      "batch": 4,
+      "documentSlugs": [
+        "parking-entry-exit",
+        "parking-search-and-map",
+        "locations-hours-sla-contact",
+        "common-errors-and-troubleshooting"
+      ],
+      "dataset": "batch-04-questions.jsonl",
+      "scenarios": "batch-04-scenarios.json",
+      "scenarioCount": 44,
+      "variantsPerScenario": 6
+    }
+  ]
+}

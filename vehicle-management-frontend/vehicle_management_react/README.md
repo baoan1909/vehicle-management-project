@@ -1,5 +1,7 @@
 # Vehicle Management React
 
+Hướng dẫn bàn giao chatbot và các bước kiểm thử còn lại: [TEAM_HANDOFF.vi.md](../../vehicle-management-backend/vehicle-management/docs/ai-knowledge/TEAM_HANDOFF.vi.md). Thư mục build, log và cache đã được dọn; máy mới chạy `npm ci` để cài dependency từ lockfile.
+
 Bản React này được tách từ frontend JSP hiện có của project quản lý bãi xe. Mục tiêu là giữ giao diện AdminLTE/Bootstrap quen thuộc nhưng tổ chức lại mã nguồn theo cấu trúc modular giống hình tham chiếu.
 
 ## Cấu trúc chính
@@ -35,7 +37,7 @@ React đang dùng lại `adminlte.min.css`, Font Awesome, iCheck, Select2, DataT
 ## Chạy thử
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
@@ -58,4 +60,4 @@ Một số route chính:
 #/login
 ```
 
-Hiện tại các màn hình dùng data mẫu trong `src/shared/data/mockData.ts`. Khi nối backend, thay phần data mẫu bằng service gọi API trong `src/core/api/apiClient.ts` hoặc tạo `api/` riêng trong từng feature.
+Các tính năng đã có service gọi backend; đối chiếu cấu hình `.env.example`, API client trong `src/core/api/apiClient.ts` và service của từng feature khi chạy trên máy mới. Một số dữ liệu mẫu vẫn phục vụ các màn hình hoặc kiểm thử riêng; không coi chúng là bằng chứng hệ thống đã kết nối backend.

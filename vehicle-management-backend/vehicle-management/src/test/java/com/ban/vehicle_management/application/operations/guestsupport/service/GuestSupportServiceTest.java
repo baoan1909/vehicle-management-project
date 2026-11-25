@@ -46,7 +46,6 @@ class GuestSupportServiceTest {
         service = new GuestSupportService(
                 requestPort, categoryPort, auditPort, tokenService, properties, captchaProofService);
         categoryId = UUID.randomUUID();
-        lenient().when(categoryPort.isActiveCategory(categoryId)).thenReturn(true);
         lenient().when(requestPort.save(any())).thenAnswer(invocation -> {
             GuestSupportRequest request = invocation.getArgument(0);
             request.setCreatedAt(Instant.now());
@@ -108,6 +107,14 @@ class GuestSupportServiceTest {
         created.request().setCapabilityExpiresAt(Instant.now().minus(Duration.ofSeconds(1)));
         assertThrows(NotFoundException.class, () -> service.access(
                 created.request().getPublicReferenceCode(), created.capabilityToken()));
+    }
+
+    @Test
+    void rejectsInternalOrInactiveCategoryBeforePersistence() {
+        org.mockito.Mockito.doThrow(new BadRequestException("Category not available"))
+                .when(categoryPort).ensurePublicAvailableCategory(categoryId);
+        assertThrows(BadRequestException.class, () -> service.create(validRequest(), "invalid-category", "127.0.0.1"));
+        verify(requestPort, never()).save(any());
     }
 
     private CreateGuestSupportRequest validRequest() {

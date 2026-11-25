@@ -15,6 +15,9 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class EmbeddingService {
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.ban.vehicle_management.application.ai.service.AiRuntimeModeService runtimeMode;
+
 
     private final List<EmbeddingProviderPortOut> providerPorts;
     private final EmbeddingRetryPolicy retryPolicy;
@@ -33,6 +36,10 @@ public class EmbeddingService {
     public EmbeddingResult embed(EmbeddingRequest request, AiModelConfiguration configuration) {
         if (configuration == null) {
             throw new BadRequestException("Cấu hình model embedding không hợp lệ");
+        }
+        if (runtimeMode != null && !runtimeMode.allows(configuration.getProvider())) {
+            return EmbeddingResult.failure(new com.ban.vehicle_management.domain.ai.model.EmbeddingFailure(
+                    "AI_MODE_CHANGED", null, null, null, false, null));
         }
         EmbeddingProviderPortOut provider = providerPorts.stream()
                 .filter(port -> port.provider() == configuration.getProvider())

@@ -1,0 +1,25 @@
+{
+  "status": "FINAL_LIVE_ACCEPTANCE_BLOCKED_BY_GOOGLE_DAILY_EMBEDDING_QUOTA",
+  "localVerification": {
+    "tests": 2948,
+    "passed": 2945,
+    "skippedOptInLive": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  "lastCompletedSemanticReview": {
+    "artifact": "semantic-last-completed.json",
+    "passed": 113,
+    "reviewed": 120,
+    "modelPassed": 55,
+    "modelReviewed": 62,
+    "meets95Percent": false
+  },
+  "finalCodeAfterThatReview": [
+    "overlap-aware exact Q/A lookup",
+    "distinct embedding/retrieval failure handling",
+    "real query-vector recording and explicit replay mode"
+  ],
+  "finalGeminiRequalification": "NOT_COMPLETED; interrupted after quota proof, not counted as PASS",
+  "devCorpusResetOrPublishRun": false
+}

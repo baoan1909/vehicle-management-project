@@ -46,6 +46,11 @@ public class SubscriptionAccessGuard {
         this.parkingLotPortOut = parkingLotPortOut;
     }
 
+    public UUID resolveOwnCustomerId() {
+        currentAccountPortIn.requirePermission("SUBSCRIPTION_READ_OWN");
+        return resolveCurrentApprovedCustomerId();
+    }
+
     public UUID resolveCurrentApprovedCustomerId() {
         UUID accountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
 

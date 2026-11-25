@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import {
   Badge,
@@ -23,14 +23,16 @@ import {
 import {
   closeMySupportTicket,
   createSupportTicket,
-  getAvailableSupportTicketCategories,
+  getActiveSupportTicketRequesterConversation,
   getMySupportTickets,
   reopenMySupportTicket,
   type SupportTicketPriority,
-  type SupportTicketAvailableCategoryResponse,
   type SupportTicketResponse,
   type SupportTicketStatus,
 } from "@/features/support/api/supportApi";
+import { SupportCategoryPicker } from "@/features/support/components/SupportCategoryPicker";
+import { validateSupportTicketForm } from "@/features/support/utils/validateSupportTicketForm";
+import { isSupportCategoryError, useAvailableSupportCategories } from "@/features/support/hooks/useAvailableSupportCategories";
 import { openSupportWidget } from "@/features/support/supportWidgetEvents";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 import { Drawer } from "@/shared/components/ui/Drawer";
@@ -135,13 +137,14 @@ function SupportMetric({
 export function SupportPage({ mode = "customer" }: { mode?: "customer" | "internal" }) {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const toast = useToast();
   const canCloseOwnTicket = hasAnyPermission(user, ["SUPPORT_TICKET_CLOSE_OWN", "SUPPORT_TICKET_CLOSE_ALL"]);
   const canReopenOwnTicket = hasAnyPermission(user, ["SUPPORT_TICKET_REOPEN_OWN", "SUPPORT_TICKET_REOPEN_ALL"]);
-  const canCreateTicket = hasAnyPermission(user, ["SUPPORT_TICKET_CREATE_OWN", "SUPPORT_TICKET_CREATE_ALL"]);
+  const canCreateTicket = hasAnyPermission(user, ["SUPPORT_TICKET_CREATE_OWN"]);
+  const canOpenTicketConversation = hasAnyPermission(user, ["SUPPORT_TICKET_READ_OWN"]);
   const [profile, setProfile] = useState<CustomerPortalProfile | null>(null);
   const [tickets, setTickets] = useState<SupportTicketResponse[]>([]);
-  const [categories, setCategories] = useState<SupportTicketAvailableCategoryResponse[]>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<string>("");
   const [keyword, setKeyword] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -151,23 +154,24 @@ export function SupportPage({ mode = "customer" }: { mode?: "customer" | "intern
   const [form, setForm] = useState(emptyForm);
   const [formError, setFormError] = useState("");
   const [createFormOpen, setCreateFormOpen] = useState(false);
+  const categoryState = useAvailableSupportCategories(createFormOpen);
+  const { categories } = categoryState;
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [openingConversationTicketId, setOpeningConversationTicketId] = useState<string | null>(null);
   const supportWidgetOpenedRef = useRef(false);
 
   const loadData = useCallback(async (preferredTicketId?: string) => {
     setLoading(true);
     try {
-      const [nextProfile, ticketResponse, categoryResponse] = await Promise.all([
+      const [nextProfile, ticketResponse] = await Promise.all([
         mode === "customer" ? getCustomerPortalProfile() : Promise.resolve(null),
         getMySupportTickets(),
-        getAvailableSupportTicketCategories(),
       ]);
       const nextTickets = ticketResponse.data ?? [];
 
       setProfile(nextProfile);
       setTickets(nextTickets);
-      setCategories(categoryResponse.data ?? []);
       setCurrentPage(1);
       setSelectedTicketId((current) => {
         if (preferredTicketId && nextTickets.some((ticket) => ticket.supportTicketId === preferredTicketId)) {
@@ -245,8 +249,9 @@ export function SupportPage({ mode = "customer" }: { mode?: "customer" | "intern
     const title = form.title.trim();
     const content = form.content.trim();
 
-    if (!form.categoryId || !title || !content) {
-      setFormError("Vui lòng chọn loại yêu cầu, nhập tiêu đề và nội dung cần hỗ trợ.");
+    const validationError = validateSupportTicketForm({ categoryId: form.categoryId, title, content });
+    if (validationError) {
+      setFormError(validationError);
       return;
     }
 
@@ -266,6 +271,10 @@ export function SupportPage({ mode = "customer" }: { mode?: "customer" | "intern
       await loadData();
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "Không thể gửi yêu cầu hỗ trợ.");
+      if (isSupportCategoryError(error)) {
+        setForm((current) => ({ ...current, categoryId: "" }));
+        await categoryState.reload();
+      }
     } finally {
       setSaving(false);
     }
@@ -318,6 +327,56 @@ export function SupportPage({ mode = "customer" }: { mode?: "customer" | "intern
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleOpenTicketConversation = async (ticket: SupportTicketResponse) => {
+    if (!ticket.assignedTo || openingConversationTicketId) {
+      return;
+    }
+
+    setOpeningConversationTicketId(ticket.supportTicketId);
+    try {
+      const response = await getActiveSupportTicketRequesterConversation(ticket.supportTicketId);
+      const conversationId = response.data?.conversationId;
+      if (!conversationId) {
+        throw new Error("Hội thoại hỗ trợ cho yêu cầu này chưa được bắt đầu.");
+      }
+
+      const target = mode === "customer" ? "/customer/support/chat" : "/admin/my-support/chat";
+      navigate(`${target}?conversationId=${encodeURIComponent(conversationId)}&ticketId=${encodeURIComponent(ticket.supportTicketId)}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể mở hội thoại hỗ trợ.");
+    } finally {
+      setOpeningConversationTicketId(null);
+    }
+  };
+
+  const renderAssignee = (ticket: SupportTicketResponse, unassignedLabel = "--") => {
+    const username = ticket.assignedToUsername?.trim()
+      || (ticket.assignedTo ? "Chưa cập nhật" : unassignedLabel);
+    const opening = openingConversationTicketId === ticket.supportTicketId;
+
+    return (
+      <div className="tw-flex tw-min-w-0 tw-items-center tw-gap-2">
+        <span className="tw-min-w-0 tw-truncate" title={username}>{username}</span>
+        {canOpenTicketConversation && ticket.assignedTo ? (
+          <button
+            aria-label={`Mở hội thoại hỗ trợ với ${username}`}
+            className="tw-grid tw-h-8 tw-w-8 tw-flex-none tw-place-items-center tw-rounded-full tw-border tw-border-solid tw-border-brand-200 tw-bg-white tw-text-vm-primary tw-transition hover:tw-bg-brand-50 focus-visible:tw-outline-none focus-visible:tw-ring-2 focus-visible:tw-ring-brand-300 disabled:tw-cursor-wait disabled:tw-opacity-60"
+            disabled={Boolean(openingConversationTicketId)}
+            title="Mở hội thoại hỗ trợ"
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              void handleOpenTicketConversation(ticket);
+            }}
+            onKeyDown={(event) => event.stopPropagation()}
+          >
+            <i aria-hidden="true" className={opening ? "fas fa-spinner fa-spin" : "far fa-comment-dots"} />
+          </button>
+        ) : null}
+      </div>
+    );
   };
 
   const PageLayout = mode === "customer" ? CustomerPortalLayout : Fragment;
@@ -388,7 +447,7 @@ export function SupportPage({ mode = "customer" }: { mode?: "customer" | "intern
                           <td className="tw-px-3 tw-py-3">{ticket.categoryName ?? ticket.categoryCode ?? "--"}</td>
                           <td className="tw-px-3 tw-py-3"><TicketBadge tone={priorityTone[ticket.priority]}>{priorityLabels[ticket.priority]}</TicketBadge></td>
                           <td className="tw-px-3 tw-py-3"><TicketBadge tone={statusTone[ticket.status]}>{statusLabels[ticket.status]}</TicketBadge></td>
-                          <td className="tw-px-3 tw-py-3">{ticket.assignedTo ?? "--"}</td>
+                          <td className="tw-min-w-[160px] tw-px-3 tw-py-3">{renderAssignee(ticket)}</td>
                           <td className="tw-whitespace-nowrap tw-px-3 tw-py-3">{formatDateTime(ticket.createdAt)}</td>
                           <td className="tw-whitespace-nowrap tw-px-3 tw-py-3">{formatDateTime(ticket.resolvedAt)}</td>
                         </tr>
@@ -411,6 +470,7 @@ export function SupportPage({ mode = "customer" }: { mode?: "customer" | "intern
                       </div>
                       <span className="tw-text-[0.9rem] tw-font-bold tw-text-vm-slate-900">{ticket.title}</span>
                       <span className="tw-text-[0.76rem] tw-font-medium tw-text-vm-slate-500">{ticket.categoryName ?? ticket.categoryCode ?? "--"} · {formatDateTime(ticket.createdAt)}</span>
+                      <div className="tw-text-[0.76rem] tw-font-semibold tw-text-vm-slate-700">{renderAssignee(ticket, "Chưa phân công")}</div>
                       <span><TicketBadge tone={priorityTone[ticket.priority]}>{priorityLabels[ticket.priority]}</TicketBadge></span>
                       <Button size="sm" variant={selected ? "primary" : "secondary"} aria-pressed={selected} onClick={() => setSelectedTicketId(ticket.supportTicketId)}>{selected ? "Đang xem chi tiết" : "Xem chi tiết"}</Button>
                     </li>
@@ -441,7 +501,7 @@ export function SupportPage({ mode = "customer" }: { mode?: "customer" | "intern
                     <dt className="tw-font-semibold tw-text-vm-slate-500">Trạng thái</dt><dd className="tw-m-0 tw-text-right"><TicketBadge tone={statusTone[selectedTicket.status]}>{statusLabels[selectedTicket.status]}</TicketBadge></dd>
                     <dt className="tw-font-semibold tw-text-vm-slate-500">Mức độ</dt><dd className="tw-m-0 tw-text-right"><TicketBadge tone={priorityTone[selectedTicket.priority]}>{priorityLabels[selectedTicket.priority]}</TicketBadge></dd>
                     <dt className="tw-font-semibold tw-text-vm-slate-500">Loại yêu cầu</dt><dd className="tw-m-0 tw-text-right tw-font-semibold tw-text-vm-slate-900">{selectedTicket.categoryName ?? selectedTicket.categoryCode ?? "--"}</dd>
-                    <dt className="tw-font-semibold tw-text-vm-slate-500">Người xử lý</dt><dd className="tw-m-0 tw-text-right tw-font-semibold tw-text-vm-slate-900">{selectedTicket.assignedTo ?? "Chưa phân công"}</dd>
+                    <dt className="tw-font-semibold tw-text-vm-slate-500">Người xử lý</dt><dd className="tw-m-0 tw-flex tw-justify-end tw-text-right tw-font-semibold tw-text-vm-slate-900">{renderAssignee(selectedTicket, "Chưa phân công")}</dd>
                     <dt className="tw-font-semibold tw-text-vm-slate-500">Ngày tạo</dt><dd className="tw-m-0 tw-text-right tw-font-semibold tw-text-vm-slate-900">{formatDateTime(selectedTicket.createdAt)}</dd>
                     <dt className="tw-font-semibold tw-text-vm-slate-500">Ngày giải quyết</dt><dd className="tw-m-0 tw-text-right tw-font-semibold tw-text-vm-slate-900">{formatDateTime(selectedTicket.resolvedAt)}</dd>
                   </dl>
@@ -490,10 +550,10 @@ export function SupportPage({ mode = "customer" }: { mode?: "customer" | "intern
         actions={(
           <div className="tw-flex tw-justify-end tw-gap-3">
             <Button disabled={saving} variant="secondary" onClick={handleCloseCreateForm}>Hủy</Button>
-            <Button loading={saving} onClick={() => void handleSubmit()}>Gửi yêu cầu</Button>
+            <Button disabled={categoryState.loading || Boolean(categoryState.error) || !selectedCategory} loading={saving} onClick={() => void handleSubmit()}>Gửi yêu cầu</Button>
           </div>
         )}
-        description="Cung cấp đầy đủ thông tin để nhân viên có thể tiếp nhận và xử lý yêu cầu nhanh chóng."
+        description="Chỉ báo lỗi chức năng hệ thống. Dùng module nghiệp vụ tương ứng để xử lý các yêu cầu vận hành."
         onClose={handleCloseCreateForm}
         open={createFormOpen}
         title="Tạo yêu cầu hỗ trợ"
@@ -507,18 +567,17 @@ export function SupportPage({ mode = "customer" }: { mode?: "customer" | "intern
             </div>
           ) : null}
           <div className="tw-grid tw-grid-cols-1 tw-gap-4 sm:tw-grid-cols-2">
-            <Field label="Loại yêu cầu">
-              <SelectMenu ariaLabel="Chọn loại yêu cầu" options={[{ label: "Chọn loại yêu cầu", value: "" }, ...categories.map((category) => ({ label: category.name, value: category.categoryId }))]} portal portalFitContent value={form.categoryId} onChange={(value) => setForm((current) => ({ ...current, categoryId: value }))} />
-            </Field>
+            <SupportCategoryPicker state={categoryState} disabled={saving} value={form.categoryId}
+                onChange={(categoryId) => setForm((current) => ({ ...current, categoryId }))} />
             <Field label="Mức độ ưu tiên">
               <Input value={selectedCategory ? priorityLabels[selectedCategory.priority] : "Tự động theo loại yêu cầu"} readOnly />
             </Field>
           </div>
           <Field label="Tiêu đề">
-            <Input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} placeholder="Nhập tiêu đề cần hỗ trợ" />
+            <Input maxLength={150} value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} placeholder="Nhập tiêu đề cần hỗ trợ" />
           </Field>
           <Field label="Nội dung">
-            <textarea className="tw-min-h-32 tw-w-full tw-resize-y tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3 tw-text-[0.9rem] tw-text-vm-slate-900 tw-outline-none tw-transition placeholder:tw-text-vm-slate-500 focus:tw-border-vm-primary focus:tw-shadow-vm-focus" value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder="Mô tả chi tiết vấn đề bạn cần hỗ trợ..." />
+            <textarea maxLength={4000} className="tw-min-h-32 tw-w-full tw-resize-y tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3 tw-text-[0.9rem] tw-text-vm-slate-900 tw-outline-none tw-transition placeholder:tw-text-vm-slate-500 focus:tw-border-vm-primary focus:tw-shadow-vm-focus" value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder="Nêu rõ chức năng gặp lỗi, bước thực hiện và lỗi thực tế." />
           </Field>
           <small className="tw-font-semibold tw-text-vm-slate-500"><i className="fas fa-info-circle tw-mr-1" /> Yêu cầu mới sẽ ở trạng thái đang mở để nhân viên tiếp nhận.</small>
         </div>

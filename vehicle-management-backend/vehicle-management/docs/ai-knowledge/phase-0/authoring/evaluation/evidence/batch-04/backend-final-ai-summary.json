@@ -1,0 +1,12 @@
+{
+  "date": "2026-11-24",
+  "totals": {
+    "tests": 1426,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "log": "target/batch4-work/final-runtime-gate.log",
+  "inputFingerprint": "d39c3d688f84e759d7ee45b62b0ad25a53c129373418948426770c82ba290a65",
+  "liveEnabled": false
+}

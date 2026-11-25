@@ -11,6 +11,7 @@ import {
   classifyGuestSupportError, readGuestCredential, saveGuestCredential, type GuestSupportError,
 } from "@/features/support/guestSupportState";
 import { getApplicationTimeZone } from "@/shared/time/applicationTime";
+import { isSupportCategoryError } from "@/features/support/hooks/useAvailableSupportCategories";
 
 const emptyForm = { categoryId: "", title: "", content: "", email: "", phone: "" };
 const fieldClass = "tw-w-full tw-min-w-0 tw-rounded-vm-md tw-border tw-border-solid tw-border-slate-300 tw-bg-white tw-p-2.5 tw-text-slate-900";
@@ -44,15 +45,27 @@ export function GuestSupportRequests({ mode, onClose, sessionId, supportStatus, 
   useEffect(() => () => requestRef.current?.abort(), []);
 
   useEffect(() => {
-    if (mode !== "create" || categories.length) return;
+    if (mode !== "create") return;
     let active = true;
     setCategoriesLoading(true);
     setCategoriesError(null);
     void getPublicSupportCategories()
-      .then((response) => { if (active) { setCategories(response.data); setCategoriesLoading(false); } })
-      .catch((caught) => { if (active) { setCategoriesError(classifyGuestSupportError(caught)); setCategoriesLoading(false); } });
+      .then((response) => {
+        if (!active) return;
+        const next = response.data ?? [];
+        setCategories(next);
+        setForm((current) => !current.categoryId || next.some((category) => category.categoryId === current.categoryId)
+          ? current : { ...current, categoryId: "" });
+        setCategoriesLoading(false);
+      })
+      .catch((caught) => {
+        if (!active) return;
+        setCategories([]);
+        setCategoriesError(classifyGuestSupportError(caught));
+        setCategoriesLoading(false);
+      });
     return () => { active = false; };
-  }, [mode, categories.length, categoriesAttempt]);
+  }, [mode, categoriesAttempt]);
 
   useEffect(() => {
     setError(null);
@@ -100,6 +113,10 @@ export function GuestSupportRequests({ mode, onClose, sessionId, supportStatus, 
       idempotencyRef.current = null;
     } catch (caught) {
       if (!controller.signal.aborted) setError(classifyGuestSupportError(caught));
+      if (!controller.signal.aborted && isSupportCategoryError(caught)) {
+        setForm((current) => ({ ...current, categoryId: "" }));
+        setCategoriesAttempt((value) => value + 1);
+      }
     } finally {
       if (!controller.signal.aborted) {
         requestRef.current = null;
@@ -148,20 +165,23 @@ export function GuestSupportRequests({ mode, onClose, sessionId, supportStatus, 
       width="md"
       actions={<><Button variant="secondary" disabled={busy} onClick={onClose}>Đóng</Button><Button
         type="submit" form={formId} loading={busy}
-        disabled={busy || (createMode && (categoriesLoading || !categories.length || Boolean(supportStatus?.captchaRequiredForIntake && !proof)))}
+        disabled={busy || (createMode && (categoriesLoading || Boolean(categoriesError) || !categories.length || Boolean(supportStatus?.captchaRequiredForIntake && !proof)))}
       >{createMode ? "Gửi yêu cầu" : "Tra cứu"}</Button></>}
     >
       {error ? <p role="alert" className="tw-rounded-lg tw-bg-red-50 tw-p-3 tw-text-red-700">{error.message}</p> : null}
       {createMode ? <>
         {categoriesLoading ? <p role="status">Đang tải danh mục hỗ trợ...</p> : null}
         {categoriesError ? <div role="alert"><p>{categoriesError.message}</p><Button variant="secondary" onClick={() => setCategoriesAttempt((value) => value + 1)}>Tải lại danh mục</Button></div> : null}
+        {!categoriesLoading && !categoriesError && categories.length === 0 ? <p role="status">Chưa có danh mục hỗ trợ khả dụng.</p> : null}
         <form id={formId} className="tw-grid tw-gap-3" onSubmit={submitRequest}>
           <label className="tw-grid tw-gap-1 tw-font-bold">Danh mục<SelectMenu ariaLabel="Danh mục"
                   triggerClassName={fieldClass}
                   value={form.categoryId}
                   onChange={(selectedValue) => updateField("categoryId", selectedValue)}
-                  disabled={busy}
+                  disabled={busy || categoriesLoading || Boolean(categoriesError)} searchable searchPlaceholder="Tìm danh mục hỗ trợ..."
                   options={[{ label: "Chọn danh mục", value: "", disabled: true }, ...categories.map((category) => ({ label: category.name, value: category.categoryId }))]} portal clearValue="" /></label>
+          {categories.find((category) => category.categoryId === form.categoryId)?.description
+            ? <p className="tw-m-0 tw-text-sm tw-text-slate-600">{categories.find((category) => category.categoryId === form.categoryId)?.description}</p> : null}
           <label className="tw-grid tw-gap-1 tw-font-bold">Tiêu đề<input className={fieldClass} maxLength={150} required disabled={busy} value={form.title} onChange={(event) => updateField("title", event.target.value)} /></label>
           <label className="tw-grid tw-gap-1 tw-font-bold">Nội dung<textarea className={`${fieldClass} tw-min-h-28`} maxLength={4000} required disabled={busy} value={form.content} onChange={(event) => updateField("content", event.target.value)} /></label>
           <div className="tw-grid tw-gap-3 sm:tw-grid-cols-2">

@@ -1,0 +1,7 @@
+{
+  "status": "INTERRUPTED_NOT_PASS",
+  "observedCaseCompletionLines": 345,
+  "observedInsufficientOrUnavailableLines": 183,
+  "reason": "Confirmed daily embedding quota exhausted; stopped further live calls",
+  "logSha256": "63314f9d5884e920aa61a94b60807165bf95059961ab5345102d5f2299f4e873"
+}

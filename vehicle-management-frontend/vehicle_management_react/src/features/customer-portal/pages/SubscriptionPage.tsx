@@ -46,6 +46,7 @@ import { CustomerPortalLayout, PortalPagination } from "./PortalShared";
 import { DatePicker, Modal, SelectMenu, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
 import { hasAnyPermission } from "@/shared/auth/permissions";
+import { createParkingLotCustomerConversation, shareChatSubscriptionOrder } from "@/features/support/api/chatApi";
 import { UserGuideHelpButton } from "@/features/user-guide/components/UserGuideHelpButton";
 import { useUserGuide } from "@/features/user-guide/context/UserGuideContext";
 import { useUserGuideActivation } from "@/features/user-guide/hooks/useUserGuideActivation";
@@ -110,7 +111,8 @@ function statusLabel(status?: string | null) {
   if (status === "EXPIRED") return "Hết hạn";
   if (status === "CANCELLED") return "Đã hủy";
   if (status === "REJECTED") return "Từ chối";
-  return status || "--";
+  if (status === "TERMINATED") return "Đã chấm dứt";
+  return "Chưa xác định trạng thái";
 }
 
 function physicalCardStatusLabel(subscription?: CustomerPortalSubscription | null) {
@@ -231,6 +233,10 @@ export function SubscriptionPage() {
   const canRegisterSubscription = hasAnyPermission(user, ["SUBSCRIPTION_CREATE_OWN", "SUBSCRIPTION_CREATE_ALL"]);
   const canCreateVehicle = hasAnyPermission(user, ["CUSTOMER_VEHICLE_CREATE_OWN", "CUSTOMER_VEHICLE_CREATE_ALL"]);
   const canPaySubscription = hasAnyPermission(user, ["WALLET_PAY_INVOICE_OWN", "INVOICE_PAY_OWN", "SUBSCRIPTION_PAY_OWN", "WALLET_TOP_UP_OWN"]);
+  const canMessageParkingLot = hasAnyPermission(user, ["CHAT_CONVERSATION_CREATE_OWN"])
+    && hasAnyPermission(user, ["CHAT_CONVERSATION_READ_OWN"])
+    && hasAnyPermission(user, ["CHAT_MESSAGE_SEND_OWN"])
+    && hasAnyPermission(user, ["SUBSCRIPTION_READ_OWN"]);
   const [searchParams, setSearchParams] = useSearchParams();
   const voucherCodeFromUrl = searchParams.get("voucherCode")?.trim().toUpperCase() ?? "";
   const parkingLotIdFromUrl = searchParams.get("parkingLotId")?.trim() ?? "";
@@ -295,6 +301,21 @@ export function SubscriptionPage() {
   const [qrLoading, setQrLoading] = useState(false);
   const [qrActionLoading, setQrActionLoading] = useState(false);
   const [qrError, setQrError] = useState("");
+  const [chatOpeningSubscriptionId, setChatOpeningSubscriptionId] = useState("");
+
+  const messageParkingLot = async (subscription: CustomerPortalSubscription) => {
+    if (!canMessageParkingLot || !subscription.parkingLotId || chatOpeningSubscriptionId) return;
+    setChatOpeningSubscriptionId(subscription.subscriptionId);
+    try {
+      const conversation = await createParkingLotCustomerConversation(subscription.parkingLotId);
+      await shareChatSubscriptionOrder(conversation.data.conversationId, subscription.subscriptionId);
+      navigate(`/customer/support/chat?conversationId=${encodeURIComponent(conversation.data.conversationId)}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể mở hội thoại với bãi xe.");
+    } finally {
+      setChatOpeningSubscriptionId("");
+    }
+  };
 
   const openRegistrationModal = () => {
     const nextSearchParams = new URLSearchParams(searchParams);
@@ -947,6 +968,7 @@ export function SubscriptionPage() {
         <i className="fas fa-ellipsis-h" />Thao tác<i className="fas fa-chevron-down tw-text-[0.55rem]" />
       </summary>
       <div className="tw-absolute tw-right-0 tw-top-[calc(100%+6px)] tw-z-50 tw-min-w-[218px] tw-overflow-hidden tw-rounded-lg tw-border tw-border-solid tw-border-[#dce5f0] tw-bg-white tw-py-1 tw-shadow-[0_14px_34px_rgba(17,42,81,0.2)]">
+        {canMessageParkingLot && subscription.parkingLotId ? <button className={itemClass} disabled={Boolean(chatOpeningSubscriptionId)} type="button" onClick={(event) => { closeMenu(event.currentTarget); void messageParkingLot(subscription); }}><i className="far fa-comment-dots tw-w-4 tw-text-center tw-text-[#1263e9]" />{chatOpeningSubscriptionId === subscription.subscriptionId ? "Đang mở hội thoại..." : "Nhắn tin với bãi xe"}</button> : null}
         {subscription.status === "PENDING_PAYMENT" && canPaySubscription ? <button className={itemClass} type="button" onClick={(event) => { closeMenu(event.currentTarget); void handleOpenPayment(subscription); }}><i className="fas fa-wallet tw-w-4 tw-text-center tw-text-[#1263e9]" />Thanh toán vé</button> : null}
         {subscription.spaceSelectionRequired && !subscription.spaceSelectionConfirmedAt && subscription.status === "PENDING_SPACE" ? <button className={itemClass} type="button" onClick={(event) => { closeMenu(event.currentTarget); setSpaceSelectionSubscriptionId(subscription.subscriptionId); }}><i className="fas fa-map-marker-alt tw-w-4 tw-text-center tw-text-[#1263e9]" />Chọn vị trí</button> : null}
         {canRequestCard ? <button className={itemClass} disabled={physicalCardRequestingId === subscription.subscriptionId} type="button" onClick={(event) => { closeMenu(event.currentTarget); void handleRequestPhysicalCard(subscription); }}><i className="far fa-credit-card tw-w-4 tw-text-center tw-text-[#1263e9]" />{physicalCardRequestingId === subscription.subscriptionId ? "Đang gửi yêu cầu..." : "Yêu cầu thẻ vật lý"}</button> : null}

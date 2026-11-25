@@ -1,0 +1,65 @@
+{
+  "createdAtUtc": "2026-11-19T11:43:07.155821+00:00",
+  "currentDeliverableNotHistoricalRunHashes": true,
+  "knowledgeManifestSha256": "3756422a352c16e78039c6bfceb36e8b849cd79b967a9441c16e613fc6bfaf5e",
+  "finalCodeSha256": {
+    "src/main/java/com/ban/vehicle_management/application/ai/service/AssistantOrchestrator.java": "af49ab354644870b1b13b1246991a5e6eaf23134d06923a1eedc0326681a30a7",
+    "src/main/java/com/ban/vehicle_management/application/ai/service/KnowledgeRetrievalService.java": "98eef5ed8dd9f2c410f9aefa5d520187405e7a826170282ebd077f7b7ab294e3",
+    "src/main/java/com/ban/vehicle_management/application/ai/service/AiAssistantProperties.java": "3eda5b9cac4f72cf5dcdd3af0e1bc3e8fea0e8c43473c2f85cb55e09d29e4cd2",
+    "src/main/java/com/ban/vehicle_management/application/ai/service/RetrievalProperties.java": "c515576d6c2c4cf5f90e61db77e9518cbee98e970e4fb2f3b520764e19039fe8",
+    "src/main/java/com/ban/vehicle_management/application/ai/service/AssistantOwnDataFormatter.java": "edd6e53bcb5de43091df8c2bffb594c28505ed1444bf90e8c995e67fc48624a7",
+    "src/main/java/com/ban/vehicle_management/application/ai/service/AiToolExecutionService.java": "25da2ae5c58e212aea0719470e8f6af65d4652e18b76917e20ab6dd272398886",
+    "src/main/java/com/ban/vehicle_management/application/operations/guestsupport/service/GuestPublicAssistantService.java": "e15011d2b7713a969adaa4bc9f8af56c812114cf30892f1a87452eaf3074f4d5",
+    "src/main/java/com/ban/vehicle_management/domain/ai/model/AssistantOwnReadRouter.java": "2d82ce3c862fa2653f3b4ed326860dfceba974a1e7f845823fd60d53a0fd9ee6",
+    "src/main/java/com/ban/vehicle_management/domain/ai/model/GroundedFaqLookup.java": "60e81f78a116363b374373e68e0cf607ae86bfe5670941cbbf7e35eaef6afe71",
+    "src/main/java/com/ban/vehicle_management/domain/ai/model/AssistantOutputValidator.java": "c84586ee234ca92b5cdb0c0a5a76d1bfd4c80e5fc7e2b41a11be7ae0855e7209",
+    "src/main/java/com/ban/vehicle_management/domain/ai/model/AssistantResponseStyle.java": "45e314d67bbe15b795f29a1f136885285edf28807ad4fc33b8d1f3285c3f7512",
+    "src/main/java/com/ban/vehicle_management/domain/ai/model/AssistantQuestionResolver.java": "7016850eca1575070da0951431daee2bb95c6f9b2d9c4fabb9862958b55266f8",
+    "src/main/java/com/ban/vehicle_management/domain/ai/model/VietnameseQueryNormalizer.java": "751606e1eae7c7338c8c47bae46e3f261b17736dc0f9beedfec8884ff1dc6d9e",
+    "src/main/java/com/ban/vehicle_management/shared/utils/TextValidationUtils.java": "0a7ead7c9ed2afff0c74bd5f56c44500d027b1dc7e71b750aa92482c20295318",
+    "src/main/java/com/ban/vehicle_management/domain/operations/chatmessage/policy/ChatMessagePolicy.java": "5f6709efc8e7079159a7340b6cd162500f180f6f68ab1f4b3f4ac59ece5b741d",
+    "src/main/java/com/ban/vehicle_management/infrastructure/persistence/database/entity/ai/AiToolCallEntity.java": "078e046b20e029688e1175a0cace22dedc0ec98404198e6391e2bf546280a9d2",
+    "src/main/java/com/ban/vehicle_management/application/people/customervehicle/authorization/CustomerVehicleAccessGuard.java": "7f8768baf3c2c964c89cc2618ec3ff4b2cba6f089fff58e0ff01de0c3ced9554",
+    "src/main/java/com/ban/vehicle_management/application/accesscontrol/subscription/authorization/SubscriptionAccessGuard.java": "b0374aa215cd97be697dc4c311a4c75e003aa4fd0b88985dd54c857815b127e2",
+    "src/main/java/com/ban/vehicle_management/application/parking/parkingsession/usecase/ParkingSessionUseCaseImpl.java": "d156700329aa09985a855c6562bb042ae72407f8cf088c29d5bfb3e24a66c58e",
+    "src/main/java/com/ban/vehicle_management/infrastructure/ai/gemini/GeminiAiProviderAdapter.java": "92de3e2bbdc1b5c05153408234af2de879ef757fe920dfba692bf22583326e95"
+  },
+  "artifactSha256": {
+    "accent-comparison.json": "5085ff439a282138599b5071322492823d99fa8c31010c920f5a36b794f801c8",
+    "acceptance-before-question-fix.json": "6100c6d1cefedc8f81fe06cabab2e0e2cda6598b0a4f1028d288923f2e1562b9",
+    "acceptance-question-fixed.json": "b6a2d1a3d792a84a614dfa329266ecfa987a204d63f50fb9a58153f58a97c876",
+    "acceptance-runtime.json": "85ad530cb6f3dbef5b3c91f7bc38e87df2134d59e83f65395e671a4dc4c19859",
+    "dataset-alignment-review.json": "bfd5aff8692c430c7ded2e3bc9f70e8ce1906478a57066ffb2e51454cdad957e",
+    "google-embedding-quota.json": "a826891248096ba6e805df6a96a3c45e66bdd0fd60c8cf0be06e209c6b0885de",
+    "interrupted-live-attempt.json": "6e4777bfa177c53ddd34b66170e36ffdb7f50d3982f865755d2a4091276e367f",
+    "rechecks-runtime.json": "c64076a1978849e45075266a83c92626f11865eafd44878e7b513f244e856270",
+    "remaining-retrieval-cases.json": "66274a2e815eb4c395b6a531499f966204c09adc2df3bb6fb2f1fcced0fecac5",
+    "retrieval-and-runtime.json": "7d1285cff8d73a0cc58e725f96d4e6ec5fb26cf11cd86ff56187705d16d301b3",
+    "retrieval-before-faq.json": "fe20bcb6e6a330f61fd30a55ddc82e725a160e93296a10eb1ed52db259bf5ffe",
+    "runtime-before-overlap-fix.json": "7d1285cff8d73a0cc58e725f96d4e6ec5fb26cf11cd86ff56187705d16d301b3",
+    "scenario-alignment-runtime.json": "2fd1673c108353074e5f9eef885c61f0678349fd31291b9af56c7d48fcbcefa7",
+    "semantic-before-question-fix.json": "8be1f12fab5880f91631d047e5a3774a47ca016f0d8c9df16dfda5ed22884c15",
+    "semantic-last-completed.json": "b4fe5098182c8ae21fa112176c9f0f419b93f8ce03253730476b6ddc3d67c4d4",
+    "verification-status.json": "ee03a31d078e636158f762dbced2e5a0ec82d94fa9b863532e48b354ddfb49a9"
+  },
+  "ignoredLocalLogSha256": {
+    "final-offline-verification.log": "2d9f9394c94bf7bafd4e9f79c4031a9eac80b8327a1781bd33feb22925ac9759",
+    "final-artifact-validation.log": "223089594696e7a9ea86559039be34787a4b304874faf01e32e7c9beb1b031f3",
+    "frontend-checks.log": "bc79b60934bea5ae0cb5d56280552e2627984d560b8b38d55c2b1af5459e56f1",
+    "frontend-lint.log": "237d54b39d3408bad137c9afdc2d8faa7590a123aa303a9fda4114a1ff56e776",
+    "frontend-build.log": "06e78a71d0efa3e6de222e41f3c653b3e29212958c93aa21e3aeca817e3ca220",
+    "browser.log": "5901532550dd46cf190fa38ad6dd06d45821740af5f568ada4c70683b27be792",
+    "browser-final.log": "fbf19f11fc4b10abb4ee1d1c310db612e33fcbf80fc0c734641fe86e54cf8f3b"
+  },
+  "finalLiveStatus": "BLOCKED_BY_DAILY_QUOTA_NOT_APPROVED",
+  "secretFilesExcluded": [
+    ".env"
+  ],
+  "notes": [
+    "Historical snapshots retain their actual questions, source chunks and model failures.",
+    "Current code/source hashes do not relabel older live runs as final verification.",
+    "Offline tests use synthetic vectors and isolated PostgreSQL; live snapshots are labeled separately."
+  ],
+  "reportSha256": "8ae5c38f2a69fa7321c2b526fcb72bbf9b8bac0aeadddc0f86a2c321f94e162e",
+  "traceabilitySha256": "6a6f3f6e63d25e7740fc4dae351f9e2724a10c391bbf84e6ee3fd5b97952e4fb"
+}

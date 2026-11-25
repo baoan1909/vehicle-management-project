@@ -1,0 +1,252 @@
+{
+  "cases": 600,
+  "retrievalCases": 552,
+  "answerJobs": 216,
+  "jobStatuses": {
+    "COMPLETED": 216
+  },
+  "top5Hits": 551,
+  "evidenceSufficient": 541,
+  "insufficientCases": [
+    "CHAT06-1",
+    "CHAT06-2",
+    "B3-PRI02-4",
+    "B3-VOU03-3",
+    "B3-VOU03-4",
+    "B3-VOU07-3",
+    "B3-VOU07-4",
+    "B3-RES06-4",
+    "B3-RES07-4",
+    "B3-RES09-3",
+    "B3-RES09-4"
+  ],
+  "sourcedAnswerJobs": 168,
+  "answersWithCitations": 158,
+  "citationCount": 183,
+  "citationMembershipViolations": [],
+  "generationAttempts": 151,
+  "generationHttpCalls": 126,
+  "generationHttpByModel": {
+    "gemini-3.1-flash-lite": 20,
+    "gemini-3.5-flash-lite": 106
+  },
+  "generationFailureCodes": {
+    "HTTP_5XX": 2,
+    "TIMEOUT": 3,
+    "GEMINI_REQUEST_BUDGET_EXHAUSTED": 3,
+    "GEMINI_CANDIDATE_UNAVAILABLE": 25
+  },
+  "successfulGenerations": {
+    "gemini-3.5-flash-lite": 105,
+    "gemini-3.1-flash-lite": 13
+  },
+  "credentialHttpCalls": 519,
+  "embeddingHttpCalls": 393,
+  "tokenUsage": {
+    "input": 0,
+    "output": 0,
+    "reportedAttempts": 0
+  },
+  "latencyMs": {
+    "retrievalRecordedVectors": {
+      "n": 552,
+      "p50": 628,
+      "p95": 697,
+      "max": 930
+    },
+    "faqWithoutGeneration": {
+      "n": 46,
+      "p50": 74,
+      "p95": 106,
+      "max": 219
+    },
+    "sourcedGenerationJobs": {
+      "n": 116,
+      "p50": 4987,
+      "p95": 11120,
+      "max": 38625
+    },
+    "providerAttemptsIncludingPacing": {
+      "n": 126,
+      "p50": 4882,
+      "p95": 10015,
+      "max": 12013
+    }
+  },
+  "cacheCondition": "Application answer/retrieval caches disabled; recorded real query/corpus vectors reused by the harness. No production warm-cache p95 claim.",
+  "scope": "Real PostgreSQL/chunker/hybrid retrieval/Gemini; synthetic actor/chat/audit/business ports. No dev corpus or financial writes.",
+  "credentials": [
+    {
+      "variable": "GEMINI_API_KEY",
+      "status": "OK",
+      "operation": "embedContent",
+      "model": "gemini-embedding-2",
+      "calls": 518,
+      "successes": 511
+    },
+    {
+      "variable": "GEMINI_API_KEY_1",
+      "status": "ATTEMPTED",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "calls": 1,
+      "successes": 0
+    },
+    {
+      "variable": "GEMINI_API_KEY_2",
+      "status": "UNTESTED",
+      "operation": null,
+      "model": null,
+      "calls": 0,
+      "successes": 0
+    },
+    {
+      "variable": "GEMINI_API_KEY_3",
+      "status": "UNTESTED",
+      "operation": null,
+      "model": null,
+      "calls": 0,
+      "successes": 0
+    },
+    {
+      "variable": "GEMINI_API_KEY_4",
+      "status": "UNTESTED",
+      "operation": null,
+      "model": null,
+      "calls": 0,
+      "successes": 0
+    }
+  ],
+  "credentialFailureEvents": [
+    {
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "occurredAt": "2026-11-20T10:15:39.960453800Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "occurredAt": "2026-11-20T10:21:07.261470400Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "occurredAt": "2026-11-20T10:26:11.647451200Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.5-flash-lite",
+      "occurredAt": "2026-11-20T10:26:23.634837200Z"
+    },
+    {
+      "variable": "GEMINI_API_KEY",
+      "kind": "TRANSIENT",
+      "operation": "generateContent",
+      "model": "gemini-3.1-flash-lite",
+      "occurredAt": "2026-11-20T10:28:40.107742400Z"
+    }
+  ],
+  "retrievalByDocument": {
+    "authentication-and-profile": {
+      "n": 54,
+      "hitAt5": 54,
+      "sufficient": 54
+    },
+    "cards-and-lost-card": {
+      "n": 36,
+      "hitAt5": 36,
+      "sufficient": 36
+    },
+    "chat-conversations-and-support-boundaries": {
+      "n": 42,
+      "hitAt5": 41,
+      "sufficient": 40
+    },
+    "chatbot-privacy-and-prohibited-data": {
+      "n": 24,
+      "hitAt5": 24,
+      "sufficient": 24
+    },
+    "customer-vehicle-management": {
+      "n": 36,
+      "hitAt5": 36,
+      "sufficient": 36
+    },
+    "invoice-vnpay-payment-refund": {
+      "n": 60,
+      "hitAt5": 60,
+      "sufficient": 60
+    },
+    "parking-history": {
+      "n": 36,
+      "hitAt5": 36,
+      "sufficient": 36
+    },
+    "pricing-and-fee-calculation": {
+      "n": 60,
+      "hitAt5": 60,
+      "sufficient": 59
+    },
+    "reservations-and-holds": {
+      "n": 60,
+      "hitAt5": 60,
+      "sufficient": 56
+    },
+    "subscription-lifecycle": {
+      "n": 36,
+      "hitAt5": 36,
+      "sufficient": 36
+    },
+    "support-ticket-and-escalation": {
+      "n": 48,
+      "hitAt5": 48,
+      "sufficient": 48
+    },
+    "voucher-and-promotions": {
+      "n": 60,
+      "hitAt5": 60,
+      "sufficient": 56
+    }
+  },
+  "selectionChanges": 6,
+  "selectionChangeEvents": [
+    {
+      "scope": "generateContent:SUPPORT_CHAT",
+      "variable": "GEMINI_API_KEY",
+      "model": "gemini-3.1-flash-lite"
+    },
+    {
+      "scope": "generateContent:SUPPORT_CHAT",
+      "variable": "GEMINI_API_KEY",
+      "model": "gemini-3.5-flash-lite"
+    },
+    {
+      "scope": "generateContent:SUPPORT_CHAT",
+      "variable": "GEMINI_API_KEY",
+      "model": "gemini-3.1-flash-lite"
+    },
+    {
+      "scope": "generateContent:SUPPORT_CHAT",
+      "variable": "GEMINI_API_KEY",
+      "model": "gemini-3.5-flash-lite"
+    },
+    {
+      "scope": "generateContent:SUPPORT_CHAT",
+      "variable": "GEMINI_API_KEY",
+      "model": "gemini-3.1-flash-lite"
+    },
+    {
+      "scope": "generateContent:SUPPORT_CHAT",
+      "variable": "GEMINI_API_KEY",
+      "model": "gemini-3.5-flash-lite"
+    }
+  ]
+}

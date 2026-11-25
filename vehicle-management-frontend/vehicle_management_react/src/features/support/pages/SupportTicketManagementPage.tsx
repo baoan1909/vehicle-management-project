@@ -29,6 +29,7 @@ import { hasAnyPermission } from "@/shared/auth/permissions";
 import { cn } from "@/lib/cn";
 
 const pageSizeOptions = [10, 20, 50];
+type QueueTab = "ASSIGNED" | "REVIEW";
 
 const statusOptions = [
   { label: "Trạng thái", value: "all" },
@@ -60,8 +61,19 @@ function formatDate(value: string | null) {
 function assignedLabel(ticket: SupportTicketResponse, assignee: SupportAssignee | undefined, currentUserId?: string, currentUserName?: string) {
   if (!ticket.assignedTo) return "Chưa phân công";
   if (assignee) return assignee.name;
+  if (ticket.assignedToUsername?.trim()) return ticket.assignedToUsername.trim();
   if (ticket.assignedTo === currentUserId) return currentUserName?.trim() || "Bạn";
   return "Đã phân công";
+}
+
+function escalationReasonLabel(reason: SupportTicketEscalationResponse["reasonCode"]) {
+  return ({
+    RESPONSE_DELAY: "Phản hồi quá chậm",
+    UNRESOLVED: "Hướng dẫn chưa giải quyết vấn đề",
+    INAPPROPRIATE_COMMUNICATION: "Giao tiếp không phù hợp",
+    REQUEST_DIFFERENT_ASSIGNEE: "Muốn đổi người hỗ trợ",
+    OTHER: "Lý do khác",
+  } as const)[reason] ?? "Yêu cầu xem xét lại";
 }
 
 function initials(value: string) {
@@ -112,10 +124,11 @@ export function SupportTicketManagementPage() {
   const [searchParams] = useSearchParams();
   const requestedTicketId = searchParams.get("ticketId")?.trim() ?? "";
   const toast = useToast();
+  const canReadAll = hasAnyPermission(user, ["SUPPORT_TICKET_READ_ALL"]);
   const canAssign = hasAnyPermission(user, ["SUPPORT_TICKET_ASSIGN"]);
   const canClaim = hasAnyPermission(user, ["SUPPORT_TICKET_CLAIM_OWN"])
     && hasAnyPermission(user, ["SUPPORT_TICKET_PROCESS_ALL"]);
-  const canReviewEscalations = canAssign && hasAnyPermission(user, ["SUPPORT_TICKET_ESCALATION_REVIEW_ALL"]);
+  const canReviewEscalations = canReadAll && canAssign && hasAnyPermission(user, ["SUPPORT_TICKET_ESCALATION_REVIEW_ALL"]);
   const canProcessAll = hasAnyPermission(user, ["SUPPORT_TICKET_PROCESS_ALL"]);
   const canRespondAssigned = hasAnyPermission(user, ["SUPPORT_TICKET_RESPOND_ASSIGNED"]);
   const canReopenAll = hasAnyPermission(user, ["SUPPORT_TICKET_REOPEN_ALL"]);
@@ -134,6 +147,7 @@ export function SupportTicketManagementPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [assigneeFilter, setAssigneeFilter] = useState("all");
+  const [activeTab, setActiveTab] = useState<QueueTab>("ASSIGNED");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -181,7 +195,7 @@ export function SupportTicketManagementPage() {
   // Opening is intentionally driven only by the requested id and the completed queue load.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, requestedTicketId]);
-  useEffect(() => { setCurrentPage(1); }, [keyword, statusFilter, priorityFilter, assigneeFilter, pageSize]);
+  useEffect(() => { setCurrentPage(1); }, [activeTab, keyword, statusFilter, priorityFilter, assigneeFilter, pageSize]);
 
   const assigneeByAccountId = useMemo(() => new Map(assignees.map((assignee) => [assignee.accountId, assignee])), [assignees]);
   const categoryOptions = useMemo(() => [{ label: "Tất cả danh mục", value: "all" }, ...categories.map((category) => ({ label: category.name, value: category.categoryId }))], [categories]);
@@ -195,9 +209,17 @@ export function SupportTicketManagementPage() {
     ...assignees.map((assignee) => ({ label: assignee.name, value: assignee.accountId })),
   ], [assignees]);
 
+  const escalationByTicketId = useMemo(() => new Map(escalations.map((item) => [item.supportTicketId, item])), [escalations]);
+  const tabTickets = useMemo(
+    () => activeTab === "REVIEW"
+      ? tickets.filter((ticket) => escalationByTicketId.has(ticket.supportTicketId))
+      : tickets,
+    [activeTab, escalationByTicketId, tickets],
+  );
+
   const filteredTickets = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLocaleLowerCase("vi-VN");
-    return tickets.filter((ticket) => {
+    return tabTickets.filter((ticket) => {
       const matchesKeyword = !normalizedKeyword || [ticket.title, ticket.content, ticket.categoryName, shortTicketCode(ticket.supportTicketId), ticket.requesterAccountId, ticket.requesterNameSnapshot, ticket.requesterEmailSnapshot, ticket.requesterRoleCode]
         .filter((value): value is string => Boolean(value))
         .some((value) => value.toLocaleLowerCase("vi-VN").includes(normalizedKeyword));
@@ -207,7 +229,7 @@ export function SupportTicketManagementPage() {
       const matchesAssignee = assigneeFilter === "all" || (assigneeFilter === "unassigned" ? !ticket.assignedTo : ticket.assignedTo === assigneeFilter);
       return matchesKeyword && matchesStatus && matchesPriority && matchesCategory && matchesAssignee;
     });
-  }, [assigneeFilter, categoryFilter, keyword, priorityFilter, statusFilter, tickets]);
+  }, [assigneeFilter, categoryFilter, keyword, priorityFilter, statusFilter, tabTickets]);
 
   const totalPages = Math.max(1, Math.ceil(filteredTickets.length / pageSize));
   const safePage = Math.min(currentPage, totalPages);
@@ -220,7 +242,6 @@ export function SupportTicketManagementPage() {
     inProgress: tickets.filter((ticket) => ticket.status === "IN_PROGRESS").length,
     attention: tickets.filter((ticket) => ((ticket.priority === "URGENT" || ticket.priority === "HIGH") || escalations.some((item) => item.supportTicketId === ticket.supportTicketId)) && ticket.status !== "CLOSED").length,
   }), [escalations, tickets]);
-  const escalationByTicketId = useMemo(() => new Map(escalations.map((item) => [item.supportTicketId, item])), [escalations]);
   const canProcessSelectedTicket = Boolean(selectedTicket && canProcessAll && selectedTicket.assignedTo === user?.id);
   const canReplySelectedTicket = Boolean(
     (selectedTicket?.status === "OPEN" || selectedTicket?.status === "IN_PROGRESS" || (selectedTicket?.status === "RESOLVED" && canReopenAll))
@@ -411,9 +432,34 @@ export function SupportTicketManagementPage() {
           <QueueMetric icon="fas fa-exclamation" iconClassName="tw-bg-red-50 tw-text-red-600" label="Cần chú ý" value={metrics.attention} />
         </section>
 
+        {canReviewEscalations ? (
+          <div aria-label="Nhóm yêu cầu hỗ trợ" className="tw-flex tw-w-fit tw-max-w-full tw-gap-1 tw-overflow-x-auto tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-1" role="tablist">
+            <button
+              aria-selected={activeTab === "ASSIGNED"}
+              className={cn("tw-inline-flex tw-min-h-10 tw-flex-none tw-items-center tw-gap-2 tw-rounded-vm-sm tw-border-0 tw-px-4 tw-text-[0.82rem] tw-font-black tw-transition", activeTab === "ASSIGNED" ? "tw-bg-vm-primary tw-text-white" : "tw-bg-transparent tw-text-vm-slate-600 hover:tw-bg-vm-slate-25")}
+              role="tab"
+              type="button"
+              onClick={() => setActiveTab("ASSIGNED")}
+            >
+              <i className="fas fa-headset" />Yêu cầu hỗ trợ được phân công
+              <span className={cn("tw-rounded-full tw-px-2 tw-py-0.5 tw-text-[0.67rem]", activeTab === "ASSIGNED" ? "tw-bg-white/20 tw-text-white" : "tw-bg-vm-slate-100 tw-text-vm-slate-600")}>{tickets.length}</span>
+            </button>
+            <button
+              aria-selected={activeTab === "REVIEW"}
+              className={cn("tw-inline-flex tw-min-h-10 tw-flex-none tw-items-center tw-gap-2 tw-rounded-vm-sm tw-border-0 tw-px-4 tw-text-[0.82rem] tw-font-black tw-transition", activeTab === "REVIEW" ? "tw-bg-vm-primary tw-text-white" : "tw-bg-transparent tw-text-vm-slate-600 hover:tw-bg-vm-slate-25")}
+              role="tab"
+              type="button"
+              onClick={() => setActiveTab("REVIEW")}
+            >
+              <i className="fas fa-user-shield" />Yêu cầu admin xem xét lại
+              <span className={cn("tw-rounded-full tw-px-2 tw-py-0.5 tw-text-[0.67rem]", activeTab === "REVIEW" ? "tw-bg-white/20 tw-text-white" : "tw-bg-amber-50 tw-text-amber-700")}>{escalations.length}</span>
+            </button>
+          </div>
+        ) : null}
+
         <Card className="tw-overflow-hidden tw-shadow-none">
           <div className="tw-flex tw-flex-nowrap tw-items-center tw-gap-2 tw-overflow-x-auto tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-p-3 max-[900px]:tw-flex-wrap max-[900px]:tw-overflow-visible">
-            <SearchInput containerClassName="tw-min-w-[240px] !tw-w-auto tw-flex-1 max-[900px]:!tw-w-full" onChange={setKeyword} placeholder="Tìm mã ticket, người yêu cầu, nội dung..." value={keyword} />
+            <SearchInput containerClassName="tw-min-w-[240px] !tw-w-auto tw-flex-1 max-[900px]:!tw-w-full" onChange={setKeyword} placeholder={activeTab === "REVIEW" ? "Tìm yêu cầu xem xét, người yêu cầu..." : "Tìm mã ticket, người yêu cầu, nội dung..."} value={keyword} />
             <SelectMenu ariaLabel="Trạng thái ticket" className="!tw-w-[150px] tw-flex-shrink-0 max-[900px]:!tw-w-[calc(50%-4px)]" onChange={setStatusFilter} options={statusOptions} portal value={statusFilter} />
             <SelectMenu ariaLabel="Ưu tiên ticket" className="!tw-w-[135px] tw-flex-shrink-0 max-[900px]:!tw-w-[calc(50%-4px)]" onChange={setPriorityFilter} options={priorityOptions} portal value={priorityFilter} />
             <SelectMenu ariaLabel="Danh mục hỗ trợ" className="!tw-w-[175px] tw-flex-shrink-0 max-[900px]:!tw-w-[calc(50%-4px)]" onChange={setCategoryFilter} options={categoryOptions} portal portalFitContent searchable value={categoryFilter} />
@@ -424,7 +470,7 @@ export function SupportTicketManagementPage() {
           <div className="tw-overflow-x-auto">
             <div className="tw-min-w-[1050px]">
               <div className="tw-grid tw-grid-cols-[150px_150px_minmax(160px,1fr)_110px_130px_175px_42px] tw-items-center tw-bg-vm-slate-25 tw-px-3 tw-py-3 tw-text-[0.69rem] tw-font-black tw-text-vm-slate-700">
-                <span>Mã ticket</span><span>Người yêu cầu</span><span>Danh mục / yêu cầu</span><span>Ưu tiên</span><span>Trạng thái</span><span>Quản trị viên phụ trách</span><span />
+                <span>Mã ticket</span><span>Người yêu cầu</span><span>{activeTab === "REVIEW" ? "Lý do xem xét lại" : "Danh mục / yêu cầu"}</span><span>Ưu tiên</span><span>Trạng thái</span><span>Quản trị viên phụ trách</span><span />
               </div>
               {pageTickets.map((ticket) => {
                 const assignee = assigneeByAccountId.get(ticket.assignedTo ?? "");
@@ -434,7 +480,10 @@ export function SupportTicketManagementPage() {
                   <button className="tw-grid tw-min-h-[67px] tw-w-full tw-grid-cols-[150px_150px_minmax(160px,1fr)_110px_130px_175px_42px] tw-items-center tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-left tw-transition hover:tw-bg-brand-50/45 focus-visible:tw-relative focus-visible:tw-z-[1] focus-visible:tw-outline-none focus-visible:tw-shadow-vm-focus" key={ticket.supportTicketId} type="button" onClick={() => void openTicket(ticket)}>
                     <span className="tw-grid tw-gap-1"><strong className="tw-text-[0.75rem] tw-font-black tw-text-vm-primary">{shortTicketCode(ticket.supportTicketId)}</strong><small className="tw-text-[0.68rem] tw-font-semibold tw-text-vm-slate-500">{formatDate(ticket.createdAt)}</small></span>
                     <span className="tw-min-w-0 tw-pr-3"><strong className="tw-block tw-truncate tw-text-[0.76rem] tw-font-bold tw-text-vm-slate-900">{ticket.requesterNameSnapshot || ticket.requesterRoleCode}</strong><small className="tw-block tw-truncate tw-text-[0.67rem] tw-font-semibold tw-text-vm-slate-500">{ticket.requesterEmailSnapshot || ticket.requesterAccountId}</small>{escalationByTicketId.has(ticket.supportTicketId) ? <small className="tw-mt-1 tw-block tw-font-black tw-text-amber-700"><i className="fas fa-user-shield tw-mr-1" />Yêu cầu xem xét</small> : null}</span>
-                    <span className="tw-min-w-0 tw-pr-3"><strong className="tw-block tw-truncate tw-text-[0.77rem] tw-font-bold tw-text-vm-slate-900">{ticket.categoryName || ticket.categoryCode || "Khác"}</strong><small className="tw-mt-1 tw-block tw-truncate tw-text-[0.7rem] tw-font-semibold tw-text-vm-slate-500">{ticket.title}</small></span>
+                    <span className="tw-min-w-0 tw-pr-3">
+                      <strong className="tw-block tw-truncate tw-text-[0.77rem] tw-font-bold tw-text-vm-slate-900">{activeTab === "REVIEW" ? escalationReasonLabel(escalationByTicketId.get(ticket.supportTicketId)?.reasonCode ?? "OTHER") : (ticket.categoryName || ticket.categoryCode || "Khác")}</strong>
+                      <small className="tw-mt-1 tw-block tw-truncate tw-text-[0.7rem] tw-font-semibold tw-text-vm-slate-500">{activeTab === "REVIEW" ? (escalationByTicketId.get(ticket.supportTicketId)?.description || ticket.title) : ticket.title}</small>
+                    </span>
                     <Badge tone={priorityTone(ticket.priority)} className="tw-w-fit tw-rounded-vm-sm tw-px-2">{priorityLabel(ticket.priority)}</Badge>
                     <Badge tone={statusTone(ticket.status)} className="tw-w-fit tw-rounded-vm-sm tw-px-2">{statusLabel(ticket.status)}</Badge>
                     <span className="tw-flex tw-min-w-0 tw-items-center tw-gap-2 tw-pr-2">
@@ -445,10 +494,10 @@ export function SupportTicketManagementPage() {
                   </button>
                 );
               })}
-              {pageTickets.length === 0 ? <div className="tw-grid tw-place-items-center tw-gap-2 tw-py-14 tw-text-center"><i className="far fa-folder-open tw-text-[1.7rem] tw-text-vm-slate-400" /><strong className="tw-text-[0.88rem] tw-text-vm-slate-700">{loading ? "Đang tải yêu cầu hỗ trợ..." : error || "Không có yêu cầu phù hợp với bộ lọc."}</strong>{error ? <Button size="sm" variant="secondary" onClick={() => void loadQueue()}>Thử lại</Button> : null}</div> : null}
+              {pageTickets.length === 0 ? <div className="tw-grid tw-place-items-center tw-gap-2 tw-py-14 tw-text-center"><i className="far fa-folder-open tw-text-[1.7rem] tw-text-vm-slate-400" /><strong className="tw-text-[0.88rem] tw-text-vm-slate-700">{loading ? "Đang tải yêu cầu hỗ trợ..." : error || (activeTab === "REVIEW" ? "Không có yêu cầu nào đang chờ admin xem xét lại." : "Không có yêu cầu phù hợp với bộ lọc.")}</strong>{error ? <Button size="sm" variant="secondary" onClick={() => void loadQueue()}>Thử lại</Button> : null}</div> : null}
             </div>
           </div>
-          <PaginationFooter ariaLabel="Phân trang yêu cầu hỗ trợ" currentPage={safePage} endIndex={endIndex} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} pageSize={pageSize} pageSizeOptions={pageSizeOptions} startIndex={startIndex} totalPages={totalPages} totalRecords={filteredTickets.length} />
+          <PaginationFooter ariaLabel={activeTab === "REVIEW" ? "Phân trang yêu cầu admin xem xét lại" : "Phân trang yêu cầu hỗ trợ"} currentPage={safePage} endIndex={endIndex} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} pageSize={pageSize} pageSizeOptions={pageSizeOptions} startIndex={startIndex} totalPages={totalPages} totalRecords={filteredTickets.length} />
         </Card>
       </div>
 

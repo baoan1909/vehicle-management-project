@@ -170,7 +170,8 @@ public class SupportTicketConversationService {
     public void postTicketCardFromRequester(SupportTicket ticket, ChatConversation conversation, UUID requesterAccountId) {
         boolean supportedOrigin = conversation.getConversationType() == ChatConversationType.SUPPORT_REQUESTER_DIRECT
                 || conversation.getConversationType() == ChatConversationType.ASSISTANT_SUPPORT;
-        if (!supportedOrigin || !chatPortOut.existsActiveMember(conversation.getConversationId(), requesterAccountId)) {
+        if (!supportedOrigin || conversation.getStatus() != ChatConversationStatus.ACTIVE
+                || !chatPortOut.existsActiveMember(conversation.getConversationId(), requesterAccountId)) {
             throw new BadRequestException("Support ticket must be created from an active requester conversation");
         }
         postTicketCard(
@@ -191,7 +192,8 @@ public class SupportTicketConversationService {
     ) {
         boolean supportedOrigin = conversation.getConversationType() == ChatConversationType.SUPPORT_REQUESTER_DIRECT
                 || conversation.getConversationType() == ChatConversationType.ASSISTANT_SUPPORT;
-        if (!supportedOrigin || !chatPortOut.existsActiveMember(conversation.getConversationId(), requesterAccountId)) {
+        if (!supportedOrigin || conversation.getStatus() != ChatConversationStatus.ACTIVE
+                || !chatPortOut.existsActiveMember(conversation.getConversationId(), requesterAccountId)) {
             throw new BadRequestException("Support ticket must be shared in an active requester conversation");
         }
         postTicketCard(
@@ -215,6 +217,7 @@ public class SupportTicketConversationService {
         boolean supportedOrigin = conversation.getConversationType() == ChatConversationType.SUPPORT_REQUESTER_DIRECT
                 || conversation.getConversationType() == ChatConversationType.ASSISTANT_SUPPORT;
         if (!supportedOrigin
+                || conversation.getStatus() != ChatConversationStatus.ACTIVE
                 || !ticket.getRequesterAccountId().equals(conversation.getOwnerAccountId())
                 || !chatPortOut.existsActiveMember(conversation.getConversationId(), senderAccountId)) {
             throw new BadRequestException("Support ticket can only be shared in its active requester conversation");
@@ -289,6 +292,7 @@ public class SupportTicketConversationService {
         boolean supportedOrigin = conversation.getConversationType() == ChatConversationType.SUPPORT_REQUESTER_DIRECT
                 || conversation.getConversationType() == ChatConversationType.ASSISTANT_SUPPORT;
         if (!supportedOrigin
+                || conversation.getStatus() != ChatConversationStatus.ACTIVE
                 || !chatPortOut.existsActiveMember(conversationId, requesterAccountId)) {
             throw new BadRequestException("Conversation must be an active requester support conversation");
         }

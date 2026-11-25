@@ -1,0 +1,28 @@
+{
+  "elapsedMs": 10207,
+  "kind": "TINY_LOCAL_COMPONENT_PROBE_NOT_CHATBOX_ACCEPTANCE",
+  "answer": "Không, xem bản đồ chỉ để xem thông tin và không tạo đặt chỗ hay giữ chỗ.",
+  "contextTokensObservedBeforeCall": 512,
+  "prompt": [
+    {
+      "content": "Trả lời ngắn bằng tiếng Việt, chỉ dựa vào tài liệu cung cấp.",
+      "role": "system"
+    },
+    {
+      "content": "Tài liệu: Xem bãi trên bản đồ chỉ để xem thông tin, không tạo đặt chỗ hoặc giữ chỗ. Câu hỏi: Xem bản đồ có tự giữ chỗ không?",
+      "role": "user"
+    }
+  ],
+  "googleCalled": false,
+  "finishReason": "stop",
+  "model": "qwen3.5-4b",
+  "usage": {
+    "prompt_tokens": 67,
+    "completion_tokens": 20,
+    "total_tokens": 87,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    }
+  },
+  "fullHarnessStarted": false
+}

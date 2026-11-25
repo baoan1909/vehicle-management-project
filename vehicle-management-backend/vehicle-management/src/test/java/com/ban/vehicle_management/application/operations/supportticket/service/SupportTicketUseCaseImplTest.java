@@ -33,6 +33,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import com.ban.vehicle_management.shared.exception.BadRequestException;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -49,6 +52,33 @@ class SupportTicketUseCaseImplTest {
     @Mock SupportTicketConversationService ticketConversationService;
     @Mock SupportTicketConversationLinkPortOut ticketConversationLinkPortOut;
     @InjectMocks SupportTicketUseCaseImpl useCase;
+
+    @ParameterizedTest
+    @EnumSource(value = ChatConversationType.class, names = {"ASSISTANT_SUPPORT", "SUPPORT_REQUESTER_DIRECT"})
+    void handlerCannotCreateTheirOwnTicketInsideAnotherRequestersSupportConversation(ChatConversationType type) {
+        UUID handlerId = UUID.randomUUID();
+        ChatConversation conversation = assistantConversation(UUID.randomUUID());
+        conversation.setConversationType(type);
+        when(accessGuard.currentAccountId()).thenReturn(handlerId);
+        when(ticketConversationService.getRequesterTicketOriginConversation(conversation.getConversationId(), handlerId))
+                .thenReturn(conversation);
+
+        assertThrows(AccessDeniedException.class,
+                () -> useCase.createTicketFromConversation(new SupportTicket(), conversation.getConversationId(), "create"));
+        org.mockito.Mockito.verifyNoInteractions(supportTicketPortOut, categoryPortIn, notificationPortIn);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ChatConversationType.class, names = {"ASSISTANT_SUPPORT", "SUPPORT_REQUESTER_DIRECT"}, mode = EnumSource.Mode.EXCLUDE)
+    void ordinaryChatsHaveNoSupportTicketHistory(ChatConversationType type) {
+        ChatConversation conversation = assistantConversation(UUID.randomUUID());
+        conversation.setConversationType(type);
+        when(ticketConversationService.getConversationForHistory(conversation.getConversationId())).thenReturn(conversation);
+
+        assertThrows(BadRequestException.class,
+                () -> useCase.getConversationTicketHistory(conversation.getConversationId(), null, null));
+        org.mockito.Mockito.verifyNoInteractions(supportTicketPortOut);
+    }
 
     @Test
     void chatIntakeRetryReusesRequesterTicketAndRepairsMissingCardIdempotently() {

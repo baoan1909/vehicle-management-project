@@ -1,0 +1,46 @@
+{
+  "verifiedAt": "2026-11-23T18:47:02.446310+00:00",
+  "inputFingerprint": "412282c1cffbacb5e9d29816f6c40874ce7b5ce87b911326a8216f369d064ab6",
+  "backend": {
+    "status": "PASS",
+    "tests": 4220,
+    "passed": 4219,
+    "skipped": 1,
+    "failures": 0,
+    "errors": 0,
+    "log": "C:\\DiskD\\VehicleManagementProject\\vehicle-management-backend\\vehicle-management\\target\\batch4-work\\full-suite-v14-final.log",
+    "logSha256": "797fdede7e3e5b42186ce82c5d4243d812e83ba3b159187a285eaf5c55e5b92c",
+    "scope": "Full Maven test suite incl isolated PostgreSQL integration. Live provider opt-in skipped in this suite, evaluated separately."
+  },
+  "python": {
+    "status": "PASS",
+    "tests": 12,
+    "log": "C:\\DiskD\\VehicleManagementProject\\vehicle-management-backend\\vehicle-management\\target\\batch4-work\\final-v14-python-tests.log"
+  },
+  "sync": {
+    "status": "PASS",
+    "knowledgeDocuments": 16,
+    "batchDocuments": 16,
+    "batches": 4,
+    "questions": 1104,
+    "errors": [],
+    "databaseTouched": false
+  },
+  "frontend": {
+    "status": "PASS_PRIOR_SAME_SOURCE",
+    "artifact": "frontend-verification.json",
+    "scope": "tsc lint, existing npm regressions,1 real browser contact test with API/map fixtures; not production UAT."
+  },
+  "liveAcceptance": {
+    "status": "PAUSED_BY_USER_NOT_ACCEPTED",
+    "expected": 264,
+    "completed": 74,
+    "reviewed": 74,
+    "pass": 49,
+    "providerFailures": 25,
+    "unrun": 190,
+    "reason": "All five credentials observed DAILY_QUOTA on at least one model plus transient errors. User requested stop and wait. First shard also hit20min harness timeout; second stopped before API.",
+    "independentBlindHoldout": false
+  },
+  "publish": "NOT_PERFORMED_ALL_CHANGED_SOURCES_DRAFT"
+}

@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.domain.operations.supportticketcategory.model.SupportTicketCategory;
@@ -78,6 +80,14 @@ class SupportTicketCategoryPersistenceAdapterTest {
         SupportTicketCategoryEntity secondEntity = new SupportTicketCategoryEntity();
         SupportTicketCategory firstCategory = new SupportTicketCategory();
         SupportTicketCategory secondCategory = new SupportTicketCategory();
+        firstCategory.setCategoryId(UUID.randomUUID());
+        secondCategory.setCategoryId(UUID.randomUUID());
+        var permission = org.mockito.Mockito.mock(
+                com.ban.vehicle_management.infrastructure.persistence.database.projection.operations
+                        .SupportTicketCategoryPermissionProjection.class);
+        when(permission.getCategoryId()).thenReturn(secondCategory.getCategoryId());
+        when(permission.getPermissionCode()).thenReturn("LOST_CARD_REPORT_READ_ALL");
+        when(categoryRepository.findRequiredPermissionsByCategoryIds(anyCollection())).thenReturn(List.of(permission));
 
         when(categoryRepository.findAll(any(Specification.class))).thenReturn(List.of(firstEntity, secondEntity));
         when(categoryPersistenceMapper.toDomain(firstEntity)).thenReturn(firstCategory);
@@ -92,6 +102,11 @@ class SupportTicketCategoryPersistenceAdapterTest {
         assertEquals(2, result.size());
         assertEquals(firstCategory, result.get(0));
         assertEquals(secondCategory, result.get(1));
+        assertEquals(java.util.Set.of("LOST_CARD_REPORT_READ_ALL"), secondCategory.getRequiredPermissionCodes());
+        assertEquals(java.util.Set.of(), firstCategory.getRequiredPermissionCodes());
+        verify(categoryRepository).findRequiredPermissionsByCategoryIds(
+                List.of(firstCategory.getCategoryId(), secondCategory.getCategoryId()));
+        verify(categoryRepository, never()).findRequiredPermissionCodes(any());
     }
 
     @Test

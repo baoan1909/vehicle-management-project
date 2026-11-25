@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge, Button, Input, Modal, SelectMenu, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
 import { hasAnyPermission } from "@/shared/auth/permissions";
@@ -20,6 +20,7 @@ import {
   type KnowledgeSourceResponse,
 } from "@/features/ai/api/aiKnowledgeAdminApi";
 import { formatApplicationDateTime } from "@/shared/time/applicationTime";
+import type { KnowledgeWorkflowTab } from "@/features/ai/knowledgeWorkflow";
 
 type DocTone = "primary" | "success" | "warning" | "danger" | "neutral";
 
@@ -27,7 +28,7 @@ const docStatusMeta: Record<KnowledgeDocumentResponse["status"], { label: string
   PENDING: { label: "Chờ xử lý", tone: "neutral" },
   PROCESSING: { label: "Đang xử lý", tone: "warning" },
   REVIEW: { label: "Chờ duyệt", tone: "warning" },
-  READY: { label: "Đã duyệt", tone: "success" },
+  READY: { label: "Đã duyệt nội dung", tone: "success" },
   FAILED: { label: "Thất bại", tone: "danger" },
   ARCHIVED: { label: "Đã lưu trữ", tone: "neutral" },
 };
@@ -44,13 +45,16 @@ const jobStatusMeta: Record<KnowledgeIngestionJobResponse["status"], { label: st
 type DocAction = { document: KnowledgeDocumentResponse; kind: "publish" | "reject" | "archive" | "reindex" };
 
 const actionCopy = {
-  publish: { title: "Duyệt tài liệu", confirmLabel: "Duyệt", description: (title: string) => `Duyệt tài liệu "${title}" để phát hành cho tìm kiếm AI?` },
+  publish: { title: "Duyệt nội dung tài liệu", confirmLabel: "Duyệt nội dung", description: (title: string) => `Xác nhận nội dung và quyền xem của tài liệu "${title}" đã đúng? Câu hỏi thường gặp hợp lệ có thể được dùng sau khi duyệt; phần tìm kiếm tài liệu cần phiên bản phù hợp ở bước 3.` },
   reject: { title: "Từ chối tài liệu", confirmLabel: "Từ chối", description: (title: string) => `Từ chối tài liệu "${title}"? Nội dung sẽ bị xóa và bạn cần tải lại bản đúng chuẩn.` },
   archive: { title: "Lưu trữ tài liệu", confirmLabel: "Lưu trữ", description: (title: string) => `Lưu trữ tài liệu "${title}"? Tài liệu sẽ không còn được tìm kiếm và sẽ kích hoạt lập chỉ mục lại.` },
   reindex: { title: "Lập chỉ mục lại", confirmLabel: "Chạy lại", description: (title: string) => `Lập chỉ mục lại tài liệu "${title}"? Hệ thống sẽ xử lý lại toàn bộ nội dung.` },
 } satisfies Record<DocAction["kind"], { title: string; confirmLabel: string; description: (title: string) => string }>;
 
-export function KnowledgeDocumentsTab() {
+const stageLabel: Record<string, string> = { EXTRACTING: "Đọc tệp", CHUNKING: "Chia nội dung", EMBEDDING: "Chuẩn bị tìm kiếm", REVIEW: "Chờ duyệt" };
+const scopeLabel: Record<string, string> = { PUBLIC: "Công khai", CUSTOMER: "Khách hàng", EMPLOYEE: "Nhân sự", ADMIN: "Quản trị", TENANT_PRIVATE: "Riêng theo đơn vị" };
+
+export function KnowledgeDocumentsTab({ onNavigate }: { onNavigate?: (tab: KnowledgeWorkflowTab) => void }) {
   const { user } = useAuth();
   const toast = useToast();
   const canManage = hasAnyPermission(user, ["AI_KNOWLEDGE_MANAGE_ALL"]);
@@ -63,6 +67,9 @@ export function KnowledgeDocumentsTab() {
   const [totalDocuments, setTotalDocuments] = useState(0);
   const [jobs, setJobs] = useState<KnowledgeIngestionJobResponse[]>([]);
   const [sources, setSources] = useState<KnowledgeSourceResponse[]>([]);
+  const [sourcesLoading, setSourcesLoading] = useState(true);
+  const [sourceLoadError, setSourceLoadError] = useState("");
+  const [sourceRefresh, setSourceRefresh] = useState(0);
   const [sourcePage, setSourcePage] = useState(0);
   const [sourceTotalPages, setSourceTotalPages] = useState(0);
   const [loadingMoreSources, setLoadingMoreSources] = useState(false);
@@ -81,6 +88,8 @@ export function KnowledgeDocumentsTab() {
 
   const [detailTarget, setDetailTarget] = useState<KnowledgeDocumentResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState("");
+  const detailRequest = useRef(0);
   const [blocks, setBlocks] = useState<KnowledgeDocumentBlockResponse[]>([]);
   const [chunks, setChunks] = useState<KnowledgeChunkResponse[]>([]);
 
@@ -109,16 +118,18 @@ export function KnowledgeDocumentsTab() {
 
   useEffect(() => {
     let cancelled = false;
+    setSourcesLoading(true);
+    setSourceLoadError("");
     void getKnowledgeSources(0, 100).then((result) => {
       if (cancelled) return;
       setSources(result.data?.content ?? []);
       setSourcePage(0);
       setSourceTotalPages(result.data?.totalPages ?? 0);
     }).catch(() => {
-      if (!cancelled) toast.error("Không thể tải danh sách nguồn kiến thức.");
-    });
+      if (!cancelled) setSourceLoadError("Không thể tải danh sách nguồn tài liệu.");
+    }).finally(() => { if (!cancelled) setSourcesLoading(false); });
     return () => { cancelled = true; };
-  }, [toast]);
+  }, [sourceRefresh]);
 
   async function loadMoreSources() {
     if (loadingMoreSources || sourcePage + 1 >= sourceTotalPages) return;
@@ -214,28 +225,40 @@ export function KnowledgeDocumentsTab() {
   }
 
   async function openDetail(document: KnowledgeDocumentResponse) {
+    const request = ++detailRequest.current;
     setDetailTarget(document);
     setBlocks([]);
     setChunks([]);
     setDetailLoading(true);
+    setDetailError("");
     try {
-      const blockResult = await getKnowledgeDocumentBlocks(document.documentId, document.documentVersion);
+      const [blockResult, chunkResult] = await Promise.all([
+        getKnowledgeDocumentBlocks(document.documentId, document.documentVersion),
+        getKnowledgeDocumentChunks(document.documentId, document.documentVersion),
+      ]);
+      if (request !== detailRequest.current) return;
       setBlocks(blockResult.data ?? []);
-      const chunkResult = await getKnowledgeDocumentChunks(document.documentId, document.documentVersion);
       setChunks(chunkResult.data ?? []);
     } catch (caught) {
-      toast.error(caught instanceof Error ? caught.message : "Không thể tải chi tiết tài liệu.");
+      if (request === detailRequest.current) setDetailError(caught instanceof Error ? caught.message : "Không thể tải nội dung để kiểm tra. Hãy mở lại tài liệu trước khi duyệt.");
     } finally {
-      setDetailLoading(false);
+      if (request === detailRequest.current) setDetailLoading(false);
     }
   }
+
+  function closeDetail() {
+    detailRequest.current += 1;
+    setDetailTarget(null);
+  }
+
+  useEffect(() => () => { detailRequest.current += 1; }, []);
 
   const pendingCopy = pendingAction ? actionCopy[pendingAction.kind] : null;
 
   return (
     <section className="tw-grid tw-gap-4">
       <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3">
-        <p className="tw-m-0 tw-text-sm tw-font-semibold tw-text-slate-500">Tài liệu đã tải lên: tải tệp mới, duyệt nội dung và quản lý vòng đời tài liệu.</p>
+        <p className="tw-m-0 tw-max-w-3xl tw-text-sm tw-leading-6 tw-text-slate-500">Mở “Xem & duyệt” để kiểm tra bản đọc từ tệp. “Đã duyệt nội dung” chưa có nghĩa phiên bản tìm kiếm mới đã được bật.</p>
         {canManage ? (
           <Button onClick={openUpload} variant="primary">Tải lên tài liệu</Button>
         ) : null}
@@ -253,7 +276,7 @@ export function KnowledgeDocumentsTab() {
               {loading ? (
                 <tr><td className="tw-p-6 tw-text-center tw-font-bold tw-text-slate-500" colSpan={7}>Đang tải...</td></tr>
               ) : documents.length === 0 ? (
-                <tr><td className="tw-p-6 tw-text-center tw-font-bold tw-text-slate-500" colSpan={7}>Chưa có tài liệu nào.</td></tr>
+                <tr><td className="tw-p-8 tw-text-center tw-text-sm tw-text-slate-500" colSpan={7}>Chưa có tài liệu. Chọn “Tải lên tài liệu” để bắt đầu; cần có một nguồn đang hoạt động ở bước 1.</td></tr>
               ) : documents.map((document) => {
                 const meta = docStatusMeta[document.status];
                 const job = jobByDocumentId.get(document.documentId);
@@ -267,14 +290,14 @@ export function KnowledgeDocumentsTab() {
                     <td className="tw-px-3 tw-py-3 tw-text-xs tw-font-semibold tw-text-slate-600">{sourceTitles.get(document.sourceId) ?? document.sourceId}</td>
                     <td className="tw-px-3 tw-py-3">
                       <Badge tone={meta.tone} className="tw-w-fit tw-whitespace-nowrap tw-px-2.5">{meta.label}</Badge>
-                      {document.failureCode ? <span className="tw-mt-1 tw-block tw-text-xs tw-font-black tw-text-red-600">{document.failureCode}</span> : null}
+                      {document.failureCode ? <details className="tw-mt-1 tw-text-xs tw-text-red-600"><summary className="tw-cursor-pointer">Chi tiết lỗi xử lý</summary><p className="tw-mb-0">{document.failureCode}</p></details> : null}
                     </td>
                     <td className="tw-px-3 tw-py-3">
                       {job ? (
                         <div className="tw-flex tw-flex-col tw-gap-1">
                           <Badge tone={jobStatusMeta[job.status].tone} className="tw-w-fit tw-whitespace-nowrap tw-px-2 tw-text-[0.7rem]">{jobStatusMeta[job.status].label}</Badge>
                           <span className="tw-text-[0.7rem] tw-font-semibold tw-text-slate-400">
-                            {job.currentStage ?? "—"}
+                            {job.currentStage ? stageLabel[job.currentStage] ?? "Đang xử lý" : "—"}
                             {job.progressPercent != null ? ` · ${job.progressPercent}%` : ""}
                           </span>
                         </div>
@@ -286,13 +309,7 @@ export function KnowledgeDocumentsTab() {
                     <td className="tw-text-xs tw-font-semibold tw-text-slate-500">{formatApplicationDateTime(document.createdAt)}</td>
                     <td className="tw-px-3 tw-py-3">
                       <div className="tw-flex tw-flex-wrap tw-gap-2">
-                        <Button loading={actingId === document.documentId} onClick={() => void openDetail(document)} size="sm" variant="ghost">Chi tiết</Button>
-                        {document.status === "REVIEW" && canApprove ? (
-                          <Button disabled={busy} loading={busy} onClick={() => setPendingAction({ kind: "publish", document })} size="sm" variant="primary">Duyệt</Button>
-                        ) : null}
-                        {document.status === "REVIEW" && canApprove ? (
-                          <Button disabled={busy} loading={busy} onClick={() => setPendingAction({ kind: "reject", document })} size="sm" variant="danger">Từ chối</Button>
-                        ) : null}
+                        <Button onClick={() => void openDetail(document)} size="sm" variant={document.status === "REVIEW" && canApprove ? "primary" : "ghost"}>{document.status === "REVIEW" && canApprove ? "Xem & duyệt" : "Xem nội dung"}</Button>
                         {document.status === "READY" && canApprove ? (
                           <Button disabled={busy} loading={busy} onClick={() => setPendingAction({ kind: "archive", document })} size="sm" variant="secondary">Lưu trữ</Button>
                         ) : null}
@@ -331,9 +348,10 @@ export function KnowledgeDocumentsTab() {
       >
         <div className="tw-grid tw-gap-4">
           <label className="tw-grid tw-gap-1.5">
-            <span className="tw-text-sm tw-font-black tw-text-slate-700">Nguồn kiến thức</span>
+            <span className="tw-text-sm tw-font-black tw-text-slate-700">Nguồn tài liệu <span className="tw-text-red-600">*</span></span>
+            <span className="tw-text-xs tw-leading-5 tw-text-slate-500">Tài liệu sẽ dùng quyền xem của nguồn bạn chọn.</span>
             <SelectMenu
-              ariaLabel="Nguồn kiến thức"
+              ariaLabel="Nguồn tài liệu"
               className="tw-w-full"
               onChange={setSourceId}
               options={sources.filter((source) => source.status === "ACTIVE").map((source) => ({ label: source.title, value: source.sourceId }))}
@@ -341,6 +359,14 @@ export function KnowledgeDocumentsTab() {
               searchable
               value={sourceId}
             />
+            {sourcesLoading ? <span className="tw-text-xs tw-text-slate-500">Đang tải nguồn tài liệu…</span> : sourceLoadError ? (
+              <div role="alert" className="tw-grid tw-gap-2 tw-text-sm tw-text-red-700">{sourceLoadError}<Button className="tw-w-fit" onClick={() => setSourceRefresh((value) => value + 1)} size="sm" variant="secondary">Thử tải lại nguồn</Button></div>
+            ) : !sources.some((source) => source.status === "ACTIVE") ? (
+              <div className="tw-grid tw-gap-2 tw-rounded-lg tw-bg-amber-50 tw-p-3 tw-text-sm tw-text-amber-900">
+                <span>Chưa có nguồn đang hoạt động trong danh sách đã tải. Tạo hoặc bật một nguồn ở bước 1 trước khi tải tài liệu.</span>
+                {onNavigate ? <Button className="tw-w-fit" onClick={() => onNavigate("sources")} size="sm" variant="secondary">Đến nguồn & quyền xem</Button> : null}
+              </div>
+            ) : null}
             {sourcePage + 1 < sourceTotalPages ? (
               <Button loading={loadingMoreSources} onClick={() => void loadMoreSources()} size="sm" variant="secondary">
                 Tải thêm nguồn kiến thức
@@ -360,10 +386,14 @@ export function KnowledgeDocumentsTab() {
             <span className="tw-text-sm tw-font-black tw-text-slate-700">Tiêu đề <span className="tw-font-semibold tw-text-slate-400">(tùy chọn)</span></span>
             <Input className="tw-w-full" maxLength={240} onChange={(event) => setTitle(event.target.value)} placeholder="Để trống để lấy theo tên tệp" value={title} />
           </label>
-          <label className="tw-grid tw-gap-1.5">
-            <span className="tw-text-sm tw-font-black tw-text-slate-700">Khóa đảm bảo tính duy nhất <span className="tw-font-semibold tw-text-slate-400">(tùy chọn)</span></span>
-            <Input className="tw-w-full" maxLength={80} onChange={(event) => setIdempotencyKey(event.target.value)} placeholder="VD: bienso_2026_ve_01" value={idempotencyKey} />
-          </label>
+          <details className="tw-rounded-lg tw-border tw-border-solid tw-border-slate-200 tw-p-3">
+            <summary className="tw-cursor-pointer tw-text-sm tw-font-semibold tw-text-slate-600">Tùy chọn nâng cao</summary>
+            <label className="tw-mt-3 tw-grid tw-gap-1.5">
+              <span className="tw-text-sm tw-font-bold tw-text-slate-700">Mã chống gửi trùng</span>
+              <Input className="tw-w-full" maxLength={80} onChange={(event) => setIdempotencyKey(event.target.value)} value={idempotencyKey} />
+              <span className="tw-text-xs tw-text-slate-500">Đã tự tạo, thông thường không cần sửa.</span>
+            </label>
+          </details>
         </div>
       </Modal>
 
@@ -393,10 +423,16 @@ export function KnowledgeDocumentsTab() {
       <Modal
         actions={(
           <div className="tw-flex tw-flex-wrap tw-justify-end tw-gap-2.5">
-            <Button onClick={() => setDetailTarget(null)} variant="secondary">Đóng</Button>
+            <Button onClick={closeDetail} variant="secondary">Đóng</Button>
+            {detailTarget?.status === "REVIEW" && canApprove ? (
+              <>
+                <Button disabled={detailLoading || !!detailError} onClick={() => { setPendingAction({ kind: "reject", document: detailTarget }); closeDetail(); }} variant="danger">Từ chối</Button>
+                <Button disabled={detailLoading || !!detailError} onClick={() => { setPendingAction({ kind: "publish", document: detailTarget }); closeDetail(); }} variant="primary">Duyệt nội dung</Button>
+              </>
+            ) : null}
           </div>
         )}
-        onClose={() => setDetailTarget(null)}
+        onClose={closeDetail}
         open={detailTarget !== null}
         title={detailTarget?.title ?? "Chi tiết tài liệu"}
         width="lg"
@@ -406,16 +442,18 @@ export function KnowledgeDocumentsTab() {
             <div className="tw-flex tw-flex-wrap tw-gap-x-5 tw-gap-y-1 tw-text-xs tw-font-semibold tw-text-slate-500">
               <span>Trạng thái: <b className="tw-text-slate-800">{docStatusMeta[detailTarget.status].label}</b></span>
               <span>Phiên bản: <b className="tw-text-slate-800">v{detailTarget.documentVersion}</b></span>
+              <span>Quyền xem: <b className="tw-text-slate-800">{scopeLabel[detailTarget.accessScope] ?? "Theo nguồn tài liệu"}</b></span>
               <span>Tệp: <b className="tw-text-slate-800">{detailTarget.originalFilename}</b></span>
               <span>Kích thước: <b className="tw-text-slate-800">{((detailTarget.fileSizeBytes ?? 0) / 1024).toFixed(0)} KB</b></span>
             </div>
           ) : null}
+          {detailError ? <p role="alert" className="tw-m-0 tw-rounded-lg tw-bg-red-50 tw-p-3 tw-text-sm tw-text-red-700">{detailError}</p> : null}
           {detailLoading ? (
             <p className="tw-m-0 tw-py-6 tw-text-center tw-text-sm tw-font-bold tw-text-slate-500">Đang tải nội dung...</p>
           ) : (
             <div className="tw-grid tw-gap-4">
               <div>
-                <h3 className="tw-m-0 tw-mb-2 tw-text-sm tw-font-black tw-text-slate-800">Khối văn bản ({blocks.length})</h3>
+                <h3 className="tw-m-0 tw-mb-2 tw-text-sm tw-font-black tw-text-slate-800">Nội dung đọc từ tệp ({blocks.length} phần)</h3>
                 {blocks.length === 0 ? (
                   <p className="tw-m-0 tw-text-xs tw-font-bold tw-text-slate-400">Chưa có khối văn bản.</p>
                 ) : (
@@ -423,7 +461,7 @@ export function KnowledgeDocumentsTab() {
                     {blocks.map((block) => (
                       <li className="tw-rounded-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-slate-50 tw-p-3" key={block.blockId}>
                         <div className="tw-mb-1 tw-flex tw-flex-wrap tw-gap-2 tw-text-[0.7rem] tw-font-black tw-text-slate-500">
-                          <span>#{block.blockIndex} · {block.kind}</span>
+                          <span>Phần {block.blockIndex + 1} · {block.kind === "TABLE" ? "Bảng" : "Văn bản"}</span>
                           {block.headingPath ? <span>{block.headingPath}</span> : null}
                           {block.sourcePage != null ? <span>trang {block.sourcePage}</span> : null}
                         </div>
@@ -433,8 +471,8 @@ export function KnowledgeDocumentsTab() {
                   </ul>
                 )}
               </div>
-              <div>
-                <h3 className="tw-m-0 tw-mb-2 tw-text-sm tw-font-black tw-text-slate-800">Đoạn chỉ mục ({chunks.length})</h3>
+              <details>
+                <summary className="tw-mb-2 tw-cursor-pointer tw-text-sm tw-font-bold tw-text-slate-600">Các đoạn dùng để tìm kiếm ({chunks.length})</summary>
                 {chunks.length === 0 ? (
                   <p className="tw-m-0 tw-text-xs tw-font-bold tw-text-slate-400">Chưa có đoạn chỉ mục.</p>
                 ) : (
@@ -452,7 +490,7 @@ export function KnowledgeDocumentsTab() {
                     ))}
                   </ul>
                 )}
-              </div>
+              </details>
             </div>
           )}
         </div>

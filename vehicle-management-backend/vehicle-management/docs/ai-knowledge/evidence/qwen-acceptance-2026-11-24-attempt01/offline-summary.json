@@ -1,0 +1,14 @@
+{
+  "kind": "STANDALONE_JUNIT_OFFLINE_NOT_QWEN_LIVE",
+  "compiledNewTests": true,
+  "testsPassed": 50,
+  "testsFailed": 0,
+  "batchCases": 984,
+  "routeMatchesExpected": 984,
+  "canonicalMatches": 209,
+  "validatorPassed": 209,
+  "conflicts": 0,
+  "semanticAccuracy": null,
+  "qualityAccepted": false,
+  "googleCalled": false
+}

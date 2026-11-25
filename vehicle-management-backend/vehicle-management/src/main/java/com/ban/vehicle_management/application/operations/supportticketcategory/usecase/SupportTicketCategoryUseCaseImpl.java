@@ -9,9 +9,7 @@ import com.ban.vehicle_management.domain.operations.supportticketcategory.model.
 import com.ban.vehicle_management.domain.operations.supportticketcategory.policy.SupportTicketCategoryPolicy;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCategoryStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCategoryPriority;
-import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketAudienceType;
-import com.ban.vehicle_management.shared.enumeration.operations.PermissionMatchMode;
-import org.springframework.security.access.AccessDeniedException;
+import com.ban.vehicle_management.shared.exception.ScopedAccessDeniedException;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
@@ -24,8 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class SupportTicketCategoryUseCaseImpl implements SupportTicketCategoryPortIn {
 
-    private static final String CUSTOMER_CATEGORY_ACCESS = "SUPPORT_TICKET_CATEGORY_CUSTOMER_OWN";
-    private static final String INTERNAL_CATEGORY_ACCESS = "SUPPORT_TICKET_CATEGORY_INTERNAL_OWN";
+    private static final java.util.Comparator<SupportTicketCategory> CATEGORY_ORDER = java.util.Comparator
+            .comparing(SupportTicketCategory::getDisplayOrder, java.util.Comparator.nullsLast(Integer::compareTo))
+            .thenComparing(SupportTicketCategory::getCode, java.util.Comparator.nullsLast(String::compareTo));
 
     private final SupportTicketCategoryPortOut categoryPortOut;
     private final CurrentAccountPortIn currentAccountPortIn;
@@ -88,7 +87,8 @@ public class SupportTicketCategoryUseCaseImpl implements SupportTicketCategoryPo
             SupportTicketCategoryPriority priority,
             String keyword
     ) {
-        return categoryPortOut.findAll(status, priority, normalizeKeyword(keyword));
+        return categoryPortOut.findAll(status, priority, normalizeKeyword(keyword)).stream()
+                .sorted(CATEGORY_ORDER).toList();
     }
 
     @Override
@@ -97,12 +97,25 @@ public class SupportTicketCategoryUseCaseImpl implements SupportTicketCategoryPo
         CurrentAccountAccess access = currentAccess();
         requireCreatePermission();
         return categoryPortOut.findAll(SupportTicketCategoryStatus.ACTIVE, null, null).stream()
-                .filter(category -> isAvailable(category, access))
-                .sorted(java.util.Comparator.comparing(
-                        SupportTicketCategory::getDisplayOrder,
-                        java.util.Comparator.nullsLast(Integer::compareTo)
-                ))
+                .filter(category -> category.getStatus() == SupportTicketCategoryStatus.ACTIVE)
+                .filter(category -> categoryPolicy.matchesPermissions(category, access.getEffectivePermissionCodes()))
+                .sorted(CATEGORY_ORDER)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SupportTicketCategory> getPublicCategories() {
+        return categoryPortOut.findAll(SupportTicketCategoryStatus.ACTIVE, null, null).stream()
+                .filter(categoryPolicy::isPubliclyAvailable).sorted(CATEGORY_ORDER).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public void ensurePublicAvailableCategory(UUID categoryId) {
+        if (!categoryPortOut.existsPublicAvailableCategory(categoryId)) {
+            throw new BadRequestException("Danh mục hỗ trợ không khả dụng. Vui lòng chọn lại danh mục.");
+        }
     }
 
     @Override
@@ -111,8 +124,12 @@ public class SupportTicketCategoryUseCaseImpl implements SupportTicketCategoryPo
         CurrentAccountAccess access = currentAccess();
         requireCreatePermission();
         SupportTicketCategory category = getCategoryById(categoryId);
-        if (category.getStatus() != SupportTicketCategoryStatus.ACTIVE || !isAvailable(category, access)) {
-            throw new AccessDeniedException("Support ticket category is not available for the current account");
+        if (!categoryPolicy.matchesPermissions(category, access.getEffectivePermissionCodes())) {
+            throw new ScopedAccessDeniedException("SUPPORT_CATEGORY_NOT_AVAILABLE",
+                    "Bạn không có quyền sử dụng danh mục hỗ trợ này. Vui lòng chọn lại danh mục.");
+        }
+        if (category.getStatus() != SupportTicketCategoryStatus.ACTIVE) {
+            throw new ConflictException("Danh mục hỗ trợ đã bị vô hiệu hóa. Vui lòng tải lại và chọn danh mục khác.");
         }
         return category;
     }
@@ -171,6 +188,7 @@ public class SupportTicketCategoryUseCaseImpl implements SupportTicketCategoryPo
         }
 
         categoryPolicy.activate(existingCategory);
+        validateRequiredPermissions(existingCategory);
 
         return categoryPortOut.save(existingCategory);
     }
@@ -205,23 +223,4 @@ public class SupportTicketCategoryUseCaseImpl implements SupportTicketCategoryPo
         }
     }
 
-    private boolean isAvailable(SupportTicketCategory category, CurrentAccountAccess access) {
-        java.util.Set<String> effective = access.getEffectivePermissionCodes();
-        if (category.getAudienceType() == SupportTicketAudienceType.CUSTOMER
-                && !effective.contains(CUSTOMER_CATEGORY_ACCESS)) {
-            return false;
-        }
-        if (category.getAudienceType() == SupportTicketAudienceType.INTERNAL
-                && !effective.contains(INTERNAL_CATEGORY_ACCESS)) {
-            return false;
-        }
-        java.util.Set<String> required = category.getRequiredPermissionCodes() == null
-                ? java.util.Set.of() : category.getRequiredPermissionCodes();
-        if (required.isEmpty()) {
-            return true;
-        }
-        return category.getPermissionMatchMode() == PermissionMatchMode.ALL
-                ? effective.containsAll(required)
-                : required.stream().anyMatch(effective::contains);
-    }
 }

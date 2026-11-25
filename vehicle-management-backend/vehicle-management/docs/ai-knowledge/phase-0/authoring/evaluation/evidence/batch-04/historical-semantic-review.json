@@ -1,0 +1,62 @@
+{
+  "method": "Review final Vietnamese meaning and cited content; exact FAQ responses compared to author-reviewed source text. Not an LLM judge.",
+  "runs": [
+    {
+      "artifact": "before-semantic-fixes.json",
+      "answerJobs": 40,
+      "passed": 38,
+      "failed": {
+        "B4-ENT08-1": "Correct non-proof debit guidance rejected by output guard; final handoff misses requested steps.",
+        "B4-ENT09-1": "Correct denial of reserved space rejected by output guard."
+      }
+    },
+    {
+      "artifact": "interrupted-wrong-flow.json",
+      "records": 23,
+      "status": "INTERRUPTED_BY_AGENT_AFTER_KNOWN_SEMANTIC_FAILURE",
+      "failedReviewed": {
+        "B4-ENT01-3": "Wrong flow: reservation replaces walk-in entry.",
+        "B4-ENT01-4": "Wrong flow: reservation replaces walk-in entry.",
+        "B4-ENT01-6": "Wrong context: voucher advice replaces visitor entry."
+      },
+      "otherRows": "NOT_FULLY_SEMANTICALLY_REVIEWED",
+      "inFlightCallAccounting": "Final request may not have produced a checkpoint; do not claim complete call accounting."
+    },
+    {
+      "artifact": "before-visitor-qr-fix.json",
+      "retrievalOnly": 4,
+      "retrievalHits": 4,
+      "retrievalSufficient": 4,
+      "answerJobs": 13,
+      "passed": 11,
+      "failed": {
+        "B4-ENT01-3": "Suggests QR as an alternative to the visitor card without a valid subscription.",
+        "B4-ENT01-6": "Same incorrect QR suggestion."
+      },
+      "oldFiveAnswerCases": "PASS: login asks method/error; lost-card prerequisites and completion separated; date start/end bounds explained. CARD04 keeps the operational report workflow and does not substitute a support ticket."
+    },
+    {
+      "artifact": "interrupted-context-caller.json",
+      "records": 89,
+      "status": "INTERRUPTED_AFTER_KNOWN_FAILURE",
+      "reviewedFailures": {
+        "B4-ENT02-6": "Caller did not fetch history for a STATIC dependent question, returns voucher registration guidance.",
+        "B4-ENT06-4": "Insufficient evidence despite source; lexical mismatch.",
+        "B4-ENT06-6": "Same issue.",
+        "B4-ENT09-4": "All-term lexical query still contains question filler.",
+        "B4-ENT09-6": "Insufficient evidence for a contextual refusal at gate."
+      },
+      "otherRows": "NOT_FULLY_REVIEWED"
+    },
+    {
+      "artifact": "before-lexical-framing-fix.json",
+      "answerJobs": 8,
+      "passed": 6,
+      "failed": {
+        "B4-ENT09-4": "Confidence 0.545: lexical all-term search disabled by remaining question filler.",
+        "B4-MAP02-6": "Missing browser location-permission phrasing in source; inappropriate support handoff."
+      },
+      "resolvedContext": "Caller fetch fixed; actual resolvedRetrievalQuery recorded. No more voucher detour for ENT02-6."
+    }
+  ]
+}

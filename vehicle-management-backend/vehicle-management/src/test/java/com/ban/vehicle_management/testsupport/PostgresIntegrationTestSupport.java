@@ -2,6 +2,8 @@ package com.ban.vehicle_management.testsupport;
 
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.annotation.DirtiesContext;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
@@ -11,8 +13,12 @@ import org.testcontainers.utility.DockerImageName;
  * <p>The production schema requires both PostGIS and pgvector, so Spring
  * integration tests must not fall back to a developer's local PostgreSQL.
  * A singleton container also keeps the Spring context cache valid across test
- * classes because the JDBC URL remains stable for the lifetime of the JVM.</p>
+ * classes because the JDBC URL remains stable for the lifetime of the JVM.
+ * Application contexts are closed after each class so schedulers and connection
+ * pools cannot keep running while another class migrates a fresh database.</p>
  */
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+@Isolated("Integration classes mutate the shared database and must release their Spring context before the next class")
 public abstract class PostgresIntegrationTestSupport {
 
     private static final String IMAGE = System.getenv().getOrDefault(

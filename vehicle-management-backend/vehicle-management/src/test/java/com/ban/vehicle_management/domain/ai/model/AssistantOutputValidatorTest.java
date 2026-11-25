@@ -9,6 +9,41 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class AssistantOutputValidatorTest {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {
+            "Nếu bạn đã tạo phiếu, hãy mở Lịch sử yêu cầu.",
+            "Sau khi hóa đơn đã thanh toán, nhờ nhân viên kiểm tra thẻ thay thế.",
+            "Nhờ nhân viên kiểm tra hóa đơn đã thanh toán đủ hay chưa.",
+            "Bạn đã gửi yêu cầu chưa?", "Phiếu của tôi đã hủy chưa?",
+            "Không khẳng định đã cập nhật khi chưa có kết quả.",
+            "Vui lòng kiểm tra xem đã tạo phiếu hay chưa.",
+            "Khi đã thanh toán, nhân viên đối chiếu kết quả trước khi hoàn tất."
+    })
+    void conditionalGuidanceAndVerificationDoNotClaimAnActionWasPerformed(String text) {
+        var envelope = new AssistantResponseEnvelope(text, List.of(), List.of(), 1.0, false);
+        var context = new AssistantOutputValidator.ValidationContext(Set.of(), Set.of(),
+                "Hướng dẫn xử lý lỗi", List.of(), List.of(), false, false);
+        assertFalse(AssistantOutputValidator.validate(envelope, context).violations()
+                .contains("UNVERIFIED_ACTION_SUCCESS_CLAIM"));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {
+            "Đã tạo phiếu hỗ trợ thành công.", "Tôi đã thanh toán cho bạn.",
+            "Hướng dẫn:\nTôi đã hủy vé.", "Nếu bạn cần hỗ trợ, tôi đã tạo phiếu.",
+            "Sau khi bạn đã thanh toán, tôi đã cập nhật thông tin.",
+            "Nếu bạn cần hỗ trợ tôi đã tạo phiếu.", "Bạn có thể kiểm tra khi rảnh tôi đã hủy vé.",
+            "Tôi đã tạo phiếu đúng không?", "Phiếu đã được tạo thành công.",
+            "Bạn chưa cần làm gì.\nPayment successful.",
+            "Bạn đã gửi yêu cầu chưa? Tôi đã cập nhật thông tin."
+    })
+    void unverifiedClaimsStayBlockedAcrossParagraphsAndAfterConditionalClauses(String text) {
+        var envelope = new AssistantResponseEnvelope(text, List.of(), List.of(), 1.0, false);
+        var context = new AssistantOutputValidator.ValidationContext(Set.of(), Set.of(),
+                "Hướng dẫn xử lý lỗi", List.of(), List.of(), false, false);
+        assertTrue(AssistantOutputValidator.validate(envelope, context).violations()
+                .contains("UNVERIFIED_ACTION_SUCCESS_CLAIM"));
+    }
 
     @Test
     void validateShouldAcceptGroundedAnswerWithAllowlistedCitation() {

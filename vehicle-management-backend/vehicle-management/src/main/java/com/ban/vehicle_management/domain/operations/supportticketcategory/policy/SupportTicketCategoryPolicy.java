@@ -10,6 +10,33 @@ import java.util.Set;
 
 public class SupportTicketCategoryPolicy {
 
+    public boolean matchesPermissions(SupportTicketCategory category, Set<String> effectivePermissions) {
+        if (category == null || effectivePermissions == null) {
+            return false;
+        }
+        String audiencePermission = switch (category.getAudienceType()) {
+            case CUSTOMER -> "SUPPORT_TICKET_CATEGORY_CUSTOMER_OWN";
+            case INTERNAL -> "SUPPORT_TICKET_CATEGORY_INTERNAL_OWN";
+            case ALL -> null;
+            case null -> null;
+        };
+        if (audiencePermission == null || !effectivePermissions.contains(audiencePermission)) {
+            return false;
+        }
+        Set<String> required = category.getRequiredPermissionCodes() == null
+                ? Set.of() : category.getRequiredPermissionCodes();
+        return required.isEmpty() || (category.getPermissionMatchMode() == PermissionMatchMode.ALL
+                ? effectivePermissions.containsAll(required)
+                : category.getPermissionMatchMode() == PermissionMatchMode.ANY
+                        && required.stream().anyMatch(effectivePermissions::contains));
+    }
+
+    public boolean isPubliclyAvailable(SupportTicketCategory category) {
+        return category != null && category.getStatus() == SupportTicketCategoryStatus.ACTIVE
+                && category.getAudienceType() == SupportTicketAudienceType.CUSTOMER
+                && (category.getRequiredPermissionCodes() == null || category.getRequiredPermissionCodes().isEmpty());
+    }
+
     public void initialize(SupportTicketCategory category){
         requiredCategory(category);
         if (category.getStatus() == null){

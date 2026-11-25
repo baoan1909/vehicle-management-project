@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -163,7 +164,7 @@ class KnowledgeRetrievalServiceTest {
         ArgumentCaptor<RetrievalAudit> audit = ArgumentCaptor.forClass(RetrievalAudit.class);
         verify(auditPortOut).save(audit.capture());
         assertEquals(3, audit.getValue().results().size());
-        assertEquals("retrieval-policy-v1", audit.getValue().retrievalPolicyVersion());
+        assertEquals("retrieval-policy-v4", audit.getValue().retrievalPolicyVersion());
         assertTrue(audit.getValue().normalizedQueryHash().length() == 64);
     }
 
@@ -215,5 +216,42 @@ class KnowledgeRetrievalServiceTest {
                 vectorScore == null ? null : BigDecimal.valueOf(vectorScore),
                 lexicalScore == null ? null : BigDecimal.valueOf(lexicalScore),
                 BigDecimal.valueOf(0.05), 1);
+    }
+    @Test
+    void reviewedCommonFaqWorksWithEmbeddingDisabledAndNoProviderIndex() {
+        var common=org.mockito.Mockito.mock(CommonKnowledgeService.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"commonKnowledge",common);
+        properties.setEnabled(false);
+        var source=new com.ban.vehicle_management.domain.ai.model.CommonKnowledgeCandidate(UUID.randomUUID(),UUID.randomUUID(),"Đăng ký",
+                "Làm sao đăng ký CoParking? Mở Đăng ký và xác minh email.",null,null,"FAQ",BigDecimal.ONE,1,Instant.now(),"checksum");
+        var resolution=new CommonKnowledgeService.Resolution(source,"Mở Đăng ký và xác minh email.",CommonKnowledgeService.fingerprint(List.of(source)),false);
+        when(common.lookup(any(),anyString(),eq(List.of("PUBLIC")))).thenReturn(Optional.of(resolution));
+        var result=service.search(KnowledgeRetrievalContext.global(),"Đăng ký tài khoản như thế nào?",List.of("PUBLIC"),5);
+        assertTrue(result.isCommonFaq());assertTrue(result.evidenceSufficient());assertNull(result.activeIndexVersionId());
+        assertEquals(resolution.answer(),result.canonicalAnswer());assertEquals(resolution.snapshot(),result.sourceSnapshot());
+        org.mockito.Mockito.verifyNoInteractions(indexVersionPortOut,configurationPortOut,embeddingService,retrievalPortOut);
+        var audit=ArgumentCaptor.forClass(RetrievalAudit.class);verify(auditPortOut).save(audit.capture());
+        assertEquals("COMMON_FAQ",audit.getValue().retrievalMethod());assertNull(audit.getValue().activeIndexVersionId());
+        assertEquals(0,audit.getValue().vectorCandidateCount());assertEquals(1,audit.getValue().lexicalCandidateCount());
+    }
+
+    @Test
+    void conflictingCommonFaqStopsBeforeAnyProviderLookup() {
+        var common=org.mockito.Mockito.mock(CommonKnowledgeService.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"commonKnowledge",common);
+        when(common.lookup(any(),anyString(),anyList())).thenReturn(Optional.of(new CommonKnowledgeService.Resolution(null,null,null,true)));
+        var result=service.search(KnowledgeRetrievalContext.global(),"Đăng ký tài khoản như thế nào?",List.of("PUBLIC"),5);
+        assertEquals("COMMON_ANSWER_CONFLICT",result.diagnosticCode());assertFalse(result.hasResults());
+        org.mockito.Mockito.verifyNoInteractions(indexVersionPortOut,configurationPortOut,embeddingService,retrievalPortOut);
+    }
+
+    @Test
+    void commonLookupFailureCannotBeHiddenByCallingAProvider() {
+        var common=org.mockito.Mockito.mock(CommonKnowledgeService.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"commonKnowledge",common);
+        when(common.lookup(any(),anyString(),anyList())).thenThrow(new IllegalStateException("fixture DB unavailable"));
+        var result=service.search(KnowledgeRetrievalContext.global(),"Đăng ký tài khoản như thế nào?",List.of("PUBLIC"),5);
+        assertEquals(KnowledgeRetrievalService.DIAG_RETRIEVAL_FAILED,result.diagnosticCode());
+        org.mockito.Mockito.verifyNoInteractions(indexVersionPortOut,configurationPortOut,embeddingService,retrievalPortOut);
     }
 }

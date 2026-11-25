@@ -483,7 +483,7 @@ export function SupportFloatingWidget() {
             <SupportComposerActions
               canAttach={canAttachImages}
               disabled={isSending || !conversationId}
-              onCreateTicket={() => setCreateDialogOpen(true)}
+              onCreateTicket={hasAnyPermission(user, ["SUPPORT_TICKET_CREATE_OWN"]) ? () => setCreateDialogOpen(true) : undefined}
               onFilesSelected={(files) => setSelectedFiles((current) => [...current, ...files])}
               onOpenHistory={() => setHistoryDialogOpen(true)}
             />

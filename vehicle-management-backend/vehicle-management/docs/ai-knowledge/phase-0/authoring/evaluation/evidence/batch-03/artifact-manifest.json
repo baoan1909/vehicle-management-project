@@ -1,0 +1,124 @@
+{
+  "gitHead": "fcdcc98974c661b134c696d3c41047e487e622e1",
+  "worktreeDirty": true,
+  "sourceHashes": "source-hashes.json",
+  "coreCorpusStatus": "DRAFT",
+  "vectorModel": "gemini-embedding-2",
+  "dimension": 768,
+  "finalSourcePolicy": {
+    "lexical": "vi-lexical-v3",
+    "safety": "safety-v2",
+    "context": "query-snippet-v3",
+    "contextualResponse": "contextual-response-v2",
+    "style": "plain-vietnamese-v2",
+    "output": "output-validation-v3"
+  },
+  "liveValidationVersions": {
+    "release-candidate": "output-validation-v2",
+    "repeat-2": "output-validation-v2",
+    "repeat-3": "output-validation-v2",
+    "repeat-3-fixed": "output-validation-v3"
+  },
+  "finalGuardReplay": "CapturedResponseGuardTest revalidates 136 successful real-provider texts through v3, plus adversarial unit tests. This is offline validation, not 136 new API calls.",
+  "runtimeModels": [
+    "gemini-3.1-flash-lite",
+    "gemini-3.5-flash-lite"
+  ],
+  "artifacts": [
+    {
+      "path": "target/chatbox-phase3/release-candidate/local-tests.log",
+      "bytes": 83778,
+      "sha256": "2863e05ea71a92dfcea2fc0f6eb4dea8fe0fd7b53499d4703245e143db4489c7"
+    },
+    {
+      "path": "target/chatbox-phase3/release-candidate/live-test.log",
+      "bytes": 98652,
+      "sha256": "cdadd17ea45facc9cc3f54069e42f9beba6f915f3a18a5fb2aacd8f44399ec0b"
+    },
+    {
+      "path": "target/chatbox-phase3/release-candidate/live-evaluation.json",
+      "bytes": 8621149,
+      "sha256": "d89db32928ad8b7dd17f6ace71ca73308d4bea9e6a5ba6febffe5a9962ab768f"
+    },
+    {
+      "path": "target/chatbox-phase3/release-candidate/credential-runtime.json",
+      "bytes": 755,
+      "sha256": "defaaec1c1575649ca507cec4c0f38e1145b2bc71f04505ef0cb9e5560f7a98c"
+    },
+    {
+      "path": "target/chatbox-phase3/release-candidate/credential-failures.json",
+      "bytes": 192,
+      "sha256": "6bfc6a2f5d911ac069e104359d7f9b049804ea8aae494603ec994688d13b2c9c"
+    },
+    {
+      "path": "target/chatbox-phase3/current-all-tests.log",
+      "bytes": 463009,
+      "sha256": "791e16e26e576ac26fb7f7f2527aaf631a8c45b8942c977c7715d92015d2ca48"
+    },
+    {
+      "path": "target/chatbox-phase3/repeat-2/credential-failures.json",
+      "bytes": 192,
+      "sha256": "54f44718a88fdb770e6e03495fc0e672f1d609f4c325ba353f6650a68942ae95"
+    },
+    {
+      "path": "target/chatbox-phase3/repeat-2/credential-runtime.json",
+      "bytes": 752,
+      "sha256": "8b9702dae154a50537c45fc162fc5d250b7fe1323f09d77c39dad6ab115f55cc"
+    },
+    {
+      "path": "target/chatbox-phase3/repeat-2/live-rechecks.json",
+      "bytes": 134642,
+      "sha256": "3d046f286adc2fd14e94016cff9238a4ee7b95f6718e375e69836e8d93428948"
+    },
+    {
+      "path": "target/chatbox-phase3/repeat-2/live-test.log",
+      "bytes": 53625,
+      "sha256": "7a92a9bccab224c0a5372369c1b8897f6b9a61085372ad2c997b6df269400cb8"
+    },
+    {
+      "path": "target/chatbox-phase3/repeat-3/credential-failures.json",
+      "bytes": 192,
+      "sha256": "68d14cd594eccf5b45190f091752fad7a4679a2da46501044dfcd5d940ebb11d"
+    },
+    {
+      "path": "target/chatbox-phase3/repeat-3/credential-runtime.json",
+      "bytes": 752,
+      "sha256": "be4661d0cb228e8ade8031e22f6cbb2e78260d133e8fa91facb8486bf0a50ec6"
+    },
+    {
+      "path": "target/chatbox-phase3/repeat-3/live-rechecks.json",
+      "bytes": 140304,
+      "sha256": "798e00a2f2e1ec6946d873717a20474f0c688d451c9ca52da80b74446654e777"
+    },
+    {
+      "path": "target/chatbox-phase3/repeat-3/live-test.log",
+      "bytes": 53494,
+      "sha256": "836198b1dd5a1ed3ba2ba27954d06411407ccc4001e3bd84ac2139a0c3030b35"
+    },
+    {
+      "path": "target/chatbox-phase3/repeat-3-fixed/credential-failures.json",
+      "bytes": 379,
+      "sha256": "7a69102e0ef328a6f37121781a7611bc5c987c66a61e633e20b3ff99821ab50a"
+    },
+    {
+      "path": "target/chatbox-phase3/repeat-3-fixed/credential-runtime.json",
+      "bytes": 752,
+      "sha256": "be4661d0cb228e8ade8031e22f6cbb2e78260d133e8fa91facb8486bf0a50ec6"
+    },
+    {
+      "path": "target/chatbox-phase3/repeat-3-fixed/live-rechecks.json",
+      "bytes": 139434,
+      "sha256": "e43ae438f8a209af518e2431f84019c9b2977e21ba4b601e5795a4698eea2165"
+    },
+    {
+      "path": "target/chatbox-phase3/repeat-3-fixed/live-test.log",
+      "bytes": 53898,
+      "sha256": "5d11ccae67048fa720a8bd4cb2e346a85338efed655ab65a0d3171f60328ce04"
+    },
+    {
+      "path": "target/chatbox-phase3/repeat-3-fixed/local-tests.log",
+      "bytes": 84029,
+      "sha256": "355508a59c4642934883476c9f5414bc38747b7260877dd4876e23b3383e8697"
+    }
+  ]
+}

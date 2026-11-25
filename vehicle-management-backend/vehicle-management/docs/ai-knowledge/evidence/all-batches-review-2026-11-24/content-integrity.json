@@ -1,0 +1,939 @@
+{
+  "kind": "STATIC_CONTENT_AND_SOURCE_INTEGRITY_REVIEW",
+  "qualityAccepted": false,
+  "noProviderHttpByThisAudit": true,
+  "dbQueriesExecuted": false,
+  "javaMatcherExecuted": false,
+  "semanticAccuracy": null,
+  "documents": [
+    {
+      "slug": "authentication-and-profile",
+      "batch": 1,
+      "version": "2.2.0",
+      "status": "DRAFT",
+      "sourceSha256": "4b4b831f3c87f21582c46b43fe456a030047ba13574a78d2a6d2eb5faaa28985",
+      "exportSha256": "6fa1979e4d1359c4eee9bda9a983f52e1c1087f46632f7ad3e2f2140783e8102",
+      "staticBoundaryReviewed": "Phương thức đăng nhập, xác minh và hồ sơ là các bước riêng; không đoán quên mật khẩu hoặc trạng thái riêng.",
+      "sources": [
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/domain/iam/account/policy/PublicAuthPolicy.java",
+          "sha256": "8a1049b36ad18e8d4d03e32fc6e35d864d290e4a841b138daead657adda50507"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/iam/account/usecase/PublicAuthUseCaseImpl.java",
+          "sha256": "5658a11c94debb0f4d599c94d9634b42b069ee665771a297c18266f90a54a7ec"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/iam/account/usecase/SocialAccountBootstrapUseCaseImpl.java",
+          "sha256": "6aefb2a025fb79b8b1ba35fe29fb357fe19e8b0e47f693f2d9900c02a7b083e4"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/iam/account/usecase/AccountProfileUseCaseImpl.java",
+          "sha256": "f2e7c3d68dd423ea180ab4949ffef0fb6f64e6aad0babd994c44c6c3ef36cd36"
+        },
+        {
+          "kind": "FRONTEND_STATIC_REVIEW",
+          "file": "vehicle-management-frontend/vehicle_management_react/src/features/auth/pages/LoginPage.tsx",
+          "sha256": "58c87d9b0f7e521bb358a324210a89e5a3bd411ca0fa57ab850fbd6fbf157273"
+        },
+        {
+          "kind": "FRONTEND_STATIC_REVIEW",
+          "file": "vehicle-management-frontend/vehicle_management_react/src/features/customer-portal/pages/ProfilePage.tsx",
+          "sha256": "48a0288871b92cc662a8e14540f468ea75b4d8aa7ade569d70318350e10bfd3b"
+        },
+        {
+          "kind": "TEST_SOURCE_NOT_EXECUTION",
+          "file": "vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/domain/iam/account/policy/PublicAuthPolicyTest.java",
+          "sha256": "5862303f3a5724a2583dd3eb2ed3c607049c523d6a0446edf40663800227702a"
+        }
+      ],
+      "cases": 60,
+      "languageGroups": {
+        "ACCENTED": 10,
+        "UNACCENTED": 10,
+        "PARAPHRASE": 10,
+        "SHORT_OR_TYPO": 10,
+        "CONTEXTUAL": 10,
+        "ALTERNATIVE": 10
+      },
+      "splitLabels": {
+        "regression": 48,
+        "acceptance": 12
+      },
+      "blindHoldout": false,
+      "semanticAccuracy": null,
+      "qwenLiveAccepted": false,
+      "googleVerified": false
+    },
+    {
+      "slug": "cards-and-lost-card",
+      "batch": 2,
+      "version": "2.2.0",
+      "status": "DRAFT",
+      "sourceSha256": "9060006f293b2f1825164b9eabdb06fa6c4945d20f0e06fa7a76a4bb333c9b69",
+      "exportSha256": "4f768d60180861aefa8f4fa4afe37631d431b53636d26e5933ceec7cda0853c0",
+      "staticBoundaryReviewed": "Lập phiếu khác hoàn tất; hoàn tất cần hóa đơnPAID và thẻAVAILABLE/cùngbãi/đúngloại khi phải thay; không hủy nếu có khoản trả thành công.",
+      "sources": [
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/domain/accesscontrol/lostcardreport/policy/LostCardReportPolicy.java",
+          "sha256": "43b2f0f53a98b5b34a0796906751cd574c192d514397e9a590f7724562ac4ad1"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/accesscontrol/lostcardreport/usecase/LostCardReportUseCaseImpl.java",
+          "sha256": "99e4aef4f96105ca1ba51ef7d91aa4116d5c80bc33cd575781ebf92ed06a026f"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/accesscontrol/lostcardreport/authorization/LostCardReportAccessGuard.java",
+          "sha256": "4c35383186ad6f92c94882762509d15ef6b6e9f803b29185752015f1342acf91"
+        },
+        {
+          "kind": "FRONTEND_STATIC_REVIEW",
+          "file": "vehicle-management-frontend/vehicle_management_react/src/features/cards/pages/LostCardWorkflowPages.tsx",
+          "sha256": "029da6cc89f25b1e04c6a9e4281cc2df92f1444f2160eb18fd0fc130c0d5b304"
+        },
+        {
+          "kind": "TEST_SOURCE_NOT_EXECUTION",
+          "file": "vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/application/accesscontrol/lostcardreport/usecase/LostCardReportUseCaseImplTest.java",
+          "sha256": "cd80fd963d22e01facce78fc783d9078276bd088b29774252056be6c10dd146f"
+        }
+      ],
+      "cases": 60,
+      "languageGroups": {
+        "ACCENTED": 10,
+        "UNACCENTED": 10,
+        "CONVERSATIONAL": 40
+      },
+      "splitLabels": {
+        "regression": 48,
+        "acceptance": 12
+      },
+      "blindHoldout": false,
+      "semanticAccuracy": null,
+      "qwenLiveAccepted": false,
+      "googleVerified": false
+    },
+    {
+      "slug": "chat-conversations-and-support-boundaries",
+      "batch": 1,
+      "version": "2.2.0",
+      "status": "DRAFT",
+      "sourceSha256": "b07698715d880aa7dc12fea22a402f8664fbbab9e3554a7a43bf40b246b2bad0",
+      "exportSha256": "7c4e28b3f7ca1f889aa4406e3ebc03f4401c7c87d08e2145002f220083820fa0",
+      "staticBoundaryReviewed": "Chỉ hội thoại hỗ trợ hợp lệ; không tạo/chia sẻ phiếu trong chat khách hàng–đối tác; quyền không thay loại hội thoại.",
+      "sources": [
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/operations/supportticket/service/SupportTicketConversationService.java",
+          "sha256": "15aca0f35820cdd706327bbfcfc466283fbcf6f08bd4461d477b3305c599a0a8"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/operations/chatconversation/usecase/ChatConversationUseCaseImpl.java",
+          "sha256": "8f6aa5298496e407aeae136a066bb03d2db3af7fc9699574cc4f4bb0171b767d"
+        },
+        {
+          "kind": "FRONTEND_STATIC_REVIEW",
+          "file": "vehicle-management-frontend/vehicle_management_react/src/features/support/utils/chatActionAccess.ts",
+          "sha256": "31c1e8411cdc3a0f9a8b218872639afbda0abc87b75d7965d62725ef2a6ac445"
+        },
+        {
+          "kind": "FRONTEND_STATIC_REVIEW",
+          "file": "vehicle-management-frontend/vehicle_management_react/src/features/support/pages/OperationsSupportCenterPage.tsx",
+          "sha256": "7792dbe606a39d6d00db0104bb5c7e0e82a11e94aa234bda3b0ded73fee52c06"
+        },
+        {
+          "kind": "TEST_SOURCE_NOT_EXECUTION",
+          "file": "vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/application/operations/supportticket/service/SupportTicketConversationServiceTest.java",
+          "sha256": "e73d798b71bc524e30a9bd642c5925bcbd08688aab4df445a147423c0871983b"
+        }
+      ],
+      "cases": 60,
+      "languageGroups": {
+        "ACCENTED": 10,
+        "UNACCENTED": 10,
+        "PARAPHRASE": 10,
+        "SHORT_OR_TYPO": 10,
+        "CONTEXTUAL": 10,
+        "ALTERNATIVE": 10
+      },
+      "splitLabels": {
+        "regression": 48,
+        "acceptance": 12
+      },
+      "blindHoldout": false,
+      "semanticAccuracy": null,
+      "qwenLiveAccepted": false,
+      "googleVerified": false
+    },
+    {
+      "slug": "chatbot-privacy-and-prohibited-data",
+      "batch": 1,
+      "version": "2.1.0",
+      "status": "DRAFT",
+      "sourceSha256": "184cebdd9a8364195ff18c28aae2462299fa093e6983e9a7ddc4031f9b387b00",
+      "exportSha256": "e60ab37c64f77871aeebde36543ae7e41dfaeb3350472e06181e56bf677e4307",
+      "staticBoundaryReviewed": "Guest chỉ dùng công khai; dữ liệu chính chủ do server kiểm tra; không lặp bí mật hoặc suy quyền từ lịch sử.",
+      "sources": [
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/ai/service/PiiRedactionService.java",
+          "sha256": "7665cf0eb36437d0eaa11cec03aa513b272f519af1858f90315aff7d5eece138"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/ai/service/SensitiveQueryGuard.java",
+          "sha256": "ef63b6d3644f2056578679430c0ff144d8205d16b11ef43a3c1128482a06be52"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/ai/service/KnowledgeAccessContextResolver.java",
+          "sha256": "94054665d03ad648f131b54eed48f951f5242662da4b10c28e86cd13943cab5c"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/domain/ai/policy/AiToolRegistry.java",
+          "sha256": "fe7d05189256ba96bd23f7a1c0b8127e5992c3d210d010ccd0eb83a245d8be76"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/operations/guestsupport/service/GuestPublicAssistantService.java",
+          "sha256": "ad105ed9a6c3b1a16c5da0e8f8134a16c73dd837357ec683b0e15efc81a3ed41"
+        },
+        {
+          "kind": "FRONTEND_STATIC_REVIEW",
+          "file": "vehicle-management-frontend/vehicle_management_react/src/features/support/components/SupportFloatingWidget.tsx",
+          "sha256": "acbcfe50782219e8938317ff89cbbf656b32fe0172a2ae5b268a9e1f5297fa89"
+        },
+        {
+          "kind": "TEST_SOURCE_NOT_EXECUTION",
+          "file": "vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/application/operations/guestsupport/service/GuestPublicAssistantServiceTest.java",
+          "sha256": "c20669506d81a7a78e264eaae8a1f202cc75f5a7c63a53833b5f0b39ca9a0a22"
+        },
+        {
+          "kind": "TEST_SOURCE_NOT_EXECUTION",
+          "file": "vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/domain/ai/model/AssistantQuestionResolverTest.java",
+          "sha256": "a4fbf221b5e0736bf8eb51de0c8f31e359a230780024efe3f6f6b9bacedafe59"
+        }
+      ],
+      "cases": 60,
+      "languageGroups": {
+        "ACCENTED": 10,
+        "UNACCENTED": 10,
+        "PARAPHRASE": 10,
+        "SHORT_OR_TYPO": 10,
+        "CONTEXTUAL": 10,
+        "ALTERNATIVE": 10
+      },
+      "splitLabels": {
+        "regression": 48,
+        "acceptance": 12
+      },
+      "blindHoldout": false,
+      "semanticAccuracy": null,
+      "qwenLiveAccepted": false,
+      "googleVerified": false
+    },
+    {
+      "slug": "common-errors-and-troubleshooting",
+      "batch": 4,
+      "version": "2.1.0",
+      "status": "DRAFT",
+      "sourceSha256": "ca1b4f9af75cef61726605fb43d61f19448c3a845ce409cae4b57de190934086",
+      "exportSha256": "d60c054598fa034e32e02752b55db9f48ffdcb031cd6834a16c28a38b9b0baaa",
+      "staticBoundaryReviewed": "Tiếp nối lỗi đúng bước; không đoán nguyên nhân, cấpquyền hay lặp thanh toán; thốngnhất FAQhoàntấtmấtthẻ.",
+      "sources": [
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/domain/ai/model/AssistantQuestionResolver.java",
+          "sha256": "653c6e513ac206ce0dfcab939ffbd7d158b41713f90e2d41d6eada6f33db055c"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/domain/ai/model/AssistantBusinessRequestPolicy.java",
+          "sha256": "f6ade1d64e48f4495773616f3320a9c4883dea9b4217fd54013ad633faaae724"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/accesscontrol/lostcardreport/usecase/LostCardReportUseCaseImpl.java",
+          "sha256": "99e4aef4f96105ca1ba51ef7d91aa4116d5c80bc33cd575781ebf92ed06a026f"
+        },
+        {
+          "kind": "FRONTEND_STATIC_REVIEW",
+          "file": "vehicle-management-frontend/vehicle_management_react/src/features/auth/pages/LoginPage.tsx",
+          "sha256": "58c87d9b0f7e521bb358a324210a89e5a3bd411ca0fa57ab850fbd6fbf157273"
+        },
+        {
+          "kind": "FRONTEND_STATIC_REVIEW",
+          "file": "vehicle-management-frontend/vehicle_management_react/src/features/customer-portal/pages/CustomerHistoryPage.tsx",
+          "sha256": "cbe5271677c7075a10a1a8d2efd8cecbe87e6b759953f8b3955369f34f40e3a4"
+        },
+        {
+          "kind": "FRONTEND_STATIC_REVIEW",
+          "file": "vehicle-management-frontend/vehicle_management_react/src/features/support/components/CreateSupportTicketDialog.tsx",
+          "sha256": "d8b0ec4219aec38cf7e390fbbe161d086d1c99f7d3c333cc54e9bfd9d2829d7c"
+        },
+        {
+          "kind": "TEST_SOURCE_NOT_EXECUTION",
+          "file": "vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/domain/ai/model/AssistantQuestionResolverTest.java",
+          "sha256": "a4fbf221b5e0736bf8eb51de0c8f31e359a230780024efe3f6f6b9bacedafe59"
+        },
+        {
+          "kind": "TEST_SOURCE_NOT_EXECUTION",
+          "file": "vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/ai/golden/ReviewedFaqRegressionTest.java",
+          "sha256": "17dc11f5d133de48b5a84fa46183f77ef35467ca7ed644a36634203010ea2a4d"
+        }
+      ],
+      "cases": 66,
+      "languageGroups": {
+        "ACCENTED": 11,
+        "UNACCENTED": 11,
+        "PARAPHRASE": 11,
+        "TYPO": 11,
+        "SHORT": 11,
+        "CONTEXTUAL": 11
+      },
+      "splitLabels": {
+        "acceptance": 66
+      },
+      "blindHoldout": false,
+      "semanticAccuracy": null,
+      "qwenLiveAccepted": false,
+      "googleVerified": false
+    },
+    {
+      "slug": "customer-vehicle-management",
+      "batch": 2,
+      "version": "2.1.0",
+      "status": "DRAFT",
+      "sourceSha256": "7f682655dd8c3f4a9110254b1c86cda3ef29eb0a28e264e3d52bde0f0b6efc04",
+      "exportSha256": "aecb3424421501cbb9c8b912aa063db3b5e8ac9647ec2f492ca5eca7892ae22e",
+      "staticBoundaryReviewed": "Xe mặc định phải hoạt động; xóa chuyển ngưng dùng; không xóa lịch sử hay tự hủy vé/lượt.",
+      "sources": [
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/domain/people/customervehicle/policy/CustomerVehiclePolicy.java",
+          "sha256": "198e4855e48d4b9472f9234115ed30319d29a814ff192e24785d1b576873c0b4"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/people/customervehicle/authorization/CustomerVehicleAccessGuard.java",
+          "sha256": "7f8768baf3c2c964c89cc2618ec3ff4b2cba6f089fff58e0ff01de0c3ced9554"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/people/customervehicle/usecase/CustomerVehicleUseCaseImpl.java",
+          "sha256": "145cf959f4aab30930db45b6e6f7759d640587428136163f2cf3dae222d52add"
+        },
+        {
+          "kind": "FRONTEND_STATIC_REVIEW",
+          "file": "vehicle-management-frontend/vehicle_management_react/src/features/customer-portal/pages/VehiclePage.tsx",
+          "sha256": "2d35850dc3a88315dc1863efa61b6f0cc2c15dbdd58e3c28284b0a8f6ff47f5c"
+        },
+        {
+          "kind": "TEST_SOURCE_NOT_EXECUTION",
+          "file": "vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/application/people/customervehicle/usecase/CustomerVehicleUseCaseImplTest.java",
+          "sha256": "07b9cc0a750703da7a991b336112b3899d7612eec6880772f4e775bc408cadca"
+        },
+        {
+          "kind": "TEST_SOURCE_NOT_EXECUTION",
+          "file": "vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/domain/people/customervehicle/policy/CustomerVehiclePolicyTest.java",
+          "sha256": "a083afe4345cc4e017483e53364fee508a344748441887e7db50d2b72f0b3937"
+        }
+      ],
+      "cases": 60,
+      "languageGroups": {
+        "ACCENTED": 10,
+        "UNACCENTED": 10,
+        "CONVERSATIONAL": 38,
+        "TYPO": 2
+      },
+      "splitLabels": {
+        "regression": 48,
+        "acceptance": 12
+      },
+      "blindHoldout": false,
+      "semanticAccuracy": null,
+      "qwenLiveAccepted": false,
+      "googleVerified": false
+    },
+    {
+      "slug": "invoice-vnpay-payment-refund",
+      "batch": 3,
+      "version": "2.1.0",
+      "status": "DRAFT",
+      "sourceSha256": "af4f74b1481a17d505e9d8004736320988873ac3179fd84ec617d3c6e481db7b",
+      "exportSha256": "c5ad6e1b013af0943b90f44d6e101da356cd6374ca5401c43fb6d71799528b8c",
+      "staticBoundaryReviewed": "Xác minh gateway/sốtiền và chống lặp; returnURL/ảnh/bịtrừtiền chưa xácnhận đãtrả; chưa có tool hoàn tiền.",
+      "sources": [
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/billing/payment/usecase/VnpayPaymentUseCaseImpl.java",
+          "sha256": "fda7d3e1a58059f4057847845ce35dd4b1d7fe9344538593634332e9dbce3d57"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/billing/payment/usecase/SepayPaymentUseCaseImpl.java",
+          "sha256": "503f6c5c01861a2b34f524d788c56b9939b4275affa6a1d15d0b9c19da88fb86"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/billing/payment/usecase/PaymentCompletionUseCaseImpl.java",
+          "sha256": "66da523d28872c336ac80c56902e2489e74d92c287eab22f3eb3e7e627ee3f79"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/billing/wallet/usecase/WalletInvoicePaymentUseCaseImpl.java",
+          "sha256": "68152b6bb9cc5937fa27b290e0b080d4a91444ec2df6e9a2a680da3b939d8d4d"
+        },
+        {
+          "kind": "FRONTEND_STATIC_REVIEW",
+          "file": "vehicle-management-frontend/vehicle_management_react/src/features/customer-portal/pages/SubscriptionPage.tsx",
+          "sha256": "5eda2d458a897925985bc529ad956a0abd747712f25b924aa47b31176308ea89"
+        },
+        {
+          "kind": "FRONTEND_STATIC_REVIEW",
+          "file": "vehicle-management-frontend/vehicle_management_react/src/features/parking/pages/CustomerReservationPage.tsx",
+          "sha256": "1ee5be2eeb3508f390deab064d59f6301f53c15cc690a939ae97602a6258ad0e"
+        },
+        {
+          "kind": "TEST_SOURCE_NOT_EXECUTION",
+          "file": "vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/application/billing/payment/usecase/VnpayPaymentUseCaseImplTest.java",
+          "sha256": "5b2a9582246ac6ff705bb9da9d61f42ee3c7fbc5d09cae9fdc9a983eb04448fe"
+        },
+        {
+          "kind": "TEST_SOURCE_NOT_EXECUTION",
+          "file": "vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/application/billing/payment/usecase/SepayPaymentUseCaseImplTest.java",
+          "sha256": "1bf8cc4511352a847dab37ca9dd50a6a5f6748e7ba5fe63ada04f5c5d5821bbb"
+        }
+      ],
+      "cases": 60,
+      "languageGroups": {
+        "ACCENTED": 10,
+        "UNACCENTED": 10,
+        "CONVERSATIONAL": 10,
+        "TYPO": 10,
+        "KEYWORD": 10,
+        "CONTEXTUAL": 10
+      },
+      "splitLabels": {
+        "regression": 36,
+        "acceptance": 24
+      },
+      "blindHoldout": false,
+      "semanticAccuracy": null,
+      "qwenLiveAccepted": false,
+      "googleVerified": false
+    },
+    {
+      "slug": "locations-hours-sla-contact",
+      "batch": 4,
+      "version": "2.1.0",
+      "status": "DRAFT",
+      "sourceSha256": "6df4a1e6fd66aa1dbfe5e7f6d54760a16814d83945d8ce3988cf98b9619c4bc7",
+      "exportSha256": "868c12d2e31496e293352ebf45db37d2e035179f23c9464f9cc0fcf0a76e1354",
+      "staticBoundaryReviewed": "Liênhệtheoquyếtđịnh đãduyệt; formdisabled; hỗtrợ24/7 khác giờbãi; mục tiêu phản hồi khác giải quyết, tinAIkhôngtínhngườithật.",
+      "sources": [
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/domain/ai/policy/AiToolRegistry.java",
+          "sha256": "fe7d05189256ba96bd23f7a1c0b8127e5992c3d210d010ccd0eb83a245d8be76"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/operations/guestsupport/service/GuestPublicAssistantService.java",
+          "sha256": "ad105ed9a6c3b1a16c5da0e8f8134a16c73dd837357ec683b0e15efc81a3ed41"
+        },
+        {
+          "kind": "FRONTEND_STATIC_REVIEW",
+          "file": "vehicle-management-frontend/vehicle_management_react/src/features/customer-portal/pages/ContactPage.tsx",
+          "sha256": "3a010334ac1be34ea28f1283bf14b24d68cbd0d7e65bf7f2c795e89bff28e541"
+        },
+        {
+          "kind": "FRONTEND_STATIC_REVIEW",
+          "file": "vehicle-management-frontend/vehicle_management_react/src/features/customer-portal/pages/PortalShared.tsx",
+          "sha256": "f446ebd24c89b3632194411a5bb394233889c180630b50fe8d289b095f35fbc2"
+        },
+        {
+          "kind": "TEST_SOURCE_NOT_EXECUTION",
+          "file": "vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/domain/ai/model/CompanyContactFaqLookupTest.java",
+          "sha256": "6257e9a95421e3e347d36c0c9999998908e8eed22194590c30d99b5d9cf35e83"
+        }
+      ],
+      "cases": 66,
+      "languageGroups": {
+        "ACCENTED": 11,
+        "UNACCENTED": 11,
+        "PARAPHRASE": 11,
+        "TYPO": 11,
+        "SHORT": 11,
+        "CONTEXTUAL": 11
+      },
+      "splitLabels": {
+        "acceptance": 66
+      },
+      "blindHoldout": false,
+      "semanticAccuracy": null,
+      "qwenLiveAccepted": false,
+      "googleVerified": false
+    },
+    {
+      "slug": "parking-entry-exit",
+      "batch": 4,
+      "version": "2.1.0",
+      "status": "DRAFT",
+      "sourceSha256": "cb842888810b4495f45b83d30b46d52e6affcf5f0870079c1b9a672876154862",
+      "exportSha256": "f10bfcfebd352cd9cf93f261144fab7eefd048159e5b5fe03c431cda160e190e",
+      "staticBoundaryReviewed": "QRvéđăngký khácthẻvãnglai; không tạolượttrùng; biển số/quyềnbãi; thanh toán, hoàn tất và mở cổng là bước riêng.",
+      "sources": [
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/parking/parkingsession/usecase/ParkingCheckInUseCaseImpl.java",
+          "sha256": "789142758176177b045e8d89675b1f263308fcb5872c5556d251975c512bc3c2"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/parking/parkingsession/usecase/ParkingCheckOutUseCaseImpl.java",
+          "sha256": "1f27a5cd8913185f928a222e5d68c473c8d1bfea9f557c9d80688c80d790855c"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/domain/parking/parkingsession/policy/ParkingCheckInPolicy.java",
+          "sha256": "41de179bc4130b58f7179188d0fe7b742d0a9b9b913e9efb395dee00811406bb"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/domain/parking/parkingsession/policy/ParkingCheckOutPolicy.java",
+          "sha256": "b9239d5df41f1b80c4b35cd61153013862cd12d812894412b0e079627d484842"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/parking/parkingsession/authorization/ParkingSessionAccessGuard.java",
+          "sha256": "8ec8ec19eb7bf8307effdc3f189b66305f7cc9668bd2a6ee946fcf1d04e7ab28"
+        },
+        {
+          "kind": "FRONTEND_STATIC_REVIEW",
+          "file": "vehicle-management-frontend/vehicle_management_react/src/features/parking/pages/SwipeEntryPage.tsx",
+          "sha256": "722b6a51f6739dda39b9b8f555e5e01bb4602bd35cad201566a07b40fec0dcd8"
+        },
+        {
+          "kind": "FRONTEND_STATIC_REVIEW",
+          "file": "vehicle-management-frontend/vehicle_management_react/src/features/parking/pages/SwipeListPage.tsx",
+          "sha256": "90cf4e7c13a3e55118d4e52582c64839c7d476d2138bd2b57b119b2ecaa38918"
+        },
+        {
+          "kind": "TEST_SOURCE_NOT_EXECUTION",
+          "file": "vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/application/parking/parkingsession/usecase/ParkingCheckInUseCaseImplTest.java",
+          "sha256": "8be1fb903a21856095e18bd7e87530c8b505c9424d2c0ec16203e05bb7f26287"
+        },
+        {
+          "kind": "TEST_SOURCE_NOT_EXECUTION",
+          "file": "vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/application/parking/parkingsession/usecase/ParkingCheckOutUseCaseImplTest.java",
+          "sha256": "f1fa1f8e338e295f2a8138fb430ffdf5998b6596217e1bb94d163a3d0e618b41"
+        }
+      ],
+      "cases": 66,
+      "languageGroups": {
+        "ACCENTED": 11,
+        "UNACCENTED": 11,
+        "PARAPHRASE": 11,
+        "TYPO": 11,
+        "SHORT": 11,
+        "CONTEXTUAL": 11
+      },
+      "splitLabels": {
+        "acceptance": 66
+      },
+      "blindHoldout": false,
+      "semanticAccuracy": null,
+      "qwenLiveAccepted": false,
+      "googleVerified": false
+    },
+    {
+      "slug": "parking-history",
+      "batch": 2,
+      "version": "2.2.0",
+      "status": "DRAFT",
+      "sourceSha256": "302e95a7e36948e9fee15689d11a361a1129706b447c41967b9d5d9c7046add5",
+      "exportSha256": "171c6e1c809b373b7e405b696180952b6f6352e97a62e2cbb888498388accc1f",
+      "staticBoundaryReviewed": "Tra cứu gần đây20/hiểnthị5, chebiển; bộ lọcngày/ảnh ởUI; lỗi tải khác danh sáchtrống.",
+      "sources": [
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/domain/ai/policy/AiToolRegistry.java",
+          "sha256": "fe7d05189256ba96bd23f7a1c0b8127e5992c3d210d010ccd0eb83a245d8be76"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/ai/service/AiToolExecutionService.java",
+          "sha256": "25da2ae5c58e212aea0719470e8f6af65d4652e18b76917e20ab6dd272398886"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/parking/parkingsession/authorization/ParkingSessionAccessGuard.java",
+          "sha256": "8ec8ec19eb7bf8307effdc3f189b66305f7cc9668bd2a6ee946fcf1d04e7ab28"
+        },
+        {
+          "kind": "FRONTEND_STATIC_REVIEW",
+          "file": "vehicle-management-frontend/vehicle_management_react/src/features/customer-portal/pages/CustomerHistoryPage.tsx",
+          "sha256": "cbe5271677c7075a10a1a8d2efd8cecbe87e6b759953f8b3955369f34f40e3a4"
+        },
+        {
+          "kind": "TEST_SOURCE_NOT_EXECUTION",
+          "file": "vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/domain/ai/model/AssistantQuestionResolverTest.java",
+          "sha256": "a4fbf221b5e0736bf8eb51de0c8f31e359a230780024efe3f6f6b9bacedafe59"
+        }
+      ],
+      "cases": 60,
+      "languageGroups": {
+        "ACCENTED": 10,
+        "UNACCENTED": 10,
+        "CONVERSATIONAL": 40
+      },
+      "splitLabels": {
+        "regression": 48,
+        "acceptance": 12
+      },
+      "blindHoldout": false,
+      "semanticAccuracy": null,
+      "qwenLiveAccepted": false,
+      "googleVerified": false
+    },
+    {
+      "slug": "parking-search-and-map",
+      "batch": 4,
+      "version": "2.1.0",
+      "status": "DRAFT",
+      "sourceSha256": "368ff9ce9c6c955e43efb8b07ce1b4178f42e3e5f21d358433bc44043e86c700",
+      "exportSha256": "630273662370b5116827a034fdfeea10864911d096d8639eacb98ce81ac6ae06",
+      "staticBoundaryReviewed": "Bánkínhnguyên1–50km, địa chỉtừ3kýtự; đồngýđịnhvị; cờtínhnăng; khoảngcáchđịalý khácđườngđi; xemkhônggiữchỗ.",
+      "sources": [
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/parking/parkinglot/usecase/NearbyParkingLotUseCaseImpl.java",
+          "sha256": "aa1a5a716f6723a7ec8d88c327ec7a38b80e1335e998d9e3433690aade40326a"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/entrypoint/controller/parking/PublicParkingLotController.java",
+          "sha256": "b53860bd0be72b3e2f9bf06a0107f9ba70a18a85a32a44b02bbab773785de884"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/parking/location/usecase/PublicParkingLocationUseCaseImpl.java",
+          "sha256": "23f3a17913dae2bbd6ba11598cfe562d82d34d6ffc496a1a44b120ddd27794ce"
+        },
+        {
+          "kind": "FRONTEND_STATIC_REVIEW",
+          "file": "vehicle-management-frontend/vehicle_management_react/src/features/parking/pages/NearbyParkingLotsPage.tsx",
+          "sha256": "48889bea3c4e059819901bac79958e4481483e0fa05f02892f4d0af72af2279c"
+        },
+        {
+          "kind": "FRONTEND_STATIC_REVIEW",
+          "file": "vehicle-management-frontend/vehicle_management_react/src/features/parking/components/NearbyParkingMap.tsx",
+          "sha256": "31bb8735a0756f7bc025b3b300ad02b2382ec3734667c08177a0bc7faeb74ee3"
+        },
+        {
+          "kind": "TEST_SOURCE_NOT_EXECUTION",
+          "file": "vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/application/parking/parkinglot/usecase/NearbyParkingLotUseCaseImplTest.java",
+          "sha256": "870dd1fd18284418f300a7c3f8aca08abb03284659a523e9bca298160ff78142"
+        }
+      ],
+      "cases": 66,
+      "languageGroups": {
+        "ACCENTED": 11,
+        "UNACCENTED": 11,
+        "PARAPHRASE": 11,
+        "TYPO": 11,
+        "SHORT": 11,
+        "CONTEXTUAL": 11
+      },
+      "splitLabels": {
+        "acceptance": 66
+      },
+      "blindHoldout": false,
+      "semanticAccuracy": null,
+      "qwenLiveAccepted": false,
+      "googleVerified": false
+    },
+    {
+      "slug": "pricing-and-fee-calculation",
+      "batch": 3,
+      "version": "2.1.0",
+      "status": "DRAFT",
+      "sourceSha256": "c78a5d94ec48bcc1b04e33cb906c23902a1892a213919d6d10c4e14223261a9b",
+      "exportSha256": "415ecab6d5d075c7b956590e2af5e19a5a6e8500919985fd5d12b56ff0654f7c",
+      "staticBoundaryReviewed": "Giá theo bãi/loạixe/thờiđiểm; công thức lượt gửi không báo số tiền cá nhân; đặt chỗ trừ khoản trả trước.",
+      "sources": [
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/parking/parkingsession/usecase/ParkingCheckOutUseCaseImpl.java",
+          "sha256": "1f27a5cd8913185f928a222e5d68c473c8d1bfea9f557c9d80688c80d790855c"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/entrypoint/controller/catalog/PublicPricingController.java",
+          "sha256": "6bf1c609d4d8b7850a1b461c7a325f2525bc6b4e9760f98b2509f4e9a95047ae"
+        },
+        {
+          "kind": "FRONTEND_STATIC_REVIEW",
+          "file": "vehicle-management-frontend/vehicle_management_react/src/features/customer-portal/pages/PricingPage.tsx",
+          "sha256": "33a2a420c5b92addb0129229e0b12748251980cbd705450e071b3b452593ffba"
+        },
+        {
+          "kind": "TEST_SOURCE_NOT_EXECUTION",
+          "file": "vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/application/parking/parkingsession/usecase/ParkingCheckOutUseCaseImplTest.java",
+          "sha256": "f1fa1f8e338e295f2a8138fb430ffdf5998b6596217e1bb94d163a3d0e618b41"
+        }
+      ],
+      "cases": 60,
+      "languageGroups": {
+        "ACCENTED": 10,
+        "UNACCENTED": 10,
+        "CONVERSATIONAL": 10,
+        "TYPO": 10,
+        "KEYWORD": 10,
+        "CONTEXTUAL": 10
+      },
+      "splitLabels": {
+        "regression": 36,
+        "acceptance": 24
+      },
+      "blindHoldout": false,
+      "semanticAccuracy": null,
+      "qwenLiveAccepted": false,
+      "googleVerified": false
+    },
+    {
+      "slug": "reservations-and-holds",
+      "batch": 3,
+      "version": "2.1.0",
+      "status": "DRAFT",
+      "sourceSha256": "cdd065320e11f11eda4b355a77d16e0453db9ada604e029f127c11ecbbf151db",
+      "exportSha256": "75ee1d0491fbbeeeaea7261822017e9103875db8aaf6212e1dfd1a0a3d340e20",
+      "staticBoundaryReviewed": "Chờ trả10phút, vào1giờtừthànhtoán; hủy chỉHELD/chưa dùng, giải phóngchỗ; PAYMENT_REVIEW khôngđảmbảocònchỗ; chưa có hoàn tựđộng.",
+      "sources": [
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/parking/customerreservation/usecase/CustomerReservationUseCaseImpl.java",
+          "sha256": "998480d7c80f18d56e9ad9da15625c5c704ce28cb396db4090a824c44681e4c3"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/parking/customerreservation/usecase/GuestReservationCheckoutUseCase.java",
+          "sha256": "8fcf685802b59869090c75b7f123e7ffc13f4011a4174bf8b8cd6e83f6f82b4e"
+        },
+        {
+          "kind": "FRONTEND_STATIC_REVIEW",
+          "file": "vehicle-management-frontend/vehicle_management_react/src/features/parking/pages/CustomerReservationPage.tsx",
+          "sha256": "1ee5be2eeb3508f390deab064d59f6301f53c15cc690a939ae97602a6258ad0e"
+        },
+        {
+          "kind": "TEST_SOURCE_NOT_EXECUTION",
+          "file": "vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/application/parking/customerreservation/usecase/CustomerReservationUseCaseImplTest.java",
+          "sha256": "82fc9c5ae02e941c67e271f5f3265a11b799970df788690d96eb57472373616b"
+        }
+      ],
+      "cases": 60,
+      "languageGroups": {
+        "ACCENTED": 10,
+        "UNACCENTED": 10,
+        "CONVERSATIONAL": 10,
+        "TYPO": 10,
+        "KEYWORD": 10,
+        "CONTEXTUAL": 10
+      },
+      "splitLabels": {
+        "regression": 36,
+        "acceptance": 24
+      },
+      "blindHoldout": false,
+      "semanticAccuracy": null,
+      "qwenLiveAccepted": false,
+      "googleVerified": false
+    },
+    {
+      "slug": "subscription-lifecycle",
+      "batch": 2,
+      "version": "2.1.0",
+      "status": "DRAFT",
+      "sourceSha256": "b0d50e4f3ac065d2e0e375f4c2e0996027b92e42550674d9bc94a24baac1090d",
+      "exportSha256": "d537957889a6ca3190f88e9346a64079a467e10c6678778e578ef684a2c2923f",
+      "staticBoundaryReviewed": "Ngày bắt đầu0–7ngày,1–12kỳ; gia hạn nối sau hạn; hóa đơn, vị trí, hiệu lực và cấp thẻ riêng.",
+      "sources": [
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/domain/accesscontrol/subscription/policy/SubscriptionPolicy.java",
+          "sha256": "1f6c75d77d971669785c79f17b4c72a90b0ba0b33460e4286b8e4a4e621feb90"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/accesscontrol/subscription/usecase/SubscriptionUseCaseImpl.java",
+          "sha256": "b455aa0ac3a2567bd4689c282c626efdf3eaaff21c28f92fad4b2c46cd4b43a0"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/accesscontrol/subscription/authorization/SubscriptionAccessGuard.java",
+          "sha256": "b0374aa215cd97be697dc4c311a4c75e003aa4fd0b88985dd54c857815b127e2"
+        },
+        {
+          "kind": "FRONTEND_STATIC_REVIEW",
+          "file": "vehicle-management-frontend/vehicle_management_react/src/features/customer-portal/pages/SubscriptionPage.tsx",
+          "sha256": "5eda2d458a897925985bc529ad956a0abd747712f25b924aa47b31176308ea89"
+        },
+        {
+          "kind": "TEST_SOURCE_NOT_EXECUTION",
+          "file": "vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/application/accesscontrol/subscription/usecase/SubscriptionUseCaseImplTest.java",
+          "sha256": "2ff424583e4b89c5d40f849a832294f5eeebf4015dad6aca1b53bda23feabf5c"
+        },
+        {
+          "kind": "TEST_SOURCE_NOT_EXECUTION",
+          "file": "vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/domain/accesscontrol/subscription/policy/SubscriptionPolicyTest.java",
+          "sha256": "88be89116125b3646acc62df77ba300dbd7d61ee9dc3c1e0f6a887a6e2f25435"
+        }
+      ],
+      "cases": 60,
+      "languageGroups": {
+        "ACCENTED": 10,
+        "UNACCENTED": 10,
+        "CONVERSATIONAL": 38,
+        "TYPO": 2
+      },
+      "splitLabels": {
+        "regression": 48,
+        "acceptance": 12
+      },
+      "blindHoldout": false,
+      "semanticAccuracy": null,
+      "qwenLiveAccepted": false,
+      "googleVerified": false
+    },
+    {
+      "slug": "support-ticket-and-escalation",
+      "batch": 1,
+      "version": "2.1.0",
+      "status": "DRAFT",
+      "sourceSha256": "56c69878967e9e24be532b0e3d885cd32df107529bf1ccaa70aaa914ae20f90d",
+      "exportSha256": "0c3087a808bc162f308a5640212fe92529063080b26a8ca36147171f5dd4d622",
+      "staticBoundaryReviewed": "Quyền tạo/đọc, danh mục và owner; tự đóng24h; đã giải quyết khác đã đóng; tạo qua trợ lý cần xác nhận.",
+      "sources": [
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/operations/supportticket/authorization/SupportRequesterContextResolver.java",
+          "sha256": "bfb94ef9c5867af448015939fb383a4be00e5f5e911ed170d2170b55e03188b4"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/operations/supportticket/authorization/SupportTicketAccessGuard.java",
+          "sha256": "1a307e535c617ea2a67ba236d726d8088a64ef0217a396fdea0019f332023214"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/domain/operations/supportticket/policy/SupportTicketPolicy.java",
+          "sha256": "e32b23b2de9528117de86b3f5975b6710fecf95ae41ca6a3ca35057933cb1f21"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/operations/supportticket/usecase/SupportTicketUseCaseImpl.java",
+          "sha256": "ebdf9754f9d2c9559c315cce60f10cf84ad31f6354cb1fadf827b7cbeab02cc2"
+        },
+        {
+          "kind": "FRONTEND_STATIC_REVIEW",
+          "file": "vehicle-management-frontend/vehicle_management_react/src/features/support/components/CreateSupportTicketDialog.tsx",
+          "sha256": "d8b0ec4219aec38cf7e390fbbe161d086d1c99f7d3c333cc54e9bfd9d2829d7c"
+        },
+        {
+          "kind": "FRONTEND_STATIC_REVIEW",
+          "file": "vehicle-management-frontend/vehicle_management_react/src/features/customer-portal/pages/SupportPage.tsx",
+          "sha256": "009dd980e4e5f7729e5759e9995a17fe60edd7a894fa3df942a3988b252b3f61"
+        },
+        {
+          "kind": "TEST_SOURCE_NOT_EXECUTION",
+          "file": "vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/domain/operations/supportticket/policy/SupportTicketPolicyTest.java",
+          "sha256": "cd1cd8ea047748c02ee527829e52cf8264433e5fb83e1754f5d9c359c207a562"
+        }
+      ],
+      "cases": 60,
+      "languageGroups": {
+        "ACCENTED": 10,
+        "UNACCENTED": 10,
+        "PARAPHRASE": 10,
+        "SHORT_OR_TYPO": 10,
+        "CONTEXTUAL": 10,
+        "ALTERNATIVE": 10
+      },
+      "splitLabels": {
+        "regression": 48,
+        "acceptance": 12
+      },
+      "blindHoldout": false,
+      "semanticAccuracy": null,
+      "qwenLiveAccepted": false,
+      "googleVerified": false
+    },
+    {
+      "slug": "voucher-and-promotions",
+      "batch": 3,
+      "version": "2.2.0",
+      "status": "DRAFT",
+      "sourceSha256": "1c3a853dd0c52e34feba0cf46c240f1fbd4efb2337b3b2af34c4f50da3be65ef",
+      "exportSha256": "8e05ce4259072b566aca928d405fd5941a55bbc857777c059d9bc8e7c2b7ca66",
+      "staticBoundaryReviewed": "Hiệulực là đầu vào gồmđầu/khônggồmcuối; preview không giữlượt; lượt đanggiữ khác đãdùng; kiểmtra lại khigửi.",
+      "sources": [
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/domain/catalog/voucher/policy/VoucherPolicy.java",
+          "sha256": "ba2739e51d0d4fd0bcf9b7db9d556f8b47235a1adaff51580a9651383c249892"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/catalog/voucher/usecase/VoucherUseCaseImpl.java",
+          "sha256": "2c99d4efb7cfbc7b8cf67afe96e2ac4eeb2372b25024731ef3a8035fdee8c6f1"
+        },
+        {
+          "kind": "BACKEND_STATIC_REVIEW",
+          "file": "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/accesscontrol/subscription/usecase/SubscriptionUseCaseImpl.java",
+          "sha256": "b455aa0ac3a2567bd4689c282c626efdf3eaaff21c28f92fad4b2c46cd4b43a0"
+        },
+        {
+          "kind": "FRONTEND_STATIC_REVIEW",
+          "file": "vehicle-management-frontend/vehicle_management_react/src/features/customer-portal/pages/SubscriptionPage.tsx",
+          "sha256": "5eda2d458a897925985bc529ad956a0abd747712f25b924aa47b31176308ea89"
+        },
+        {
+          "kind": "TEST_SOURCE_NOT_EXECUTION",
+          "file": "vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/domain/catalog/voucher/policy/VoucherPolicyTest.java",
+          "sha256": "304c4dd051a6c58fc9205dd7f8924f765900b04eb479e0ac448cdc496bdd8439"
+        }
+      ],
+      "cases": 60,
+      "languageGroups": {
+        "ACCENTED": 10,
+        "UNACCENTED": 10,
+        "CONVERSATIONAL": 10,
+        "TYPO": 10,
+        "KEYWORD": 10,
+        "CONTEXTUAL": 10
+      },
+      "splitLabels": {
+        "regression": 36,
+        "acceptance": 24
+      },
+      "blindHoldout": false,
+      "semanticAccuracy": null,
+      "qwenLiveAccepted": false,
+      "googleVerified": false
+    }
+  ],
+  "batchCases": 984,
+  "baselineCases": 120,
+  "faqParsingNote": "Python exact folded-question diagnostic only; not CanonicalQuestionKey, SQL ranking, scope acceptance or a semantic grade.",
+  "exactQuestionConflicts": [],
+  "errors": []
+}

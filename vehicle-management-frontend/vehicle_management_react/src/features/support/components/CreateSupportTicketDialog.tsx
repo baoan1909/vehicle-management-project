@@ -1,12 +1,12 @@
-import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 import { useEffect, useRef, useState } from "react";
 import { Button, Modal } from "@/components/ui";
 import {
-  getAvailableSupportTicketCategories,
   type SaveSupportTicketRequest,
-  type SupportTicketAvailableCategoryResponse,
   type SupportTicketResponse,
 } from "@/features/support/api/supportApi";
+import { SupportCategoryPicker } from "@/features/support/components/SupportCategoryPicker";
+import { isSupportCategoryError, useAvailableSupportCategories } from "@/features/support/hooks/useAvailableSupportCategories";
+import { validateSupportTicketForm } from "@/features/support/utils/validateSupportTicketForm";
 
 const priorityLabels = { LOW: "Thấp", NORMAL: "Bình thường", HIGH: "Cao", URGENT: "Khẩn cấp" } as const;
 const emptyForm: SaveSupportTicketRequest = { categoryId: "", content: "", title: "" };
@@ -29,10 +29,10 @@ export function CreateSupportTicketDialog({
   onCreated: (ticket: SupportTicketResponse) => void;
   open: boolean;
 }) {
-  const [categories, setCategories] = useState<SupportTicketAvailableCategoryResponse[]>([]);
+  const categoryState = useAvailableSupportCategories(open);
+  const { categories, loading } = categoryState;
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const idempotencyKeyRef = useRef("");
 
@@ -41,23 +41,15 @@ export function CreateSupportTicketDialog({
     setForm(emptyForm);
     setError("");
     idempotencyKeyRef.current = globalThis.crypto.randomUUID();
-    setLoading(true);
-    void getAvailableSupportTicketCategories()
-      .then((response) => setCategories(response.data ?? []))
-      .catch((caught) => setError(getErrorMessage(caught, "Không thể tải danh mục hỗ trợ.")))
-      .finally(() => setLoading(false));
   }, [open]);
 
   const selectedCategory = categories.find((category) => category.categoryId === form.categoryId);
 
   async function submit() {
     const payload = { categoryId: form.categoryId, content: form.content.trim(), title: form.title.trim() };
-    if (!payload.categoryId || !payload.title || !payload.content) {
-      setError("Vui lòng chọn danh mục, nhập tiêu đề và nội dung chi tiết.");
-      return;
-    }
-    if (payload.title.length > 150) {
-      setError("Tiêu đề không được vượt quá 150 ký tự.");
+    const validationError = validateSupportTicketForm(payload);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -69,6 +61,10 @@ export function CreateSupportTicketDialog({
       onClose();
     } catch (caught) {
       setError(getErrorMessage(caught, "Không thể tạo phiếu hỗ trợ."));
+      if (isSupportCategoryError(caught)) {
+        setForm((current) => ({ ...current, categoryId: "" }));
+        await categoryState.reload();
+      }
     } finally {
       setSaving(false);
     }
@@ -76,8 +72,8 @@ export function CreateSupportTicketDialog({
 
   return (
     <Modal
-      actions={<><Button variant="secondary" disabled={saving} onClick={onClose}>Hủy</Button><Button disabled={loading || saving} loading={saving} onClick={() => void submit()}>Tạo phiếu hỗ trợ</Button></>}
-      description="Phiếu chỉ được tạo sau khi bạn xác nhận; tin nhắn trò chuyện thông thường không tạo phiếu."
+      actions={<><Button variant="secondary" disabled={saving} onClick={onClose}>Hủy</Button><Button disabled={loading || saving || !selectedCategory || Boolean(categoryState.error)} loading={saving} onClick={() => void submit()}>Tạo phiếu hỗ trợ</Button></>}
+      description="Chỉ báo lỗi chức năng hệ thống. Dùng module nghiệp vụ tương ứng để xử lý các yêu cầu vận hành."
       onClose={() => !saving && onClose()}
       open={open}
       title="Tạo phiếu hỗ trợ"
@@ -85,14 +81,8 @@ export function CreateSupportTicketDialog({
     >
       <div className="tw-grid tw-gap-4">
         {error ? <div role="alert" className="tw-rounded-lg tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-3 tw-text-sm tw-font-bold tw-text-red-700">{error}</div> : null}
-        <label className="tw-grid tw-gap-1.5 tw-text-sm tw-font-bold tw-text-slate-700">Danh mục hỗ trợ
-          <SelectMenu ariaLabel="Danh mục hỗ trợ"
-                  disabled={loading || saving}
-                  triggerClassName={"tw-h-11 tw-rounded-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-px-3"}
-                  value={form.categoryId}
-                  onChange={(selectedValue) => setForm((current) => ({ ...current, categoryId: selectedValue }))}
-                  options={[{ label: loading ? "Đang tải danh mục..." : "Chọn danh mục", value: "" }, ...categories.map((category) => ({ label: category.name, value: category.categoryId }))]} portal clearValue="" />
-        </label>
+        <SupportCategoryPicker state={categoryState} disabled={saving} value={form.categoryId}
+            onChange={(categoryId) => setForm((current) => ({ ...current, categoryId }))} />
         <label className="tw-grid tw-gap-1.5 tw-text-sm tw-font-bold tw-text-slate-700">Mức ưu tiên
           <input readOnly className="tw-h-11 tw-rounded-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-slate-50 tw-px-3" value={selectedCategory ? priorityLabels[selectedCategory.priority] : "Tự động theo danh mục"} />
         </label>
@@ -100,7 +90,7 @@ export function CreateSupportTicketDialog({
           <input maxLength={150} disabled={saving} className="tw-h-11 tw-rounded-lg tw-border tw-border-solid tw-border-slate-200 tw-px-3" value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} />
         </label>
         <label className="tw-grid tw-gap-1.5 tw-text-sm tw-font-bold tw-text-slate-700">Nội dung chi tiết
-          <textarea maxLength={4000} disabled={saving} className="tw-min-h-28 tw-rounded-lg tw-border tw-border-solid tw-border-slate-200 tw-p-3" value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} />
+          <textarea maxLength={4000} disabled={saving} placeholder="Nêu rõ chức năng gặp lỗi, bước thực hiện và lỗi thực tế." className="tw-min-h-28 tw-rounded-lg tw-border tw-border-solid tw-border-slate-200 tw-p-3" value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} />
         </label>
       </div>
     </Modal>

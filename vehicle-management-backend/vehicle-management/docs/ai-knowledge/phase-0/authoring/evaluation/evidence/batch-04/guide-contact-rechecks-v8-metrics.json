@@ -1,0 +1,73 @@
+{
+  "records": 37,
+  "answerJobs": 37,
+  "jobStatuses": {
+    "COMPLETED": 37
+  },
+  "retrieval": {
+    "n": 37,
+    "hitAt5": 37,
+    "sufficient": 37,
+    "misses": [],
+    "insufficient": []
+  },
+  "citationIds": {
+    "issued": 47,
+    "invalidOrDuplicateCases": [],
+    "semanticSupportNotGraded": true
+  },
+  "generationJobs": 37,
+  "faqJobsWithoutGeneration": 0,
+  "providerAttemptsCaptured": 47,
+  "modelsAttempted": {
+    "gemini-3.1-flash-lite": 9,
+    "gemini-3.5-flash-lite": 38
+  },
+  "providerFailuresCaptured": {
+    "TIMEOUT": 1,
+    "GEMINI_REQUEST_BUDGET_EXHAUSTED": 1,
+    "GEMINI_CANDIDATE_UNAVAILABLE": 8
+  },
+  "latencyMs": {
+    "retrievalIncludingQueryVectorLookup": {
+      "n": 37,
+      "p50": 61,
+      "p95": 523,
+      "max": 572
+    },
+    "faqJob": {
+      "n": 0,
+      "p50": null,
+      "p95": null,
+      "max": null
+    },
+    "generationJobIncludingRetries": {
+      "n": 37,
+      "p50": 4933,
+      "p95": 10692,
+      "max": 35598
+    },
+    "providerAttempt": {
+      "n": 47,
+      "p50": 4535,
+      "p95": 7368,
+      "max": 10889
+    },
+    "allAnswerJobs": {
+      "n": 37,
+      "p50": 4933,
+      "p95": 10692,
+      "max": 35598
+    }
+  },
+  "tokensCaptured": {
+    "input": 55957,
+    "output": 2507
+  },
+  "notes": [
+    "Percentiles use nearest rank.",
+    "Provider attempts are not assumed to equal HTTP calls.",
+    "Fixture, recorded-vector and live modes must be declared separately by the report.",
+    "COMPLETED and valid citation IDs do not establish semantic correctness."
+  ]
+}

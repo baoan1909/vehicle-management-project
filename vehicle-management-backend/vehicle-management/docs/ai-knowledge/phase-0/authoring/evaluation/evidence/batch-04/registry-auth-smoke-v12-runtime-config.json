@@ -1,0 +1,60 @@
+{
+  "workerMaxAttempts" : 3,
+  "generationMinIntervalMs" : 5000,
+  "generationTimeoutMs" : 10000,
+  "providerCallBudgetMs" : 12000,
+  "requestTimeoutMs" : 20000,
+  "embeddingMinIntervalMs" : 650,
+  "workerRetryInitialMs" : 20000,
+  "timeoutWorkerRetryCapMs" : 1000,
+  "capturedAt" : "2026-11-23T18:10:08.646903700Z",
+  "answerCacheEnabled" : false,
+  "modelRegistryMode" : "READ_ONLY_APPROVED_REGISTRY_SNAPSHOT",
+  "modelRegistrySha256" : "0e51bd48be1c1b8864487f56d337e4c361d329ad5870128eb4ca9b023b50ae92",
+  "candidateModels" : [ {
+    "maxOutputTokens" : 1024,
+    "status" : "ACTIVE",
+    "modelId" : "gemini-3.6-flash",
+    "freeTierApproved" : true
+  }, {
+    "maxOutputTokens" : 1024,
+    "status" : "FALLBACK",
+    "modelId" : "gemini-3.1-flash-lite",
+    "freeTierApproved" : true
+  }, {
+    "maxOutputTokens" : 1024,
+    "status" : "FALLBACK",
+    "modelId" : "gemini-3.5-flash-lite",
+    "freeTierApproved" : true
+  }, {
+    "maxOutputTokens" : 1024,
+    "status" : "FALLBACK",
+    "modelId" : "gemini-2.5-flash-lite",
+    "freeTierApproved" : true
+  }, {
+    "maxOutputTokens" : 1024,
+    "status" : "FALLBACK",
+    "modelId" : "gemini-2.5-flash",
+    "freeTierApproved" : true
+  }, {
+    "maxOutputTokens" : 1024,
+    "status" : "FALLBACK",
+    "modelId" : "gemini-3.5-flash",
+    "freeTierApproved" : true
+  }, {
+    "maxOutputTokens" : 1024,
+    "status" : "FALLBACK",
+    "modelId" : "gemini-3-flash-preview",
+    "freeTierApproved" : true
+  }, {
+    "maxOutputTokens" : 1024,
+    "status" : "FALLBACK",
+    "modelId" : "gemini-3.7-flash",
+    "freeTierApproved" : true
+  }, {
+    "maxOutputTokens" : 1024,
+    "status" : "FALLBACK",
+    "modelId" : "gemini-3.8-flash",
+    "freeTierApproved" : true
+  } ]
+}

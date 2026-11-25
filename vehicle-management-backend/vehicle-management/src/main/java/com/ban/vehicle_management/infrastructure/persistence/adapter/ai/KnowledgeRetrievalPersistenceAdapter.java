@@ -20,6 +20,13 @@ public class KnowledgeRetrievalPersistenceAdapter implements KnowledgeRetrievalP
     }
 
     @Override
+    public boolean areChunksEligible(UUID tenantId, UUID indexVersionId, List<String> accessScopes, List<UUID> chunkIds) {
+        if (chunkIds.isEmpty()) return true;
+        return repository.findEligibleCachedChunkIds(tenantId, indexVersionId, accessScopes, chunkIds).size()
+                == new java.util.HashSet<>(chunkIds).size();
+    }
+
+    @Override
     public List<HybridSearchRow> hybridSearch(
             UUID tenantId,
             UUID indexVersionId,

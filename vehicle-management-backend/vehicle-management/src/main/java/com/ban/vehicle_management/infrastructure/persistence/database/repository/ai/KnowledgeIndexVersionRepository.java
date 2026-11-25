@@ -23,6 +23,16 @@ public interface KnowledgeIndexVersionRepository extends JpaRepository<Knowledge
     List<KnowledgeIndexVersionEntity> findByStatus(KnowledgeIndexVersionStatus status);
 
     Optional<KnowledgeIndexVersionEntity> findByStatusAndActivatedAtIsNotNull(KnowledgeIndexVersionStatus status);
+    Optional<KnowledgeIndexVersionEntity> findByProviderAndStatusAndActivatedAtIsNotNull(
+            com.ban.vehicle_management.shared.enumeration.ai.AiProvider provider, KnowledgeIndexVersionStatus status);
+    Optional<KnowledgeIndexVersionEntity> findFirstByProviderAndStatusInOrderByCreatedAtAsc(
+            com.ban.vehicle_management.shared.enumeration.ai.AiProvider provider, List<KnowledgeIndexVersionStatus> statuses);
+    long countByProviderAndStatusIn(com.ban.vehicle_management.shared.enumeration.ai.AiProvider provider, List<KnowledgeIndexVersionStatus> statuses);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select version from KnowledgeIndexVersionEntity version where version.provider = :provider and version.status = :status and version.activatedAt is not null")
+    Optional<KnowledgeIndexVersionEntity> findActiveForProviderUpdate(
+            @Param("provider") com.ban.vehicle_management.shared.enumeration.ai.AiProvider provider,
+            @Param("status") KnowledgeIndexVersionStatus status);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select version from KnowledgeIndexVersionEntity version where version.status = :status and version.activatedAt is not null")

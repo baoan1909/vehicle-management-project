@@ -17,6 +17,13 @@ public interface KnowledgeIndexVersionPortOut {
 
     Optional<KnowledgeIndexVersion> findActive();
 
+    default Optional<KnowledgeIndexVersion> findActive(com.ban.vehicle_management.shared.enumeration.ai.AiProvider provider) {
+        return findActive().filter(index -> index.getProvider() == provider);
+    }
+    default Optional<KnowledgeIndexVersion> findActiveForUpdate(com.ban.vehicle_management.shared.enumeration.ai.AiProvider provider) {
+        return findActiveForUpdate().filter(index -> index.getProvider() == provider);
+    }
+
     Optional<KnowledgeIndexVersion> findActiveForUpdate();
 
     List<KnowledgeIndexVersion> findByStatus(KnowledgeIndexVersionStatus status);

@@ -16,8 +16,68 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import com.ban.vehicle_management.infrastructure.persistence.database.projection.iam.AccountDeletionResourceScopeProjection;
+import com.ban.vehicle_management.infrastructure.persistence.database.projection.accesscontrol.SubscriptionChatOrderProjection;
 
 public interface SubscriptionRepository extends JpaRepository<SubscriptionEntity, UUID>, JpaSpecificationExecutor<SubscriptionEntity> {
+
+    @Query(value = """
+        select subscription.subscription_id as "subscriptionId",
+               subscription.parking_lot_id as "parkingLotId",
+               lot.code as "parkingLotCode",
+               lot.name as "parkingLotName",
+               ticket.code as "ticketTypeCode",
+               ticket.name as "ticketTypeName",
+               vehicle.license_plate as "licensePlate",
+               vehicle_type.name as "vehicleTypeName",
+               subscription.effective_from as "effectiveFrom",
+               subscription.effective_to as "effectiveTo",
+               subscription.price as "price",
+               subscription.status as "status",
+               subscription.created_at as "createdAt"
+          from access_control.subscriptions subscription
+          join parking.parking_lots lot on lot.parking_lot_id = subscription.parking_lot_id
+          join catalog.ticket_types ticket on ticket.ticket_type_id = subscription.ticket_type_id
+          join people.customer_vehicles vehicle on vehicle.customer_vehicle_id = subscription.customer_vehicle_id
+          join catalog.vehicle_types vehicle_type on vehicle_type.vehicle_type_id = vehicle.vehicle_type_id
+         where subscription.customer_id = :customerId
+           and subscription.parking_lot_id in (:parkingLotIds)
+         order by subscription.created_at desc
+         limit :limit
+        """, nativeQuery = true)
+    List<SubscriptionChatOrderProjection> findChatOrders(
+            @Param("customerId") UUID customerId,
+            @Param("parkingLotIds") Collection<UUID> parkingLotIds,
+            @Param("limit") int limit
+    );
+
+    @Query(value = """
+        select subscription.subscription_id as "subscriptionId",
+               subscription.parking_lot_id as "parkingLotId",
+               lot.code as "parkingLotCode",
+               lot.name as "parkingLotName",
+               ticket.code as "ticketTypeCode",
+               ticket.name as "ticketTypeName",
+               vehicle.license_plate as "licensePlate",
+               vehicle_type.name as "vehicleTypeName",
+               subscription.effective_from as "effectiveFrom",
+               subscription.effective_to as "effectiveTo",
+               subscription.price as "price",
+               subscription.status as "status",
+               subscription.created_at as "createdAt"
+          from access_control.subscriptions subscription
+          join parking.parking_lots lot on lot.parking_lot_id = subscription.parking_lot_id
+          join catalog.ticket_types ticket on ticket.ticket_type_id = subscription.ticket_type_id
+          join people.customer_vehicles vehicle on vehicle.customer_vehicle_id = subscription.customer_vehicle_id
+          join catalog.vehicle_types vehicle_type on vehicle_type.vehicle_type_id = vehicle.vehicle_type_id
+         where subscription.subscription_id = :subscriptionId
+           and subscription.customer_id = :customerId
+           and subscription.parking_lot_id in (:parkingLotIds)
+        """, nativeQuery = true)
+    Optional<SubscriptionChatOrderProjection> findChatOrderById(
+            @Param("subscriptionId") UUID subscriptionId,
+            @Param("customerId") UUID customerId,
+            @Param("parkingLotIds") Collection<UUID> parkingLotIds
+    );
 
     @Query(value = """
         select count(distinct customer_id)

@@ -1,0 +1,68 @@
+{
+  "records": 40,
+  "answerJobs": 40,
+  "jobStatuses": {
+    "COMPLETED": 40
+  },
+  "retrieval": {
+    "n": 38,
+    "hitAt5": 38,
+    "sufficient": 38,
+    "misses": [],
+    "insufficient": []
+  },
+  "citationIds": {
+    "issued": 36,
+    "invalidOrDuplicateCases": [],
+    "semanticSupportNotGraded": true
+  },
+  "generationJobs": 3,
+  "faqJobsWithoutGeneration": 35,
+  "providerAttemptsCaptured": 3,
+  "modelsAttempted": {
+    "gemini-3.1-flash-lite": 3
+  },
+  "providerFailuresCaptured": {},
+  "latencyMs": {
+    "retrievalIncludingQueryVectorLookup": {
+      "n": 38,
+      "p50": 625,
+      "p95": 682,
+      "max": 703
+    },
+    "faqJob": {
+      "n": 35,
+      "p50": 640,
+      "p95": 690,
+      "max": 730
+    },
+    "generationJobIncludingRetries": {
+      "n": 3,
+      "p50": 3384,
+      "p95": 3524,
+      "max": 3524
+    },
+    "providerAttempt": {
+      "n": 3,
+      "p50": 2834,
+      "p95": 3034,
+      "max": 3034
+    },
+    "allAnswerJobs": {
+      "n": 40,
+      "p50": 640,
+      "p95": 1948,
+      "max": 3524
+    }
+  },
+  "tokensCaptured": {
+    "input": 4155,
+    "output": 298
+  },
+  "notes": [
+    "Percentiles use nearest rank.",
+    "Provider attempts are not assumed to equal HTTP calls.",
+    "Fixture, recorded-vector and live modes must be declared separately by the report.",
+    "COMPLETED and valid citation IDs do not establish semantic correctness."
+  ]
+}

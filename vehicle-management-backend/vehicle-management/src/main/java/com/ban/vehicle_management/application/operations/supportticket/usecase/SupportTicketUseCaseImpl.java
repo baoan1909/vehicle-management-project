@@ -131,6 +131,9 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
         ChatConversation conversation = ticketConversationService.getRequesterTicketOriginConversation(
                 conversationId, requesterAccountId
         );
+        if (!requesterAccountId.equals(conversation.getOwnerAccountId())) {
+            throw new AccessDeniedException("Only the requester can create a support ticket in this conversation");
+        }
         SupportRequesterContext requester = conversation.getConversationType() == ChatConversationType.ASSISTANT_SUPPORT
                 ? accessGuard.requesterForCreate()
                 : accessGuard.requesterForCreateFromChat();
@@ -535,6 +538,7 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
         supportTicket.setRequesterNameSnapshot(requester.displayName());
         supportTicket.setRequesterEmailSnapshot(requester.email());
         supportTicket.setFeatureCode(category.getFeatureCode());
+        supportTicket.setPriority(category.getPriority());
         supportTicket.setContextKey(TextValidationUtils.normalizeNullableText(
                 supportTicket.getContextKey(), "contextKey", 255
         ));

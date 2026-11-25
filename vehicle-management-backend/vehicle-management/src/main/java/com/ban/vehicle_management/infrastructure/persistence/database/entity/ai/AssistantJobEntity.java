@@ -18,6 +18,12 @@ import lombok.Setter;
 @Setter
 public class AssistantJobEntity {
 
+    @Column(name = "runtime_epoch", insertable = false, updatable = false)
+    private Long runtimeEpoch;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "runtime_mode", insertable = false, updatable = false)
+    private com.ban.vehicle_management.shared.enumeration.ai.AiRuntimeMode runtimeMode;
+
     @Id
     @Column(name = "job_id", nullable = false)
     private UUID jobId;

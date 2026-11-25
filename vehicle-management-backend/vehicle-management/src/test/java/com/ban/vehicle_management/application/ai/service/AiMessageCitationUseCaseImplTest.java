@@ -34,6 +34,8 @@ class AiMessageCitationUseCaseImplTest {
     @Mock
     private KnowledgeRetrievalAuditPortOut auditPortOut;
 
+    @Mock private com.ban.vehicle_management.application.ai.port.out.KnowledgeRetrievalPortOut retrievalPortOut;
+    @Mock private KnowledgeAccessContextResolver accessResolver;
     private AiMessageCitationUseCaseImpl useCase;
     private final UUID accountId = UUID.randomUUID();
     private final UUID conversationId = UUID.randomUUID();
@@ -41,7 +43,7 @@ class AiMessageCitationUseCaseImplTest {
 
     @BeforeEach
     void setUp() {
-        useCase = new AiMessageCitationUseCaseImpl(currentAccountPortIn, chatPortOut, citationPortOut, auditPortOut);
+        useCase = new AiMessageCitationUseCaseImpl(currentAccountPortIn, chatPortOut, citationPortOut, auditPortOut, retrievalPortOut, accessResolver);
     }
 
     @Test
@@ -57,10 +59,15 @@ class AiMessageCitationUseCaseImplTest {
         when(chatPortOut.findMember(conversationId, accountId)).thenReturn(Optional.of(new ChatConversationMember()));
         when(citationPortOut.findByMessageId(messageId)).thenReturn(List.of(citation));
 
+        when(accessResolver.resolveScopes()).thenReturn(List.of("PUBLIC"));
+        when(retrievalPortOut.areChunksEligible(null, citation.indexVersionId(), List.of("PUBLIC"), List.of(citation.chunkId())))
+                .thenReturn(true).thenReturn(false);
         var result = useCase.citationsForMessage(messageId);
 
         assertEquals(1, result.citations().size());
         assertEquals("C1", result.citations().get(0).label());
+        // The same member no longer receives title/section after permission/source/version revocation.
+        assertEquals(List.of(), useCase.citationsForMessage(messageId).citations());
     }
 
     @Test

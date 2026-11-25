@@ -1,0 +1,55 @@
+{
+  "expectedDocument": {
+    "authentication-and-profile": {
+      "total": 54,
+      "hitAt5": 54,
+      "sufficient": 43
+    },
+    "chat-conversations-and-support-boundaries": {
+      "total": 42,
+      "hitAt5": 42,
+      "sufficient": 41
+    },
+    "chatbot-privacy-and-prohibited-data": {
+      "total": 24,
+      "hitAt5": 24,
+      "sufficient": 22
+    },
+    "support-ticket-and-escalation": {
+      "total": 48,
+      "hitAt5": 48,
+      "sufficient": 37
+    }
+  },
+  "split": {
+    "acceptance": {
+      "total": 24,
+      "hitAt5": 24,
+      "sufficient": 18
+    },
+    "regression": {
+      "total": 144,
+      "hitAt5": 144,
+      "sufficient": 125
+    }
+  },
+  "latencyMs": {
+    "n": 168,
+    "min": 399,
+    "median": 445.0,
+    "p95NearestRank": 499,
+    "max": 711,
+    "cache": "disabled",
+    "pacingMsOutsideMeasurement": 900
+  },
+  "beforeLexical": {
+    "hits": 168,
+    "sufficient": 111,
+    "n": 168
+  },
+  "afterLexical": {
+    "hits": 168,
+    "sufficient": 143,
+    "n": 168
+  }
+}

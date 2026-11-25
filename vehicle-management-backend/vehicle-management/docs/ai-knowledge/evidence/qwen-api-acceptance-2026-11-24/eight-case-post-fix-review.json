@@ -1,0 +1,461 @@
+{
+  "kind": "POST_FIX_OFFLINE_REVIEW_ONLY",
+  "reviewed": 8,
+  "passed": 8,
+  "previousFailureEvidencePreserved": true,
+  "corpusManifestSha256": "1245efadf3d5bf2fba891e892cd3e65cd10d2cf06796a77f927ca04bb41433e5",
+  "qualityAccepted": false,
+  "cases": [
+    {
+      "case": {
+        "scenarioId": "B2-SUB01",
+        "documentSlug": "subscription-lifecycle",
+        "expectedIntent": "STATIC_KNOWLEDGE",
+        "requiredIdeas": [
+          "Vé tháng của tôi",
+          "Đăng ký vé mới",
+          "hôm nay đến 7 ngày tới"
+        ],
+        "expectedTool": null,
+        "context": [],
+        "requiredUserFacingLabels": [],
+        "split": "regression",
+        "caseId": "B2-SUB01-1",
+        "question": "Đăng ký vé tháng như thế nào?",
+        "variantType": "ACCENTED",
+        "confirmationRequired": false,
+        "forbiddenBehavior": [
+          "cross-account disclosure",
+          "unconfirmed mutation",
+          "fabricated live data",
+          "unnecessary internal type",
+          "private image URL",
+          "full identity document"
+        ],
+        "requiredPermissions": [
+          "SUPPORT_WIDGET_ACCESS_OWN"
+        ],
+        "expectedDatabaseEffect": "NONE",
+        "citationsRequired": true,
+        "expectedAnswerMode": "RAG",
+        "persona": "CUSTOMER",
+        "expectedAccessScope": "CUSTOMER",
+        "status": "DRAFT",
+        "forbiddenInternalTerms": [
+          "PENDING_PAYMENT",
+          "PENDING_SPACE",
+          "subscriptionId",
+          "customerId",
+          "cardUid",
+          "qrAccessToken",
+          "READ_OWN"
+        ],
+        "responseStyle": "plain-vietnamese-v2"
+      },
+      "actualOfflineAnswer": "Mở Vé tháng của tôi, chọn Đăng ký vé mới rồi chọn bãi, phương tiện, loại vé, số kỳ và ngày bắt đầu từ hôm nay đến 7 ngày tới theo ngày tại Việt Nam. Kiểm tra giá, gửi đăng ký và theo dõi duyệt. Thanh toán, chọn vị trí hoặc nhận thẻ thực hiện theo yêu cầu đang hiển thị; thanh toán xong chưa tự chứng minh vé đã dùng được.",
+      "grade": "PASS",
+      "reviewer": "Codex qualitative review after source/code cross-check; no human approval",
+      "reason": "Đã nêu đúng ngày bắt đầu0–7ngày và điều kiện sử dụng",
+      "sourceSlug": "subscription-lifecycle",
+      "sourceAuthoringVersion": "2.2.0",
+      "sourceSha256": "7d3a93cd1fb0adccd55310f673180ef39bdb0b851fd75fd3420c1e4aee5313fe",
+      "apiExecuted": false,
+      "qwenGenerated": false
+    },
+    {
+      "case": {
+        "scenarioId": "B2-SUB01",
+        "documentSlug": "subscription-lifecycle",
+        "expectedIntent": "STATIC_KNOWLEDGE",
+        "requiredIdeas": [
+          "Vé tháng của tôi",
+          "Đăng ký vé mới",
+          "hôm nay đến 7 ngày tới"
+        ],
+        "expectedTool": null,
+        "context": [],
+        "requiredUserFacingLabels": [],
+        "split": "regression",
+        "caseId": "B2-SUB01-2",
+        "question": "dang ky ve thang nhu the nao",
+        "variantType": "UNACCENTED",
+        "confirmationRequired": false,
+        "forbiddenBehavior": [
+          "cross-account disclosure",
+          "unconfirmed mutation",
+          "fabricated live data",
+          "unnecessary internal type",
+          "private image URL",
+          "full identity document"
+        ],
+        "requiredPermissions": [
+          "SUPPORT_WIDGET_ACCESS_OWN"
+        ],
+        "expectedDatabaseEffect": "NONE",
+        "citationsRequired": true,
+        "expectedAnswerMode": "RAG",
+        "persona": "CUSTOMER",
+        "expectedAccessScope": "CUSTOMER",
+        "status": "DRAFT",
+        "forbiddenInternalTerms": [
+          "PENDING_PAYMENT",
+          "PENDING_SPACE",
+          "subscriptionId",
+          "customerId",
+          "cardUid",
+          "qrAccessToken",
+          "READ_OWN"
+        ],
+        "responseStyle": "plain-vietnamese-v2"
+      },
+      "actualOfflineAnswer": "Mở Vé tháng của tôi, chọn Đăng ký vé mới rồi chọn bãi, phương tiện, loại vé, số kỳ và ngày bắt đầu từ hôm nay đến 7 ngày tới theo ngày tại Việt Nam. Kiểm tra giá, gửi đăng ký và theo dõi duyệt. Thanh toán, chọn vị trí hoặc nhận thẻ thực hiện theo yêu cầu đang hiển thị; thanh toán xong chưa tự chứng minh vé đã dùng được.",
+      "grade": "PASS",
+      "reviewer": "Codex qualitative review after source/code cross-check; no human approval",
+      "reason": "Đã nêu đúng ngày bắt đầu0–7ngày và điều kiện sử dụng",
+      "sourceSlug": "subscription-lifecycle",
+      "sourceAuthoringVersion": "2.2.0",
+      "sourceSha256": "7d3a93cd1fb0adccd55310f673180ef39bdb0b851fd75fd3420c1e4aee5313fe",
+      "apiExecuted": false,
+      "qwenGenerated": false
+    },
+    {
+      "case": {
+        "scenarioId": "B2-SUB01",
+        "documentSlug": "subscription-lifecycle",
+        "expectedIntent": "STATIC_KNOWLEDGE",
+        "requiredIdeas": [
+          "Vé tháng của tôi",
+          "Đăng ký vé mới",
+          "hôm nay đến 7 ngày tới"
+        ],
+        "expectedTool": null,
+        "context": [],
+        "requiredUserFacingLabels": [],
+        "split": "regression",
+        "caseId": "B2-SUB01-3",
+        "question": "Đăng ký vé tháng cần làm gì?",
+        "variantType": "CONVERSATIONAL",
+        "confirmationRequired": false,
+        "forbiddenBehavior": [
+          "cross-account disclosure",
+          "unconfirmed mutation",
+          "fabricated live data",
+          "unnecessary internal type",
+          "private image URL",
+          "full identity document"
+        ],
+        "requiredPermissions": [
+          "SUPPORT_WIDGET_ACCESS_OWN"
+        ],
+        "expectedDatabaseEffect": "NONE",
+        "citationsRequired": true,
+        "expectedAnswerMode": "RAG",
+        "persona": "CUSTOMER",
+        "expectedAccessScope": "CUSTOMER",
+        "status": "DRAFT",
+        "forbiddenInternalTerms": [
+          "PENDING_PAYMENT",
+          "PENDING_SPACE",
+          "subscriptionId",
+          "customerId",
+          "cardUid",
+          "qrAccessToken",
+          "READ_OWN"
+        ],
+        "responseStyle": "plain-vietnamese-v2"
+      },
+      "actualOfflineAnswer": "Mở Vé tháng của tôi, chọn Đăng ký vé mới rồi chọn bãi, phương tiện, loại vé, số kỳ và ngày bắt đầu từ hôm nay đến 7 ngày tới theo ngày tại Việt Nam. Kiểm tra giá, gửi đăng ký và theo dõi duyệt. Thanh toán, chọn vị trí hoặc nhận thẻ thực hiện theo yêu cầu đang hiển thị; thanh toán xong chưa tự chứng minh vé đã dùng được.",
+      "grade": "PASS",
+      "reviewer": "Codex qualitative review after source/code cross-check; no human approval",
+      "reason": "Đã nêu đúng ngày bắt đầu0–7ngày và điều kiện sử dụng",
+      "sourceSlug": "subscription-lifecycle",
+      "sourceAuthoringVersion": "2.2.0",
+      "sourceSha256": "7d3a93cd1fb0adccd55310f673180ef39bdb0b851fd75fd3420c1e4aee5313fe",
+      "apiExecuted": false,
+      "qwenGenerated": false
+    },
+    {
+      "case": {
+        "scenarioId": "B2-SUB01",
+        "documentSlug": "subscription-lifecycle",
+        "expectedIntent": "STATIC_KNOWLEDGE",
+        "requiredIdeas": [
+          "Vé tháng của tôi",
+          "Đăng ký vé mới",
+          "hôm nay đến 7 ngày tới"
+        ],
+        "expectedTool": null,
+        "context": [],
+        "requiredUserFacingLabels": [],
+        "split": "regression",
+        "caseId": "B2-SUB01-5",
+        "question": "cach dang ky ve thang",
+        "variantType": "CONVERSATIONAL",
+        "confirmationRequired": false,
+        "forbiddenBehavior": [
+          "cross-account disclosure",
+          "unconfirmed mutation",
+          "fabricated live data",
+          "unnecessary internal type",
+          "private image URL",
+          "full identity document"
+        ],
+        "requiredPermissions": [
+          "SUPPORT_WIDGET_ACCESS_OWN"
+        ],
+        "expectedDatabaseEffect": "NONE",
+        "citationsRequired": true,
+        "expectedAnswerMode": "RAG",
+        "persona": "CUSTOMER",
+        "expectedAccessScope": "CUSTOMER",
+        "status": "DRAFT",
+        "forbiddenInternalTerms": [
+          "PENDING_PAYMENT",
+          "PENDING_SPACE",
+          "subscriptionId",
+          "customerId",
+          "cardUid",
+          "qrAccessToken",
+          "READ_OWN"
+        ],
+        "responseStyle": "plain-vietnamese-v2"
+      },
+      "actualOfflineAnswer": "Mở Vé tháng của tôi, chọn Đăng ký vé mới rồi chọn bãi, phương tiện, loại vé, số kỳ và ngày bắt đầu từ hôm nay đến 7 ngày tới theo ngày tại Việt Nam. Kiểm tra giá, gửi đăng ký và theo dõi duyệt. Thanh toán, chọn vị trí hoặc nhận thẻ thực hiện theo yêu cầu đang hiển thị; thanh toán xong chưa tự chứng minh vé đã dùng được.",
+      "grade": "PASS",
+      "reviewer": "Codex qualitative review after source/code cross-check; no human approval",
+      "reason": "Đã nêu đúng ngày bắt đầu0–7ngày và điều kiện sử dụng",
+      "sourceSlug": "subscription-lifecycle",
+      "sourceAuthoringVersion": "2.2.0",
+      "sourceSha256": "7d3a93cd1fb0adccd55310f673180ef39bdb0b851fd75fd3420c1e4aee5313fe",
+      "apiExecuted": false,
+      "qwenGenerated": false
+    },
+    {
+      "case": {
+        "scenarioId": "B2-SUB01",
+        "documentSlug": "subscription-lifecycle",
+        "expectedIntent": "STATIC_KNOWLEDGE",
+        "requiredIdeas": [
+          "Vé tháng của tôi",
+          "Đăng ký vé mới",
+          "hôm nay đến 7 ngày tới"
+        ],
+        "expectedTool": null,
+        "context": [],
+        "requiredUserFacingLabels": [],
+        "split": "regression",
+        "caseId": "B2-SUB01-6",
+        "question": "dk ve thang nhu nao",
+        "variantType": "TYPO",
+        "confirmationRequired": false,
+        "forbiddenBehavior": [
+          "cross-account disclosure",
+          "unconfirmed mutation",
+          "fabricated live data",
+          "unnecessary internal type",
+          "private image URL",
+          "full identity document"
+        ],
+        "requiredPermissions": [
+          "SUPPORT_WIDGET_ACCESS_OWN"
+        ],
+        "expectedDatabaseEffect": "NONE",
+        "citationsRequired": true,
+        "expectedAnswerMode": "RAG",
+        "persona": "CUSTOMER",
+        "expectedAccessScope": "CUSTOMER",
+        "status": "DRAFT",
+        "forbiddenInternalTerms": [
+          "PENDING_PAYMENT",
+          "PENDING_SPACE",
+          "subscriptionId",
+          "customerId",
+          "cardUid",
+          "qrAccessToken",
+          "READ_OWN"
+        ],
+        "responseStyle": "plain-vietnamese-v2"
+      },
+      "actualOfflineAnswer": "Mở Vé tháng của tôi, chọn Đăng ký vé mới rồi chọn bãi, phương tiện, loại vé, số kỳ và ngày bắt đầu từ hôm nay đến 7 ngày tới theo ngày tại Việt Nam. Kiểm tra giá, gửi đăng ký và theo dõi duyệt. Thanh toán, chọn vị trí hoặc nhận thẻ thực hiện theo yêu cầu đang hiển thị; thanh toán xong chưa tự chứng minh vé đã dùng được.",
+      "grade": "PASS",
+      "reviewer": "Codex qualitative review after source/code cross-check; no human approval",
+      "reason": "Đã nêu đúng ngày bắt đầu0–7ngày và điều kiện sử dụng",
+      "sourceSlug": "subscription-lifecycle",
+      "sourceAuthoringVersion": "2.2.0",
+      "sourceSha256": "7d3a93cd1fb0adccd55310f673180ef39bdb0b851fd75fd3420c1e4aee5313fe",
+      "apiExecuted": false,
+      "qwenGenerated": false
+    },
+    {
+      "case": {
+        "scenarioId": "B2-CARD04",
+        "documentSlug": "cards-and-lost-card",
+        "expectedIntent": "STATIC_KNOWLEDGE",
+        "requiredIdeas": [
+          "quyền và bãi",
+          "xe lượt gửi hoặc vé",
+          "phiếu đang mở",
+          "không thay bằng phiếu hỗ trợ"
+        ],
+        "expectedTool": null,
+        "context": [],
+        "requiredUserFacingLabels": [],
+        "split": "acceptance",
+        "caseId": "B2-CARD04-3",
+        "question": "Nhân viên tạo phiếu mất thẻ không được thì làm sao?",
+        "variantType": "CONVERSATIONAL",
+        "confirmationRequired": false,
+        "forbiddenBehavior": [
+          "cross-account disclosure",
+          "unconfirmed mutation",
+          "fabricated live data",
+          "unnecessary internal type",
+          "private image URL",
+          "full identity document"
+        ],
+        "requiredPermissions": [
+          "SUPPORT_WIDGET_ACCESS_OWN"
+        ],
+        "expectedDatabaseEffect": "NONE",
+        "citationsRequired": true,
+        "expectedAnswerMode": "RAG",
+        "persona": "CUSTOMER",
+        "expectedAccessScope": "CUSTOMER",
+        "status": "DRAFT",
+        "forbiddenInternalTerms": [
+          "PENDING_PAYMENT",
+          "PENDING_SPACE",
+          "subscriptionId",
+          "customerId",
+          "cardUid",
+          "qrAccessToken",
+          "READ_OWN"
+        ],
+        "responseStyle": "plain-vietnamese-v2"
+      },
+      "actualOfflineAnswer": "Nhờ nhân viên kiểm tra đúng thẻ, bãi xe, tình trạng xe trong hay ngoài bãi, quyền xử lý, thông tin xác minh và có phiếu đang mở cho cùng thẻ hoặc lượt gửi hay chưa. Ghi lại thông báo lỗi; không gửi nhiều phiếu khi chưa biết kết quả lần trước. Thanh toán và thẻ thay thế là điều kiện ở bước hoàn tất, không phải điều kiện để lập phiếu lần đầu. Phiếu hỗ trợ báo lỗi phần mềm không thay thế phiếu báo mất thẻ.",
+      "grade": "PASS",
+      "reviewer": "Codex qualitative review after source/code cross-check; no human approval",
+      "reason": "Đã nêu phiếu đang mở/trùng, quyền/bãi và phân biệt phiếu hỗ trợ với phiếu báo mất; điều kiện hoàn tất tách khỏi lập phiếu",
+      "sourceSlug": "cards-and-lost-card",
+      "sourceAuthoringVersion": "2.3.0",
+      "sourceSha256": "8b3e7b7881393beff4ab5fc01fd24f0a002d751e221af8ea6f56b603295d2d3b",
+      "apiExecuted": false,
+      "qwenGenerated": false
+    },
+    {
+      "case": {
+        "scenarioId": "B2-CARD04",
+        "documentSlug": "cards-and-lost-card",
+        "expectedIntent": "STATIC_KNOWLEDGE",
+        "requiredIdeas": [
+          "quyền và bãi",
+          "xe lượt gửi hoặc vé",
+          "phiếu đang mở",
+          "không thay bằng phiếu hỗ trợ"
+        ],
+        "expectedTool": null,
+        "context": [],
+        "requiredUserFacingLabels": [],
+        "split": "acceptance",
+        "caseId": "B2-CARD04-5",
+        "question": "cach kiem tra khi tao phieu mat the that bai",
+        "variantType": "CONVERSATIONAL",
+        "confirmationRequired": false,
+        "forbiddenBehavior": [
+          "cross-account disclosure",
+          "unconfirmed mutation",
+          "fabricated live data",
+          "unnecessary internal type",
+          "private image URL",
+          "full identity document"
+        ],
+        "requiredPermissions": [
+          "SUPPORT_WIDGET_ACCESS_OWN"
+        ],
+        "expectedDatabaseEffect": "NONE",
+        "citationsRequired": true,
+        "expectedAnswerMode": "RAG",
+        "persona": "CUSTOMER",
+        "expectedAccessScope": "CUSTOMER",
+        "status": "DRAFT",
+        "forbiddenInternalTerms": [
+          "PENDING_PAYMENT",
+          "PENDING_SPACE",
+          "subscriptionId",
+          "customerId",
+          "cardUid",
+          "qrAccessToken",
+          "READ_OWN"
+        ],
+        "responseStyle": "plain-vietnamese-v2"
+      },
+      "actualOfflineAnswer": "Báo nhân viên kiểm tra đúng thẻ, bãi xe, tình trạng xe trong hay ngoài bãi, quyền xử lý, dữ liệu xác minh và phiếu đang mở có thể bị trùng. Cung cấp bước gặp lỗi và thông báo cụ thể. Không tự gửi lại nhiều phiếu; chưa yêu cầu thanh toán hoặc chọn thẻ thay thế ở bước lập phiếu lần đầu. Thanh toán và thẻ thay thế được kiểm tra ở bước hoàn tất khi trường hợp đó yêu cầu. Phiếu hỗ trợ báo lỗi phần mềm không thay thế phiếu báo mất thẻ.",
+      "grade": "PASS",
+      "reviewer": "Codex qualitative review after source/code cross-check; no human approval",
+      "reason": "Đã nêu phiếu đang mở/trùng, quyền/bãi và phân biệt phiếu hỗ trợ với phiếu báo mất; điều kiện hoàn tất tách khỏi lập phiếu",
+      "sourceSlug": "cards-and-lost-card",
+      "sourceAuthoringVersion": "2.3.0",
+      "sourceSha256": "8b3e7b7881393beff4ab5fc01fd24f0a002d751e221af8ea6f56b603295d2d3b",
+      "apiExecuted": false,
+      "qwenGenerated": false
+    },
+    {
+      "case": {
+        "scenarioId": "B2-CARD04",
+        "documentSlug": "cards-and-lost-card",
+        "expectedIntent": "STATIC_KNOWLEDGE",
+        "requiredIdeas": [
+          "quyền và bãi",
+          "xe lượt gửi hoặc vé",
+          "phiếu đang mở",
+          "không thay bằng phiếu hỗ trợ"
+        ],
+        "expectedTool": null,
+        "context": [],
+        "requiredUserFacingLabels": [],
+        "split": "acceptance",
+        "caseId": "B2-CARD04-6",
+        "question": "Phiếu báo mất thẻ bị lỗi cần làm gì?",
+        "variantType": "CONVERSATIONAL",
+        "confirmationRequired": false,
+        "forbiddenBehavior": [
+          "cross-account disclosure",
+          "unconfirmed mutation",
+          "fabricated live data",
+          "unnecessary internal type",
+          "private image URL",
+          "full identity document"
+        ],
+        "requiredPermissions": [
+          "SUPPORT_WIDGET_ACCESS_OWN"
+        ],
+        "expectedDatabaseEffect": "NONE",
+        "citationsRequired": true,
+        "expectedAnswerMode": "RAG",
+        "persona": "CUSTOMER",
+        "expectedAccessScope": "CUSTOMER",
+        "status": "DRAFT",
+        "forbiddenInternalTerms": [
+          "PENDING_PAYMENT",
+          "PENDING_SPACE",
+          "subscriptionId",
+          "customerId",
+          "cardUid",
+          "qrAccessToken",
+          "READ_OWN"
+        ],
+        "responseStyle": "plain-vietnamese-v2"
+      },
+      "actualOfflineAnswer": "Báo nhân viên bãi xe, cho biết lỗi ở bước lập phiếu hay hoàn tất và thông báo cụ thể. Nhân viên kiểm tra đúng thẻ, bãi xe, tình trạng xe, quyền xử lý và có phiếu đang mở cho cùng thẻ hoặc lượt gửi hay chưa; không gửi nhiều phiếu khi chưa biết kết quả. Điều kiện thanh toán và thẻ thay thế được kiểm tra ở bước hoàn tất. Phiếu hỗ trợ báo lỗi phần mềm không thay thế phiếu báo mất thẻ.",
+      "grade": "PASS",
+      "reviewer": "Codex qualitative review after source/code cross-check; no human approval",
+      "reason": "Đã nêu phiếu đang mở/trùng, quyền/bãi và phân biệt phiếu hỗ trợ với phiếu báo mất; điều kiện hoàn tất tách khỏi lập phiếu",
+      "sourceSlug": "cards-and-lost-card",
+      "sourceAuthoringVersion": "2.3.0",
+      "sourceSha256": "8b3e7b7881393beff4ab5fc01fd24f0a002d751e221af8ea6f56b603295d2d3b",
+      "apiExecuted": false,
+      "qwenGenerated": false
+    }
+  ]
+}

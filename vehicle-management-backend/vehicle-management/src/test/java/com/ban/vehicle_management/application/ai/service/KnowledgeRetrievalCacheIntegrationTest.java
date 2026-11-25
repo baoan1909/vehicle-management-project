@@ -114,10 +114,11 @@ class KnowledgeRetrievalCacheIntegrationTest {
         AiModelConfiguration configuration = embeddingConfiguration(active);
         org.mockito.Mockito.lenient().when(indexVersionPortOut.findActive()).thenReturn(Optional.of(active));
         org.mockito.Mockito.lenient().when(configurationPortOut.findById(any())).thenReturn(Optional.of(configuration));
+        when(retrievalPortOut.areChunksEligible(any(), any(), any(), any())).thenReturn(true);
         UUID documentId = UUID.randomUUID();
         UUID chunkId = UUID.randomUUID();
         CachedRetrievalPayload payload = new CachedRetrievalPayload(1, Instant.now(),
-                active.getIndexVersionId(), "checksum-1", "retrieval-policy-v1",
+                active.getIndexVersionId(), "checksum-1", "retrieval-policy-v4",
                 "retrieval-threshold-v1", keyFactory.scopeFingerprint(List.of("PUBLIC")),
                 keyFactory.tenantFingerprint(null), 5,
                 List.of(new CachedHybridRow(documentId, chunkId, "T", "quy trinh the xe day du noi dung",
@@ -145,7 +146,7 @@ class KnowledgeRetrievalCacheIntegrationTest {
         when(configurationPortOut.findById(any())).thenReturn(Optional.of(configuration));
         // Poisoned cache entry for another scope must be ignored.
         CachedRetrievalPayload poisoned = new CachedRetrievalPayload(1, Instant.now(),
-                active.getIndexVersionId(), "checksum-1", "retrieval-policy-v1",
+                active.getIndexVersionId(), "checksum-1", "retrieval-policy-v4",
                 "retrieval-threshold-v1", "wrong-scope", keyFactory.tenantFingerprint(null), 5,
                 List.of(), 0.0, false, true, "INSUFFICIENT_EVIDENCE");
         when(retrievalCache.get(anyString())).thenReturn(Optional.of(poisoned));

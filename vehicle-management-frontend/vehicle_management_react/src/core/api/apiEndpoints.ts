@@ -41,6 +41,7 @@ export const apiEndpoints = {
   },
   dashboard: "/dashboard",
   ai: {
+    runtimeMode: "/ai/runtime",
     assistantStatus: "/ai/assistant/status",
     assistantMessageStatus: (inputMessageId: string) => `/ai/assistant/messages/${inputMessageId}/status`,
     toolCall: (toolCallId: string) => `/ai/tool-calls/${toolCallId}`,

@@ -1,0 +1,1822 @@
+{
+  "status": "LAST_COMPLETED_RUN_BEFORE_FINAL_OVERLAP_FIX_NOT_FINAL_ACCEPTANCE",
+  "reviewer": "Codex agent; same-agent review; seen acceptance; not independent UAT",
+  "sourceSha256": "108596262911b4fee9bd0300901a185c3d3a17f5f26de0b788474460a061e252",
+  "scoreOrder": [
+    "business",
+    "conditionsAndSteps",
+    "truthAndAccess",
+    "readability",
+    "citationSupportOrNotApplicable"
+  ],
+  "summary": {
+    "reviewed": 120,
+    "passed": 113,
+    "modelReviewed": 62,
+    "modelPassed": 55,
+    "faqReviewed": 10,
+    "unauthorizedDisclosureOrMutationObserved": 0
+  },
+  "cases": [
+    {
+      "caseId": "AUTH09-1",
+      "question": "Đăng nhập vẫn lỗi",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "AUTH09-2",
+      "question": "dang nhap van loi",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "AUTH09-3",
+      "question": "dang nhap ko dc",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "AUTH09-4",
+      "question": "Tôi không đăng nhập được",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "AUTH09-5",
+      "question": "Đăng nhập báo lỗi cần làm gì?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "AUTH09-6",
+      "question": "Làm sao xử lý lỗi đăng nhập?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "AUTH10-1",
+      "question": "Vẫn lỗi",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "AUTH10-2",
+      "question": "van loi",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "AUTH10-3",
+      "question": "Bước tiếp theo?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "AUTH10-4",
+      "question": "buoc tiep theo",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "AUTH10-5",
+      "question": "Cái đó ở đâu?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "AUTH10-6",
+      "question": "Tôi làm rồi nhưng chưa được",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "PRIV09-1",
+      "question": "Lỗi",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "PRIV09-2",
+      "question": "loi",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "PRIV09-3",
+      "question": "Không được",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "PRIV09-4",
+      "question": "khong duoc",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "PRIV09-5",
+      "question": "Phải làm sao?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "PRIV09-6",
+      "question": "can lam gi",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "PRIV10-1",
+      "question": "Dự đoán giá bitcoin ngày mai",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "PRIV10-2",
+      "question": "du doan gia bitcoin ngay mai",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "PRIV10-3",
+      "question": "Tư vấn forex",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "PRIV10-4",
+      "question": "tu van forex",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "PRIV10-5",
+      "question": "Kết quả bóng đá tối nay",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "PRIV10-6",
+      "question": "ket qua bong da toi nay",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "CHAT09-1",
+      "question": "Vẫn lỗi",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "CHAT09-2",
+      "question": "van loi",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "CHAT09-3",
+      "question": "Bước tiếp theo?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "CHAT09-4",
+      "question": "buoc tiep theo",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "CHAT09-5",
+      "question": "Cái đó ở đâu?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "CHAT09-6",
+      "question": "Tôi làm rồi nhưng chưa được",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "CHAT10-1",
+      "question": "Vẫn lỗi",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "CHAT10-2",
+      "question": "van loi",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "CHAT10-3",
+      "question": "Bước tiếp theo?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "CHAT10-4",
+      "question": "buoc tiep theo",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "CHAT10-5",
+      "question": "Cái đó ở đâu?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "CHAT10-6",
+      "question": "Tôi làm rồi nhưng chưa được",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "SUP04-1",
+      "question": "Xem phiếu của tôi",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "SUP04-2",
+      "question": "xem phieu cua toi",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "SUP04-3",
+      "question": "Phiếu hỗ trợ của tôi đang ở đâu?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "SUP04-4",
+      "question": "phieu ho tro cua toi dang o dau",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "SUP04-5",
+      "question": "Tra cứu phiếu của mình",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "SUP04-6",
+      "question": "tra cuu phieu cua minh",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "SUP09-1",
+      "question": "Tôi làm rồi nhưng chưa được",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "SUP09-2",
+      "question": "toi lam roi nhung chua duoc",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "SUP09-3",
+      "question": "Vẫn lỗi",
+      "scores": [
+        2,
+        1,
+        2,
+        2,
+        1
+      ],
+      "total": 8,
+      "pass": false,
+      "severity": "MINOR",
+      "note": "Chưa phân biệt rõ gửi biểu mẫu với xác nhận trong chat."
+    },
+    {
+      "caseId": "SUP09-4",
+      "question": "van loi",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "SUP09-5",
+      "question": "Bước tiếp theo?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "SUP09-6",
+      "question": "buoc tiep theo",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "SUP10-1",
+      "question": "Tạo phiếu cần nhập nội dung gì?",
+      "scores": [
+        2,
+        0,
+        2,
+        2,
+        2
+      ],
+      "total": 8,
+      "pass": false,
+      "severity": "MINOR",
+      "note": "Chỉ liệt kê trường, chưa nêu thông tin cần viết trong nội dung lỗi."
+    },
+    {
+      "caseId": "SUP10-2",
+      "question": "tao phieu can nhap noi dung gi",
+      "scores": [
+        2,
+        0,
+        2,
+        2,
+        2
+      ],
+      "total": 8,
+      "pass": false,
+      "severity": "MINOR",
+      "note": "Chưa mô tả chức năng, bước đã làm, kết quả mong muốn và lỗi thực tế."
+    },
+    {
+      "caseId": "SUP10-3",
+      "question": "Hướng dẫn mô tả lỗi khi tạo phiếu",
+      "scores": [
+        0,
+        1,
+        2,
+        2,
+        0
+      ],
+      "total": 5,
+      "pass": false,
+      "severity": "MAJOR_WRONG_WORKFLOW",
+      "note": "Lẫn điều kiện lập phiếu mất thẻ vào câu hỏi mô tả lỗi hệ thống."
+    },
+    {
+      "caseId": "SUP10-4",
+      "question": "huong dan mo ta loi khi tao phieu",
+      "scores": [
+        0,
+        1,
+        2,
+        2,
+        0
+      ],
+      "total": 5,
+      "pass": false,
+      "severity": "MAJOR_WRONG_WORKFLOW",
+      "note": "Lẫn dữ liệu xe/thẻ và điều kiện chống trùng của phiếu mất thẻ."
+    },
+    {
+      "caseId": "SUP10-5",
+      "question": "Làm sao gửi nội dung lỗi đầy đủ?",
+      "scores": [
+        1,
+        0,
+        2,
+        2,
+        1
+      ],
+      "total": 6,
+      "pass": false,
+      "severity": "MINOR",
+      "note": "Chuyển sang nhờ nhân viên bãi xe, thiếu cấu trúc nội dung báo lỗi."
+    },
+    {
+      "caseId": "SUP10-6",
+      "question": "Phiếu báo lỗi cần làm gì trước?",
+      "scores": [
+        0,
+        0,
+        2,
+        2,
+        0
+      ],
+      "total": 4,
+      "pass": false,
+      "severity": "MAJOR_WRONG_WORKFLOW",
+      "note": "Trả lời nhầm sang phiếu báo mất thẻ."
+    },
+    {
+      "caseId": "B2-VEH04-1",
+      "question": "Ngưng dùng xe có xóa lịch sử không?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-VEH04-2",
+      "question": "ngung dung xe co xoa lich su khong",
+      "scores": [
+        2,
+        2,
+        2,
+        1,
+        2
+      ],
+      "total": 9,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Nội dung đúng; còn một cụm không dấu trong câu trả lời."
+    },
+    {
+      "caseId": "B2-VEH04-3",
+      "question": "Xóa xe có xóa vĩnh viễn không?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-VEH04-4",
+      "question": "Xe đã ngưng dùng có kích hoạt lại được không?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-VEH04-5",
+      "question": "lam sao ngung dung xe ma van giu lich su",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-VEH04-6",
+      "question": "Tôi cần biết chuyện gì xảy ra khi xóa xe",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-VEH05-1",
+      "question": "Biển số đã tồn tại thì cần làm gì?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-VEH05-2",
+      "question": "bien so da ton tai thi can lam gi",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-VEH05-3",
+      "question": "Lỗi biển số trùng xử lý như nào?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-VEH05-4",
+      "question": "Tại sao thêm xe báo trùng biển số?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-VEH05-5",
+      "question": "them xe bi trung bien so phai lam sao",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-VEH05-6",
+      "question": "Làm sao xử lý khi biển số đã có trên hệ thống?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-VEH06-1",
+      "question": "Xem danh sách xe của tôi",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-VEH06-2",
+      "question": "xem danh sach xe cua toi",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-VEH06-3",
+      "question": "Cho tôi xem các xe của mình",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-VEH06-4",
+      "question": "Liệt kê phương tiện của tôi",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-VEH06-5",
+      "question": "Các xe đã đăng ký của tôi là gì?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-VEH06-6",
+      "question": "kiem tra xe cua minh",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-SUB04-1",
+      "question": "Hủy vé đang hoạt động được không?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-SUB04-2",
+      "question": "huy ve dang hoat dong duoc khong",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-SUB04-3",
+      "question": "Có thể hủy vé đang dùng để hoàn tiền ngay không?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-SUB04-4",
+      "question": "Vé đã hoạt động muốn hủy phải làm sao?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-SUB04-5",
+      "question": "cach huy ve dang su dung",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-SUB04-6",
+      "question": "Tôi muốn biết quy định hủy vé đang dùng",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-SUB05-1",
+      "question": "Đăng ký vé bắt đầu từ hôm nay được không?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-SUB05-2",
+      "question": "dang ky ve bat dau tu hom nay duoc khong",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-SUB05-3",
+      "question": "Vé tháng phải đăng ký trước mấy ngày?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-SUB05-4",
+      "question": "Ngày bắt đầu vé tháng được chọn như thế nào?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-SUB05-5",
+      "question": "ngay bat dau ve thang trong khoang nao",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-SUB05-6",
+      "question": "Đăng ký vé tháng cần chọn ngày bắt đầu ra sao?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-SUB06-1",
+      "question": "Vé tháng của tôi còn hạn không?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-SUB06-2",
+      "question": "ve thang cua toi con han khong",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-SUB06-3",
+      "question": "Xem trạng thái vé của tôi",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-SUB06-4",
+      "question": "Cho tôi xem các vé của mình",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-SUB06-5",
+      "question": "kiem tra ve thang cua toi",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-SUB06-6",
+      "question": "Liệt kê đăng ký vé của tôi",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-CARD04-1",
+      "question": "Lỗi tạo phiếu báo mất thẻ thì kiểm tra gì?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-CARD04-2",
+      "question": "loi tao phieu bao mat the thi kiem tra gi",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-CARD04-3",
+      "question": "Nhân viên tạo phiếu mất thẻ không được thì làm sao?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-CARD04-4",
+      "question": "Tạo phiếu báo mất thẻ cần điều kiện gì?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-CARD04-5",
+      "question": "cach kiem tra khi tao phieu mat the that bai",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-CARD04-6",
+      "question": "Phiếu báo mất thẻ bị lỗi cần làm gì?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-CARD05-1",
+      "question": "Vì sao chưa hoàn tất phiếu báo mất thẻ được?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-CARD05-2",
+      "question": "vi sao chua hoan tat phieu bao mat the duoc",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-CARD05-3",
+      "question": "Cấp lại thẻ sau thanh toán như thế nào?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-CARD05-4",
+      "question": "Nhân viên cần làm gì sau khi khách đã thanh toán phí mất thẻ?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-CARD05-5",
+      "question": "loi hoan tat phieu mat the phai lam sao",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-CARD05-6",
+      "question": "Làm sao chọn thẻ thay thế khi xử lý mất thẻ?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-HIST04-1",
+      "question": "Lọc ngày trong lịch sử gửi xe như thế nào?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-HIST04-2",
+      "question": "loc ngay trong lich su gui xe nhu the nao",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-HIST04-3",
+      "question": "Làm sao tìm lượt gửi theo ngày?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-HIST04-4",
+      "question": "Khoảng ngày lịch sử gửi xe chọn ra sao?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-HIST04-5",
+      "question": "cach xoa loc lich su gui xe",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-HIST04-6",
+      "question": "lich su gui xe ko thay du lieu can lam gi",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-HIST05-1",
+      "question": "Xem ảnh lượt gửi xe như thế nào?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-HIST05-2",
+      "question": "xem anh luot gui xe nhu the nao",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-HIST05-3",
+      "question": "Chat có hiển thị ảnh trong lịch sử gửi xe không?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-HIST05-4",
+      "question": "Làm sao xem ảnh xe vào và ra?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-HIST05-5",
+      "question": "cach xem anh lich su gui xe",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-HIST05-6",
+      "question": "Muốn đối chiếu ảnh trong lịch sử gửi xe cần làm gì?",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-HIST06-1",
+      "question": "Xem lịch sử gửi xe của tôi",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-HIST06-2",
+      "question": "xem lich su gui xe cua toi",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-HIST06-3",
+      "question": "Cho tôi xem các lượt gửi xe của mình",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-HIST06-4",
+      "question": "Tra cứu lịch sử gửi xe của em",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-HIST06-5",
+      "question": "kiem tra lich su gui xe cua minh",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    },
+    {
+      "caseId": "B2-HIST06-6",
+      "question": "Liệt kê lịch sử gửi xe của tôi",
+      "scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "total": 10,
+      "pass": true,
+      "severity": "NONE",
+      "note": "Đã đọc câu hỏi và câu trả lời; phù hợp quy tắc đã đối chiếu, dữ liệu fixture và nguồn trích."
+    }
+  ]
+}

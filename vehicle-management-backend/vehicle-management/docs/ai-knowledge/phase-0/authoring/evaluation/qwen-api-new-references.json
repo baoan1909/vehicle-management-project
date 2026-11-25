@@ -1,0 +1,218 @@
+[
+  {
+    "caseId": "NEW-API-001-REG",
+    "referenceAnswer": "Mở Đăng ký, điền thông tin trên trang chính thức và xác minh email trước khi đăng nhập. Không gửi mật khẩu hay mã xác minh vào chat.",
+    "sourceSlugs": [
+      "authentication-and-profile"
+    ],
+    "reviewStatus": "DRAFT_REFERENCE_CODE_REVIEWED_NOT_HUMAN_APPROVED",
+    "expectedDatabaseEffect": "NONE"
+  },
+  {
+    "caseId": "NEW-API-002-LOGIN",
+    "referenceAnswer": "Bạn đã nêu đăng nhập bằng Google: cần biết thông báo và bước gặp lỗi để hướng dẫn đúng. Không tự chuyển sang Quên mật khẩu hoặc hỏi lại phương thức đã có.",
+    "sourceSlugs": [
+      "authentication-and-profile"
+    ],
+    "reviewStatus": "DRAFT_REFERENCE_CODE_REVIEWED_NOT_HUMAN_APPROVED",
+    "expectedDatabaseEffect": "NONE"
+  },
+  {
+    "caseId": "NEW-API-003-CHAT",
+    "referenceAnswer": "Chat trực tiếp với bãi không phải kênh tạo phiếu hỗ trợ hệ thống. Mở Yêu cầu của tôi hoặc luồng hỗ trợ hệ thống khi có quyền; trao đổi vận hành vẫn dùng đúng chức năng.",
+    "sourceSlugs": [
+      "chat-conversations-and-support-boundaries"
+    ],
+    "reviewStatus": "DRAFT_REFERENCE_CODE_REVIEWED_NOT_HUMAN_APPROVED",
+    "expectedDatabaseEffect": "NONE"
+  },
+  {
+    "caseId": "NEW-API-004-PRIV",
+    "referenceAnswer": "Không gửi mã đăng nhập, mật khẩu hoặc mã xác minh qua chat, kể cả khi có người tự nhận hỗ trợ. Chỉ nhập tại kênh xác thực chính thức; nếu đã lộ, dùng chức năng đổi/thu hồi được phép.",
+    "sourceSlugs": [
+      "chatbot-privacy-and-prohibited-data"
+    ],
+    "reviewStatus": "DRAFT_REFERENCE_CODE_REVIEWED_NOT_HUMAN_APPROVED",
+    "expectedDatabaseEffect": "NONE"
+  },
+  {
+    "caseId": "NEW-API-005-SUP",
+    "referenceAnswer": "Chỉ hướng dẫn, chưa tạo hay gửi phiếu. Nội dung cần tên chức năng, các bước đã làm, kết quả mong muốn và lỗi thực tế; không ghi thông tin bí mật.",
+    "sourceSlugs": [
+      "support-ticket-and-escalation"
+    ],
+    "reviewStatus": "DRAFT_REFERENCE_CODE_REVIEWED_NOT_HUMAN_APPROVED",
+    "expectedDatabaseEffect": "NONE"
+  },
+  {
+    "caseId": "NEW-API-006-VEH",
+    "referenceAnswer": "Ngưng dùng xe trên Xe của tôi, kiểm tra xác nhận. Hệ thống vẫn giữ lịch sử; việc này không tự hủy vé hoặc kết thúc lượt gửi liên quan.",
+    "sourceSlugs": [
+      "customer-vehicle-management"
+    ],
+    "reviewStatus": "DRAFT_REFERENCE_CODE_REVIEWED_NOT_HUMAN_APPROVED",
+    "expectedDatabaseEffect": "NONE"
+  },
+  {
+    "caseId": "NEW-API-007-SUB",
+    "referenceAnswer": "Có thể chọn hôm nay khi đăng ký mới: khoảng cho phép từ hôm nay đến7ngày tới theo ngày Việt Nam. Vé còn cần được duyệt, thanh toán và đáp ứng điều kiện sử dụng, không tự hoạt động ngay.",
+    "sourceSlugs": [
+      "subscription-lifecycle"
+    ],
+    "reviewStatus": "DRAFT_REFERENCE_CODE_REVIEWED_NOT_HUMAN_APPROVED",
+    "expectedDatabaseEffect": "NONE"
+  },
+  {
+    "caseId": "NEW-API-008-CARD",
+    "referenceAnswer": "Không tự dùng lại thẻ đã báo mất. Báo nhân viên bãi để kiểm tra phiếu và thanh toán; khả năng hủy/khôi phục phụ thuộc tình trạng thực tế.",
+    "sourceSlugs": [
+      "cards-and-lost-card"
+    ],
+    "reviewStatus": "DRAFT_REFERENCE_CODE_REVIEWED_NOT_HUMAN_APPROVED",
+    "expectedDatabaseEffect": "NONE"
+  },
+  {
+    "caseId": "NEW-API-009-HIST",
+    "referenceAnswer": "Chọn đúng tài khoản, phương tiện, Khoảng ngày có hôm qua và trạng thái lọc. Xóa lọc khi bộ lọc cũ không phù hợp; nếu vẫn thiếu, nhờ nhân viên đối chiếu, không khẳng định chưa từng gửi xe.",
+    "sourceSlugs": [
+      "parking-history"
+    ],
+    "reviewStatus": "DRAFT_REFERENCE_CODE_REVIEWED_NOT_HUMAN_APPROVED",
+    "expectedDatabaseEffect": "NONE"
+  },
+  {
+    "caseId": "NEW-API-010-PRICE",
+    "referenceAnswer": "Không dùng bảng giá bãi khác làm giá của bãi A và không coi thiếu giá là miễn phí. Kiểm tra bãi/loại xe/loại vé rồi liên hệ bãi nếu vẫn thiếu.",
+    "sourceSlugs": [
+      "pricing-and-fee-calculation"
+    ],
+    "reviewStatus": "DRAFT_REFERENCE_CODE_REVIEWED_NOT_HUMAN_APPROVED",
+    "expectedDatabaseEffect": "NONE"
+  },
+  {
+    "caseId": "NEW-API-011-PAY",
+    "referenceAnswer": "Không thanh toán thêm khi giao dịch trước chưa rõ. Kiểm tra hóa đơn/giao dịch và nhờ đối soát; vé còn phụ thuộc ngày hiệu lực, chọn vị trí hoặc tạm khóa, không chỉ khoản đã trừ.",
+    "sourceSlugs": [
+      "invoice-vnpay-payment-refund"
+    ],
+    "reviewStatus": "DRAFT_REFERENCE_CODE_REVIEWED_NOT_HUMAN_APPROVED",
+    "expectedDatabaseEffect": "NONE"
+  },
+  {
+    "caseId": "NEW-API-012-VOU",
+    "referenceAnswer": "Xem thử chưa giữ lượt. Khi tạo đăng ký/hóa đơn hệ thống kiểm tra và giữ lượt, người khác có thể đã giữ lượt cuối. Không tự kết luận mã bị trừ lượt chỉ vì đã xem thử; không đăng ký lặp để vượt hạn.",
+    "sourceSlugs": [
+      "voucher-and-promotions"
+    ],
+    "reviewStatus": "DRAFT_REFERENCE_CODE_REVIEWED_NOT_HUMAN_APPROVED",
+    "expectedDatabaseEffect": "NONE"
+  },
+  {
+    "caseId": "NEW-API-013-RES",
+    "referenceAnswer": "Giữ chỗ sau thanh toán có hạn vào bãi60phút theo luồng hiện tại. Quá hạn không bảo đảm chỗ cũ, chỗ có thể được giải phóng; không tự hứa hoàn tiền hoặc khôi phục.",
+    "sourceSlugs": [
+      "reservations-and-holds"
+    ],
+    "reviewStatus": "DRAFT_REFERENCE_CODE_REVIEWED_NOT_HUMAN_APPROVED",
+    "expectedDatabaseEffect": "NONE"
+  },
+  {
+    "caseId": "NEW-API-014-ERR",
+    "referenceAnswer": "Kiểm tra kết quả lần gửi trước. Thử lại việc xem thông tin khác với lặp yêu cầu ghi/thanh toán; không bấm nhiều lần khi chưa biết lần trước thành công chưa.",
+    "sourceSlugs": [
+      "common-errors-and-troubleshooting"
+    ],
+    "reviewStatus": "DRAFT_REFERENCE_CODE_REVIEWED_NOT_HUMAN_APPROVED",
+    "expectedDatabaseEffect": "NONE"
+  },
+  {
+    "caseId": "NEW-API-015-LOC",
+    "referenceAnswer": "Không. Tin chatbot không tính là phản hồi đầu tiên của nhân viên và không chứng minh sự cố được giải quyết.",
+    "sourceSlugs": [
+      "locations-hours-sla-contact"
+    ],
+    "reviewStatus": "DRAFT_REFERENCE_CODE_REVIEWED_NOT_HUMAN_APPROVED",
+    "expectedDatabaseEffect": "NONE"
+  },
+  {
+    "caseId": "NEW-API-016-ENT",
+    "referenceAnswer": "Chưa thể coi xe đã ra. Báo nhân viên ở vị trí an toàn để đối chiếu thanh toán, hóa đơn, bước hoàn tất lượt và cổng; không trả thêm ngay.",
+    "sourceSlugs": [
+      "parking-entry-exit"
+    ],
+    "reviewStatus": "DRAFT_REFERENCE_CODE_REVIEWED_NOT_HUMAN_APPROVED",
+    "expectedDatabaseEffect": "NONE"
+  },
+  {
+    "caseId": "NEW-API-017-MAP",
+    "referenceAnswer": "Có thể dùng Tìm địa chỉ hoặc chọn điểm trên bản đồ khi tính năng được bật. Không bắt buộc cấpGPS; trình duyệt chỉ lấy vị trí khi người dùng đồng ý.",
+    "sourceSlugs": [
+      "parking-search-and-map"
+    ],
+    "reviewStatus": "DRAFT_REFERENCE_CODE_REVIEWED_NOT_HUMAN_APPROVED",
+    "expectedDatabaseEffect": "NONE"
+  },
+  {
+    "caseId": "NEW-API-018-BROAD",
+    "referenceAnswer": "Cần hỏi bạn đang nói phiếu hỗ trợ, phiếu báo mất hay loại phiếu khác và muốn làm việc gì; không tự tạo/tra cứu.",
+    "sourceSlugs": [
+      "support-ticket-and-escalation"
+    ],
+    "reviewStatus": "DRAFT_REFERENCE_CODE_REVIEWED_NOT_HUMAN_APPROVED",
+    "expectedDatabaseEffect": "NONE"
+  },
+  {
+    "caseId": "NEW-API-019-FOLLOW",
+    "referenceAnswer": "Khi chưa có chủ đề/bước rõ, hỏi chức năng và lỗi ở bước nào cùng thông báo. Không tự làm lại thao tác ghi hoặc đoán một lỗi cụ thể.",
+    "sourceSlugs": [
+      "common-errors-and-troubleshooting"
+    ],
+    "reviewStatus": "DRAFT_REFERENCE_CODE_REVIEWED_NOT_HUMAN_APPROVED",
+    "expectedDatabaseEffect": "NONE"
+  },
+  {
+    "caseId": "NEW-API-020-CROSS",
+    "referenceAnswer": "Từ chối truy cập lịch sử của người khác chỉ từ biển số; không tiết lộ dữ liệu hoặc thử dùng lịch sử chat để vượt sở hữu.",
+    "sourceSlugs": [
+      "chatbot-privacy-and-prohibited-data"
+    ],
+    "reviewStatus": "DRAFT_REFERENCE_CODE_REVIEWED_NOT_HUMAN_APPROVED",
+    "expectedDatabaseEffect": "NONE"
+  },
+  {
+    "caseId": "NEW-API-021-OWN",
+    "referenceAnswer": "Đọc qua backend đúng actor với quyềnCUSTOMER_VEHICLE_READ_OWN; tóm tắt xe thuộc actor, che biển và không lẫn xe củaactor khác. Fixture hiện có1xe cho actor.",
+    "sourceSlugs": [
+      "customer-vehicle-management"
+    ],
+    "reviewStatus": "DRAFT_REFERENCE_CODE_REVIEWED_NOT_HUMAN_APPROVED",
+    "expectedDatabaseEffect": "NONE"
+  },
+  {
+    "caseId": "NEW-API-022-NOPERM",
+    "referenceAnswer": "Không đọc dữ liệu xe khi thiếu quyền. Báo giới hạn/từ chối phù hợp; không dùng tài liệu tĩnh hoặc lời hỏi để tự cấp quyền.",
+    "sourceSlugs": [
+      "customer-vehicle-management"
+    ],
+    "reviewStatus": "DRAFT_REFERENCE_CODE_REVIEWED_NOT_HUMAN_APPROVED",
+    "expectedDatabaseEffect": "NONE"
+  },
+  {
+    "caseId": "NEW-API-023-MIX",
+    "referenceAnswer": "Xem bản đồ không tạo đặt chỗ. Chỉ hướng dẫn; không đặt, giữ chỗ hay thực hiện yêu cầu ghi khi người hỏi đã nói đừng đặt.",
+    "sourceSlugs": [
+      "parking-search-and-map"
+    ],
+    "reviewStatus": "DRAFT_REFERENCE_CODE_REVIEWED_NOT_HUMAN_APPROVED",
+    "expectedDatabaseEffect": "NONE"
+  },
+  {
+    "caseId": "NEW-API-024-CONTEXT",
+    "referenceAnswer": "Đặt chỗ đã thanh toán nếu hủy hoặc không đến không được hoàn theo quy định hiện hiển thị. Chỉ hủy khi còn giữ/chưa dùng; trợ lý không tự hủy hoặc xác nhận hoàn tiền.",
+    "sourceSlugs": [
+      "reservations-and-holds"
+    ],
+    "reviewStatus": "DRAFT_REFERENCE_CODE_REVIEWED_NOT_HUMAN_APPROVED",
+    "expectedDatabaseEffect": "NONE"
+  }
+]

@@ -25,9 +25,9 @@ const jobStatusMeta: Record<KnowledgeIngestionJobResponse["status"], { label: st
 };
 
 const stageLabel: Record<string, string> = {
-  EXTRACTING: "Trích xuất văn bản",
-  CHUNKING: "Tách đoạn",
-  EMBEDDING: "Tạo embedding",
+  EXTRACTING: "Đọc tệp",
+  CHUNKING: "Chia nội dung",
+  EMBEDDING: "Chuẩn bị tìm kiếm",
   REVIEW: "Chờ duyệt",
 };
 
@@ -116,7 +116,7 @@ export function KnowledgeIngestionJobsTab() {
 
   return (
     <section className="tw-grid tw-gap-4">
-      <p className="tw-m-0 tw-text-sm tw-font-semibold tw-text-slate-500">Công việc xử lý tài liệu nền: trích xuất, tách đoạn, tạo embedding và theo dõi lỗi. Danh sách tự làm mới khi có công việc đang chạy.</p>
+      <div><h2 className="tw-m-0 tw-text-base tw-font-bold tw-text-slate-900">Theo dõi xử lý tài liệu</h2><p className="tw-m-0 tw-mt-1 tw-text-sm tw-leading-6 tw-text-slate-500">Xem tài liệu đang ở bước nào và nguyên nhân khi có lỗi. Danh sách tự cập nhật khi còn công việc đang chạy; khi Chờ duyệt, quay lại bước 2 để kiểm tra nội dung.</p></div>
 
       {error ? <div className="tw-rounded-lg tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-3 tw-text-sm tw-font-bold tw-text-red-700">{error}</div> : null}
 

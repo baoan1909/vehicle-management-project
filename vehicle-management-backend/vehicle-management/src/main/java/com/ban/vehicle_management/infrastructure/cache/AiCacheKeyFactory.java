@@ -49,6 +49,7 @@ public class AiCacheKeyFactory {
             List<String> scopes, UUID tenantId, int topK, String normalizedQuery) {
         return prefix("knowledge-retrieval") + activeIndexVersionId + ":" + sanitize(contentChecksum) + ":"
                 + sanitize(retrievalPolicyVersion) + ":" + sanitize(thresholdVersion) + ":"
+                + com.ban.vehicle_management.domain.ai.model.VietnameseQueryNormalizer.LEXICAL_VERSION + ":"
                 + scopeFingerprint(scopes) + ":" + tenantFingerprint(tenantId) + ":" + topK + ":"
                 + queryHmac(normalizedQuery);
     }

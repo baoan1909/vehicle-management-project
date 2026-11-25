@@ -88,4 +88,8 @@ public class RetrievalAuditEntity {
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
+    @Column(name = "retrieval_method", nullable = false)
+    private String retrievalMethod;
+    @Column(name = "source_snapshot")
+    private String sourceSnapshot;
 }

@@ -46,6 +46,11 @@ public interface OrganizationPortOut {
 
     Set<UUID> findActiveOperationalAccountIdsByParkingLotId(UUID parkingLotId);
 
+    Set<UUID> findActiveAccountIdsByParkingLotIdWithPermissions(
+            UUID parkingLotId,
+            Set<String> permissionCodes
+    );
+
     void deactivateMembershipsAndClearParkingLotScopes(UUID accountId);
 
     void activateMemberships(UUID accountId);

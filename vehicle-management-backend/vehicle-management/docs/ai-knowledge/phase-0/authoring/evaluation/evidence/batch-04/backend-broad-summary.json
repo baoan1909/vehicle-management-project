@@ -1,0 +1,11 @@
+{
+  "capturedAt": "2026-11-23T17:14:04.483785+00:00",
+  "log": "target/batch4-work/full-suite-final.log",
+  "totals": {
+    "tests": 4206,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "note": "Production code as of broad run; subsequent narrowly scoped 90% near-full-timeout classification + source-only harness logging verified by final-runtime-gate and live-v10. No other production changes after broad run."
+}

@@ -32,6 +32,10 @@ class AiToolExecutionServiceTest {
     @Mock
     private SubscriptionPortIn subscriptionPortIn;
     @Mock
+    private com.ban.vehicle_management.application.people.customervehicle.port.in.CustomerVehiclePortIn customerVehiclePortIn;
+    @Mock
+    private com.ban.vehicle_management.application.parking.parkingsession.port.in.ParkingSessionPortIn parkingSessionPortIn;
+    @Mock
     private KnowledgeRetrievalService retrievalService;
     @Mock
     private KnowledgeAccessContextResolver accessContextResolver;
@@ -44,20 +48,21 @@ class AiToolExecutionServiceTest {
         objectMapper = new ObjectMapper();
         service = new AiToolExecutionService(
                 new AiToolRegistry(), currentAccountPortIn, supportTicketPortIn, subscriptionPortIn,
+                customerVehiclePortIn, parkingSessionPortIn,
                 retrievalService, accessContextResolver, objectMapper);
     }
 
     @Test
     void assistantWorkerShouldExecuteAuthorizedPersonalReadTool() throws Exception {
-        when(supportTicketPortIn.getMyTickets(null, null)).thenReturn(List.of());
+        when(supportTicketPortIn.getMyTickets(null, null, 20)).thenReturn(List.of());
 
         AiToolExecutionService.ToolExecutionResult result = service.executeFromAssistantWorker(
                 "list_my_support_tickets", objectMapper.readTree("{}"));
 
-        assertTrue(result.responseJson().contains("[]"));
+        assertTrue(result.responseJson().contains("Bạn chưa có phiếu hỗ trợ phù hợp"));
         assertTrue(result.sensitive());
         verify(currentAccountPortIn).requirePermission("SUPPORT_TICKET_READ_OWN");
-        verify(supportTicketPortIn).getMyTickets(null, null);
+        verify(supportTicketPortIn).getMyTickets(null, null, 20);
     }
 
     @Test

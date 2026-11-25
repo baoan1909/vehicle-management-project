@@ -70,7 +70,7 @@ function compactCode(value?: string | null) {
 
 function durationLabel(session: CustomerPortalParkingSession) {
   if (!session.checkInTime) return "---";
-  if (!session.checkOutTime) return "Đang gửi";
+  if (!session.checkOutTime) return session.status === "OPEN" ? "Đang gửi" : "Chưa xác định thời lượng";
   const start = new Date(session.checkInTime).getTime();
   const end = new Date(session.checkOutTime).getTime();
   if (Number.isNaN(start) || Number.isNaN(end) || end < start) return "---";
@@ -83,13 +83,13 @@ function statusConfig(status?: string | null) {
   if (status === "CLOSED") return { badge: "tw-bg-emerald-50 tw-text-emerald-700", dot: "tw-border-emerald-600 tw-bg-emerald-600 tw-text-white", label: "Đã hoàn tất" };
   if (status === "OPEN") return { badge: "tw-bg-blue-50 tw-text-blue-700", dot: "tw-border-blue-500 tw-bg-white tw-text-transparent", label: "Đang gửi" };
   if (status === "LOST_CARD") return { badge: "tw-bg-orange-50 tw-text-orange-700", dot: "tw-border-orange-500 tw-bg-white tw-text-transparent", label: "Mất thẻ" };
-  return { badge: "tw-bg-slate-100 tw-text-slate-600", dot: "tw-border-slate-400 tw-bg-white tw-text-transparent", label: status || "--" };
+  return { badge: "tw-bg-slate-100 tw-text-slate-600", dot: "tw-border-slate-400 tw-bg-white tw-text-transparent", label: status === "CANCELLED" ? "Đã hủy" : "Chưa xác định trạng thái" };
 }
 
 function eventLabel(eventType?: string | null) {
   if (eventType === "CHECK_IN") return "Xe vào";
   if (eventType === "CHECK_OUT") return "Xe ra";
-  return eventType || "Sự kiện";
+  return "Sự kiện";
 }
 
 function EvidenceImage({ alt, src }: { alt: string; src?: string | null }) {

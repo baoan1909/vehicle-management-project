@@ -8,6 +8,7 @@ import com.ban.vehicle_management.domain.operations.supportticket.model.SupportT
 import com.ban.vehicle_management.domain.operations.supportticket.policy.SupportTicketPolicy;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatConversationType;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
+import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.time.Instant;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
@@ -36,6 +37,9 @@ public class SupportTicketChatMessageContextService {
 
     public UUID resolveContextForSend(ChatConversation conversation, UUID contextTicketId, UUID senderAccountId) {
         if (conversation.getConversationType() != ChatConversationType.SUPPORT_REQUESTER_DIRECT) {
+            if (contextTicketId != null && conversation.getConversationType() != ChatConversationType.ASSISTANT_SUPPORT) {
+                throw new BadRequestException("Support ticket context is only available in requester support conversations");
+            }
             return contextTicketId;
         }
         if (contextTicketId == null) {

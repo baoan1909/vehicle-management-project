@@ -1,0 +1,65 @@
+{
+  "method": "Agent manual review of all12 actual final answers and cited evidence. Historical v13, before bounded company contact aliases. Provider jobs FAILED remain semanticFAIL. Not final v14 cohort.",
+  "caseGrades": {
+    "AUTH09-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed actual answer: preserves login method/error triage, concrete incognito steps, bounded address search, permission boundary or paid/replacement lost-card conditions as applicable. No invented action success."
+    },
+    "AUTH09-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed actual answer: preserves login method/error triage, concrete incognito steps, bounded address search, permission boundary or paid/replacement lost-card conditions as applicable. No invented action success."
+    },
+    "B4-MAP04-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed actual answer: preserves login method/error triage, concrete incognito steps, bounded address search, permission boundary or paid/replacement lost-card conditions as applicable. No invented action success."
+    },
+    "B4-LOC01-3": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "Provider job failed; no usable final answer."
+    },
+    "B4-ERR01-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed actual answer: preserves login method/error triage, concrete incognito steps, bounded address search, permission boundary or paid/replacement lost-card conditions as applicable. No invented action success."
+    },
+    "B4-ERR01-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed actual answer: preserves login method/error triage, concrete incognito steps, bounded address search, permission boundary or paid/replacement lost-card conditions as applicable. No invented action success."
+    },
+    "B4-ERR01-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed actual answer: preserves login method/error triage, concrete incognito steps, bounded address search, permission boundary or paid/replacement lost-card conditions as applicable. No invented action success."
+    },
+    "B4-ERR02-3": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed actual answer: preserves login method/error triage, concrete incognito steps, bounded address search, permission boundary or paid/replacement lost-card conditions as applicable. No invented action success."
+    },
+    "B4-ERR02-4": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed actual answer: preserves login method/error triage, concrete incognito steps, bounded address search, permission boundary or paid/replacement lost-card conditions as applicable. No invented action success."
+    },
+    "B4-ERR02-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed actual answer: preserves login method/error triage, concrete incognito steps, bounded address search, permission boundary or paid/replacement lost-card conditions as applicable. No invented action success."
+    },
+    "B4-ERR04-6": {
+      "pass": false,
+      "citationSupport": false,
+      "reason": "Provider job failed; no usable final answer."
+    },
+    "B4-ERR07-6": {
+      "pass": true,
+      "citationSupport": true,
+      "reason": "Reviewed actual answer: preserves login method/error triage, concrete incognito steps, bounded address search, permission boundary or paid/replacement lost-card conditions as applicable. No invented action success."
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "verifiedAt": "2026-11-23",
+  "unchangedSince": "d39c3d688f84e759d7ee45b62b0ad25a53c129373418948426770c82ba290a65",
+  "checks": {
+    "npm run lint": "PASS (tsc --noEmit)",
+    "npm test": "PASS existing regression scripts",
+    "Playwright contact.behavior.spec.ts": "1 passed (10.4s)"
+  },
+  "scope": "Real browser rendering with public API/map fixtures; disabled contact form, approved company details, no submission POST, mailto link. Not production backend UAT.",
+  "logs": {
+    "contact-lint.log": {
+      "path": "C:\\DiskD\\VehicleManagementProject\\vehicle-management-frontend\\vehicle_management_react\\contact-lint.log",
+      "sha256": "237d54b39d3408bad137c9afdc2d8faa7590a123aa303a9fda4114a1ff56e776"
+    },
+    "contact-regression.log": {
+      "path": "C:\\DiskD\\VehicleManagementProject\\vehicle-management-frontend\\vehicle_management_react\\contact-regression.log",
+      "sha256": "bc79b60934bea5ae0cb5d56280552e2627984d560b8b38d55c2b1af5459e56f1"
+    },
+    "contact-e2e-final.log": {
+      "path": "C:\\DiskD\\VehicleManagementProject\\vehicle-management-frontend\\vehicle_management_react\\contact-e2e-final.log",
+      "sha256": "e630582f19d1a626a8f9bce96b944bd55f56bef771b91ab1417ed8e1247c3952"
+    }
+  }
+}

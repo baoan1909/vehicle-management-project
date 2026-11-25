@@ -129,6 +129,11 @@ public class CustomerVehicleAccessGuard {
         }
     }
 
+    public UUID resolveOwnCustomerId() {
+        currentAccountPortIn.requirePermission(READ_OWN_PERMISSION);
+        return resolveCurrentApprovedCustomerId();
+    }
+
     private UUID resolveCurrentApprovedCustomerId() {
         UUID accountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
 

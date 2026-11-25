@@ -1,0 +1,131 @@
+{
+  "method": "Agent manual review of all 8 selected outputs in each run, against the same business sources and financial limits.",
+  "runs": {
+    "repeat-2": [
+      {
+        "caseId": "B3-PRI04-3",
+        "grade": "PASS",
+        "reason": "Phần chưa đủ một ngày, quá bốn giờ và ngoài khung ban ngày hoàn toàn áp mức đêm; không bịa số tiền."
+      },
+      {
+        "caseId": "B3-PAY02-3",
+        "grade": "PASS",
+        "reason": "Đã trừ tiền nhưng chưa cập nhật cần kiểm tra/đối soát, không trả thêm trước khi xác minh; bảo vệ mã bí mật."
+      },
+      {
+        "caseId": "B3-PAY04-3",
+        "grade": "PASS",
+        "reason": "Trang trả về không tự chứng minh đã trả; cần kết quả được xác minh từ thông báo/giao dịch hợp lệ."
+      },
+      {
+        "caseId": "B3-PAY07-3",
+        "grade": "PASS",
+        "reason": "Trong Vé tháng mở hóa đơn chờ, dùng ví nếu giao diện cho phép, kiểm tra tiền và xác nhận; chatbot không tự trừ ví."
+      },
+      {
+        "caseId": "B3-VOU02-5",
+        "grade": "PASS",
+        "reason": "Hết hạn là hết thời gian hiệu lực, khác hết lượt; xem thời hạn và trạng thái, không gia hạn bằng nhập lại."
+      },
+      {
+        "caseId": "B3-VOU09-3",
+        "grade": "PASS",
+        "reason": "Hai khách xem thử chưa bảo đảm cùng giữ lượt cuối; kiểm tra lại lúc đăng ký, không gửi lặp để vượt giới hạn."
+      },
+      {
+        "caseId": "B3-RES04-3",
+        "grade": "PASS",
+        "reason": "Hạn vào sáu mươi phút từ thanh toán thành công, không từ khi hỏi hay từ lúc vào bãi."
+      },
+      {
+        "caseId": "B3-RES09-3",
+        "grade": "PASS",
+        "reason": "Tiền đến trễ/cần đối soát chưa bảo đảm còn chỗ, liên hệ kiểm tra, không trả thêm hoặc tự khôi phục/hoàn tiền."
+      }
+    ],
+    "repeat-3": [
+      {
+        "caseId": "B3-PRI04-3",
+        "grade": "PASS",
+        "reason": "Phần chưa đủ một ngày, quá bốn giờ và ngoài khung ban ngày hoàn toàn áp mức đêm; không bịa số tiền."
+      },
+      {
+        "caseId": "B3-PAY02-3",
+        "grade": "PASS",
+        "reason": "Đã trừ tiền nhưng chưa cập nhật cần kiểm tra/đối soát, không trả thêm trước khi xác minh; bảo vệ mã bí mật."
+      },
+      {
+        "caseId": "B3-PAY04-3",
+        "grade": "FAIL",
+        "reason": "Guard v2 chặn nhầm lời phủ định có cụm để xác nhận; user nhận handoff dù raw answer đúng. Đã thêm unit và replay, cần xác nhận v3."
+      },
+      {
+        "caseId": "B3-PAY07-3",
+        "grade": "PASS",
+        "reason": "Trong Vé tháng mở hóa đơn chờ, dùng ví nếu giao diện cho phép, kiểm tra tiền và xác nhận; chatbot không tự trừ ví."
+      },
+      {
+        "caseId": "B3-VOU02-5",
+        "grade": "PASS",
+        "reason": "Hết hạn là hết thời gian hiệu lực, khác hết lượt; xem thời hạn và trạng thái, không gia hạn bằng nhập lại."
+      },
+      {
+        "caseId": "B3-VOU09-3",
+        "grade": "PASS",
+        "reason": "Hai khách xem thử chưa bảo đảm cùng giữ lượt cuối; kiểm tra lại lúc đăng ký, không gửi lặp để vượt giới hạn."
+      },
+      {
+        "caseId": "B3-RES04-3",
+        "grade": "PASS",
+        "reason": "Hạn vào sáu mươi phút từ thanh toán thành công, không từ khi hỏi hay từ lúc vào bãi."
+      },
+      {
+        "caseId": "B3-RES09-3",
+        "grade": "PASS",
+        "reason": "Tiền đến trễ/cần đối soát chưa bảo đảm còn chỗ, liên hệ kiểm tra, không trả thêm hoặc tự khôi phục/hoàn tiền."
+      }
+    ],
+    "repeat-3-fixed": [
+      {
+        "caseId": "B3-PRI04-3",
+        "grade": "PASS",
+        "reason": "Phần chưa đủ một ngày, quá bốn giờ và ngoài khung ban ngày hoàn toàn áp mức đêm; không bịa số tiền."
+      },
+      {
+        "caseId": "B3-PAY02-3",
+        "grade": "PASS",
+        "reason": "Đã trừ tiền nhưng chưa cập nhật cần kiểm tra/đối soát, không trả thêm trước khi xác minh; bảo vệ mã bí mật."
+      },
+      {
+        "caseId": "B3-PAY04-3",
+        "grade": "PASS",
+        "reason": "Trang trả về không tự chứng minh đã trả; cần kết quả được xác minh từ thông báo/giao dịch hợp lệ."
+      },
+      {
+        "caseId": "B3-PAY07-3",
+        "grade": "PASS",
+        "reason": "Trong Vé tháng mở hóa đơn chờ, dùng ví nếu giao diện cho phép, kiểm tra tiền và xác nhận; chatbot không tự trừ ví."
+      },
+      {
+        "caseId": "B3-VOU02-5",
+        "grade": "PASS",
+        "reason": "Hết hạn là hết thời gian hiệu lực, khác hết lượt; xem thời hạn và trạng thái, không gia hạn bằng nhập lại."
+      },
+      {
+        "caseId": "B3-VOU09-3",
+        "grade": "PASS",
+        "reason": "Hai khách xem thử chưa bảo đảm cùng giữ lượt cuối; kiểm tra lại lúc đăng ký, không gửi lặp để vượt giới hạn."
+      },
+      {
+        "caseId": "B3-RES04-3",
+        "grade": "PASS",
+        "reason": "Hạn vào sáu mươi phút từ thanh toán thành công, không từ khi hỏi hay từ lúc vào bãi."
+      },
+      {
+        "caseId": "B3-RES09-3",
+        "grade": "PASS",
+        "reason": "Tiền đến trễ/cần đối soát chưa bảo đảm còn chỗ, liên hệ kiểm tra, không trả thêm hoặc tự khôi phục/hoàn tiền."
+      }
+    ]
+  }
+}
