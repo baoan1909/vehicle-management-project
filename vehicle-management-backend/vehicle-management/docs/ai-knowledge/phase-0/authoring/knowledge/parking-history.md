@@ -93,7 +93,7 @@ Danh sách trống sau khi lọc khác với lỗi không tải được dữ li
 Quy trình xuất dữ liệu, lưu trữ lâu dài và giải quyết tranh chấp chưa được mở rộng. Chat chưa lọc theo ngày hoặc biển số; hướng dẫn dùng giao diện thay vì giả vờ đã áp dụng bộ lọc.
 
 ## Lịch sử phiên bản
-- 2.2.0, 2026-11-24: rà soát lại với code hiện tại; làm rõ điều kiện và giới hạn trả lời, chuẩn hóa ngôn ngữ; tiếp tục DRAFT. Kiểm thử và giới hạn bằng chứng tại báo cáo ALL_BATCHES_QWEN_REVIEW_REPORT.vi.md.
+- 2.2.0, 2026-11-24: rà soát lại với code hiện tại; làm rõ điều kiện và giới hạn trả lời, chuẩn hóa ngôn ngữ; tiếp tục DRAFT. Kiểm thử và giới hạn bằng chứng tại báo cáo ALL_BATCHES_REVIEW_STATUS.vi.md.
 - 2.1.0, 2026-11-23: bổ sung phân biệt điều kiện và hướng xử lý theo lỗi hồi quy đợt 4; giữ DRAFT.
 - 2.0.0, 2026-11-19: xác minh dữ liệu cá nhân, bộ lọc giao diện, tra cứu gần đây, che biển số và cấm ảnh riêng tư trong chat.
 - 1.1.0: bản tham khảo trước khi rà soát đợt 2.

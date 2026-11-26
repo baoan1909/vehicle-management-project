@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class EmbeddingPromptFormatter {
 
-    public static final String QWEN_QA_V1 = "qwen-qa-mrl768-v1";
 
     public static final String RAG_QA_V1 = "rag-qa-v1";
 
@@ -23,21 +22,15 @@ public class EmbeddingPromptFormatter {
     public String formatQuery(String promptVersion, String query) {
         requireSupported(promptVersion);
         String queryText = query == null ? "" : query.trim();
-        if (QWEN_QA_V1.equals(promptVersion)) {
-            return "Instruct: Retrieve CoParking documentation that answers the user question.\nQuery: " + queryText;
-        }
         return "task: question answering | query: " + queryText;
     }
 
-    public String version(com.ban.vehicle_management.shared.enumeration.ai.AiProvider provider) {
-        return provider == com.ban.vehicle_management.shared.enumeration.ai.AiProvider.LM_STUDIO ? QWEN_QA_V1 : RAG_QA_V1;
-    }
     public String version() {
         return RAG_QA_V1;
     }
 
     public boolean supports(String promptVersion) {
-        return RAG_QA_V1.equals(promptVersion) || QWEN_QA_V1.equals(promptVersion);
+        return RAG_QA_V1.equals(promptVersion);
     }
 
     private void requireSupported(String promptVersion) {

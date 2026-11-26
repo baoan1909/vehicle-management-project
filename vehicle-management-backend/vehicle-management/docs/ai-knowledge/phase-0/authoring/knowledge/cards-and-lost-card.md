@@ -94,7 +94,7 @@ Mức phí, giấy tờ cụ thể, thời gian thay thẻ và thời hạn lưu
 
 ## Lịch sử phiên bản
 - 2.3.0, 2026-11-24: bổ sung ranh giới phiếu hỗ trợ/phiếu báo mất và kiểm tra phiếu đang mở trong FAQ lỗi; giữ DRAFT và evidence trước sửa.
-- 2.2.0, 2026-11-24: rà soát lại với code hiện tại; làm rõ điều kiện và giới hạn trả lời, chuẩn hóa ngôn ngữ; tiếp tục DRAFT. Kiểm thử và giới hạn bằng chứng tại báo cáo ALL_BATCHES_QWEN_REVIEW_REPORT.vi.md.
+- 2.2.0, 2026-11-24: rà soát lại với code hiện tại; làm rõ điều kiện và giới hạn trả lời, chuẩn hóa ngôn ngữ; tiếp tục DRAFT. Kiểm thử và giới hạn bằng chứng tại báo cáo ALL_BATCHES_REVIEW_STATUS.vi.md.
 - 2.1.0, 2026-11-23: bổ sung phân biệt điều kiện và hướng xử lý theo lỗi hồi quy đợt 4; giữ DRAFT.
 - 2.0.0, 2026-11-19: phân biệt báo mất với phiếu hỗ trợ, điều kiện thanh toán/hủy/thẻ thay thế và giới hạn dữ liệu trong chat.
 - 1.1.0: bản tham khảo trước khi rà soát đợt 2.

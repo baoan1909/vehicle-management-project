@@ -1,5 +1,7 @@
 # Báo cáo bước nền và đợt 1 — 19/11/2026
 
+> Local inference đã gỡ ngày 27/11/2026; các lượt đo/command cũ trong báo cáo chỉ có giá trị lịch sử. Dùng [bàn giao hiện tại](../../../TEAM_HANDOFF.vi.md), không tiếp tục chạy công cụ local đã xóa.
+
 > Bàn giao 25/11/2026: các lệnh Python trong báo cáo này là bằng chứng lịch sử; wrapper đã được gỡ. Lệnh hiện tại và các giới hạn kiểm thử được ghi trong [TEAM_HANDOFF.vi.md](../../../TEAM_HANDOFF.vi.md). Không dùng log cũ để kết luận bản code hiện tại đã nghiệm thu.
 
 Trạng thái: đã triển khai nền và đúng bốn tài liệu nghiệp vụ. Kiểm chứng bổ sung đã phục hồi generation 8/8 câu bằng model dự phòng; xem [báo cáo fallback](model-fallback-verification.vi.md). Chưa nghiệm thu độ đúng toàn hệ thống; vẫn còn 25 câu dưới ngưỡng bằng chứng. Không publish knowledge, purge DB, commit, push hoặc deploy.
@@ -186,4 +188,4 @@ Các số ở trên là mốc kiểm chứng lịch sử trên bốn tài liệu
 
 ## Rà soát lại cùng Qwen — 24/11/2026
 
-Đã cập nhật bốn nguồn của đợt này, bản xuất và checksum trong lượt rà soát 16 tài liệu. Giữ kết quả ở trên làm lịch sử. Kiểm tra cấu trúc mới đã qua; Java/SQL/FE/Qwen live của bản mới còn chờ RAM và chưa nghiệm thu đúng/đủ ý. Xem [báo cáo tổng hợp](../../../ALL_BATCHES_QWEN_REVIEW_REPORT.vi.md) để biết thay đổi, phiên bản, trạng thái từng tài liệu và bằng chứng thực chạy. Không kế thừa điểm của corpus cũ làm điểm của bản mới; Google chưa kiểm chứng trong lượt này.
+Đã cập nhật bốn nguồn của đợt này, bản xuất và checksum trong lượt rà soát 16 tài liệu. Giữ kết quả ở trên làm lịch sử. Kiểm tra cấu trúc mới đã qua; Java/SQL/FE/Qwen live của bản mới còn chờ RAM và chưa nghiệm thu đúng/đủ ý. Xem [báo cáo tổng hợp](../../../ALL_BATCHES_REVIEW_STATUS.vi.md) để biết thay đổi, phiên bản, trạng thái từng tài liệu và bằng chứng thực chạy. Không kế thừa điểm của corpus cũ làm điểm của bản mới; Google chưa kiểm chứng trong lượt này.

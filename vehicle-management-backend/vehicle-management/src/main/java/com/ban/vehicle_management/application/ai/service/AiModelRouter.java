@@ -16,10 +16,6 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class AiModelRouter {
-    @org.springframework.beans.factory.annotation.Autowired
-    private com.ban.vehicle_management.application.ai.service.AiRuntimeModeService runtimeMode;
-
-
     private final AiModelConfigurationPortOut modelConfigurationPortOut;
     private final AiModelPolicyService policyService;
 
@@ -34,7 +30,6 @@ public class AiModelRouter {
     public List<AiModelConfiguration> resolveCandidates(AiUseCase useCase) {
         List<AiModelConfiguration> candidates = modelConfigurationPortOut.findEnabledByUseCase(useCase).stream()
                 .filter(policyService::canUse)
-                .filter(config -> runtimeMode == null || config.getProvider() == runtimeMode.provider())
                 .sorted(Comparator
                         .comparing((AiModelConfiguration config) -> config.getStatus() == AiModelStatus.ACTIVE ? 0 : 1)
                         .thenComparing(config -> config.getPriority() == null ? Integer.MAX_VALUE : config.getPriority()))

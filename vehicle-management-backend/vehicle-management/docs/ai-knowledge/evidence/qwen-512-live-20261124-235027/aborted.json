@@ -1,6 +1,0 @@
-{
-  "reason": "Direct loaded-model probe paused below256MB freeRAM; full harness guard unchanged",
-  "availableMb": 219,
-  "planned": 40,
-  "recorded": 21
-}

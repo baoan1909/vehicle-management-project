@@ -6,24 +6,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface AssistantJobRepository extends JpaRepository<AssistantJobEntity, UUID> {
 
     Optional<AssistantJobEntity> findByInputMessageId(UUID inputMessageId);
-
-    boolean existsByJobIdAndRuntimeEpoch(UUID jobId, Long runtimeEpoch);
-
-    @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query(value = """
-            UPDATE ai.assistant_jobs
-            SET status = 'FAILED', error_code = 'AI_MODE_CHANGED',
-                locked_at = NULL, locked_by = NULL, lock_expires_at = NULL, updated_at = now()
-            WHERE runtime_epoch <> :epoch AND status IN ('PENDING', 'PROCESSING', 'RETRYING')
-            """, nativeQuery = true)
-    int failJobsFromOtherRuntimeEpochs(@Param("epoch") long epoch);
 
     @Query(value = """
             WITH due_jobs AS (

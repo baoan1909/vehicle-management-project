@@ -60,12 +60,6 @@ public class GuestPublicAssistantService {
     private final AiCacheKeyFactory cacheKeyFactory;
     private final KnowledgeRetrievalService retrievalService;
     private final AiModelRouter modelRouter;
-    @org.springframework.beans.factory.annotation.Autowired
-    private com.ban.vehicle_management.application.ai.service.AiRuntimeModeService runtimeMode;
-    @org.springframework.beans.factory.annotation.Value("${app.ai.lm-studio.max-input-bytes:1200}")
-    private int localInputBytes = 1200;
-    private boolean localMode() { return runtimeMode != null && runtimeMode.provider() == AiProvider.LM_STUDIO; }
-
     private final Map<AiProvider, AiProviderPortOut> providers = new EnumMap<>(AiProvider.class);
     private final AiAssistantProperties assistantProperties;
     private final PiiRedactionService redactionService;
@@ -104,7 +98,7 @@ public class GuestPublicAssistantService {
     }
 
     public boolean isEnabled() {
-        return runtimeMode == null ? assistantProperties.isProviderCallAllowed() : runtimeMode.callsAllowed(assistantProperties);
+        return assistantProperties.isProviderCallAllowed();
     }
 
     public GuestAssistantResponse answer(
@@ -118,17 +112,10 @@ public class GuestPublicAssistantService {
 
     public GuestAssistantResponse answer(String question, String sessionId, String captchaProof,
                                          String remoteAddress, String contextQuestion) {
-        if (runtimeMode == null) return answerInMode(question, sessionId, captchaProof, remoteAddress, contextQuestion);
-        try (var scope = runtimeMode.openScope()) {
-            var response = answerInMode(question, sessionId, captchaProof, remoteAddress, contextQuestion);
-            runtimeMode.assertCurrent();
-            return response;
-        } catch (com.ban.vehicle_management.application.ai.service.AiRuntimeModeChangedException exception) {
-            throw new ServiceUnavailableException("Trợ lý đang chuyển chế độ, vui lòng thử lại sau.");
-        }
+        return answerInternal(question, sessionId, captchaProof, remoteAddress, contextQuestion);
     }
 
-    private GuestAssistantResponse answerInMode(String question, String sessionId, String captchaProof,
+    private GuestAssistantResponse answerInternal(String question, String sessionId, String captchaProof,
                                          String remoteAddress, String contextQuestion) {
         if (!isEnabled()) throw new ServiceUnavailableException("Trợ lý công khai đang tạm ngưng");
         String ipHash = tokenService.hash(remoteAddress == null ? "unknown" : remoteAddress);
@@ -218,8 +205,7 @@ public class GuestPublicAssistantService {
                 List.of(),true,"COMMON_OUTPUT_REJECTED");
         UUID stableSession = UUID.nameUUIDFromBytes((ipHash + ":" + normalizedSession).getBytes(StandardCharsets.UTF_8));
         var generationEvidence = com.ban.vehicle_management.domain.ai.model.GroundedContextPack.safeResults(retrieval.results());
-        var evidencePack = (localMode() ? com.ban.vehicle_management.domain.ai.model.LocalGroundedProfile.pack(resolved.query(), generationEvidence, localInputBytes)
-                : com.ban.vehicle_management.domain.ai.model.GroundedContextPack.build(resolved.query(), generationEvidence));
+        var evidencePack = com.ban.vehicle_management.domain.ai.model.GroundedContextPack.build(resolved.query(), generationEvidence);
         if (evidencePack.chunks().isEmpty()) return new GuestAssistantResponse(
                 "Mình chưa có đủ nguồn công khai an toàn để trả lời chắc chắn. Bạn hãy liên hệ bộ phận phụ trách để được kiểm tra.",
                 List.of(), true, "INSUFFICIENT_SAFE_EVIDENCE");
@@ -227,7 +213,7 @@ public class GuestPublicAssistantService {
             var source = generationEvidence.stream().filter(item -> item.chunkId().equals(chunk.chunkId())).findFirst().orElseThrow();
             return new GuestAssistantResponse.Citation(chunk.label(), source.title(), source.sourcePage(), source.sourceSection());
         }).toList();
-        AiRequest request = localMode() ? com.ban.vehicle_management.domain.ai.model.LocalGroundedProfile.request(resolved.query(), evidencePack, RESPONSE_SCHEMA) : new AiRequest(
+        AiRequest request = new AiRequest(
                 SYSTEM_INSTRUCTION,
                 List.of(
                         new AiRequestMessage("user", evidencePack.text()),

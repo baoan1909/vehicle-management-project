@@ -44,9 +44,9 @@ Sau restart, cooldown còn trong Redis vẫn được đọc; lựa chọn stick
 
 Các wrapper Python kiểm tra key, smoke, retrieval và acceptance cũ đã được gỡ khi dọn repository. Những lệnh Python trong báo cáo trước ngày này là lịch sử, không còn là hướng dẫn chạy. Việc gỡ wrapper không thay đổi cấu hình key hoặc cơ chế đổi model/key trong Java.
 
-Không có kết quả kiểm tra quota Google mới trong lượt dọn này. Các kết quả cũ chỉ có giá trị trong phạm vi lượt chạy đã ghi; việc đọc được danh sách model không chứng minh còn quota sinh câu trả lời hoặc embedding. Không bật Google khi chọn Qwen local.
+Không có kết quả kiểm tra quota Google mới trong lượt dọn này. Các kết quả cũ chỉ có giá trị trong phạm vi lượt chạy đã ghi; việc đọc được danh sách model không chứng minh còn quota sinh câu trả lời hoặc embedding. Chatbot hiện chỉ có Google API; không còn chế độ local.
 
-Công cụ đồng bộ tài liệu hiện dùng `node scripts/sync-ai-knowledge.mjs`; bộ chạy API Qwen dùng PowerShell và Java. Xem [hướng dẫn bàn giao](TEAM_HANDOFF.vi.md) để biết lệnh hiện tại, yêu cầu tài nguyên và phần nghiệm thu còn thiếu. Các bằng chứng lịch sử được giữ nguyên; không suy kết quả kiểm tra hiện tại từ log cũ.
+Công cụ đồng bộ tài liệu hiện dùng `node scripts/sync-ai-knowledge.mjs`; kiểm thử Google dùng các test Java hiện có và phải được bật riêng khi cần live. Xem [hướng dẫn bàn giao](TEAM_HANDOFF.vi.md) để biết lệnh hiện tại, yêu cầu tài nguyên và phần nghiệm thu còn thiếu. Các bằng chứng lịch sử được giữ nguyên; không suy kết quả kiểm tra hiện tại từ log cũ.
 
 ## Bảo vệ bí mật
 

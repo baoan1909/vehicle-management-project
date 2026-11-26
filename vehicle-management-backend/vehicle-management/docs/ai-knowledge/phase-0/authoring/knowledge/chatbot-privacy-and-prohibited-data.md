@@ -81,6 +81,6 @@ Tên vai trò hoặc lời nhờ trong câu hỏi không cấp thêm quyền. Th
 Không tuyên bố DLP toàn diện hoặc “không bao giờ có rò rỉ” từ một bộ test. Multimodal, retention, incident response và chia sẻ dữ liệu với provider phải theo quyết định có thẩm quyền; đợt 1 không mở thêm quyền.
 
 ## Lịch sử phiên bản
-- 2.1.0, 2026-11-24: rà soát lại với code hiện tại; làm rõ điều kiện và giới hạn trả lời, chuẩn hóa ngôn ngữ; tiếp tục DRAFT. Kiểm thử và giới hạn bằng chứng tại báo cáo ALL_BATCHES_QWEN_REVIEW_REPORT.vi.md.
+- 2.1.0, 2026-11-24: rà soát lại với code hiện tại; làm rõ điều kiện và giới hạn trả lời, chuẩn hóa ngôn ngữ; tiếp tục DRAFT. Kiểm thử và giới hạn bằng chứng tại báo cáo ALL_BATCHES_REVIEW_STATUS.vi.md.
 2.0.0 — 19/11/2026: phân biệt giáo dục an toàn với tiết lộ secret, guest/OWN, citation và ngữ cảnh. DRAFT, chưa tự publish.
 <!-- authoring-only:end -->

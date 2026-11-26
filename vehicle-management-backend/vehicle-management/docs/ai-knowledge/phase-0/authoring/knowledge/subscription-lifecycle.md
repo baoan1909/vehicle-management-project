@@ -95,7 +95,7 @@ Chat chưa thực hiện gia hạn, thanh toán hoặc hủy thay người dùng
 
 ## Lịch sử phiên bản
 - 2.2.0, 2026-11-24: bổ sung khoảng ngày bắt đầu ngay trong FAQ đăng ký theo SubscriptionPolicy; giữ DRAFT và giữ evidence thiếu ý trước sửa.
-- 2.1.0, 2026-11-24: rà soát lại với code hiện tại; làm rõ điều kiện và giới hạn trả lời, chuẩn hóa ngôn ngữ; tiếp tục DRAFT. Kiểm thử và giới hạn bằng chứng tại báo cáo ALL_BATCHES_QWEN_REVIEW_REPORT.vi.md.
+- 2.1.0, 2026-11-24: rà soát lại với code hiện tại; làm rõ điều kiện và giới hạn trả lời, chuẩn hóa ngôn ngữ; tiếp tục DRAFT. Kiểm thử và giới hạn bằng chứng tại báo cáo ALL_BATCHES_REVIEW_STATUS.vi.md.
 - 2.0.0, 2026-11-19: thay luồng cũ bằng code hiện tại: ngày bắt đầu 0–7 ngày, gia hạn nối tiếp, chọn vị trí, mã QR và cấp thẻ vật lý riêng.
 - 1.1.0: bản tham khảo trước khi rà soát đợt 2.
 <!-- authoring-only:end -->

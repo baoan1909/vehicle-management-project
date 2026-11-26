@@ -15,10 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AssistantJobUseCaseImpl implements AssistantJobPortIn {
-    @org.springframework.beans.factory.annotation.Autowired
-    private com.ban.vehicle_management.application.ai.service.AiRuntimeModeService runtimeMode;
-
-
     private final AiAssistantProperties properties;
     private final AssistantJobPortOut assistantJobPortOut;
 
@@ -33,7 +29,7 @@ public class AssistantJobUseCaseImpl implements AssistantJobPortIn {
     @Override
     @Transactional
     public void enqueueAssistantReply(ChatConversation conversation, ChatMessage inputMessage) {
-        if (!(runtimeMode == null ? properties.isProviderCallAllowed() : runtimeMode.callsAllowed(properties))
+        if (!properties.isProviderCallAllowed()
                 || conversation == null
                 || inputMessage == null
                 || conversation.getConversationType() != ChatConversationType.ASSISTANT_SUPPORT

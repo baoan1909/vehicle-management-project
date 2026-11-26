@@ -22,15 +22,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 @Component
 public class GeminiAiProviderAdapter implements AiProviderPortOut {
 
-    @Autowired
-    private com.ban.vehicle_management.infrastructure.ai.runtime.AiProviderHttpClient providerHttpClient;
-
     private HttpResponse<String> sendProvider(HttpRequest request, Runnable sent) throws java.io.IOException, InterruptedException {
-        if (providerHttpClient == null) {
-            sent.run();
-            return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        }
-        return providerHttpClient.send(AiProvider.GEMINI, httpClient, request, sent);
+        sent.run();
+        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
     private final GeminiProperties geminiProperties;

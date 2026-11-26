@@ -6,5 +6,5 @@
   "independentBlindHoldout": false,
   "note": "Authored by same agent with project knowledge; not an independent blind test. Not added to runtime or old1104case totals. Mark exposed after first evaluation; preserve failures.",
   "referenceSha256": "07d398c41e376c53d2ab7f0c09e2d390d82cb2220db02721649a393ac873415e",
-  "referenceFile": "qwen-api-new-references.json"
+  "referenceFile": "additional-references.json"
 }

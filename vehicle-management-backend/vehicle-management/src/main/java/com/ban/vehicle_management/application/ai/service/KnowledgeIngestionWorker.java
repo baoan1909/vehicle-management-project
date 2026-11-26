@@ -49,10 +49,6 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Component
 public class KnowledgeIngestionWorker {
-    @org.springframework.beans.factory.annotation.Autowired
-    private AiRuntimeModeService runtimeMode;
-
-
     private static final Logger log = LoggerFactory.getLogger(KnowledgeIngestionWorker.class);
 
 
@@ -107,15 +103,10 @@ public class KnowledgeIngestionWorker {
     }
 
     public void process(KnowledgeIngestionJob claimedJob) {
-        if (runtimeMode == null) { processInMode(claimedJob); return; }
-        try (var scope = runtimeMode.openScope()) {
-            processInMode(claimedJob);
-        } catch (AiRuntimeModeChangedException changed) {
-            self.pauseForMode(claimedJob.getIngestionJobId(), claimedJob.getLockedBy());
-        }
+        processInternal(claimedJob);
     }
 
-    private void processInMode(KnowledgeIngestionJob claimedJob) {
+    private void processInternal(KnowledgeIngestionJob claimedJob) {
         UUID jobId = claimedJob.getIngestionJobId();
         String workerId = claimedJob.getLockedBy();
         if (jobId == null || workerId == null || workerId.isBlank()) {
@@ -180,7 +171,6 @@ public class KnowledgeIngestionWorker {
                 throw new KnowledgeWorkerException("CHUNK_PERSISTENCE_MISMATCH",
                         "Không tìm thấy chunk đã lưu cho tài liệu", true);
             }
-            if (runtimeMode != null) runtimeMode.assertCurrent();
             AiModelConfiguration configuration = findActiveEmbeddingConfiguration();
             List<KnowledgeStagedEmbedding> staged = embedAll(jobId, workerId, persisted, configuration);
             if (!self.persistStagedEmbeddings(jobId, workerId, staged)) {
@@ -188,13 +178,8 @@ public class KnowledgeIngestionWorker {
             }
 
             self.persistReview(jobId, workerId, document.getDocumentId());
-        } catch (AiRuntimeModeChangedException changed) {
-            self.pauseForMode(jobId, workerId);
+
         } catch (KnowledgeWorkerException exception) {
-            if ("AI_MODE_CHANGED".equals(exception.code) || "LOCAL_BUSY".equals(exception.code)) {
-                self.pauseForMode(jobId, workerId);
-                return;
-            }
             self.failOrRetry(jobId, workerId, document.getDocumentId(),
                     exception.code, exception.getMessageSafe(), exception.transientFailure);
         } catch (Exception exception) {
@@ -213,7 +198,6 @@ public class KnowledgeIngestionWorker {
     private AiModelConfiguration findActiveEmbeddingConfiguration() {
         return configurationPortOut.findByUseCaseAndStatus(AiUseCase.EMBEDDING, AiModelStatus.ACTIVE)
                 .stream()
-                .filter(config -> runtimeMode == null || config.getProvider() == runtimeMode.provider())
                 .findFirst()
                 .orElseThrow(() -> new KnowledgeWorkerException("EMBEDDING_CONFIG_INVALID",
                         "Chưa có cấu hình model embedding đang hoạt động", false));
@@ -226,7 +210,6 @@ public class KnowledgeIngestionWorker {
             AiModelConfiguration configuration) {
         List<KnowledgeStagedEmbedding> staged = new ArrayList<>();
         for (KnowledgeChunkSnapshot chunk : persisted) {
-            if (runtimeMode != null) runtimeMode.assertCurrent();
             if (!renewHeartbeat(jobId, workerId)) {
                 throw new KnowledgeWorkerException("INGESTION_LEASE_LOST",
                         "Mất quyền xử lý job, worker khác đã tiếp quản", false);
@@ -243,7 +226,7 @@ public class KnowledgeIngestionWorker {
                     configuration.getConfigurationId(),
                     configuration.getModelId(),
                     configuration.getOutputDimension(),
-                    (configuration.getProvider() == com.ban.vehicle_management.shared.enumeration.ai.AiProvider.LM_STUDIO ? EmbeddingPromptFormatter.QWEN_QA_V1 : promptFormatter.version()),
+                    promptFormatter.version(),
                     KnowledgeIndexVersionUseCaseImpl.CHUNKER_VERSION,
                     KnowledgeStagedEmbedding.sha256Hex(chunk.getContent() == null ? "" : chunk.getContent()),
                     result.getVector(),
@@ -255,7 +238,7 @@ public class KnowledgeIngestionWorker {
     private EmbeddingResult embedChunk(KnowledgeChunkSnapshot chunk, AiModelConfiguration configuration) {
         String title = piiRedactionService.redact(chunk.getTitle() == null ? "" : chunk.getTitle()).value();
         String content = piiRedactionService.redact(chunk.getContent() == null ? "" : chunk.getContent()).value();
-        String documentText = promptFormatter.formatDocument((configuration.getProvider() == com.ban.vehicle_management.shared.enumeration.ai.AiProvider.LM_STUDIO ? EmbeddingPromptFormatter.QWEN_QA_V1 : promptFormatter.version()), title, content);
+        String documentText = promptFormatter.formatDocument(promptFormatter.version(), title, content);
         return embeddingService.embed(new EmbeddingRequest(documentText, null), configuration);
     }
 
@@ -361,7 +344,6 @@ public class KnowledgeIngestionWorker {
     /** Persists all staged embeddings produced outside the transaction in one short commit. */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public boolean persistStagedEmbeddings(UUID jobId, String workerId, List<KnowledgeStagedEmbedding> staged) {
-        if (runtimeMode != null) runtimeMode.publicationFence();
         Instant now = Instant.now();
         KnowledgeIngestionJob job = jobPortOut.findById(jobId).orElse(null);
         if (job == null || !jobPortOut.renewLease(jobId, workerId, leaseUntil())) {
@@ -379,7 +361,6 @@ public class KnowledgeIngestionWorker {
     /** Marks the document and job as ready for review in a short transaction. */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void persistReview(UUID jobId, String workerId, UUID documentId) {
-        if (runtimeMode != null) runtimeMode.publicationFence();
         Instant now = Instant.now();
         KnowledgeIngestionJob job = jobPortOut.findById(jobId).orElse(null);
         if (job == null || !jobPortOut.renewLease(jobId, workerId, leaseUntil())) {
@@ -393,17 +374,6 @@ public class KnowledgeIngestionWorker {
         job.enterReview(now);
         jobPortOut.save(job);
         append(job, "JOB_REVIEW", null, "Tài liệu đã sẵn sàng cho duyệt", now);
-    }
-
-    /** Pause without spending a provider retry; extraction/chunk checkpoints stay reusable. */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void pauseForMode(UUID jobId, String workerId) {
-        KnowledgeIngestionJob job = jobPortOut.findByIdForUpdate(jobId).orElse(null);
-        if (job == null || workerId == null || !workerId.equals(job.getLockedBy())) return;
-        Instant now = Instant.now();
-        job.pauseForRuntime(now.plusSeconds(5));
-        jobPortOut.save(job);
-        append(job, "RUNTIME_PAUSED", null, "Tạm dừng do chuyển chế độ AI hoặc model local đang bận", now);
     }
 
     /** Handles a failing stage: classifies transient failures and schedules a backoff retry. */

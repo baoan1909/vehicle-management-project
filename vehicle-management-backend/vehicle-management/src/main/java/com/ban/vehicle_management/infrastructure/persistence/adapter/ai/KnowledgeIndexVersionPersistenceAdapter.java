@@ -15,10 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 @Transactional(readOnly = true)
 public class KnowledgeIndexVersionPersistenceAdapter implements KnowledgeIndexVersionPortOut {
-    @org.springframework.beans.factory.annotation.Autowired
-    private com.ban.vehicle_management.application.ai.service.AiRuntimeModeService runtimeMode;
-
-
     private static final String CANDIDATE_ADVISORY_LOCK_KEY = "ai_knowledge_auto_candidate";
 
     private final KnowledgeIndexVersionRepository repository;
@@ -52,13 +48,13 @@ public class KnowledgeIndexVersionPersistenceAdapter implements KnowledgeIndexVe
 
     @Override
     public Optional<KnowledgeIndexVersion> findActive() {
-        return findActive(runtimeMode == null ? com.ban.vehicle_management.shared.enumeration.ai.AiProvider.GEMINI : runtimeMode.provider());
+        return findActive(com.ban.vehicle_management.shared.enumeration.ai.AiProvider.GEMINI);
     }
 
     @Override
     @Transactional
     public Optional<KnowledgeIndexVersion> findActiveForUpdate() {
-        return findActiveForUpdate(runtimeMode == null ? com.ban.vehicle_management.shared.enumeration.ai.AiProvider.GEMINI : runtimeMode.provider());
+        return findActiveForUpdate(com.ban.vehicle_management.shared.enumeration.ai.AiProvider.GEMINI);
     }
 
     @Override
@@ -80,14 +76,14 @@ public class KnowledgeIndexVersionPersistenceAdapter implements KnowledgeIndexVe
     @Override
     public Optional<KnowledgeIndexVersion> findFirstPendingCandidate() {
         return repository.findFirstByProviderAndStatusInOrderByCreatedAtAsc(
-                        runtimeMode == null ? com.ban.vehicle_management.shared.enumeration.ai.AiProvider.GEMINI : runtimeMode.provider(), List.of(KnowledgeIndexVersionStatus.DRAFT, KnowledgeIndexVersionStatus.BUILDING))
+                        com.ban.vehicle_management.shared.enumeration.ai.AiProvider.GEMINI, List.of(KnowledgeIndexVersionStatus.DRAFT, KnowledgeIndexVersionStatus.BUILDING))
                 .map(mapper::toDomain);
     }
 
     @Override
     public long countPendingCandidates() {
         return repository.countByProviderAndStatusIn(
-                runtimeMode == null ? com.ban.vehicle_management.shared.enumeration.ai.AiProvider.GEMINI : runtimeMode.provider(), List.of(KnowledgeIndexVersionStatus.DRAFT, KnowledgeIndexVersionStatus.BUILDING));
+                com.ban.vehicle_management.shared.enumeration.ai.AiProvider.GEMINI, List.of(KnowledgeIndexVersionStatus.DRAFT, KnowledgeIndexVersionStatus.BUILDING));
     }
 
     @Override

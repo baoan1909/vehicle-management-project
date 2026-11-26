@@ -1,5 +1,7 @@
 # Rubric đợt 2 và hồi quy đợt 1
 
+> Local inference đã gỡ ngày 27/11/2026; các lượt đo/command cũ trong báo cáo chỉ có giá trị lịch sử. Dùng [bàn giao hiện tại](../../../TEAM_HANDOFF.vi.md), không tiếp tục chạy công cụ local đã xóa.
+
 ## Cách chia và cách tính
 
 - Đợt 2: 40 nhóm, mỗi nhóm 6 cách hỏi; regression 192, acceptance 48. Cùng nhóm không nằm ở hai tập.
@@ -43,4 +45,4 @@ Chỉ dùng câu hỏi và đáp án nằm trong các chunk đã truy xuất đ�
 
 ## Quy tắc bằng chứng khi rà soát lại — 24/11/2026
 
-Giữ ngưỡng và split cũ để truy vết. Bộ câu hỏi đã được dùng trong quá trình rà soát, không gọi là holdout mù. Báo riêng cấu trúc, Java matcher, SQL, nguồn/quyền, output validator, FAQ và model generation; không chấm đủ ý bằng dò từ khóa hoặc chỉ bằng Qwen. Không gộp corpus/config/code khác nhau. Trạng thái từng nguồn ở [báo cáo 16 tài liệu](../../../ALL_BATCHES_QWEN_REVIEW_REPORT.vi.md).
+Giữ ngưỡng và split cũ để truy vết. Bộ câu hỏi đã được dùng trong quá trình rà soát, không gọi là holdout mù. Báo riêng cấu trúc, Java matcher, SQL, nguồn/quyền, output validator, FAQ và model generation; không chấm đủ ý bằng dò từ khóa hoặc chỉ bằng Qwen. Không gộp corpus/config/code khác nhau. Trạng thái từng nguồn ở [báo cáo 16 tài liệu](../../../ALL_BATCHES_REVIEW_STATUS.vi.md).

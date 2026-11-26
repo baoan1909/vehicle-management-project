@@ -1,5 +1,7 @@
 # Báo cáo đợt 3 và chuyển key/model — 20/11/2026
 
+> Local inference đã gỡ ngày 27/11/2026; các lượt đo/command cũ trong báo cáo chỉ có giá trị lịch sử. Dùng [bàn giao hiện tại](../../../TEAM_HANDOFF.vi.md), không tiếp tục chạy công cụ local đã xóa.
+
 Đã triển khai và kiểm chứng cục bộ. Tài liệu giữ **DRAFT**, chưa duyệt phát hành. Số liệu tích lũy dưới đây thuộc lượt `release-candidate` dùng output guard v2. Sau khi lượt lặp phát hiện một cách diễn đạt phủ định bị chặn nhầm, guard v3 được kiểm tra lại với 136 đầu ra Gemini đã ghi và một lượt live riêng cho tám ca quan trọng. Không trình bày 600 ca cũ như 600 lần chạy live guard v3; model, corpus và phần generation không đổi giữa hai phiên bản guard này.
 
 ## Cơ chế key/model
@@ -112,4 +114,4 @@ Không reset, purge, nạp hoặc publish corpus DB dev; không gọi thanh toá
 
 ## Rà soát lại cùng Qwen — 24/11/2026
 
-Đã cập nhật bốn nguồn của đợt này, bản xuất và checksum trong lượt rà soát 16 tài liệu. Giữ kết quả ở trên làm lịch sử. Kiểm tra cấu trúc mới đã qua; Java/SQL/FE/Qwen live của bản mới còn chờ RAM và chưa nghiệm thu đúng/đủ ý. Xem [báo cáo tổng hợp](../../../ALL_BATCHES_QWEN_REVIEW_REPORT.vi.md) để biết thay đổi, phiên bản, trạng thái từng tài liệu và bằng chứng thực chạy. Không kế thừa điểm của corpus cũ làm điểm của bản mới; Google chưa kiểm chứng trong lượt này.
+Đã cập nhật bốn nguồn của đợt này, bản xuất và checksum trong lượt rà soát 16 tài liệu. Giữ kết quả ở trên làm lịch sử. Kiểm tra cấu trúc mới đã qua; Java/SQL/FE/Qwen live của bản mới còn chờ RAM và chưa nghiệm thu đúng/đủ ý. Xem [báo cáo tổng hợp](../../../ALL_BATCHES_REVIEW_STATUS.vi.md) để biết thay đổi, phiên bản, trạng thái từng tài liệu và bằng chứng thực chạy. Không kế thừa điểm của corpus cũ làm điểm của bản mới; Google chưa kiểm chứng trong lượt này.

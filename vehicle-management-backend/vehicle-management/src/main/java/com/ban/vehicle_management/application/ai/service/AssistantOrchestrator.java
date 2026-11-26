@@ -82,13 +82,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 public class AssistantOrchestrator implements AutoCloseable {
 
-    @org.springframework.beans.factory.annotation.Autowired
-    private com.ban.vehicle_management.application.ai.service.AiRuntimeModeService runtimeMode;
-    @org.springframework.beans.factory.annotation.Value("${app.ai.lm-studio.max-input-bytes:1200}")
-    private int localInputBytes = 1200;
-
-    private boolean localMode() { return runtimeMode != null && runtimeMode.provider() == AiProvider.LM_STUDIO; }
-
     private static final Logger LOGGER = LoggerFactory.getLogger(AssistantOrchestrator.class);
     private static final int JOB_BATCH_SIZE = 4;
     /** Maximum provider tool-call rounds per job to avoid loops. */
@@ -273,7 +266,7 @@ public class AssistantOrchestrator implements AutoCloseable {
 
     @Scheduled(fixedDelayString = "${app.ai.assistant-job-fixed-delay-ms:500}", initialDelayString = "${app.ai.assistant-job-initial-delay-ms:5000}")
     public synchronized void processDueJobs() {
-        if (!(runtimeMode == null ? properties.isProviderCallAllowed() : runtimeMode.callsAllowed(properties)) || (runtimeMode != null && runtimeMode.current().switching())) {
+        if (!properties.isProviderCallAllowed()) {
             return;
         }
         int available = jobPermits.availablePermits();
@@ -316,19 +309,10 @@ public class AssistantOrchestrator implements AutoCloseable {
     }
 
     public void processJob(AssistantJob job) {
-        if (runtimeMode == null) { processJobInMode(job); return; }
-        try (var scope = runtimeMode.openScope()) {
-            if (!runtimeMode.jobMatches(job.getJobId())) throw new AiRuntimeModeChangedException();
-            processJobInMode(job);
-        } catch (AiRuntimeModeChangedException exception) {
-            transactionTemplate.executeWithoutResult(status -> {
-                aiRunPortOut.failRunningForInputMessage(job.getInputMessageId(), "AI_MODE_CHANGED", false);
-                failOrRetry(job, "AI_MODE_CHANGED", false);
-            });
-        }
+        processJobInternal(job);
     }
 
-    private void processJobInMode(AssistantJob job) {
+    private void processJobInternal(AssistantJob job) {
         JobContext context = transactionTemplate.execute(status -> loadJobContext(job));
         if (context == null || context.terminal()) {
             return;
@@ -506,8 +490,7 @@ public class AssistantOrchestrator implements AutoCloseable {
                 : com.ban.vehicle_management.domain.ai.model.GroundedFaqLookup.find(redactedInput, safeEvidence);
         GroundedContextPack.ContextPack pack = retrieval.isCommonFaq()
                 ? GroundedContextPack.canonical(safeEvidence.getFirst())
-                : (localMode() ? com.ban.vehicle_management.domain.ai.model.LocalGroundedProfile.pack(redactedInput, safeEvidence, localInputBytes)
-                : GroundedContextPack.build(redactedInput, safeEvidence));
+                : GroundedContextPack.build(redactedInput, safeEvidence);
         Map<UUID, String> allowlist = pack.chunks().stream().collect(
                 java.util.stream.Collectors.toMap(
                         GroundedContextPack.PackChunk::chunkId,
@@ -733,7 +716,7 @@ public class AssistantOrchestrator implements AutoCloseable {
             String activeIds = candidates == null ? "" : candidates.stream()
                     .map(config -> String.valueOf(config.getConfigurationId()))
                     .sorted().collect(java.util.stream.Collectors.joining(","));
-            String raw = (runtimeMode == null ? "legacy" : runtimeMode.current().mode() + ":" + runtimeMode.current().epoch()) + "|" + properties.getPromptVersion() + "|" + retrievalProperties.getPolicyVersion()
+            String raw = "google-only-v1" + "|" + properties.getPromptVersion() + "|" + retrievalProperties.getPolicyVersion()
                     + "|" + retrievalProperties.getThresholdVersion() + "|citation-v1|"
                     + PromptInjectionScreening.VERSION + "|"
                     + com.ban.vehicle_management.domain.ai.model.VietnameseQueryNormalizer.LEXICAL_VERSION + "|"
@@ -868,7 +851,6 @@ public class AssistantOrchestrator implements AutoCloseable {
     private void storeGroundedAnswerCache(JobContext context, String redactedInput, List<String> scopes,
             KnowledgeRetrievalResult retrieval, String responseText,
             List<AiMessageCitation> citations, java.math.BigDecimal groundedConfidence) {
-        if (runtimeMode != null && !runtimeMode.isCurrentScope()) return;
         try {
             if (!cacheInfraReady() || !sensitiveGuard.isCacheable(redactedInput)) {
                 return;
@@ -1051,7 +1033,6 @@ public class AssistantOrchestrator implements AutoCloseable {
     }
 
     private AiRequest groundedRequest(String question, GroundedContextPack.ContextPack pack) {
-        if (localMode()) return com.ban.vehicle_management.domain.ai.model.LocalGroundedProfile.request(question, pack, GROUNDED_RESPONSE_JSON_SCHEMA);
         // Topic-only history has already been resolved before retrieval. Do not reload unrelated
         // conversation turns into a static answer: fewer DB reads/tokens and no stale instructions.
         List<AiRequestMessage> messages = new ArrayList<>();
@@ -1757,7 +1738,6 @@ public class AssistantOrchestrator implements AutoCloseable {
             AiToolCall toolCall,
             AiToolDefinition definition
     ) {
-        if (runtimeMode != null) runtimeMode.publicationFence();
         ChatMessage message = new ChatMessage();
         message.setMessageId(UUID.randomUUID());
         message.setConversationId(conversation.getConversationId());
@@ -1893,7 +1873,6 @@ public class AssistantOrchestrator implements AutoCloseable {
     }
 
     private ChatMessage saveAssistantMessage(ChatConversation conversation, AssistantJob job, String content) {
-        if (runtimeMode != null) runtimeMode.publicationFence();
         ChatMessage message = new ChatMessage();
         message.setMessageId(UUID.randomUUID());
         message.setConversationId(conversation.getConversationId());

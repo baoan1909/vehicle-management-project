@@ -29,10 +29,6 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class KnowledgeIndexBuildService {
-    @org.springframework.beans.factory.annotation.Autowired
-    private com.ban.vehicle_management.application.ai.service.AiRuntimeModeService runtimeMode;
-
-
     private static final Logger log = LoggerFactory.getLogger(KnowledgeIndexBuildService.class);
 
     private final KnowledgeIndexVersionPortOut indexVersionPortOut;
@@ -68,10 +64,6 @@ public class KnowledgeIndexBuildService {
     }
 
     public void process(UUID indexVersionId) {
-        if (runtimeMode != null) {
-            var version = indexVersionPortOut.findById(indexVersionId).orElse(null);
-            if (version == null || !runtimeMode.allows(version.getProvider())) return;
-        }
         UUID leaseId = UUID.randomUUID();
         if (!indexVersionPortOut.tryAcquireBuildLease(
                 indexVersionId,
@@ -121,7 +113,6 @@ public class KnowledgeIndexBuildService {
             KnowledgeChunk chunk,
             Instant now
     ) {
-        if (runtimeMode != null && !runtimeMode.allows(version.getProvider())) return false;
         if (reuseStagedEmbedding(version, configuration, chunk, now)) {
             return true;
         }

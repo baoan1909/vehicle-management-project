@@ -1,5 +1,7 @@
 # Đợt 2 và hồi quy đợt 1 — 19/11/2026
 
+> Local inference đã gỡ ngày 27/11/2026; các lượt đo/command cũ trong báo cáo chỉ có giá trị lịch sử. Dùng [bàn giao hiện tại](../../../TEAM_HANDOFF.vi.md), không tiếp tục chạy công cụ local đã xóa.
+
 > Bàn giao 25/11/2026: các lệnh Python trong báo cáo này là bằng chứng lịch sử; wrapper đã được gỡ. Lệnh hiện tại và các giới hạn kiểm thử được ghi trong [TEAM_HANDOFF.vi.md](../../../TEAM_HANDOFF.vi.md). Không dùng log cũ để kết luận bản code hiện tại đã nghiệm thu.
 
 Cập nhật bốn tài liệu đợt 2, đối chiếu backend, frontend và migration; đồng thời sửa luồng chat dùng chung cho cả hai đợt. **Code và artifact đã kiểm thử cục bộ; chưa nghiệm thu chất lượng Gemini của bản cuối vì quota embedding đã hết.** Tài liệu vẫn DRAFT. Không xóa, nhập hoặc publish knowledge vào DB dev; không thay model đang cấu hình trong DB.
@@ -147,4 +149,4 @@ C:/DiskD/VehicleManagementProject/vehicle-management-backend/vehicle-management/
 
 ## Rà soát lại cùng Qwen — 24/11/2026
 
-Đã cập nhật bốn nguồn của đợt này, bản xuất và checksum trong lượt rà soát 16 tài liệu. Giữ kết quả ở trên làm lịch sử. Kiểm tra cấu trúc mới đã qua; Java/SQL/FE/Qwen live của bản mới còn chờ RAM và chưa nghiệm thu đúng/đủ ý. Xem [báo cáo tổng hợp](../../../ALL_BATCHES_QWEN_REVIEW_REPORT.vi.md) để biết thay đổi, phiên bản, trạng thái từng tài liệu và bằng chứng thực chạy. Không kế thừa điểm của corpus cũ làm điểm của bản mới; Google chưa kiểm chứng trong lượt này.
+Đã cập nhật bốn nguồn của đợt này, bản xuất và checksum trong lượt rà soát 16 tài liệu. Giữ kết quả ở trên làm lịch sử. Kiểm tra cấu trúc mới đã qua; Java/SQL/FE/Qwen live của bản mới còn chờ RAM và chưa nghiệm thu đúng/đủ ý. Xem [báo cáo tổng hợp](../../../ALL_BATCHES_REVIEW_STATUS.vi.md) để biết thay đổi, phiên bản, trạng thái từng tài liệu và bằng chứng thực chạy. Không kế thừa điểm của corpus cũ làm điểm của bản mới; Google chưa kiểm chứng trong lượt này.

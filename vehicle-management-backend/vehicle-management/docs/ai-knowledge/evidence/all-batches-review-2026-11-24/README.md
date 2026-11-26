@@ -1,6 +1,9 @@
 # Evidence rà soát bốn đợt — 24/11/2026
 
-Xem [báo cáo tổng hợp](../../ALL_BATCHES_QWEN_REVIEW_REPORT.vi.md). Tài liệu vẫn DRAFT; không có lượt Qwen/Google mới được nghiệm thu.
+> Báo cáo lịch sử: tích hợp local và bộ chạy tương ứng đã được gỡ ngày 27/11/2026. Các số đo dưới đây chỉ áp dụng phiên bản cũ. Dùng TEAM_HANDOFF.vi.md trong docs/ai-knowledge để vận hành Google API hiện tại.
+
+
+Xem [báo cáo tổng hợp](../../ALL_BATCHES_REVIEW_STATUS.vi.md). Tài liệu vẫn DRAFT; không có lượt Qwen/Google mới được nghiệm thu.
 
 - `content-integrity.json`: 16 nguồn, phiên bản/checksum, 984 câu batch và baseline riêng, nguồn code/FE/test cùng hash, trạng thái chưa nghiệm thu. So câu FAQ trùng bằng Python chỉ là chẩn đoán, không thay SQL hoặc Java matcher.
 - `resource-preflight.json`: RAM thực và ngưỡng trước các gate chưa chạy. Trạng thái hoãn không phải PASS hoặc lỗi nội dung model.
