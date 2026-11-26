@@ -2,6 +2,8 @@ package com.ban.vehicle_management.infrastructure.persistence;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -110,6 +112,21 @@ class GoogleOnlyAiMigrationTest {
             assertEquals("0", text(db, "SELECT count(*) FROM information_schema.tables WHERE table_schema='ai' AND table_name IN ('runtime_mode','runtime_mode_events','provider_http_calls')"));
             SQLException rejected = assertThrows(SQLException.class, () -> sql.executeUpdate("INSERT INTO ai.ai_model_catalog(provider,model_id) VALUES ('LM_STUDIO','must-not-return')"));
             assertEquals("23514", rejected.getSQLState());
+
+            String archiveQuery = "SELECT jsonb_agg(to_jsonb(t) ORDER BY record_table, record_key)::text FROM ai.retired_provider_records t";
+            String archived = text(db, archiveQuery);
+            db.setAutoCommit(false);
+            try {
+                sql.execute(Files.readString(Path.of(
+                        "src/main/resources/db/migration/V20261126120000__retire_local_ai_provider.sql")));
+                db.commit();
+            } finally {
+                db.rollback();
+                db.setAutoCommit(true);
+            }
+            assertEquals(archived, text(db, archiveQuery));
+            assertEquals(googleSnapshot, text(db, "SELECT to_jsonb(t)::text FROM ai.knowledge_index_versions t WHERE index_version_id='%s'".formatted(googleIndex)));
+            assertEquals("FAILED:AI_PROVIDER_REMOVED", text(db, "SELECT status || ':' || error_code FROM ai.assistant_jobs WHERE job_id='%s'".formatted(localJob)));
         }
     }
 

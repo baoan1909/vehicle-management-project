@@ -1,4 +1,4 @@
-CREATE TABLE operations.support_ticket_events (
+CREATE TABLE IF NOT EXISTS operations.support_ticket_events (
     event_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     support_ticket_id UUID NOT NULL,
     conversation_id UUID NOT NULL,
@@ -35,13 +35,23 @@ CREATE TABLE operations.support_ticket_events (
 );
 
 ALTER TABLE operations.chat_messages
-    ADD COLUMN support_ticket_event_id UUID;
+    ADD COLUMN IF NOT EXISTS support_ticket_event_id UUID;
 
-ALTER TABLE operations.chat_messages
-    ADD CONSTRAINT fk_chat_messages_support_ticket_event
-        FOREIGN KEY (support_ticket_event_id)
-        REFERENCES operations.support_ticket_events(event_id)
-        ON DELETE SET NULL;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid = 'operations.chat_messages'::regclass
+          AND conname = 'fk_chat_messages_support_ticket_event'
+    ) THEN
+        ALTER TABLE operations.chat_messages
+            ADD CONSTRAINT fk_chat_messages_support_ticket_event
+                FOREIGN KEY (support_ticket_event_id)
+                REFERENCES operations.support_ticket_events(event_id)
+                ON DELETE SET NULL;
+    END IF;
+END;
+$$;
 
 DROP INDEX IF EXISTS operations.uq_chat_messages_ticket_origin_card;
 
@@ -90,6 +100,7 @@ FROM operations.chat_messages message
 JOIN operations.support_tickets ticket ON ticket.support_ticket_id = message.related_id
 JOIN operations.support_ticket_categories category ON category.category_id = ticket.category_id
 WHERE message.message_type = 'SUPPORT_REQUEST'
+  AND message.support_ticket_event_id IS NULL
   AND message.related_schema = 'operations'
   AND message.related_table = 'support_tickets'
   AND message.related_id IS NOT NULL
@@ -98,6 +109,7 @@ ON CONFLICT DO NOTHING;
 UPDATE operations.chat_messages message
 SET support_ticket_event_id = message.message_id
 WHERE message.message_type = 'SUPPORT_REQUEST'
+  AND message.support_ticket_event_id IS NULL
   AND message.related_schema = 'operations'
   AND message.related_table = 'support_tickets'
   AND EXISTS (
@@ -106,16 +118,26 @@ WHERE message.message_type = 'SUPPORT_REQUEST'
       WHERE event.event_id = message.message_id
   );
 
-CREATE UNIQUE INDEX uq_chat_messages_support_ticket_event
+CREATE UNIQUE INDEX IF NOT EXISTS uq_chat_messages_support_ticket_event
     ON operations.chat_messages(support_ticket_event_id)
     WHERE support_ticket_event_id IS NOT NULL;
 
-CREATE INDEX idx_support_ticket_events_ticket_created
+CREATE INDEX IF NOT EXISTS idx_support_ticket_events_ticket_created
     ON operations.support_ticket_events(support_ticket_id, created_at DESC);
 
-CREATE INDEX idx_support_ticket_events_conversation_created
+CREATE INDEX IF NOT EXISTS idx_support_ticket_events_conversation_created
     ON operations.support_ticket_events(conversation_id, created_at DESC);
 
-CREATE TRIGGER trg_support_ticket_events_set_updated_at
-    BEFORE UPDATE ON operations.support_ticket_events
-    FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger
+        WHERE tgrelid = 'operations.support_ticket_events'::regclass
+          AND tgname = 'trg_support_ticket_events_set_updated_at'
+    ) THEN
+        CREATE TRIGGER trg_support_ticket_events_set_updated_at
+            BEFORE UPDATE ON operations.support_ticket_events
+            FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+    END IF;
+END;
+$$;
