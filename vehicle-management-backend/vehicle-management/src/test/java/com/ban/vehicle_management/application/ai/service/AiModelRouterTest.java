@@ -100,17 +100,4 @@ class AiModelRouterTest {
         configuration.setFreeTierApproved(true);
         return configuration;
     }
-    @Test
-    void localAndGoogleRolloutAndFallbackCandidatesStaySeparate() {
-        var mode=org.mockito.Mockito.mock(AiRuntimeModeService.class);
-        var router=new AiModelRouter(modelConfigurationPortOut,new AiModelPolicyService(new AiAssistantProperties()));
-        org.springframework.test.util.ReflectionTestUtils.setField(router,"runtimeMode",mode);
-        var google=config("google",AiModelStatus.ACTIVE,1);google.setProvider(com.ban.vehicle_management.shared.enumeration.ai.AiProvider.GEMINI);
-        var local=config("qwen",AiModelStatus.ACTIVE,1);local.setProvider(com.ban.vehicle_management.shared.enumeration.ai.AiProvider.LM_STUDIO);
-        when(modelConfigurationPortOut.findEnabledByUseCase(AiUseCase.SUPPORT_CHAT)).thenReturn(List.of(google,local));
-        when(mode.provider()).thenReturn(com.ban.vehicle_management.shared.enumeration.ai.AiProvider.GEMINI);
-        assertEquals(List.of("google"),router.resolveCandidates(AiUseCase.SUPPORT_CHAT).stream().map(AiModelConfiguration::getModelId).toList());
-        when(mode.provider()).thenReturn(com.ban.vehicle_management.shared.enumeration.ai.AiProvider.LM_STUDIO);
-        assertEquals(List.of("qwen"),router.resolveCandidates(AiUseCase.SUPPORT_CHAT).stream().map(AiModelConfiguration::getModelId).toList());
-    }
 }

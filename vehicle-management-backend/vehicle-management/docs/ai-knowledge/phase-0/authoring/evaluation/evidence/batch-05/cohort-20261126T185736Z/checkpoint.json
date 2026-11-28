@@ -1,0 +1,11 @@
+{
+  "status" : "STOPPED",
+  "stopReason" : "IllegalStateException: HTTP_500:/api/ai/index-versions:{\"success\":false,\"message\":\"Hệ thống đang gặp sự cố. Vui lòng thử lại sau\",\"data\":{\"path\":\"/vehicle-management/api/ai/index-versions\",\"error\":\"Internal Server Error\",\"status\":500},\"timestamp\":\"2026-11",
+  "lastStageOrCase" : "INDEX",
+  "caseIdsCompleted" : [ ],
+  "actualHttpRequests" : 80,
+  "reviewer" : "PENDING_INDEPENDENT_SEMANTIC_REVIEW",
+  "notAttempted" : "All cases absent from caseIdsCompleted; no quota balance inferred",
+  "database" : "Testcontainers fresh vehicle_management_test; no shared DB writes",
+  "recordedAt" : "2026-11-26T18:59:52.120690900Z"
+}

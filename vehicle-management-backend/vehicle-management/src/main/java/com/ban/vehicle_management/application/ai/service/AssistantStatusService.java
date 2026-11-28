@@ -12,10 +12,6 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class AssistantStatusService implements AssistantStatusPortIn {
-    @org.springframework.beans.factory.annotation.Autowired
-    private com.ban.vehicle_management.application.ai.service.AiRuntimeModeService runtimeMode;
-
-
     private final AiAssistantProperties properties;
     private final AssistantJobPortOut assistantJobPortOut;
     private final AiToolCallPortOut aiToolCallPortOut;
@@ -32,7 +28,7 @@ public class AssistantStatusService implements AssistantStatusPortIn {
 
     @Override
     public boolean isAssistantEnabled() {
-        return (runtimeMode == null ? properties.isProviderCallAllowed() : runtimeMode.callsAllowed(properties));
+        return properties.isProviderCallAllowed();
     }
 
     @Override

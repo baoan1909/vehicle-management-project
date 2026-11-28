@@ -88,7 +88,7 @@ Sửa biển số, ngưng dùng xe và đặt xe mặc định là các thao tá
 Chatbot chưa hỗ trợ thay đổi phương tiện. Chính sách lưu trữ dữ liệu lâu dài chưa được quyết định trong đợt này. Không tự hứa thời gian xử lý tranh chấp.
 
 ## Lịch sử phiên bản
-- 2.1.0, 2026-11-24: rà soát lại với code hiện tại; làm rõ điều kiện và giới hạn trả lời, chuẩn hóa ngôn ngữ; tiếp tục DRAFT. Kiểm thử và giới hạn bằng chứng tại báo cáo ALL_BATCHES_QWEN_REVIEW_REPORT.vi.md.
+- 2.1.0, 2026-11-24: rà soát lại với code hiện tại; làm rõ điều kiện và giới hạn trả lời, chuẩn hóa ngôn ngữ; tiếp tục DRAFT. Kiểm thử và giới hạn bằng chứng tại báo cáo ALL_BATCHES_REVIEW_STATUS.vi.md.
 - 2.0.0, 2026-11-19: xác minh code hiện tại; cập nhật xóa thành ngưng dùng, xe đạp, giới hạn đổi biển số và cách diễn đạt dễ hiểu.
 - 1.1.0: bản tham khảo trước khi rà soát đợt 2.
 <!-- authoring-only:end -->

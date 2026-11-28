@@ -1,0 +1,39 @@
+[
+  {
+    "file": "checkpoint.json",
+    "sha256": "e84f83857189fe2e89ec0ff5bf668d8e04d5533bd444c16e82a10dd4d88155ed"
+  },
+  {
+    "file": "cohort.json",
+    "sha256": "2bacc3556fd0181409ad518de45689ba4e79f98d4e5c7e4c491435388854e247"
+  },
+  {
+    "file": "wire-attempts.json",
+    "sha256": "5984eac0c5c6d947241e29dd5671b81a1546cedf77e08d38438ac47029969afa"
+  },
+  {
+    "file": "credential-diagnostics.json",
+    "sha256": "5100ab803a570945aa04c7687a4b33dd66f3d5878bf83db95a30e6ea696248f4"
+  },
+  {
+    "file": "credential-failures.json",
+    "sha256": "5984eac0c5c6d947241e29dd5671b81a1546cedf77e08d38438ac47029969afa"
+  },
+  {
+    "file": "ingestion.json",
+    "sha256": "5984eac0c5c6d947241e29dd5671b81a1546cedf77e08d38438ac47029969afa"
+  },
+  {
+    "file": "transcript.json",
+    "sha256": "5984eac0c5c6d947241e29dd5671b81a1546cedf77e08d38438ac47029969afa"
+  },
+  {
+    "file": "approved-model-registry.json",
+    "sha256": "f3a88ca2e94cb43b42ace10e3756a8cd0af67384aff86778941b344817b4de59"
+  },
+  {
+    "privateLog": "target/batch05-google-live/cohort-20261126T183340Z/run.log",
+    "sha256": "c32e2b4e343eae4a2e49911678a38131560d52b8899f1c0c48fd8cc6e312670c",
+    "copiedToGit": false
+  }
+]

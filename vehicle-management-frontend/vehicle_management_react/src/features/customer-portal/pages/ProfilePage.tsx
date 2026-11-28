@@ -101,23 +101,28 @@ function accountStatusLabel(status?: string | null) {
   if (status === "ACTIVE") return "Đang hoạt động";
   if (status === "INACTIVE") return "Ngừng hoạt động";
   if (status === "SUSPENDED") return "Tạm khóa";
+  if (status === "LOCKED") return "Đã khóa";
+  if (status === "DISABLED") return "Đã vô hiệu hóa";
   if (status === "PENDING") return "Chờ kích hoạt";
-  return status || "--";
+  return status ? "Chưa xác định" : "--";
 }
 
 function approvalStatusLabel(status?: string | null) {
   if (status === "APPROVED") return "Đã phê duyệt";
   if (status === "PENDING") return "Chờ phê duyệt";
   if (status === "REJECTED") return "Cần bổ sung";
-  return status || "--";
+  if (status === "SUSPENDED") return "Tạm ngưng";
+  return status ? "Chưa xác định" : "--";
 }
 
 function profileStatusLabel(status?: string | null) {
   if (status === "ACTIVE") return "Đã kích hoạt";
   if (status === "INACTIVE") return "Ngừng hoạt động";
   if (status === "SUSPENDED") return "Tạm khóa";
+  if (status === "LOCKED") return "Đã khóa";
+  if (status === "DISABLED") return "Đã vô hiệu hóa";
   if (status === "PENDING") return "Chờ kích hoạt";
-  return status || "--";
+  return status ? "Chưa xác định" : "--";
 }
 
 function profileToForm(profile: CustomerPortalProfile): ProfileForm {

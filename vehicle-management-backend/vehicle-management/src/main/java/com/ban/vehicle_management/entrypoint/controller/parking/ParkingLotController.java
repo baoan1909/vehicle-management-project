@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.controller.parking;
 
+import com.ban.vehicle_management.entrypoint.dto.parking.parkinglot.response.ParkingLotResponsibilityResponse;
+
 import com.ban.vehicle_management.application.parking.parkinglot.mapper.ParkingLotApiMapper;
 import com.ban.vehicle_management.application.parking.parkinglot.port.in.ParkingLotPortIn;
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
@@ -38,6 +40,13 @@ public class ParkingLotController {
     ) {
         this.parkingLotPortIn = parkingLotPortIn;
         this.parkingLotApiMapper = parkingLotApiMapper;
+    }
+
+    @GetMapping("/{parkingLotId}/responsibility")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_LOT_READ_ALL')")
+    public ResponseEntity<ApiResponse<ParkingLotResponsibilityResponse>> responsibility(@PathVariable UUID parkingLotId) {
+        return ResponseEntity.ok(ApiResponse.ok("Fetched parking lot responsibility",
+                parkingLotApiMapper.toResponsibilityResponse(parkingLotPortIn.getResponsibility(parkingLotId))));
     }
 
     @PostMapping("/{parkingLotId}/geocode")

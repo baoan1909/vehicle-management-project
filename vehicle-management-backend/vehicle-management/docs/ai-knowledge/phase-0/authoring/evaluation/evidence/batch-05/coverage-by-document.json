@@ -1,0 +1,55 @@
+{
+  "cohort": "cohort-20261126T192655Z",
+  "groups": {
+    "partner-registration-and-organization": {
+      "planned": 36,
+      "observed": 2,
+      "completedUngraded": 2,
+      "notRun": 34,
+      "graded": 0,
+      "pass": 0,
+      "semanticScore": null,
+      "gate": "PENDING"
+    },
+    "partner-organization-administration": {
+      "planned": 24,
+      "observed": 0,
+      "completedUngraded": 0,
+      "notRun": 24,
+      "graded": 0,
+      "pass": 0,
+      "semanticScore": null,
+      "gate": "PENDING"
+    },
+    "partner-employees-roles-and-permissions": {
+      "planned": 60,
+      "observed": 2,
+      "completedUngraded": 2,
+      "notRun": 58,
+      "graded": 0,
+      "pass": 0,
+      "semanticScore": null,
+      "gate": "PENDING"
+    },
+    "parking-structure-and-layout": {
+      "planned": 60,
+      "observed": 2,
+      "completedUngraded": 2,
+      "notRun": 58,
+      "graded": 0,
+      "pass": 0,
+      "semanticScore": null,
+      "gate": "PENDING"
+    },
+    "partner-operational-catalogs": {
+      "planned": 60,
+      "observed": 2,
+      "completedUngraded": 2,
+      "notRun": 58,
+      "graded": 0,
+      "pass": 0,
+      "semanticScore": null,
+      "gate": "PENDING"
+    }
+  }
+}

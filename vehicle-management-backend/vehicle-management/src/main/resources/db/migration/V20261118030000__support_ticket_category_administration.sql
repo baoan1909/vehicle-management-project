@@ -54,10 +54,20 @@ WHERE audience_type = 'ALL';
 ALTER TABLE operations.support_ticket_categories
     DROP CONSTRAINT IF EXISTS ck_support_ticket_categories_audience;
 
-ALTER TABLE operations.support_ticket_categories
-    ADD CONSTRAINT ck_support_ticket_categories_audience CHECK (
-        audience_type IN ('CUSTOMER', 'INTERNAL')
-    );
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid = 'operations.support_ticket_categories'::regclass
+          AND conname = 'ck_support_ticket_categories_audience'
+    ) THEN
+        ALTER TABLE operations.support_ticket_categories
+            ADD CONSTRAINT ck_support_ticket_categories_audience CHECK (
+                audience_type IN ('CUSTOMER', 'INTERNAL')
+            );
+    END IF;
+END;
+$$;
 
 DROP INDEX IF EXISTS operations.uq_support_ticket_categories_active_code;
 

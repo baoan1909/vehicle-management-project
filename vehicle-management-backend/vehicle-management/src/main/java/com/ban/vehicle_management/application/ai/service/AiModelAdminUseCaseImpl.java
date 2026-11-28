@@ -24,12 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AiModelAdminUseCaseImpl implements AiModelAdminPortIn {
-    @org.springframework.beans.factory.annotation.Autowired
-    private com.ban.vehicle_management.application.ai.service.AiRuntimeModeService runtimeMode;
-
-
-    @org.springframework.beans.factory.annotation.Autowired
-    private LocalAiModelRegistrationService localRegistration;
 
     private final CurrentAccountPortIn currentAccountPortIn;
     private final AiModelConfigurationPortOut configurationPortOut;
@@ -98,15 +92,14 @@ public class AiModelAdminUseCaseImpl implements AiModelAdminPortIn {
     public List<AiProviderModel> syncCatalog() {
         currentAccountPortIn.requirePermission("AI_CATALOG_SYNC_ALL");
         AiProviderPortOut gemini = providerPorts.stream()
-                .filter(port -> port.provider() == (runtimeMode == null ? AiProvider.GEMINI : runtimeMode.provider()))
+                .filter(port -> port.provider() == AiProvider.GEMINI)
                 .findFirst()
                 .orElseThrow(() -> new BadRequestException("Chưa cấu hình nhà cung cấp AI đang chọn"));
         List<AiProviderModel> models = gemini.listModels();
         if (models.isEmpty()) {
-            openWarning(runtimeMode == null ? AiProvider.GEMINI : runtimeMode.provider(), null, null, "CATALOG_SYNC_FAILED", AiModelWarningSeverity.CRITICAL, "Selected provider catalog sync returned no models");
+            openWarning(AiProvider.GEMINI, null, null, "CATALOG_SYNC_FAILED", AiModelWarningSeverity.CRITICAL, "Selected provider catalog sync returned no models");
         }
         catalogPortOut.upsertGeminiModels(models);
-        if (localRegistration != null) localRegistration.registerCandidates(models);
         reconcileConfigurations();
         return catalogPortOut.findAll();
     }
@@ -163,7 +156,6 @@ public class AiModelAdminUseCaseImpl implements AiModelAdminPortIn {
     private void reconcileConfigurations() {
         List<AiProviderModel> catalog = catalogPortOut.findAll();
         for (AiModelConfiguration configuration : configurationPortOut.findAll()) {
-            if (runtimeMode != null && configuration.getProvider() != runtimeMode.provider()) continue;
             AiProviderModel model = catalog.stream()
                     .filter(item -> item.provider() == configuration.getProvider() && item.modelId().equals(configuration.getModelId()))
                     .findFirst()

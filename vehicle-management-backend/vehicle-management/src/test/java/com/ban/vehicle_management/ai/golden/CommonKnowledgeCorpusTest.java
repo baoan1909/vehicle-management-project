@@ -51,8 +51,13 @@ class CommonKnowledgeCorpusTest {
                 var row=json.readTree(line);String question=row.path("question").asText();List<String> history=new ArrayList<>();
                 for(var item:row.path("context"))history.add(item.asText());
                 long tick=System.nanoTime();var resolved=AssistantQuestionResolver.resolve(question,history);
-                var allowed=sources.stream().filter(s->"PUBLIC".equals(scopes.get(s.documentId()))
-                        || (!"PUBLIC".equals(row.path("persona").asText())&&"CUSTOMER".equals(scopes.get(s.documentId())))).toList();
+                Set<String> fixturePermissions = new HashSet<>();
+                for (var permission : row.path("requiredPermissions")) fixturePermissions.add(permission.asText());
+                // Historical customer fixtures retain their declared audience; role names never grant internal scope.
+                if ("CUSTOMER".equals(row.path("persona").asText())) fixturePermissions.add("AI_KNOWLEDGE_READ_CUSTOMER");
+                var allowedScopes = new com.ban.vehicle_management.application.ai.service.KnowledgeAccessContextResolver(null)
+                        .scopesForPermissions(fixturePermissions);
+                var allowed=sources.stream().filter(s->allowedScopes.contains(scopes.get(s.documentId()))).toList();
                 var match=GroundedFaqLookup.findCommon(resolved.query(),allowed);var observation=new LinkedHashMap<String,Object>();
                 observation.put("case",row);observation.put("resolvedQuery",resolved.query());observation.put("route",resolved.decision().intent().name());
                 observation.put("routeMatchesExpected",row.path("expectedIntent").asText().equals(resolved.decision().intent().name()));

@@ -114,14 +114,14 @@ const TRACKING_MODE_OPTIONS = [
 ];
 
 const DIRECTION_OPTIONS = [
-  { label: "Làn vào (IN)", value: "IN" },
-  { label: "Làn ra (OUT)", value: "OUT" },
+  { label: "Làn vào", value: "IN" },
+  { label: "Làn ra", value: "OUT" },
 ];
 
 const LIFECYCLE_STATUS_OPTIONS: Array<{ label: string; value: TopologyStatus }> = [
-  { label: "Hoạt động (ACTIVE)", value: "ACTIVE" },
-  { label: "Bảo trì (MAINTENANCE)", value: "MAINTENANCE" },
-  { label: "Đã đóng (CLOSED)", value: "CLOSED" },
+  { label: "Hoạt động", value: "ACTIVE" },
+  { label: "Bảo trì", value: "MAINTENANCE" },
+  { label: "Đã đóng", value: "CLOSED" },
 ];
 
 function normalizeStatus(value: unknown): TopologyStatus {
@@ -172,7 +172,7 @@ function StatusPill({ label, tone }: { label: string; tone: "green" | "amber" | 
 function SpacePill() {
   return (
     <span className="tw-inline-flex tw-items-center tw-rounded-[5px] tw-bg-[#eff6ff] tw-px-1.5 tw-py-[3px] tw-text-[0.68rem] tw-font-extrabold tw-tracking-wide tw-text-[#2563eb]">
-      SPACE
+      Theo ô đỗ
     </span>
   );
 }

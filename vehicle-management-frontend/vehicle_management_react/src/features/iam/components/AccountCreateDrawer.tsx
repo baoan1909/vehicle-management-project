@@ -218,7 +218,7 @@ export function AccountCreateDrawer({ isOpen, onClose, onCreated }: AccountCreat
                     <span className="tw-min-w-0 tw-flex-1">
                       <span className="tw-flex tw-items-center tw-justify-between tw-gap-3">
                         <strong className="tw-text-[0.9rem] tw-font-extrabold tw-text-vm-slate-900">{role.label}</strong>
-                        <Badge tone={selected ? "primary" : "neutral"} className="tw-rounded-full tw-px-2.5">{role.code}</Badge>
+                        <Badge tone={selected ? "primary" : "neutral"} className="tw-rounded-full tw-px-2.5">{selected ? "Đã chọn" : "Chọn"}</Badge>
                       </span>
                       <small className="tw-mt-1 tw-block tw-text-[0.76rem] tw-font-semibold tw-text-vm-slate-500">{role.description}</small>
                     </span>

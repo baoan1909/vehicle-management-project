@@ -94,8 +94,23 @@ class ShiftUseCaseImplTest {
     @Mock
     private ZonePortOut zonePortOut;
 
+    @Mock
+    private com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn notificationPortIn;
     @InjectMocks
     private ShiftUseCaseImpl useCase;
+
+    @Test
+    void employeeCannotOpenShiftAfterLosingParkingLotAssignment() {
+        Shift shift = scheduledCurrentShift(UUID.randomUUID());
+        when(shiftPortOut.findByIdForUpdate(shift.getShiftId())).thenReturn(Optional.of(shift));
+        when(parkingLotPortOut.findById(shift.getParkingLotId())).thenReturn(Optional.of(parkingLot(
+                shift.getParkingLotId(), ParkingLotStatus.ACTIVE)));
+        doThrow(new AccessDeniedException("Assignment revoked"))
+                .when(organizationAccessGuard).ensureCanOperateParkingLot(any());
+        assertThrows(AccessDeniedException.class, () -> useCase.openShift(shift.getShiftId(), BigDecimal.ZERO, null));
+        verify(shiftPortOut, never()).save(any());
+        verify(assignmentPortOut, never()).saveAll(anyList());
+    }
 
     @Test
     void shouldGenerateTwentyOneShiftsAndFortyTwoAssignments() {
@@ -246,6 +261,9 @@ class ShiftUseCaseImplTest {
         when(shiftPortOut.hasOpenShift(parkingLotId)).thenReturn(false);
         when(shiftPortOut.save(shift)).thenReturn(shift);
 
+        UUID notifiedAccount = UUID.randomUUID();
+        when(employeePortOut.findAccountIdByEmployeeId(assignments.get(0).getEmployeeId()))
+                .thenReturn(Optional.of(notifiedAccount));
         Shift result = useCase.openShift(
                 shift.getShiftId(),
                 new BigDecimal("500000"),
@@ -255,6 +273,11 @@ class ShiftUseCaseImplTest {
         assertEquals(ShiftStatus.OPEN, result.getStatus());
         assertEquals(new BigDecimal("500000"), result.getOpeningCash());
         assertEquals(accountId, result.getOpenedBy());
+        verify(organizationAccessGuard).ensureCanOperateParkingLot(any());
+        verify(notificationPortIn).sendWebNotification(org.mockito.ArgumentMatchers.argThat(command ->
+                command.notificationType() == com.ban.vehicle_management.shared.enumeration.notification.NotificationType.SHIFT_CHANGED
+                        && "Ca trực đã mở".equals(command.title())));
+
     }
 
     @Test

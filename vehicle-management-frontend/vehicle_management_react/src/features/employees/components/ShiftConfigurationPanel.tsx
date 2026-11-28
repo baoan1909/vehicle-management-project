@@ -1,3 +1,5 @@
+import { useAuth } from "@/core/auth/useAuth";
+import { hasAnyPermission } from "@/shared/auth/permissions";
 import { useMemo, useState } from "react";
 import type { FormEvent, InputHTMLAttributes, ReactNode } from "react";
 
@@ -173,6 +175,13 @@ export function ShiftConfigurationPanel({
   selectedLot,
   shiftTemplates,
 }: ShiftConfigurationPanelProps) {
+  const { user } = useAuth();
+  const canCreateTemplate = hasAnyPermission(user, ["SHIFT_CREATE_ALL"]);
+  const canDeleteTemplate = hasAnyPermission(user, ["SHIFT_DELETE_ALL"]);
+  const canDeleteRule = hasAnyPermission(user, ["SHIFT_ASSIGNMENT_DELETE_ALL"]);
+  const canUpdateTemplate = hasAnyPermission(user, ["SHIFT_UPDATE_ALL"]);
+  const canCreateRule = hasAnyPermission(user, ["SHIFT_ASSIGNMENT_CREATE_ALL"]);
+  const canUpdateRule = hasAnyPermission(user, ["SHIFT_ASSIGNMENT_UPDATE_ALL"]);
   const toast = useToast();
   const lotOptions = useMemo(
     () => parkingLots.map((lot) => ({ label: `${lot.code} - ${lot.name}`, value: lot.parkingLotId })),
@@ -219,6 +228,7 @@ export function ShiftConfigurationPanel({
 
   async function handleSubmitTemplate(event: FormEvent) {
     event.preventDefault();
+    if (editingTemplateId ? !canUpdateTemplate : !canCreateTemplate) return;
 
     if (!templateForm.parkingLotId || !templateForm.name.trim() || !templateForm.startLocalTime || !templateForm.endLocalTime) {
       toast.error("Vui lòng nhập đủ bãi xe, tên mẫu ca và khung giờ.", "Thiếu thông tin");
@@ -258,6 +268,7 @@ export function ShiftConfigurationPanel({
 
   async function handleSubmitRule(event: FormEvent) {
     event.preventDefault();
+    if (editingRuleId ? !canUpdateRule : !canCreateRule) return;
 
     if (!ruleForm.parkingLotId || !ruleForm.employeeId || !ruleForm.effectiveFrom) {
       toast.error("Vui lòng chọn bãi xe, nhân viên và ngày hiệu lực.", "Thiếu thông tin");
@@ -297,6 +308,7 @@ export function ShiftConfigurationPanel({
   }
 
   async function handleToggleTemplate(template: ShiftTemplateApiResponse) {
+    if (template.status === "ACTIVE" ? !canDeleteTemplate : !canUpdateTemplate) return;
     setStatusChangingTemplateId(template.shiftTemplateId);
     try {
       if (template.status === "ACTIVE") {
@@ -318,6 +330,7 @@ export function ShiftConfigurationPanel({
   }
 
   async function handleToggleRule(rule: EmployeeRosterRuleApiResponse) {
+    if (rule.status === "ACTIVE" ? !canDeleteRule : !canUpdateRule) return;
     setStatusChangingRuleId(rule.rosterRuleId);
     try {
       if (rule.status === "ACTIVE") {
@@ -340,8 +353,8 @@ export function ShiftConfigurationPanel({
 
   if (mode === "templates") {
     return (
-      <div className="tw-mt-4 tw-grid tw-grid-cols-[minmax(0,1fr)_420px] tw-gap-4 max-[1180px]:tw-grid-cols-1">
-        <Card className="tw-order-2 tw-p-4">
+      <div className={cn("tw-mt-4 tw-grid tw-gap-4", (editingTemplateId ? canUpdateTemplate : canCreateTemplate) ? "tw-grid-cols-[minmax(0,1fr)_420px] max-[1180px]:tw-grid-cols-1" : "tw-grid-cols-1")}>
+        {(editingTemplateId ? canUpdateTemplate : canCreateTemplate) ? <Card className="tw-order-2 tw-p-4">
           <div className="tw-flex tw-items-start tw-justify-between tw-gap-3">
             <div>
               <h2 className="tw-m-0 tw-text-[1.08rem] tw-font-extrabold tw-text-vm-slate-900">{editingTemplateId ? "Sửa mẫu ca" : "Tạo mẫu ca"}</h2>
@@ -382,7 +395,7 @@ export function ShiftConfigurationPanel({
             </div>
             <Button loading={saving} type="submit">{saving ? "Đang lưu..." : editingTemplateId ? "Cập nhật mẫu ca" : "Tạo mẫu ca"}</Button>
           </form>
-        </Card>
+        </Card> : null}
 
         <Card className="tw-order-1 tw-overflow-hidden">
           <div className="tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-p-4">
@@ -403,6 +416,7 @@ export function ShiftConfigurationPanel({
               <tbody>
                 {shiftTemplates.length ? shiftTemplates.map((template) => (
                   <tr className="tw-cursor-pointer hover:tw-bg-brand-50/30" key={template.shiftTemplateId} onClick={() => {
+                    if (!canUpdateTemplate) return;
                     setEditingTemplateId(template.shiftTemplateId);
                     setTemplateForm(toTemplateForm(template, selectedLot));
                   }}>
@@ -412,7 +426,7 @@ export function ShiftConfigurationPanel({
                     <td>{template.startLocalTime?.slice(0, 5)} - {template.endLocalTime?.slice(0, 5)}</td>
                     <td><Badge tone={template.status === "ACTIVE" ? "success" : "neutral"}>{template.status === "ACTIVE" ? "Đang hoạt động" : "Ngưng"}</Badge></td>
                     <td className="tw-text-center">
-                      <button
+                      {(template.status === "ACTIVE" ? canDeleteTemplate : canUpdateTemplate) ? <button
                         aria-label={template.status === "ACTIVE" ? "Ngưng sử dụng mẫu ca" : "Kích hoạt lại mẫu ca"}
                         className={cn(
                           "tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-transparent tw-transition disabled:tw-cursor-not-allowed disabled:tw-opacity-50",
@@ -429,7 +443,7 @@ export function ShiftConfigurationPanel({
                         }}
                       >
                         <i className={statusChangingTemplateId === template.shiftTemplateId ? "fas fa-spinner fa-spin" : template.status === "ACTIVE" ? "fas fa-ban" : "fas fa-check"} />
-                      </button>
+                      </button> : null}
                     </td>
                   </tr>
                 )) : (
@@ -446,8 +460,8 @@ export function ShiftConfigurationPanel({
   }
 
   return (
-    <div className="tw-mt-4 tw-grid tw-grid-cols-[minmax(0,1fr)_460px] tw-gap-4 max-[1180px]:tw-grid-cols-1">
-      <Card className="tw-order-2 tw-p-4">
+    <div className={cn("tw-mt-4 tw-grid tw-gap-4", (editingRuleId ? canUpdateRule : canCreateRule) ? "tw-grid-cols-[minmax(0,1fr)_460px] max-[1180px]:tw-grid-cols-1" : "tw-grid-cols-1")}>
+      {(editingRuleId ? canUpdateRule : canCreateRule) ? <Card className="tw-order-2 tw-p-4">
         <div className="tw-flex tw-items-start tw-justify-between tw-gap-3">
           <div>
             <h2 className="tw-m-0 tw-text-[1.08rem] tw-font-extrabold tw-text-vm-slate-900">{editingRuleId ? "Sửa quy tắc" : "Tạo quy tắc"}</h2>
@@ -503,7 +517,7 @@ export function ShiftConfigurationPanel({
           </div>
           <Button loading={saving} type="submit">{saving ? "Đang lưu..." : editingRuleId ? "Cập nhật quy tắc" : "Tạo quy tắc"}</Button>
         </form>
-      </Card>
+      </Card> : null}
 
       <Card className="tw-order-1 tw-overflow-hidden">
         <div className="tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-p-4">
@@ -527,6 +541,7 @@ export function ShiftConfigurationPanel({
             <tbody>
               {rosterRules.length ? rosterRules.map((rule) => (
                 <tr className="tw-cursor-pointer hover:tw-bg-brand-50/30" key={rule.rosterRuleId} onClick={() => {
+                  if (!canUpdateRule) return;
                   setEditingRuleId(rule.rosterRuleId);
                   setRuleForm(toRosterRuleForm(rule, selectedLot));
                 }}>
@@ -539,7 +554,7 @@ export function ShiftConfigurationPanel({
                   <td>{rule.effectiveFrom} - {rule.effectiveTo || "Không giới hạn"}</td>
                   <td><Badge tone={rule.status === "ACTIVE" ? "success" : "neutral"}>{rule.status === "ACTIVE" ? "Đang hoạt động" : "Ngưng"}</Badge></td>
                   <td className="tw-text-center">
-                    <button
+                    {(rule.status === "ACTIVE" ? canDeleteRule : canUpdateRule) ? <button
                       aria-label={rule.status === "ACTIVE" ? "Ngưng sử dụng quy tắc" : "Kích hoạt lại quy tắc"}
                       className={cn(
                         "tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-transparent tw-transition disabled:tw-cursor-not-allowed disabled:tw-opacity-50",
@@ -556,7 +571,7 @@ export function ShiftConfigurationPanel({
                       }}
                     >
                       <i className={statusChangingRuleId === rule.rosterRuleId ? "fas fa-spinner fa-spin" : rule.status === "ACTIVE" ? "fas fa-ban" : "fas fa-check"} />
-                    </button>
+                    </button> : null}
                   </td>
                 </tr>
               )) : (

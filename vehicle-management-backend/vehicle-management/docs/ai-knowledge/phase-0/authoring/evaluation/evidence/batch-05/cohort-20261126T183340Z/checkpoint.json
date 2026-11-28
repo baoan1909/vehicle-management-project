@@ -1,0 +1,11 @@
+{
+  "status" : "STOPPED",
+  "stopReason" : "InvalidDefinitionException: Java 8 date/time type `java.time.Instant` not supported by default: add Module \"com.fasterxml.jackson.datatype:jackson-datatype-jsr310\" to enable handling (or disable `MapperFeature.REQUIRE_HANDLERS_FOR_JAVA8_TIMES`) (through reference chain: java.util.ImmutableCollections$ListN[0]->com.ban.vehicle_management.domain.ai.model.AiModelConfiguration[\"createdAt\"])",
+  "lastStageOrCase" : "BOOTSTRAP",
+  "caseIdsCompleted" : [ ],
+  "actualHttpRequests" : 0,
+  "reviewer" : "PENDING_INDEPENDENT_SEMANTIC_REVIEW",
+  "notAttempted" : "All cases absent from caseIdsCompleted; no quota balance inferred",
+  "database" : "Testcontainers fresh vehicle_management_test; no shared DB writes",
+  "recordedAt" : "2026-11-26T18:34:57.927338400Z"
+}

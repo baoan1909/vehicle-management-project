@@ -1,0 +1,11 @@
+{
+  "status" : "STOPPED",
+  "stopReason" : "IllegalStateException: HTTP_400:UPLOAD",
+  "lastStageOrCase" : "INGEST:parking-structure-and-layout",
+  "caseIdsCompleted" : [ ],
+  "actualHttpRequests" : 1,
+  "reviewer" : "PENDING_INDEPENDENT_SEMANTIC_REVIEW",
+  "notAttempted" : "All cases absent from caseIdsCompleted; no quota balance inferred",
+  "database" : "Testcontainers fresh vehicle_management_test; no shared DB writes",
+  "recordedAt" : "2026-11-26T18:41:19.958299700Z"
+}

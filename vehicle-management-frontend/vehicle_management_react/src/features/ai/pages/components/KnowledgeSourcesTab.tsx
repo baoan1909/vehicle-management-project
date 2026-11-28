@@ -1,3 +1,4 @@
+import { getEnumLabel } from "@/shared/utils/enumLabels";
 import { useCallback, useEffect, useState } from "react";
 import { Badge, Button, Input, Modal, SelectMenu, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
@@ -232,7 +233,7 @@ export function KnowledgeSourcesTab() {
                               {docs.map((doc) => (
                                 <li className="tw-flex tw-flex-wrap tw-items-center tw-gap-2 tw-rounded-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-px-3 tw-py-2" key={doc.documentId}>
                                   <span className="tw-text-sm tw-font-black tw-text-slate-800">{doc.title}</span>
-                                  <Badge tone={doc.status === "READY" ? "success" : doc.status === "REVIEW" ? "warning" : doc.status === "FAILED" || doc.status === "ARCHIVED" ? "neutral" : "primary"} className="tw-w-fit tw-whitespace-nowrap tw-px-2 tw-text-[0.7rem]">{doc.status}</Badge>
+                                  <Badge tone={doc.status === "READY" ? "success" : doc.status === "REVIEW" ? "warning" : doc.status === "FAILED" || doc.status === "ARCHIVED" ? "neutral" : "primary"} className="tw-w-fit tw-whitespace-nowrap tw-px-2 tw-text-[0.7rem]">{getEnumLabel("knowledgeDocumentStatus", doc.status)}</Badge>
                                   {doc.failureCode ? <span className="tw-text-[0.7rem] tw-font-black tw-text-red-600">{doc.failureCode}</span> : null}
                                   <span className="tw-text-xs tw-font-semibold tw-text-slate-400">{doc.originalFilename} / v{doc.documentVersion}</span>
                                 </li>

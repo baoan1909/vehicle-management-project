@@ -1,4 +1,4 @@
-import { AiRuntimeModePanel } from "./components/AiRuntimeModePanel";
+import { getEnumLabel } from "@/shared/utils/enumLabels";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, ConfirmDialog } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
@@ -89,7 +89,7 @@ export function AiModelManagementPage() {
       await updateAiModelRollout(config.configurationId, value);
       await load();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Tổng rollout ACTIVE phải bằng 100.");
+      setError(caught instanceof Error ? caught.message : "Tổng tỷ lệ sử dụng của các mô hình đang hoạt động phải bằng 100%.");
     } finally {
       setSavingId("");
     }
@@ -102,7 +102,7 @@ export function AiModelManagementPage() {
       setCatalog(response.data ?? []);
       await load();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Không thể đồng bộ catalog.");
+      setError(caught instanceof Error ? caught.message : "Không thể đồng bộ danh mục.");
     } finally {
       setSavingId("");
     }
@@ -112,13 +112,12 @@ export function AiModelManagementPage() {
     <main className="tw-grid tw-gap-4 tw-p-5 max-[700px]:tw-p-3">
       <section className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3">
         <div>
-          <h1 className="tw-m-0 tw-text-xl tw-font-black tw-text-slate-900">Quản trị model AI</h1>
-          <p className="tw-m-0 tw-mt-1 tw-text-sm tw-font-semibold tw-text-slate-500">Chế độ AI, phân phối model, danh mục và cảnh báo vận hành.</p>
+          <h1 className="tw-m-0 tw-text-xl tw-font-black tw-text-slate-900">Quản lý mô hình AI</h1>
+          <p className="tw-m-0 tw-mt-1 tw-text-sm tw-font-semibold tw-text-slate-500">Chatbot sử dụng Google API. Quản lý mô hình chính, mô hình dự phòng, danh mục và cảnh báo vận hành.</p>
         </div>
-        <Button disabled={!canSyncCatalog} loading={savingId === "catalog"} onClick={() => void syncCatalog()} variant="primary">Đồng bộ catalog</Button>
+        <Button disabled={!canSyncCatalog} loading={savingId === "catalog"} onClick={() => void syncCatalog()} variant="primary">Đồng bộ danh mục</Button>
       </section>
 
-      {user?.role === "SYSTEM_ADMIN" ? <AiRuntimeModePanel canManage={canManage} /> : null}
 
       {error ? <div className="tw-rounded-lg tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-3 tw-text-sm tw-font-bold tw-text-red-700">{error}</div> : null}
 
@@ -126,7 +125,7 @@ export function AiModelManagementPage() {
         <div className="tw-overflow-x-auto">
           <table className="tw-min-w-[1100px] tw-w-full tw-border-collapse tw-text-sm">
             <thead className="tw-bg-slate-50 tw-text-left tw-text-xs tw-font-black tw-uppercase tw-text-slate-500">
-              <tr>{["Model", "Use case", "Status", "Rollout", "Priority", "Capability", "Catalog", "Warnings", "Actions"].map((header) => <th className="tw-px-3 tw-py-3" key={header}>{header}</th>)}</tr>
+              <tr>{["Mô hình", "Mục đích sử dụng", "Trạng thái", "Tỷ lệ sử dụng (%)", "Độ ưu tiên", "Khả năng", "Danh mục", "Cảnh báo", "Thao tác"].map((header) => <th className="tw-px-3 tw-py-3" key={header}>{header}</th>)}</tr>
             </thead>
             <tbody>
               {loading ? (
@@ -137,15 +136,15 @@ export function AiModelManagementPage() {
                 const busy = savingId === config.configurationId;
                 return (
                   <tr className="tw-border-0 tw-border-t tw-border-solid tw-border-slate-100" key={config.configurationId}>
-                    <td className="tw-px-3 tw-py-3"><b className="tw-block tw-text-slate-900">{config.modelId}</b><span className="tw-text-xs tw-font-semibold tw-text-slate-500">{config.provider} {config.apiVersion ?? ""}</span></td>
-                    <td className="tw-px-3 tw-py-3 tw-font-bold tw-text-slate-700">{config.useCase}</td>
-                    <td className="tw-px-3 tw-py-3"><span className={`tw-rounded tw-px-2 tw-py-1 tw-text-xs tw-font-black ${statusTone[config.status]}`}>{config.status}</span></td>
+                    <td className="tw-px-3 tw-py-3"><b className="tw-block tw-text-slate-900">{config.modelId}</b><span className="tw-text-xs tw-font-semibold tw-text-slate-500">Google Gemini {config.apiVersion ?? ""}</span></td>
+                    <td className="tw-px-3 tw-py-3 tw-font-bold tw-text-slate-700">{getEnumLabel("aiUseCase", config.useCase)}</td>
+                    <td className="tw-px-3 tw-py-3"><span className={`tw-inline-flex tw-max-w-full tw-whitespace-normal tw-break-words tw-rounded tw-px-2 tw-py-1 tw-text-xs tw-font-black tw-leading-5 ${statusTone[config.status]}`}>{getEnumLabel("aiModelStatus", config.status)}</span></td>
                     <td className="tw-px-3 tw-py-3"><input className="tw-w-20 tw-rounded tw-border tw-border-solid tw-border-slate-200 tw-px-2 tw-py-1" disabled={busy || !canManage} max={100} min={0} type="number" value={config.rolloutPercentage ?? 0} onChange={(event) => void changeRollout(config, Number(event.target.value))} /></td>
                     <td className="tw-px-3 tw-py-3">{config.priority ?? "-"}</td>
-                    <td className="tw-px-3 tw-py-3 tw-text-xs tw-font-bold tw-text-slate-600">{config.requiresFunctionCalling ? "Function" : "Text"} / {config.requiresStructuredOutput ? "Structured" : "Free text"} / {config.freeTierApproved ? "Free tier OK" : "Paid only"}</td>
-                    <td className="tw-px-3 tw-py-3 tw-text-xs tw-font-semibold tw-text-slate-600">{model ? (model.supportedActions.join(", ") || "No actions") : "Not seen"}</td>
-                    <td className="tw-px-3 tw-py-3">{configWarnings.length ? <span className="tw-rounded tw-bg-red-50 tw-px-2 tw-py-1 tw-text-xs tw-font-black tw-text-red-700">{configWarnings.length} warning</span> : <span className="tw-text-xs tw-font-bold tw-text-emerald-600">OK</span>}</td>
-                    <td className="tw-px-3 tw-py-3"><div className="tw-flex tw-flex-wrap tw-gap-1.5"><button className="tw-rounded tw-border tw-border-solid tw-border-emerald-200 tw-bg-white tw-px-2 tw-py-1 tw-text-xs tw-font-black tw-text-emerald-700 disabled:tw-opacity-50" disabled={busy || !canManage || config.status === "ACTIVE"} onClick={() => setStatusChange({ config, status: "ACTIVE" })} type="button">Active</button><button className="tw-rounded tw-border tw-border-solid tw-border-amber-200 tw-bg-white tw-px-2 tw-py-1 tw-text-xs tw-font-black tw-text-amber-700 disabled:tw-opacity-50" disabled={busy || !canManage || config.status === "FALLBACK"} onClick={() => setStatusChange({ config, status: "FALLBACK" })} type="button">Fallback</button><button className="tw-rounded tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-px-2 tw-py-1 tw-text-xs tw-font-black tw-text-slate-600 disabled:tw-opacity-50" disabled={busy || !canManage || config.status === "DISABLED"} onClick={() => setStatusChange({ config, status: "DISABLED" })} type="button">Disable</button></div></td>
+                    <td className="tw-px-3 tw-py-3 tw-text-xs tw-font-bold tw-text-slate-600">{config.requiresFunctionCalling ? "Gọi hàm" : "Văn bản"} / {config.requiresStructuredOutput ? "Có cấu trúc" : "Văn bản tự do"} / {config.freeTierApproved ? "Cho phép gói miễn phí" : "Chỉ dùng gói trả phí"}</td>
+                    <td className="tw-px-3 tw-py-3 tw-text-xs tw-font-semibold tw-text-slate-600">{model ? (model.supportedActions.map((action) => getEnumLabel("aiModelAction", action)).join(", ") || "Chưa có thao tác") : "Chưa có trong danh mục"}</td>
+                    <td className="tw-px-3 tw-py-3">{configWarnings.length ? <span className="tw-rounded tw-bg-red-50 tw-px-2 tw-py-1 tw-text-xs tw-font-black tw-text-red-700">{configWarnings.length} cảnh báo</span> : <span className="tw-text-xs tw-font-bold tw-text-emerald-600">Bình thường</span>}</td>
+                    <td className="tw-px-3 tw-py-3"><div className="tw-flex tw-flex-wrap tw-gap-1.5"><button className="tw-rounded tw-border tw-border-solid tw-border-emerald-200 tw-bg-white tw-px-2 tw-py-1 tw-text-xs tw-font-black tw-text-emerald-700 disabled:tw-opacity-50" disabled={busy || !canManage || config.status === "ACTIVE"} onClick={() => setStatusChange({ config, status: "ACTIVE" })} type="button">Sử dụng</button><button className="tw-rounded tw-border tw-border-solid tw-border-amber-200 tw-bg-white tw-px-2 tw-py-1 tw-text-xs tw-font-black tw-text-amber-700 disabled:tw-opacity-50" disabled={busy || !canManage || config.status === "FALLBACK"} onClick={() => setStatusChange({ config, status: "FALLBACK" })} type="button">Dự phòng</button><button className="tw-rounded tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-px-2 tw-py-1 tw-text-xs tw-font-black tw-text-slate-600 disabled:tw-opacity-50" disabled={busy || !canManage || config.status === "DISABLED"} onClick={() => setStatusChange({ config, status: "DISABLED" })} type="button">Vô hiệu hóa</button></div></td>
                   </tr>
                 );
               })}
@@ -157,7 +156,7 @@ export function AiModelManagementPage() {
         cancelLabel="Giữ nguyên"
         confirmLabel="Cập nhật"
         loading={Boolean(statusChange && savingId === statusChange.config.configurationId)}
-        message={statusChange ? `Model ${statusChange.config.modelId} sẽ chuyển sang trạng thái ${statusChange.status}.` : ""}
+        message={statusChange ? `Mô hình ${statusChange.config.modelId} sẽ chuyển sang trạng thái ${getEnumLabel("aiModelStatus", statusChange.status)}.` : ""}
         onCancel={() => setStatusChange(null)}
         onConfirm={() => {
           if (statusChange) void changeStatus(statusChange.config, statusChange.status);

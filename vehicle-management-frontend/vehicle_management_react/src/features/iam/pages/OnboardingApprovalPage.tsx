@@ -1,3 +1,5 @@
+import { getEnumLabel } from "@/shared/utils/enumLabels";
+import { getRoleLabel } from "@/shared/utils/accountStatus";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -49,7 +51,7 @@ const approvalTabs: ApprovalTab[] = [
   {
     icon: "fas fa-user-shield",
     kind: "system-admin",
-    label: "System Admin",
+    label: "Quản trị hệ thống",
     permissions: ["ONBOARDING_APPROVAL_REVIEW_SYSTEM_ADMIN_ALL"],
   },
   {
@@ -122,7 +124,7 @@ function statusLabel(status?: string | null) {
     REJECTED: "Từ chối",
     SUSPENDED: "Tạm ngưng",
   };
-  return status ? labels[status] ?? status : "-";
+  return status ? labels[status] ?? "Chưa xác định" : "-";
 }
 
 function getBusinessStatus(item: OnboardingApprovalResponse, kind: OnboardingApprovalKind) {
@@ -199,7 +201,7 @@ function ApprovalRow({
       <div className="tw-min-w-0">
         <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
           <strong className="tw-min-w-0 tw-truncate tw-text-[0.92rem] tw-font-black tw-text-vm-slate-900">{displayName}</strong>
-          <Badge tone="neutral" className="tw-rounded-full tw-px-2.5">{item.account?.roleCode ?? "-"}</Badge>
+          <Badge tone="neutral" className="tw-rounded-full tw-px-2.5">{getRoleLabel(item.account?.roleCode ?? undefined)}</Badge>
         </div>
         <p className="tw-m-0 tw-mt-1 tw-truncate tw-text-[0.78rem] tw-font-semibold tw-text-vm-slate-500">
           {item.account?.email ?? "-"} · {item.profile?.phoneNumber ?? "-"}
@@ -291,7 +293,7 @@ function ReviewSubjectDetails({ item }: { item: OnboardingApprovalResponse }) {
       <DetailSection title="Tài khoản đăng nhập">
         <DetailItem label="Username" value={item.account?.username} />
         <DetailItem label="Email" value={item.account?.email} />
-        <DetailItem label="Vai trò" value={item.account?.roleCode} />
+        <DetailItem label="Vai trò" value={getRoleLabel(item.account?.roleCode ?? undefined)} />
         <DetailItem label="Trạng thái tài khoản" value={statusLabel(item.account?.accountStatus)} />
       </DetailSection>
 
@@ -307,14 +309,14 @@ function ReviewSubjectDetails({ item }: { item: OnboardingApprovalResponse }) {
       {item.customer ? (
         <DetailSection title="Thông tin khách hàng">
           <DetailItem label="Mã khách hàng" value={item.customer.customerCode} />
-          <DetailItem label="Loại khách hàng" value={item.customer.customerType} />
+          <DetailItem label="Loại khách hàng" value={getEnumLabel("customerType", item.customer.customerType)} />
           <DetailItem label="Trạng thái khách hàng" value={statusLabel(item.customer.customerStatus)} />
           <DetailItem label="Trạng thái duyệt" value={statusLabel(item.customer.customerApprovalStatus)} />
         </DetailSection>
       ) : null}
 
       <DetailSection title="Yêu cầu duyệt">
-        <DetailItem label="Loại yêu cầu" value={item.request?.requestType} />
+        <DetailItem label="Loại yêu cầu" value={getEnumLabel("approvalRequestType", item.request?.requestType)} />
         <DetailItem label="Ngày gửi" value={formatDateValue(item.request?.createdAt)} />
         <DetailItem label="Ghi chú trước đó" value={item.request?.note} wide />
       </DetailSection>

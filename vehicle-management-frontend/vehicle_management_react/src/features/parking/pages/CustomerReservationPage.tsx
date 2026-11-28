@@ -1,3 +1,4 @@
+import { getEnumLabel } from "@/shared/utils/enumLabels";
 import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
@@ -360,7 +361,7 @@ export function CustomerReservationPage({ modalParkingLotId, modalReservationId,
                   value={zoneId}
                   onChange={(selectedValue) => { setZoneId(selectedValue); setParkingSpaceId(""); }}
                   triggerClassName={"tw-mt-1 tw-block tw-w-full tw-rounded-lg tw-border tw-border-solid tw-border-slate-300 tw-p-2"}
-                  options={[{ label: "Chọn khu vực", value: "" }, ...options.map((option) => ({ label: `${option.zoneName} · ${option.trackingMode} · còn ${option.available}`, value: option.zoneId }))]} portal clearValue="" />
+                  options={[{ label: "Chọn khu vực", value: "" }, ...options.map((option) => ({ label: `${option.zoneName} · ${getEnumLabel("trackingMode", option.trackingMode)} · còn ${option.available}`, value: option.zoneId }))]} portal clearValue="" />
           </label> : null}
           {selectedZone?.trackingMode === "SPACE" ? <div className="tw-space-y-2">
             <p className="tw-mb-1 tw-font-semibold">Chọn vị trí trên sơ đồ bãi xe</p>

@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 
 import { Button, Card, ConfirmDialog, useToast } from "@/components/ui";
+import { canAccessAdminRoute } from "@/app/routePermissions";
 import { useAuth } from "@/core/auth/useAuth";
-import { getAssignedParkingManagers, getOrganizations, type OrganizationAdminResponse } from "@/features/iam/api/organizationsApi";
-import { getProvisionedAccounts, type ProvisionedAccountResponse } from "@/features/iam/api/provisionedAccountApi";
 import {
   getLevelsByLot,
   getLotSpaceSummary,
@@ -16,6 +15,8 @@ import {
   closeParkingLot,
   deleteParkingLot,
   getParkingLots,
+  getParkingLotResponsibility,
+  type ParkingLotResponsibility,
   markParkingLotMaintenance,
   requestParkingLotActivation,
   type ParkingLotApiResponse,
@@ -46,9 +47,9 @@ type OverviewData = {
   gates: GateApiResponse[];
   lanes: LaneApiResponse[];
   levels: ParkingLevelApi[];
-  managers: ProvisionedAccountResponse[];
+  managers: ParkingLotResponsibility["managers"];
   managerAssignmentsLoaded: boolean;
-  organization: OrganizationAdminResponse | null;
+  organization: { name: string } | null;
   summary: SpaceSummaryApi | null;
   zones: ZoneApiResponse[];
 };
@@ -144,6 +145,9 @@ export function ParkingLotOverviewPage() {
   const [selectedLotId, setSelectedLotId] = useState(searchParams.get("lotId") ?? searchParams.get("lot") ?? "");
   const [data, setData] = useState<OverviewData>(EMPTY_DATA);
   const [loading, setLoading] = useState(true);
+  const [topologyReady, setTopologyReady] = useState(false);
+  const overviewRequest = useRef(0);
+  const canReadTopology = hasAnyPermission(user, ["PARKING_SPACE_READ_ALL"]);
   const [error, setError] = useState("");
   const [activationAction, setActivationAction] = useState<"activate" | "request" | null>(null);
   const [activationSaving, setActivationSaving] = useState(false);
@@ -157,7 +161,8 @@ export function ParkingLotOverviewPage() {
   const canCreateLots = hasAnyPermission(user, ["PARKING_LOT_CREATE_ALL"]);
   const canManageAssignments = hasAnyPermission(user, ["ORGANIZATION_MEMBERSHIP_MANAGE_ALL"]);
   const requestedAction = searchParams.get("action");
-  const isParkingManager = hasAnyPermission(user, ["PARKING_SCOPE_ASSIGNED"]);
+  const canRequestActivation = hasAnyPermission(user, ["PARKING_SCOPE_ASSIGNED"])
+    && hasAnyPermission(user, ["PARKING_TOPOLOGY_CONFIGURE_ALL"]);
   const canDirectlyActivate = canManageLots;
   const selectedLot = useMemo(
     () => lots.find((lot) => lot.parkingLotId === selectedLotId) ?? lots[0] ?? null,
@@ -196,54 +201,55 @@ export function ParkingLotOverviewPage() {
   }, [selectedLotId, setSearchParams]);
 
   const loadOverview = useCallback(async (lot: ParkingLotApiResponse) => {
+    const request = ++overviewRequest.current;
     setLoading(true);
+    setTopologyReady(false);
     setError("");
     setData(EMPTY_DATA);
     try {
-      const [levelResult, zoneResult, summaryResult, managerResult, organizationResult, assignmentResult] = await Promise.allSettled([
-        getLevelsByLot(lot.parkingLotId),
-        getZones({ parkingLotId: lot.parkingLotId }),
-        getLotSpaceSummary(lot.parkingLotId),
-        getProvisionedAccounts({ accountStatus: "ACTIVE", roleCode: "PARKING_MANAGER" }),
-        getOrganizations(),
-        getAssignedParkingManagers(lot.organizationId, lot.parkingLotId),
+      const [levelResult, zoneResult, summaryResult, responsibilityResult] = await Promise.allSettled([
+        hasAnyPermission(user, ["PARKING_SPACE_READ_ALL"]) ? getLevelsByLot(lot.parkingLotId) : Promise.resolve({ data: [] }),
+        hasAnyPermission(user, ["PARKING_SPACE_READ_ALL"]) ? getZones({ parkingLotId: lot.parkingLotId }) : Promise.resolve({ data: [] }),
+        hasAnyPermission(user, ["PARKING_SPACE_READ_ALL"]) ? getLotSpaceSummary(lot.parkingLotId) : Promise.resolve({ data: null }),
+        getParkingLotResponsibility(lot.parkingLotId),
       ]);
       const zones = zoneResult.status === "fulfilled" ? zoneResult.value.data ?? [] : [];
-      const gateResults = await Promise.allSettled(zones.map((zone) => getGates({ zoneId: zone.zoneId })));
+      const gateResults = await Promise.allSettled(hasAnyPermission(user, ["PARKING_SPACE_READ_ALL"]) ? zones.map((zone) => getGates({ zoneId: zone.zoneId })) : []);
       const gates = gateResults.flatMap((result) => result.status === "fulfilled" ? result.value.data ?? [] : []);
-      const laneResults = await Promise.allSettled(gates.map((gate) => getLanes({ gateId: gate.gateId })));
+      const laneResults = await Promise.allSettled(hasAnyPermission(user, ["PARKING_SPACE_READ_ALL"]) ? gates.map((gate) => getLanes({ gateId: gate.gateId })) : []);
       const lanes = laneResults.flatMap((result) => result.status === "fulfilled" ? result.value.data ?? [] : []);
-      const organizations = organizationResult.status === "fulfilled" ? organizationResult.value.data ?? [] : [];
-      const availableManagers = managerResult.status === "fulfilled" ? managerResult.value.data ?? [] : [];
-      const assignedManagerIds = assignmentResult.status === "fulfilled"
-        ? assignmentResult.value.data?.parkingManagerAccountIds ?? []
-        : [];
+      const responsibility = responsibilityResult.status === "fulfilled" ? responsibilityResult.value.data : null;
 
+      if (request !== overviewRequest.current) return;
       setData({
-        assignedManagerCount: assignedManagerIds.length,
+        assignedManagerCount: responsibility?.managers.length ?? 0,
         gates,
         lanes,
         levels: levelResult.status === "fulfilled" ? levelResult.value.data ?? [] : [],
-        managers: availableManagers.filter((manager) => assignedManagerIds.includes(manager.account.accountId)),
-        managerAssignmentsLoaded: assignmentResult.status === "fulfilled",
-        organization: organizations.find((organization) => organization.organizationId === lot.organizationId) ?? null,
+        managers: responsibility?.managers ?? [],
+        managerAssignmentsLoaded: responsibility != null,
+        organization: responsibility?.organizationName ? { name: responsibility.organizationName } : null,
         summary: summaryResult.status === "fulfilled" ? summaryResult.value.data : null,
         zones,
       });
 
-      const coreFailures = [levelResult, zoneResult, summaryResult].filter((result) => result.status === "rejected");
+      const coreFailures = [levelResult, zoneResult, summaryResult, ...gateResults, ...laneResults].filter((result) => result.status === "rejected");
+      setTopologyReady(canReadTopology && coreFailures.length === 0);
+      if (responsibilityResult.status === "rejected") setError("Không tải được thông tin người phụ trách và đơn vị quản lý. Hãy làm mới để thử lại.");
       if (coreFailures.length > 0) setError("Một số số liệu cấu hình chưa tải được. Hãy thử làm mới.");
     } catch (requestError) {
+      if (request !== overviewRequest.current) return;
       setData(EMPTY_DATA);
       setError(requestError instanceof Error ? requestError.message : "Không tải được tổng quan bãi xe.");
     } finally {
-      setLoading(false);
+      if (request === overviewRequest.current) setLoading(false);
     }
-  }, []);
+  }, [user, canReadTopology]);
 
   useEffect(() => {
     if (selectedLot) void loadOverview(selectedLot);
     else setData(EMPTY_DATA);
+    return () => { overviewRequest.current += 1; };
   }, [loadOverview, selectedLot]);
 
   useEffect(() => {
@@ -266,8 +272,8 @@ export function ParkingLotOverviewPage() {
   const trafficFlowComplete = data.gates.length > 0 && data.lanes.length > 0;
   const layoutComplete = activeSpaceZones.length === publishedSpaceZoneCount;
   const hasAssignedManager = data.managerAssignmentsLoaded && data.assignedManagerCount > 0;
-  const partnerAdminDirectlyResponsible = Boolean(data.organization) && !hasAssignedManager;
-  const responsibilityComplete = hasAssignedManager || partnerAdminDirectlyResponsible || isParkingManager;
+  const partnerAdminDirectlyResponsible = data.managerAssignmentsLoaded && Boolean(data.organization) && !hasAssignedManager && selectedLot?.managementState === "PARTNER_SUPERVISED";
+  const responsibilityComplete = hasAssignedManager || partnerAdminDirectlyResponsible;
   const applicableCompletionItems = [
     informationComplete,
     structureComplete,
@@ -301,6 +307,10 @@ export function ParkingLotOverviewPage() {
   ].filter((item): item is string => Boolean(item));
 
   function beginActivation(action: "activate" | "request") {
+    if (loading || !topologyReady) {
+      toast.warning("Cần tải đầy đủ số liệu cấu hình trước khi kích hoạt bãi.");
+      return;
+    }
     if (activationMissingItems.length > 0) {
       toast.warning(
         `Cần hoàn tất: ${activationMissingItems.join(", ")}.`,
@@ -395,7 +405,7 @@ export function ParkingLotOverviewPage() {
         onSelect: () => beginActivation("activate"),
       });
     }
-    if (selectedLot.status === "SETUP" && isParkingManager) {
+    if (selectedLot.status === "SETUP" && canRequestActivation) {
       actions.push({
         description: selectedLot.activationRequestedAt ? "Yêu cầu đang chờ Partner Admin xử lý." : "Gửi Partner Admin kiểm tra và kích hoạt.",
         disabled: Boolean(selectedLot.activationRequestedAt),
@@ -436,7 +446,7 @@ export function ParkingLotOverviewPage() {
     }
 
     return actions;
-  }, [canDirectlyActivate, canManageAssignments, canManageLots, isParkingManager, navigate, selectedLot]);
+  }, [canDirectlyActivate, canManageAssignments, canManageLots, canRequestActivation, navigate, selectedLot]);
 
   if (loading && !selectedLot) {
     return <div className="tw-flex tw-min-h-[420px] tw-items-center tw-justify-center tw-text-sm tw-font-semibold tw-text-vm-slate-500"><i className="fas fa-spinner fa-spin tw-mr-2" />Đang tải bãi xe…</div>;
@@ -447,7 +457,7 @@ export function ParkingLotOverviewPage() {
     // tạo bãi và sẽ hiển thị các thao tác còn lại ở trạng thái bị khóa.
     // Nhờ vậy Partner Admin biết toàn bộ quy trình nhưng chỉ có thể bắt đầu
     // đúng từ bước tạo bãi xe đầu tiên.
-    if (!error) return <Navigate to="/admin/parking-structure" replace />;
+    if (!error && canAccessAdminRoute(user, "/admin/parking-structure")) return <Navigate to="/admin/parking-structure" replace />;
 
     return (
       <div className="tw-px-5 tw-py-6">
@@ -509,8 +519,8 @@ export function ParkingLotOverviewPage() {
 
         <div className="tw-mt-3 tw-grid tw-grid-cols-4 tw-gap-3 max-[950px]:tw-grid-cols-2 max-[560px]:tw-grid-cols-1">
           <MetricCard icon="fas fa-car" label="Sức chứa" value={totalCapacity.toLocaleString("vi-VN")} />
-          <MetricCard icon="fas fa-layer-group" label="Tầng" value={data.levels.length} />
-          <MetricCard icon="fas fa-th-large" label="Khu vực" value={data.zones.length} />
+          <MetricCard icon="fas fa-layer-group" label="Tầng" value={topologyReady ? data.levels.length : "—"} />
+          <MetricCard icon="fas fa-th-large" label="Khu vực" value={topologyReady ? data.zones.length : "—"} />
           <MetricCard
             icon="fas fa-user-friends"
             label="Manager được phân công"
@@ -518,7 +528,7 @@ export function ParkingLotOverviewPage() {
           />
         </div>
 
-        <div className="tw-mt-3 tw-grid tw-grid-cols-[minmax(0,1.72fr)_minmax(340px,1fr)] tw-gap-3 max-[1050px]:tw-grid-cols-1">
+        {topologyReady ? <div className="tw-mt-3 tw-grid tw-grid-cols-[minmax(0,1.72fr)_minmax(340px,1fr)] tw-gap-3 max-[1050px]:tw-grid-cols-1">
           <Card className="tw-min-h-[318px] tw-px-5 tw-py-4 tw-shadow-none" {...userGuideAnchorProps("PARKING_SETUP.READINESS")}>
             <h2 className="tw-m-0 tw-text-[1rem] tw-font-extrabold tw-text-vm-slate-900">Mức độ hoàn thiện cấu hình</h2>
             <div className="tw-mt-4 tw-grid tw-grid-cols-[210px_minmax(0,1fr)] tw-items-center tw-gap-5 max-[680px]:tw-grid-cols-1">
@@ -531,8 +541,8 @@ export function ParkingLotOverviewPage() {
               </div>
               <div {...userGuideAnchorProps("PARKING_SETUP.ACTIVATION_MISSING")}>
                 <ChecklistRow complete={informationComplete} index={1} label="Thông tin bãi xe" note={informationComplete ? "Đã hoàn thành" : "Cần bổ sung"} />
-                <ChecklistRow complete={structureComplete} index={2} label="Tầng và khu vực" note={structureComplete ? "Đã hoàn thành" : "Chưa cấu hình"} link={parkingWorkspaceHref("structure", selectedLot.parkingLotId)} />
-                <ChecklistRow complete={trafficFlowComplete} index={3} label="Cổng và làn xe" note={trafficFlowComplete ? "Đã hoàn thành" : "Chưa cấu hình"} link={parkingWorkspaceHref("structure", selectedLot.parkingLotId)} />
+                <ChecklistRow complete={structureComplete} index={2} label="Tầng và khu vực" note={structureComplete ? "Đã hoàn thành" : "Chưa cấu hình"} link={canAccessAdminRoute(user, "/admin/parking-structure") ? parkingWorkspaceHref("structure", selectedLot.parkingLotId) : undefined} />
+                <ChecklistRow complete={trafficFlowComplete} index={3} label="Cổng và làn xe" note={trafficFlowComplete ? "Đã hoàn thành" : "Chưa cấu hình"} link={canAccessAdminRoute(user, "/admin/parking-structure") ? parkingWorkspaceHref("structure", selectedLot.parkingLotId) : undefined} />
                 <ChecklistRow
                   complete={layoutComplete}
                   index={4}
@@ -554,7 +564,7 @@ export function ParkingLotOverviewPage() {
                       ? "Partner Admin trực tiếp phụ trách"
                       : responsibilityComplete
                       ? "Đã phân công"
-                      : "Chưa xác định"}
+                      : data.managerAssignmentsLoaded ? "Chưa xác định" : "Chưa tải được"}
                 />
                 <div
                   className={cn(
@@ -600,7 +610,7 @@ export function ParkingLotOverviewPage() {
                       <Button size="sm" className="tw-whitespace-nowrap" loading={activationSaving} onClick={() => beginActivation("activate")}>
                         <i className="fas fa-play" aria-hidden="true" /> Kích hoạt bãi
                       </Button>
-                    ) : selectedLot.status === "SETUP" && activationMissingItems.length === 0 && isParkingManager ? (
+                    ) : selectedLot.status === "SETUP" && activationMissingItems.length === 0 && canRequestActivation ? (
                       <Button size="sm" loading={activationSaving} onClick={() => beginActivation("request")}>
                         <i className="fas fa-paper-plane" aria-hidden="true" /> Yêu cầu kích hoạt
                       </Button>
@@ -637,7 +647,7 @@ export function ParkingLotOverviewPage() {
               </div>
             ) : null}
           </Card>
-        </div>
+        </div> : <div role="status" className="tw-mt-3 tw-rounded-lg tw-bg-slate-50 tw-p-4">{loading ? "Đang tải số liệu cấu hình…" : canReadTopology ? "Chưa tải được đầy đủ số liệu cấu hình. Vui lòng làm mới để thử lại." : "Số liệu cấu hình không thuộc phạm vi truy cập của tài khoản."}</div>}
 
         <div className="tw-mt-3 tw-grid tw-grid-cols-[minmax(0,1.72fr)_minmax(340px,1fr)] tw-gap-3 max-[1050px]:tw-grid-cols-1">
           <Card className="tw-min-h-[258px] tw-px-5 tw-py-4 tw-shadow-none">
@@ -645,7 +655,7 @@ export function ParkingLotOverviewPage() {
             <div className="tw-mt-3 tw-grid tw-grid-cols-[300px_minmax(0,1fr)] tw-gap-5 max-[720px]:tw-grid-cols-1">
               <dl className="tw-m-0 tw-grid tw-content-start tw-grid-cols-[128px_1fr] tw-gap-y-3 tw-text-[0.78rem]">
                 <dt className="tw-font-medium tw-text-vm-slate-500">Mã bãi</dt><dd className="tw-m-0 tw-font-extrabold tw-text-vm-slate-900">{selectedLot.code}</dd>
-                <dt className="tw-font-medium tw-text-vm-slate-500">Đơn vị quản lý</dt><dd className="tw-m-0 tw-truncate tw-font-extrabold tw-text-vm-slate-900">{data.organization?.name ?? "Chưa xác định"}</dd>
+                <dt className="tw-font-medium tw-text-vm-slate-500">Đơn vị quản lý</dt><dd className="tw-m-0 tw-truncate tw-font-extrabold tw-text-vm-slate-900">{data.organization?.name ?? (data.managerAssignmentsLoaded ? "Chưa xác định" : "Chưa tải được thông tin")}</dd>
                 <dt className="tw-font-medium tw-text-vm-slate-500">Giờ hoạt động</dt><dd className="tw-m-0 tw-font-extrabold tw-text-vm-slate-900">24/7</dd>
                 <dt className="tw-font-medium tw-text-vm-slate-500">Trạng thái vị trí</dt><dd className="tw-m-0"><span className="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-bg-emerald-50 tw-px-2.5 tw-py-1 tw-text-[0.7rem] tw-font-bold tw-text-emerald-700"><i className="fas fa-check-circle" />{selectedLot.latitude !== null && selectedLot.longitude !== null ? "Đã xác nhận" : "Chưa xác nhận"}</span></dd>
                 <dt className="tw-font-medium tw-text-vm-slate-500">Tọa độ</dt><dd className="tw-m-0 tw-font-medium tw-text-vm-slate-700">{selectedLot.latitude !== null && selectedLot.longitude !== null ? `${Number(selectedLot.latitude).toFixed(4)}, ${Number(selectedLot.longitude).toFixed(4)}` : "—"}</dd>
@@ -663,15 +673,14 @@ export function ParkingLotOverviewPage() {
             <p className="tw-m-0 tw-mt-1 tw-text-[0.68rem] tw-font-medium tw-text-vm-slate-500">Manager đang được phân công vào bãi này</p>
             <div className="tw-mt-2">
               {data.managers.slice(0, 2).map((manager, index) => (
-                <div key={manager.account.accountId} className="tw-flex tw-h-[62px] tw-items-center tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 last:tw-border-b-0">
-                  <span className={cn("tw-flex tw-size-11 tw-flex-none tw-items-center tw-justify-center tw-rounded-full tw-text-sm tw-font-extrabold tw-text-white", index % 2 === 0 ? "tw-bg-gradient-to-br tw-from-slate-500 tw-to-blue-600" : "tw-bg-gradient-to-br tw-from-purple-500 tw-to-pink-500")}>{manager.account.username.slice(0, 2).toUpperCase()}</span>
-                  <div className="tw-min-w-0 tw-flex-1"><strong className="tw-block tw-truncate tw-text-[0.8rem] tw-font-extrabold tw-text-vm-slate-900">{manager.account.username}</strong><span className="tw-mt-1 tw-block tw-truncate tw-text-[0.7rem] tw-font-medium tw-text-vm-slate-500">Parking Manager</span></div>
+                <div key={manager.accountId} className="tw-flex tw-h-[62px] tw-items-center tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 last:tw-border-b-0">
+                  <span className={cn("tw-flex tw-size-11 tw-flex-none tw-items-center tw-justify-center tw-rounded-full tw-text-sm tw-font-extrabold tw-text-white", index % 2 === 0 ? "tw-bg-gradient-to-br tw-from-slate-500 tw-to-blue-600" : "tw-bg-gradient-to-br tw-from-purple-500 tw-to-pink-500")}>{manager.displayName.slice(0, 2).toUpperCase()}</span>
+                  <div className="tw-min-w-0 tw-flex-1"><strong className="tw-block tw-truncate tw-text-[0.8rem] tw-font-extrabold tw-text-vm-slate-900">{manager.displayName}</strong><span className="tw-mt-1 tw-block tw-truncate tw-text-[0.7rem] tw-font-medium tw-text-vm-slate-500">Parking Manager</span></div>
                   <i className="fas fa-ellipsis-v tw-text-vm-slate-500" />
                 </div>
               ))}
               {partnerAdminDirectlyResponsible && data.managers.length === 0 ? <div className="tw-flex tw-h-[124px] tw-items-center tw-justify-center tw-rounded-vm-md tw-bg-blue-50 tw-px-4 tw-text-center tw-text-[0.76rem] tw-font-semibold tw-text-blue-700"><span><i className="fas fa-user-shield tw-mb-2 tw-block tw-text-xl" />Partner Admin đang trực tiếp phụ trách bãi xe này. Bạn vẫn có thể phân công thêm Parking Manager chuyên trách.</span></div> : null}
-              {!partnerAdminDirectlyResponsible && !isParkingManager && data.managers.length === 0 ? <div className="tw-flex tw-h-[124px] tw-items-center tw-justify-center tw-text-center tw-text-[0.76rem] tw-font-semibold tw-text-vm-slate-500">Bãi xe chưa xác định được người phụ trách.</div> : null}
-              {isParkingManager && data.managers.length === 0 ? <div className="tw-flex tw-h-[124px] tw-items-center tw-justify-center tw-rounded-vm-md tw-bg-emerald-50 tw-px-4 tw-text-center tw-text-[0.76rem] tw-font-semibold tw-text-emerald-700"><span><i className="fas fa-user-check tw-mb-2 tw-block tw-text-xl" />Bạn đang được phân công phụ trách bãi xe này.</span></div> : null}
+              {!partnerAdminDirectlyResponsible && data.managers.length === 0 ? <div className="tw-flex tw-h-[124px] tw-items-center tw-justify-center tw-text-center tw-text-[0.76rem] tw-font-semibold tw-text-vm-slate-500">{data.managerAssignmentsLoaded ? "Bãi xe chưa xác định được người phụ trách." : "Chưa tải được thông tin người phụ trách. Hãy làm mới để thử lại."}</div> : null}
             </div>
             {canManageAssignments ? <Button variant="secondary" className="tw-mt-2 tw-w-full" onClick={() => setManagerAssignmentOpen(true)}><i className="fas fa-users-cog" />Quản lý phân công</Button> : null}
           </Card>
@@ -680,9 +689,9 @@ export function ParkingLotOverviewPage() {
         <Card className="tw-mt-3 tw-px-5 tw-py-3 tw-shadow-none">
           <h2 className="tw-m-0 tw-text-[1rem] tw-font-extrabold tw-text-vm-slate-900">Đi nhanh</h2>
           <div className="tw-mt-2 tw-grid tw-grid-cols-3 tw-gap-4 max-[820px]:tw-grid-cols-1">
-            <QuickLink icon="fas fa-layer-group" label="Cấu trúc" description="Quản lý tầng, khu, cổng và làn" to={parkingWorkspaceHref("structure", selectedLot.parkingLotId)} />
-            <QuickLink icon="far fa-map" label="Thiết kế sơ đồ" description="Chỉnh bố cục và xuất bản" to={parkingWorkspaceHref("layout", selectedLot.parkingLotId)} />
-            <QuickLink icon="fas fa-desktop" label="Sơ đồ trực tiếp" description="Theo dõi trạng thái từng ô" to={parkingWorkspaceHref("live", selectedLot.parkingLotId)} />
+            {canAccessAdminRoute(user, "/admin/parking-structure") ? <QuickLink icon="fas fa-layer-group" label="Cấu trúc" description="Quản lý tầng, khu, cổng và làn" to={parkingWorkspaceHref("structure", selectedLot.parkingLotId)} /> : null}
+            {canAccessAdminRoute(user, "/admin/parking-layouts") ? <QuickLink icon="far fa-map" label="Thiết kế sơ đồ" description="Chỉnh bố cục và xuất bản" to={parkingWorkspaceHref("layout", selectedLot.parkingLotId)} /> : null}
+            {canAccessAdminRoute(user, "/admin/parking-live") ? <QuickLink icon="fas fa-desktop" label="Sơ đồ trực tiếp" description="Theo dõi trạng thái từng ô" to={parkingWorkspaceHref("live", selectedLot.parkingLotId)} /> : null}
           </div>
         </Card>
       </section>

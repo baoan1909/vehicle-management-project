@@ -10,8 +10,6 @@ import lombok.Setter;
 @Setter
 public class AssistantJob {
 
-    private Long runtimeEpoch;
-    private com.ban.vehicle_management.shared.enumeration.ai.AiRuntimeMode runtimeMode;
     private UUID jobId;
     private UUID inputMessageId;
     private UUID conversationId;

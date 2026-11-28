@@ -1,4 +1,4 @@
-# Tri thức và đáp án FAQ dùng chung cho Google và Qwen
+# Tri thức và đáp án FAQ của chatbot Google API
 
 Cập nhật 24/11/2026. Đây là thay đổi code và migration; không tự công bố tài liệu hoặc áp dụng vào DB dev. Kết quả chạy được ghi tại `COMMON_KNOWLEDGE_IMPLEMENTATION_REPORT.vi.md`.
 
@@ -18,9 +18,9 @@ flowchart TD
     J --> K[Tổng hợp có nguồn hoặc hỏi lại, báo thiếu thông tin]
 ```
 
-Trước thay đổi, đường hướng dẫn phải có index vector và embedding truy vấn thành công; sau đó mới đến bộ chọn FAQ. Hiện tại, FAQ chung được tìm trước hai bước này. FAQ phù hợp có thể trả khi không có key Google, LM Studio tắt, embedding tắt hoặc index của provider chưa ACTIVE. Chế độ SWITCHING vẫn chặn xuất bản và dispatch theo cơ chế epoch.
+Trước thay đổi, đường hướng dẫn phải có index vector và embedding truy vấn thành công; sau đó mới đến bộ chọn FAQ. Hiện tại, FAQ chung được tìm trước hai bước này. FAQ phù hợp có thể trả khi không có key Google, embedding tắt hoặc index Google chưa ACTIVE. Tích hợp local và cơ chế đổi provider đã được gỡ; các kiểm tra quyền và nguồn vẫn bắt buộc.
 
-Không thêm provider hoặc chế độ thứ ba. Hai nút Google API/Qwen local giữ nguyên: khi thực sự cần AI, chỉ gọi bên đang chọn. Lỗi của bên đó không làm phát sinh cuộc gọi bên kia.
+Chatbot chỉ dùng Google Gemini khi cần model. Giữ cơ chế model/key dự phòng Google và báo lỗi có kiểm soát khi quota không còn; không còn nút chuyển nhà cung cấp.
 
 ## Nguồn nào được dùng trực tiếp
 
@@ -32,9 +32,9 @@ Tái sử dụng nguồn/tài liệu/chunk và quy trình duyệt hiện có, kh
 - Chỉ nội dung các block có mục cuối cùng là FAQ hoặc Câu hỏi ... thường gặp, nằm đúng phạm vi block của chunk, được xét cho đường chung. Nhãn đầu chunk không được dùng để tự công nhận các mục khác nằm cùng chunk. Mục con Ví dụ trong FAQ cũng không được coi là đáp án chuẩn.
 - Chunk cũ thiếu start/end block hoặc thiếu block nguồn không đủ provenance cho đường chung; cần xử lý lại tài liệu qua quy trình hiện có khi được phép. Nhánh RAG cũ không bị biến thành dữ liệu đã duyệt tự động.
 - Chỉ dòng hỏi đáp hoàn chỉnh `Câu hỏi? Câu trả lời` được trả trực tiếp. Không biến đoạn mô tả, ví dụ, đoạn nằm ngoài FAQ hoặc văn bản DRAFT thành đáp án chuẩn.
-- Đáp án được giữ nguyên văn, không nhờ model viết lại. Các điều kiện trong cùng câu trả lời không bị cắt để vừa context Qwen.
+- Đáp án được giữ nguyên văn, không nhờ model viết lại. Các điều kiện trong cùng câu trả lời không bị cắt để vừa giới hạn context của model.
 
-Việc duyệt tài liệu cũng là trách nhiệm duyệt nội dung FAQ của tài liệu đó. Nhãn FAQ và trạng thái READY không chứng minh nội dung đúng về nghiệp vụ. Người duyệt phải đối chiếu code, nguồn có thẩm quyền, điều kiện, phủ định, mốc thời gian, giới hạn quyền và các điều không được khẳng định. Câu trả lời của Qwen/Google không tự trở thành tài liệu đã duyệt.
+Việc duyệt tài liệu cũng là trách nhiệm duyệt nội dung FAQ của tài liệu đó. Nhãn FAQ và trạng thái READY không chứng minh nội dung đúng về nghiệp vụ. Người duyệt phải đối chiếu code, nguồn có thẩm quyền, điều kiện, phủ định, mốc thời gian, giới hạn quyền và các điều không được khẳng định. Câu trả lời của model Google không tự trở thành tài liệu đã duyệt.
 
 Với mỗi FAQ, hợp đồng biên soạn cần xác định: câu hỏi/ý định, cách hỏi tương đương được chấp nhận, đáp án, ý bắt buộc, giới hạn/ngoại lệ, nguồn/phiên bản, phạm vi quyền, và khi nào hỏi lại hoặc chuyển hỗ trợ. Các bộ scenario/rubric hiện có tiếp tục là dữ liệu kiểm tra nội dung; không được dùng case ID để phân nhánh runtime. Đợt này không thêm bộ máy tự chứng nhận đầy đủ ý từ keyword.
 
@@ -86,7 +86,7 @@ Cờ này điều khiển lookup FAQ chung. AI_EMBEDDING_ENABLED chỉ điều k
 
 PREPARING của provider nghĩa index AI chưa sẵn sàng; không đồng nghĩa mọi câu hỏi đều phải chờ. UI nói rõ FAQ đã duyệt vẫn có thể trả lời. Trang kiểm thử truy xuất hiển thị COMMON_FAQ là tìm DB dùng chung và không hiển thị score từ khóa như phần trăm chính xác cho kết quả này.
 
-Không cần thêm LM_STUDIO_API_KEY để chạy đường FAQ chung. Token chỉ cần khi người vận hành bật xác thực Model Server và có request local thật.
+Không còn biến LM Studio trong cấu hình. Đường FAQ hợp lệ chỉ cần DB và không gọi model.
 
 ## Kiểm thử và tiếp tục nghiệm thu
 
@@ -94,12 +94,12 @@ Không cần thêm LM_STUDIO_API_KEY để chạy đường FAQ chung. Token ch�
 - KnowledgeRetrievalServiceTest: FAQ trước index/embedding, không tương tác các port model/embedding trên đường chung, provenance đúng.
 - GuestPublicAssistantServiceTest và AssistantOrchestratorTest: hai chế độ, PREPARING, nguồn đổi, citation và không generation.
 - CommonKnowledgePersistenceTest: JPA/SQL trong DB Testcontainers riêng, quyền ba tầng, tenant, duyệt, phiên bản và hiệu lực. Không nạp toàn ứng dụng hoặc khởi tạo AI HTTP clients.
-- CommonKnowledgeCorpusTest: 984 câu DRAFT fixture hiện có, domain resolver/matcher/output validator. Không coi là SQL ranking, model live hoặc công bố corpus.
+- CommonKnowledgeCorpusTest: số câu batch DRAFT fixture lấy động từ manifest (mốc trước đợt 5 là 984, sau thêm đợt 5 là 1.224), domain resolver/matcher/output validator. Không coi là SQL ranking, model live hoặc công bố corpus.
 
-Chạy từng nhóm tuần tự; không chạy compiler, browser, DB integration và Qwen live cùng lúc. Xem báo cáo để biết nhóm nào đã chạy thực tế.
+Chạy từng nhóm tuần tự; không chạy compiler, browser, DB integration và kiểm thử Google live cùng lúc. Xem báo cáo để biết nhóm nào đã chạy thực tế.
 
-Khi tài nguyên đủ, chạy DB integration trước, sau đó TypeScript/browser riêng. Chỉ chạy Qwen live khi preflight tài nguyên hiện có cho phép và dịch vụ đã sẵn sàng; giữ transcript lỗi, không dừng ứng dụng người dùng để lấy RAM. Đợt này không gọi Google API thật hoặc tiếp tục lượt Gemini cũ đang tạm dừng.
+Khi tài nguyên đủ, chạy DB integration trước, sau đó TypeScript/browser riêng. Chỉ chạy Google live khi có yêu cầu nghiệm thu, key/quota và tài nguyên phù hợp; giữ transcript lỗi, không dừng ứng dụng người dùng để lấy RAM. Đợt này không gọi Google API thật hoặc tiếp tục lượt Gemini cũ đang tạm dừng.
 
-Google sau này cần kiểm tra riêng: embedding/index, tổng hợp từ nguồn, schema, điều kiện nghiệp vụ, fallback model/key và những câu đã thất bại. Có thể kiểm tra mẫu trọng yếu trước, nhưng không suy tỷ lệ chính xác toàn bộ Google từ kết quả Qwen/FAQ chung.
+Google sau này cần kiểm tra riêng: embedding/index, tổng hợp từ nguồn, schema, điều kiện nghiệp vụ, fallback model/key và những câu đã thất bại. Có thể kiểm tra mẫu trọng yếu trước, nhưng không suy tỷ lệ chính xác toàn bộ Google từ kết quả FAQ chung.
 
 Rollback tính năng chung: đặt AI_COMMON_FAQ_ENABLED=false rồi khởi động lại BE theo quy trình cấu hình; đường model giữ nguyên. Không xóa tri thức hoặc sửa migration đã áp dụng. Trước khi rollback binary, kiểm tra tương thích các cột audit và thay đổi từ đợt tích hợp provider trước.

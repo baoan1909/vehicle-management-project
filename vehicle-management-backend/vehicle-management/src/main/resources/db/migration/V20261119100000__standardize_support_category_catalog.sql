@@ -1,5 +1,6 @@
 -- See docs/support-category-standardization.md for the pre-migration mapping.
 -- New identities preserve the names and foreign keys of historical tickets.
+DROP TABLE IF EXISTS pg_temp.support_category_catalog_seed;
 CREATE TEMP TABLE support_category_catalog_seed (
     category_id uuid, code text, name text, description text, priority text,
     audience_type text, feature_code text, display_order integer
@@ -41,6 +42,7 @@ BEGIN
     END IF;
 END $$;
 
+DROP TABLE IF EXISTS pg_temp.support_category_inserted_ids;
 CREATE TEMP TABLE support_category_inserted_ids (category_id uuid PRIMARY KEY) ON COMMIT DROP;
 WITH inserted AS (
 INSERT INTO operations.support_ticket_categories (
@@ -55,6 +57,7 @@ RETURNING category_id
 )
 INSERT INTO support_category_inserted_ids SELECT category_id FROM inserted;
 
+DROP TABLE IF EXISTS pg_temp.support_category_permission_seed;
 CREATE TEMP TABLE support_category_permission_seed (code text, permission_code text) ON COMMIT DROP;
 INSERT INTO support_category_permission_seed VALUES
     ('INTERNAL_PARKING_CONFIGURATION', 'PARKING_LOT_READ_ALL'),

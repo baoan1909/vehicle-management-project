@@ -1,0 +1,86 @@
+[
+  {
+    "credentialVariable": "GEMINI_API_KEY",
+    "kind": "RATE_LIMIT",
+    "operation": "embedContent",
+    "model": "gemini-embedding-2",
+    "retryAt": "2026-11-26T19:29:29.391721Z"
+  },
+  {
+    "credentialVariable": "GEMINI_API_KEY",
+    "kind": "TRANSIENT",
+    "operation": "generateContent",
+    "model": "gemini-3.6-flash",
+    "retryAt": "2026-11-26T19:30:04.885313600Z"
+  },
+  {
+    "credentialVariable": "GEMINI_API_KEY_1",
+    "kind": "TRANSIENT",
+    "operation": "generateContent",
+    "model": "gemini-3.6-flash",
+    "retryAt": "2026-11-26T19:30:09.193734300Z"
+  },
+  {
+    "credentialVariable": "GEMINI_API_KEY_2",
+    "kind": "TRANSIENT",
+    "operation": "generateContent",
+    "model": "gemini-3.6-flash",
+    "retryAt": "2026-11-26T19:30:10.626327500Z"
+  },
+  {
+    "credentialVariable": "GEMINI_API_KEY_3",
+    "kind": "TRANSIENT",
+    "operation": "generateContent",
+    "model": "gemini-3.6-flash",
+    "retryAt": "2026-11-26T19:30:30.652897100Z"
+  },
+  {
+    "credentialVariable": "GEMINI_API_KEY_4",
+    "kind": "TRANSIENT",
+    "operation": "generateContent",
+    "model": "gemini-3.6-flash",
+    "retryAt": "2026-11-26T19:30:50.671481100Z"
+  },
+  {
+    "credentialVariable": "GEMINI_API_KEY",
+    "kind": "TRANSIENT",
+    "operation": "generateContent",
+    "model": "gemini-3.6-flash",
+    "retryAt": "2026-11-26T19:31:13.334775700Z"
+  },
+  {
+    "credentialVariable": "GEMINI_API_KEY_1",
+    "kind": "TRANSIENT",
+    "operation": "generateContent",
+    "model": "gemini-3.6-flash",
+    "retryAt": "2026-11-26T19:31:33.347261600Z"
+  },
+  {
+    "credentialVariable": "GEMINI_API_KEY_2",
+    "kind": "TRANSIENT",
+    "operation": "generateContent",
+    "model": "gemini-3.6-flash",
+    "retryAt": "2026-11-26T19:31:51.480604200Z"
+  },
+  {
+    "credentialVariable": "GEMINI_API_KEY_5",
+    "kind": "TRANSIENT",
+    "operation": "generateContent",
+    "model": "gemini-3.6-flash",
+    "retryAt": "2026-11-26T19:31:51.490653200Z"
+  },
+  {
+    "credentialVariable": "GEMINI_API_KEY_6",
+    "kind": "TRANSIENT",
+    "operation": "generateContent",
+    "model": "gemini-3.6-flash",
+    "retryAt": "2026-11-26T19:31:51.498486700Z"
+  },
+  {
+    "credentialVariable": "GEMINI_API_KEY_7",
+    "kind": "TRANSIENT",
+    "operation": "generateContent",
+    "model": "gemini-3.6-flash",
+    "retryAt": "2026-11-26T19:31:51.506382900Z"
+  }
+]

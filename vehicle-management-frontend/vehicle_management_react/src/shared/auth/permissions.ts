@@ -18,7 +18,9 @@ export function normalizePermissionCodes(permissionCodes?: readonly string[] | n
 }
 
 export function getUserPermissionSet(user?: CurrentUser | null) {
-  return new Set(normalizePermissionCodes(user?.permissionCodes));
+  return new Set(normalizePermissionCodes(user?.permissionCodes).filter((permission) =>
+    !permission.startsWith("BROADCAST_NOTIFICATION_") || user?.role === "SYSTEM_ADMIN",
+  ));
 }
 
 export function hasResolvedPermissions(user: CurrentUser | null | undefined) {

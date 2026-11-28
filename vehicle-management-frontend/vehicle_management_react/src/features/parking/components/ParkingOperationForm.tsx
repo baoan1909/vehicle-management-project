@@ -154,16 +154,16 @@ function candidatePlate(candidate: LicensePlateOcrCandidate) {
 
 function reviewReasonLabel(reason: string) {
   const labels: Record<string, string> = {
-    below_backend_confidence_threshold: "Dưới ngưỡng backend",
-    below_confidence_threshold: "Dưới ngưỡng OCR",
-    invalid_plate_format: "Sai format biển số",
-    low_detector_confidence: "Detector yếu",
-    low_ocr_confidence: "Recognizer yếu",
-    no_candidate: "Không có candidate",
+    below_backend_confidence_threshold: "Độ tin cậy thấp hơn mức yêu cầu",
+    below_confidence_threshold: "Độ tin cậy nhận dạng thấp",
+    invalid_plate_format: "Sai định dạng biển số",
+    low_detector_confidence: "Chưa xác định rõ vùng biển số",
+    low_ocr_confidence: "Chưa đọc rõ ký tự biển số",
+    no_candidate: "Không có kết quả phù hợp",
     non_production_model_stage: "Biển số dự đoán",
   };
 
-  return labels[reason] ?? reason.replace(/_/g, " ");
+  return labels[reason] ?? "Cần kiểm tra lại biển số";
 }
 
 function OcrStatusMessage({

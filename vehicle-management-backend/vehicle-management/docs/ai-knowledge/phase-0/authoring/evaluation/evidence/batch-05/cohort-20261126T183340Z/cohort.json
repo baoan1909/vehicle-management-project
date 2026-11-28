@@ -1,0 +1,6 @@
+{
+  "holdoutSha256" : "33275fe1b0a1527517dbefa255a77d1b5fe974571257223bc61535ea9c272227",
+  "manifestSha256" : "bd812faece57c2bdc118cc9c3b74ff1fc23719899a9c0eb5bcec60cb8144ccee",
+  "semanticAcceptance" : false,
+  "testBoundary" : "Real socket HTTP and DB permissions; test JWT verifier and private filesystem storage; one manual worker"
+}

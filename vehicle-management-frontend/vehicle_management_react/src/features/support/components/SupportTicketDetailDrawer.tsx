@@ -1,3 +1,4 @@
+import { getRoleLabel } from "@/shared/utils/accountStatus";
 import { useEffect, useMemo, useState } from "react";
 
 import { Badge, Button, Drawer, EntityAvatar, SelectMenu } from "@/components/ui";
@@ -198,7 +199,7 @@ export function SupportTicketDetailDrawer({
                 {ticket.requesterNameSnapshot || ticket.requesterEmailSnapshot || ticket.requesterRoleCode}
               </strong>
               <span className="tw-break-all tw-text-[0.77rem] tw-font-semibold tw-text-vm-slate-500">
-                {ticket.requesterRoleCode} · {ticket.requesterAccountId}
+                {getRoleLabel(ticket.requesterRoleCode ?? undefined)} · {ticket.requesterAccountId}
               </span>
             </div>
           </div>

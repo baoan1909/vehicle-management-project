@@ -91,8 +91,10 @@ class PaymentAccessGuardTest {
     void employeeCanRecordOnlyAtAnOpenShiftLot() {
         UUID shiftLot = UUID.randomUUID();
         UUID accountId = UUID.randomUUID();
-        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(account(
-                accountId, Set.of("PARKING_SCOPE_SHIFT")));
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(new CurrentAccountAccess(accountId, "subject", "cashier", null, UUID.randomUUID(), "EMPLOYEE",
+                true, false, Set.of(UUID.randomUUID()), Set.of(shiftLot), AccountStatus.ACTIVE,
+                com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus.ACTIVE, null, null, false,
+                Set.of("PARKING_SCOPE_SHIFT", "PARKING_SCOPE_ASSIGNED")));
         when(employeePaymentScopePortOut.findOpenShiftParkingLotIds(accountId)).thenReturn(Set.of(shiftLot));
 
         Invoice ownInvoice = new Invoice();

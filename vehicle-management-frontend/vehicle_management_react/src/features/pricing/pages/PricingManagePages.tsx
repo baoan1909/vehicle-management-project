@@ -280,10 +280,10 @@ function getAppliesToLabel(value: string) {
     VISITOR: "Khách vãng lai"
   };
 
-  return label[value] ?? value;
+  return label[value] ?? "Chưa xác định";
 }
 
-function getTicketTypeLabel(value: string) {
+function getTicketTypeLabel(value: string, name?: string) {
   const label: Record<string, string> = {
     DAILY: "Vé lượt",
     FREE: "Miễn phí",
@@ -292,7 +292,7 @@ function getTicketTypeLabel(value: string) {
     YEARLY: "Vé năm"
   };
 
-  return label[value] ?? value;
+  return label[value] ?? (name?.trim() && name !== value ? name : "Chưa xác định");
 }
 
 function getPriceRuleUnitLabel(value: string) {
@@ -302,7 +302,7 @@ function getPriceRuleUnitLabel(value: string) {
     TURN: "Lượt"
   };
 
-  return label[value] ?? value;
+  return label[value] ?? "Chưa xác định";
 }
 
 function buildPricePlanOptions(records: PricePlanRecord[]): SelectMenuOption[] {
@@ -326,7 +326,7 @@ function buildTicketTypeOptions(records: TicketTypeApiResponse[]): SelectMenuOpt
 
   return [
     ticketTypeOptions[0],
-    ...records.map((ticketType) => ({ label: getTicketTypeLabel(ticketType.code), value: ticketType.code }))
+    ...records.map((ticketType) => ({ label: getTicketTypeLabel(ticketType.code, ticketType.name), value: ticketType.code }))
   ];
 }
 
@@ -383,6 +383,7 @@ function mapPriceRule(
     ruleName: row.ruleName,
     status: row.lifecycleStatus === "DRAFT" ? "draft" : getPricingStatus(row.isActive && plan?.isActive, plan ? toIsoDate(plan.effectiveFrom) : null, plan ? toIsoDate(plan.effectiveTo) : null),
     ticketTypeCode: ticketType?.code ?? row.ticketTypeId ?? "-",
+    ticketTypeName: ticketType?.name,
     ticketTypeId: row.ticketTypeId ?? "",
     timeFrom: row.timeFrom ? row.timeFrom.slice(0, 8) : null,
     timeTo: row.timeTo ? row.timeTo.slice(0, 8) : null,
@@ -480,7 +481,7 @@ function getPriceRuleExportColumns(options: PricingRuleExportOptions) {
     { label: "Tên quy tắc", value: (row) => row.ruleName },
     { label: "Kế hoạch", value: (row) => row.pricePlanCode },
     { label: "Loại xe", value: (row) => row.vehicleTypeName },
-    { label: "Loại vé", value: (row) => getTicketTypeLabel(row.ticketTypeCode) },
+    { label: "Loại vé", value: (row) => getTicketTypeLabel(row.ticketTypeCode, row.ticketTypeName) },
     { label: "Đơn vị tính", value: (row) => getPriceRuleUnitLabel(row.unit) },
     { label: "Giá", value: (row) => formatMoney(row.basePrice) },
     { label: "Trạng thái", value: (row) => statusOptions.find((option) => option.value === row.status)?.label ?? row.status }
@@ -665,7 +666,7 @@ function AppliesToBadge({ value }: { value: PricePlanAppliesTo }) {
   return <span className={cn("tw-inline-flex tw-min-h-6 tw-items-center tw-rounded-full tw-px-[0.65rem] tw-text-[0.72rem] tw-font-extrabold", className[value] ?? "tw-bg-slate-100 tw-text-slate-600")}>{getAppliesToLabel(value)}</span>;
 }
 
-function TicketTypeBadge({ value }: { value: PriceRuleRecord["ticketTypeCode"] }) {
+function TicketTypeBadge({ value, name }: { value: PriceRuleRecord["ticketTypeCode"]; name?: string }) {
   const className: Record<string, string> = {
     DAILY: "tw-bg-brand-50 tw-text-vm-primary",
     MONTHLY: "tw-bg-[rgba(245,158,11,0.14)] tw-text-[#f59e0b]",
@@ -674,7 +675,7 @@ function TicketTypeBadge({ value }: { value: PriceRuleRecord["ticketTypeCode"] }
     FREE: "tw-bg-[rgba(22,163,74,0.12)] tw-text-vm-success"
   };
 
-  return <span className={cn("tw-inline-flex tw-min-h-6 tw-items-center tw-rounded-full tw-px-[0.65rem] tw-text-[0.72rem] tw-font-extrabold", className[value] ?? "tw-bg-slate-100 tw-text-slate-600")}>{getTicketTypeLabel(value)}</span>;
+  return <span className={cn("tw-inline-flex tw-min-h-6 tw-max-w-full tw-items-center tw-whitespace-normal tw-break-words tw-rounded-full tw-px-[0.65rem] tw-text-[0.72rem] tw-font-extrabold", className[value] ?? "tw-bg-slate-100 tw-text-slate-600")}>{getTicketTypeLabel(value, name)}</span>;
 }
 
 function FilterSelect({
@@ -1718,7 +1719,7 @@ function PriceRuleCreatePanel({
     { label: "Chọn loại vé", value: "" },
     ...ticketTypes
       .filter((ticketType) => allowedTicketCodes.includes(ticketType.code))
-      .map((ticketType) => ({ label: getTicketTypeLabel(ticketType.code), value: ticketType.ticketTypeId }))
+    .map((ticketType) => ({ label: getTicketTypeLabel(ticketType.code, ticketType.name), value: ticketType.ticketTypeId }))
   ];
   const unitOptionsForCreate: SelectMenuOption[] = isVisitorPlan
     ? [
@@ -2059,7 +2060,7 @@ function PriceRuleTable({
                 <td className="tw-max-w-[190px] tw-font-semibold tw-text-vm-slate-700">{row.parkingLotName}</td>
                 <td className="tw-font-extrabold tw-text-vm-primary">{row.pricePlanCode}</td>
                 <td>{row.vehicleTypeName}</td>
-                <td><TicketTypeBadge value={row.ticketTypeCode} /></td>
+                    <td><TicketTypeBadge value={row.ticketTypeCode} name={row.ticketTypeName} /></td>
                 <td>{row.timeFrom && row.timeTo ? `${row.timeFrom}-${row.timeTo}` : "-"}</td>
                 <td className="tw-font-bold">{formatMoney(row.basePrice)} / {getPriceRuleUnitLabel(row.unit).toLowerCase()}</td>
                 <td>{formatMoney(row.lostCardFee)}</td>

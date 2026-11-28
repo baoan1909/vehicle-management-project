@@ -25,7 +25,7 @@ public class AvatarModerationController {
     }
 
     @GetMapping
-    @PreAuthorize("@permissionAuthorizer.hasPermission('USER_PROFILE_READ_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('AVATAR_APPROVAL_READ_ALL')")
     public ResponseEntity<ApiResponse<List<AvatarModerationResponse>>> list(
             @RequestParam(required = false) ApprovalRequestStatus status) {
         return ResponseEntity.ok(ApiResponse.ok("Fetched avatar approvals successfully",
@@ -33,7 +33,7 @@ public class AvatarModerationController {
     }
 
     @PostMapping("/{approvalRequestId}/approve")
-    @PreAuthorize("@permissionAuthorizer.hasPermission('USER_PROFILE_UPDATE_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('AVATAR_APPROVAL_REVIEW_ALL')")
     public ResponseEntity<ApiResponse<AvatarModerationResponse>> approve(
             @PathVariable UUID approvalRequestId, @RequestBody(required = false) ReviewAvatarRequest request) {
         return ResponseEntity.ok(ApiResponse.ok("Avatar approved successfully",
@@ -41,7 +41,7 @@ public class AvatarModerationController {
     }
 
     @PostMapping("/{approvalRequestId}/reject")
-    @PreAuthorize("@permissionAuthorizer.hasPermission('USER_PROFILE_UPDATE_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('AVATAR_APPROVAL_REVIEW_ALL')")
     public ResponseEntity<ApiResponse<AvatarModerationResponse>> reject(
             @PathVariable UUID approvalRequestId, @RequestBody ReviewAvatarRequest request) {
         return ResponseEntity.ok(ApiResponse.ok("Avatar rejected successfully",

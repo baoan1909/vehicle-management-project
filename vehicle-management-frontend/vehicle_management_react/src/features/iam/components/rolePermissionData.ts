@@ -1,3 +1,4 @@
+import { getPermissionActionLabel, getPermissionModuleLabel, getPermissionScopeLabel } from "@/features/iam/utils/permissionLabels";
 export type PermissionAction = string;
 
 export type PermissionFilter = "all" | "own" | "public" | "assigned" | "lot";
@@ -34,20 +35,20 @@ export type RoleAuditRecord = {
 };
 
 export const permissionActions: Array<{ key: PermissionAction; label: string }> = [
-  { key: "create", label: "CREATE" },
-  { key: "read", label: "READ" },
-  { key: "update", label: "UPDATE" },
-  { key: "delete", label: "DELETE" },
-  { key: "assign", label: "ASSIGN" },
-  { key: "unassign", label: "UNASSIGN" }
+  { key: "create", label: getPermissionActionLabel("CREATE") },
+  { key: "read", label: getPermissionActionLabel("READ") },
+  { key: "update", label: getPermissionActionLabel("UPDATE") },
+  { key: "delete", label: getPermissionActionLabel("DELETE") },
+  { key: "assign", label: getPermissionActionLabel("ASSIGN") },
+  { key: "unassign", label: getPermissionActionLabel("UNASSIGN") }
 ];
 
 export const permissionFilters: Array<{ label: string; value: PermissionFilter }> = [
-  { value: "all", label: "ALL" },
-  { value: "own", label: "OWN" },
-  { value: "public", label: "PUBLIC" },
-  { value: "assigned", label: "ASSIGNED" },
-  { value: "lot", label: "LOT" }
+  { value: "all", label: getPermissionScopeLabel("ALL") },
+  { value: "own", label: getPermissionScopeLabel("OWN") },
+  { value: "public", label: getPermissionScopeLabel("PUBLIC") },
+  { value: "assigned", label: getPermissionScopeLabel("ASSIGNED") },
+  { value: "lot", label: getPermissionScopeLabel("LOT") }
 ];
 
 export const rolePermissionRoles: RolePermissionRecord[] = [
@@ -106,7 +107,7 @@ export const rolePermissionRoles: RolePermissionRecord[] = [
 export const initialPermissionModules: PermissionModuleRecord[] = [
   {
     key: "role",
-    label: "ROLE",
+    label: getPermissionModuleLabel("ROLE"),
     permissions: {
       create: "granted",
       read: "granted",
@@ -118,7 +119,7 @@ export const initialPermissionModules: PermissionModuleRecord[] = [
   },
   {
     key: "permission",
-    label: "PERMISSION",
+    label: getPermissionModuleLabel("PERMISSION"),
     permissions: {
       create: "empty",
       read: "granted",
@@ -130,7 +131,7 @@ export const initialPermissionModules: PermissionModuleRecord[] = [
   },
   {
     key: "account",
-    label: "ACCOUNT",
+    label: getPermissionModuleLabel("ACCOUNT"),
     permissions: {
       create: "granted",
       read: "granted",
@@ -142,7 +143,7 @@ export const initialPermissionModules: PermissionModuleRecord[] = [
   },
   {
     key: "customer",
-    label: "CUSTOMER",
+    label: getPermissionModuleLabel("CUSTOMER"),
     permissions: {
       create: "granted",
       read: "granted",
@@ -154,7 +155,7 @@ export const initialPermissionModules: PermissionModuleRecord[] = [
   },
   {
     key: "vehicle-type",
-    label: "VEHICLE_TYPE",
+    label: getPermissionModuleLabel("VEHICLE_TYPE"),
     permissions: {
       create: "granted",
       read: "granted",
@@ -166,7 +167,7 @@ export const initialPermissionModules: PermissionModuleRecord[] = [
   },
   {
     key: "ticket-type",
-    label: "TICKET_TYPE",
+    label: getPermissionModuleLabel("TICKET_TYPE"),
     permissions: {
       create: "granted",
       read: "granted",
@@ -178,7 +179,7 @@ export const initialPermissionModules: PermissionModuleRecord[] = [
   },
   {
     key: "price-rule",
-    label: "PRICE_RULE",
+    label: getPermissionModuleLabel("PRICE_RULE"),
     permissions: {
       create: "empty",
       read: "granted",
@@ -190,7 +191,7 @@ export const initialPermissionModules: PermissionModuleRecord[] = [
   },
   {
     key: "parking-session",
-    label: "PARKING_SESSION",
+    label: getPermissionModuleLabel("PARKING_SESSION"),
     permissions: {
       create: "empty",
       read: "granted",
@@ -202,7 +203,7 @@ export const initialPermissionModules: PermissionModuleRecord[] = [
   },
   {
     key: "report",
-    label: "REPORT",
+    label: getPermissionModuleLabel("REPORT"),
     permissions: {
       create: "empty",
       read: "granted",

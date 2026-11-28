@@ -114,7 +114,7 @@ export function KnowledgeIndexVersionsTab() {
   const embeddingOptions = useMemo(
     () =>
       embeddingConfigs.map((config) => ({
-        label: `${config.provider === "LM_STUDIO" ? "Qwen local" : "Google API"} · ${config.modelId}${config.status === "ACTIVE" ? " · Đang dùng" : ""}`,
+        label: `Google API · ${config.modelId}${config.status === "ACTIVE" ? " · Đang dùng" : ""}`,
         value: config.configurationId,
       })),
     [embeddingConfigs],
@@ -201,7 +201,7 @@ export function KnowledgeIndexVersionsTab() {
                         </dl>
                       </details>
                     </td>
-                    <td className="tw-px-3 tw-py-3"><b className="tw-block tw-text-slate-700">{version.provider === "LM_STUDIO" ? "Qwen local" : "Google API"}</b><span className="tw-text-xs tw-text-slate-500">{version.modelId}</span></td>
+                    <td className="tw-px-3 tw-py-3"><b className="tw-block tw-text-slate-700">Google API</b><span className="tw-text-xs tw-text-slate-500">{version.modelId}</span></td>
                     <td className="tw-px-3 tw-py-3">
                       <Badge tone={meta.tone} className="tw-w-fit tw-whitespace-nowrap tw-px-2.5">{meta.label}</Badge>
                       {version.failureCode ? <span className="tw-mt-1 tw-block tw-text-xs tw-font-black tw-text-red-600">{version.failureCode}</span> : null}
@@ -258,7 +258,7 @@ export function KnowledgeIndexVersionsTab() {
               searchable={false}
               value={modelConfigurationId}
             />
-            <span className="tw-text-xs tw-leading-5 tw-text-slate-500">Chọn cùng dịch vụ AI đang dùng. Model này tìm nguồn, khác model viết câu trả lời.</span>
+            <span className="tw-text-xs tw-leading-5 tw-text-slate-500">Chọn model Google dùng để tìm tài liệu. Model này khác model viết câu trả lời.</span>
             {!loading && embeddingOptions.length === 0 ? <span className="tw-text-sm tw-text-amber-800">Chưa có cấu hình phù hợp. Kiểm tra tại Model & kết nối trước.</span> : null}
           </label>
           <label className="tw-grid tw-gap-1.5">

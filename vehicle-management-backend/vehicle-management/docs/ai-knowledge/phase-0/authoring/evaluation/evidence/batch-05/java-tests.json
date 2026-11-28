@@ -1,0 +1,218 @@
+{
+  "kind": "OFFLINE_UNIT_AND_FAKE_HTTP_NOT_GOOGLE_ACCEPTANCE",
+  "executionNote": "Unique cases from the recorded sequential targeted test runs; not an assertion that the whole repository suite ran.",
+  "tests": 244,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "reports": [
+    {
+      "name": "com.ban.vehicle_management.ai.golden.CommonKnowledgeCorpusTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "16.507"
+    },
+    {
+      "name": "com.ban.vehicle_management.application.ai.service.AiMessageCitationUseCaseImplTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "1.472"
+    },
+    {
+      "name": "com.ban.vehicle_management.application.ai.service.AiModelFallbackPolicyTest",
+      "tests": "12",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.11"
+    },
+    {
+      "name": "com.ban.vehicle_management.application.ai.service.AiModelPolicyServiceTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.005"
+    },
+    {
+      "name": "com.ban.vehicle_management.application.ai.service.AiModelRouterTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.882"
+    },
+    {
+      "name": "com.ban.vehicle_management.application.ai.service.AssistantOrchestratorTest",
+      "tests": "45",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "2.018"
+    },
+    {
+      "name": "com.ban.vehicle_management.application.ai.service.CommonKnowledgeServiceTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.057"
+    },
+    {
+      "name": "com.ban.vehicle_management.application.ai.service.KnowledgeAccessContextResolverTest",
+      "tests": "9",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.018"
+    },
+    {
+      "name": "com.ban.vehicle_management.application.ai.service.KnowledgeIndexBuildCoordinatorTest",
+      "tests": "7",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.11"
+    },
+    {
+      "name": "com.ban.vehicle_management.application.ai.service.KnowledgeIndexPendingCandidateTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.208"
+    },
+    {
+      "name": "com.ban.vehicle_management.application.ai.service.KnowledgeIndexVersionUseCaseImplTest",
+      "tests": "8",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.022"
+    },
+    {
+      "name": "com.ban.vehicle_management.application.catalog.authorization.CatalogAccessGuardTest",
+      "tests": "7",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.086"
+    },
+    {
+      "name": "com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuardTest",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.017"
+    },
+    {
+      "name": "com.ban.vehicle_management.application.parking.parkinglayout.usecase.ParkingLayoutUseCaseTest",
+      "tests": "10",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.307"
+    },
+    {
+      "name": "com.ban.vehicle_management.application.people.employee.authorization.EmployeeAccessGuardTest",
+      "tests": "7",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.094"
+    },
+    {
+      "name": "com.ban.vehicle_management.domain.ai.model.AssistantIntentRouterTest",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.016"
+    },
+    {
+      "name": "com.ban.vehicle_management.domain.ai.model.AssistantOwnReadRouterTest",
+      "tests": "12",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.117"
+    },
+    {
+      "name": "com.ban.vehicle_management.domain.ai.model.AssistantQuestionResolverTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.001"
+    },
+    {
+      "name": "com.ban.vehicle_management.domain.ai.model.GroundedFaqLookupTest",
+      "tests": "10",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.009"
+    },
+    {
+      "name": "com.ban.vehicle_management.domain.ai.model.PartnerAdministrationIntentTest",
+      "tests": "27",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.067"
+    },
+    {
+      "name": "com.ban.vehicle_management.domain.ai.model.PartnerBusinessCapabilityTest",
+      "tests": "19",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.026"
+    },
+    {
+      "name": "com.ban.vehicle_management.domain.parking.parkinglayout.policy.ParkingLayoutPolicyTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.006"
+    },
+    {
+      "name": "com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialAvailabilityTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.177"
+    },
+    {
+      "name": "com.ban.vehicle_management.infrastructure.ai.gemini.GeminiCredentialPoolTest",
+      "tests": "29",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "2.92"
+    },
+    {
+      "name": "com.ban.vehicle_management.infrastructure.ai.gemini.GeminiDefaultBudgetTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.018"
+    },
+    {
+      "name": "com.ban.vehicle_management.infrastructure.ai.gemini.GeminiGenerationDeadlineTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "1.507"
+    }
+  ]
+}

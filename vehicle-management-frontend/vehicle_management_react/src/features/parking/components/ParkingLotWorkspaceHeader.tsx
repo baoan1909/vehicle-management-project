@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { useAuth } from "@/core/auth/useAuth";
+import { canAccessAdminRoute } from "@/app/routePermissions";
 import { Link } from "react-router-dom";
 
 import type { ParkingLotApiResponse } from "@/features/parking/api/parkingLotsApi";
@@ -41,6 +43,7 @@ export function parkingWorkspaceHref(tab: ParkingWorkspaceTab, parkingLotId: str
 }
 
 export function ParkingLotWorkspaceHeader({ activeTab, parkingLot, parkingLots = [], onParkingLotChange, actions, guideCode, guideEnabled }: Props) {
+  const { user } = useAuth();
   const tabs: Array<{ id: ParkingWorkspaceTab; label: string }> = [
     { id: "overview", label: "Tổng quan" },
     { id: "structure", label: "Cấu trúc" },
@@ -91,7 +94,7 @@ export function ParkingLotWorkspaceHeader({ activeTab, parkingLot, parkingLots =
       </div>
 
       <nav className="tw-mt-1 tw-flex tw-h-[52px] tw-items-end tw-gap-4 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100" aria-label="Điều hướng quản lý bãi xe">
-        {tabs.map((tab) => (
+        {tabs.filter((tab) => canAccessAdminRoute(user, parkingWorkspaceHref(tab.id, parkingLot.parkingLotId).split("?")[0])).map((tab) => (
           <Link
             key={tab.id}
             to={parkingWorkspaceHref(tab.id, parkingLot.parkingLotId)}

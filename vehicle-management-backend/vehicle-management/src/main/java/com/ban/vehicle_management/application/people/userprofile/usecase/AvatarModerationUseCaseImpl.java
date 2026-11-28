@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.people.userprofile.usecase;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.people.employee.authorization.EmployeeAccessGuard;
 import com.ban.vehicle_management.application.iam.account.port.out.SystemAccountIdPortOut;
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.usecase.RequiresNewNotificationSender;
@@ -18,6 +19,7 @@ import com.ban.vehicle_management.shared.enumeration.notification.NotificationTy
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
 import com.ban.vehicle_management.shared.enumeration.people.UserProfileAvatarStatus;
 import com.ban.vehicle_management.shared.exception.ConflictException;
+import org.springframework.security.access.AccessDeniedException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import com.ban.vehicle_management.shared.transaction.TransactionalEvents;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
@@ -36,8 +38,8 @@ public class AvatarModerationUseCaseImpl implements AvatarModerationPortIn {
     public static final String REQUEST_TYPE = "USER_PROFILE_AVATAR_APPROVAL";
     public static final String TARGET_SCHEMA = "people";
     public static final String TARGET_TABLE = "user_profile_avatars";
-    private static final String READ_ALL = "USER_PROFILE_READ_ALL";
-    private static final String UPDATE_ALL = "USER_PROFILE_UPDATE_ALL";
+    private static final String READ_ALL = "AVATAR_APPROVAL_READ_ALL";
+    private static final String UPDATE_ALL = "AVATAR_APPROVAL_REVIEW_ALL";
     private static final Logger LOGGER = LoggerFactory.getLogger(AvatarModerationUseCaseImpl.class);
 
     private final CurrentAccountPortIn currentAccountPortIn;
@@ -48,6 +50,7 @@ public class AvatarModerationUseCaseImpl implements AvatarModerationPortIn {
     private final RequiresNewNotificationSender notificationSender;
     private final StorageUrlResolver storageUrlResolver;
     private final FileStoragePort fileStoragePort;
+    private final EmployeeAccessGuard employeeAccessGuard;
     private final ApprovalRequestPolicy approvalPolicy = new ApprovalRequestPolicy();
 
     public AvatarModerationUseCaseImpl(CurrentAccountPortIn currentAccountPortIn,
@@ -57,7 +60,8 @@ public class AvatarModerationUseCaseImpl implements AvatarModerationPortIn {
                                        AvatarApprovalPolicyPortOut policyPortOut,
                                        RequiresNewNotificationSender notificationSender,
                                        StorageUrlResolver storageUrlResolver,
-                                       FileStoragePort fileStoragePort) {
+                                        FileStoragePort fileStoragePort,
+                                        EmployeeAccessGuard employeeAccessGuard) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.systemAccountIdPortOut = systemAccountIdPortOut;
         this.moderationPortOut = moderationPortOut;
@@ -66,6 +70,7 @@ public class AvatarModerationUseCaseImpl implements AvatarModerationPortIn {
         this.notificationSender = notificationSender;
         this.storageUrlResolver = storageUrlResolver;
         this.fileStoragePort = fileStoragePort;
+        this.employeeAccessGuard = employeeAccessGuard;
     }
 
     @Override
@@ -123,7 +128,8 @@ public class AvatarModerationUseCaseImpl implements AvatarModerationPortIn {
     @Transactional(readOnly = true)
     public List<AvatarModerationResult> getAvatarApprovals(ApprovalRequestStatus status) {
         currentAccountPortIn.requirePermission(READ_ALL);
-        return moderationPortOut.findAll(status).stream().map(request -> {
+        return moderationPortOut.findAll(status).stream()
+                .filter(request -> canReviewAccount(request.getRequestedBy())).map(request -> {
             UserProfileAvatar avatar = avatarPortOut.findById(request.getTargetId())
                     .orElseThrow(() -> new NotFoundException("Avatar candidate not found"));
             return toResult(request, avatar, request.getRequestedBy());
@@ -147,6 +153,9 @@ public class AvatarModerationUseCaseImpl implements AvatarModerationPortIn {
     private AvatarModerationResult review(UUID approvalRequestId, String note, boolean approve) {
         ApprovalRequest request = moderationPortOut.findForUpdate(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("Avatar approval request not found"));
+        if (!canReviewAccount(request.getRequestedBy())) {
+            throw new AccessDeniedException("Avatar is outside the accessible personnel scope");
+        }
         if (request.getStatus() != ApprovalRequestStatus.PENDING) {
             throw new ConflictException("Avatar approval request has already been reviewed");
         }
@@ -168,6 +177,11 @@ public class AvatarModerationUseCaseImpl implements AvatarModerationPortIn {
         scheduleNotification(request.getRequestedBy(), NotificationType.AVATAR_REJECTED,
                 "Ảnh đại diện chưa được duyệt", "Vui lòng xem lý do từ chối và tải ảnh khác.", avatar.getAvatarId());
         return toResult(request, avatar, request.getRequestedBy());
+    }
+
+    private boolean canReviewAccount(UUID accountId) {
+        return currentAccountPortIn.hasPermission("PARKING_SCOPE_PLATFORM")
+                || employeeAccessGuard.canReadAccount(accountId);
     }
 
     private AvatarModerationResult approveInternal(ApprovalRequest request, UserProfileAvatar avatar,

@@ -1334,7 +1334,7 @@ function SubscriptionOrderMessageCard({ order }: { order: SubscriptionOrderSnaps
             <h3 className="tw-m-0 tw-mt-1 tw-truncate tw-text-[0.95rem] tw-font-black tw-text-vm-slate-900">{order.ticketTypeName}</h3>
           </div>
         </div>
-        <span className={cn("tw-flex-none tw-rounded-full tw-px-2.5 tw-py-1 tw-text-[0.68rem] tw-font-black", active ? "tw-bg-emerald-50 tw-text-emerald-700" : "tw-bg-slate-100 tw-text-slate-700")}>{subscriptionOrderStatusLabel[order.status] ?? order.status}</span>
+        <span className={cn("tw-flex-none tw-rounded-full tw-px-2.5 tw-py-1 tw-text-[0.68rem] tw-font-black", active ? "tw-bg-emerald-50 tw-text-emerald-700" : "tw-bg-slate-100 tw-text-slate-700")}>{subscriptionOrderStatusLabel[order.status] ?? "Chưa xác định"}</span>
       </div>
       <div className="tw-mt-4 tw-grid tw-gap-2 tw-rounded-vm-md tw-bg-vm-slate-25 tw-p-3 tw-text-[0.76rem] tw-font-semibold tw-text-vm-slate-600 min-[520px]:tw-grid-cols-2">
         <span><i className="fas fa-parking tw-mr-2 tw-text-vm-primary" />{order.parkingLotName} ({order.parkingLotCode})</span>

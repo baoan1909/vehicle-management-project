@@ -94,24 +94,6 @@ public final class GroundedContextPack {
         return build(userQuestion, results, DEFAULT_MAX_TOKENS, DEFAULT_MAX_CHUNKS, DEFAULT_MAX_CHARS_PER_CHUNK);
     }
 
-    public static ContextPack buildLocal(String question, List<KnowledgeSearchResult> results, int maxBytes) {
-        List<PackChunk> chunks = new ArrayList<>();
-        Set<UUID> seen = new java.util.HashSet<>();
-        StringBuilder text = new StringBuilder();
-        for (var result : safeResults(results)) {
-            if (!seen.add(result.chunkId())) continue;
-            String content = selectPassage(question, result.content() == null ? "" : result.content(), Integer.MAX_VALUE);
-            if (content.isBlank()) continue;
-            String label = "C" + (chunks.size() + 1);
-            String block = "[" + label + "] " + content + "\n";
-            if (LocalGroundedProfile.bytes(text + block) > maxBytes) continue;
-            chunks.add(new PackChunk(label, result.chunkId(), result.documentId(), result.title(), content));
-            text.append(block);
-            if (chunks.size() == 3) break;
-        }
-        return new ContextPack(List.copyOf(chunks), LocalGroundedProfile.bytes(text.toString()), true, text.toString());
-    }
-
     public static List<KnowledgeSearchResult> safeResults(List<KnowledgeSearchResult> results) {
         return results.stream().filter(result -> !PromptInjectionScreening.scan(
                 (result.title() == null ? "" : result.title() + "\n")

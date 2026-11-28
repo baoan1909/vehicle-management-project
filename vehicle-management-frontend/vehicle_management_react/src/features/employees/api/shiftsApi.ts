@@ -237,9 +237,28 @@ export function getShiftAssignments(filter: ShiftAssignmentFilter = {}) {
 }
 
 export function getMyShiftAssignments(filter: Pick<ShiftAssignmentFilter, "fromDate" | "toDate" | "status"> = {}) {
-  return apiClient<ApiResponse<ShiftAssignmentApiResponse[]>>(
+  return apiClient<ApiResponse<EmployeeShiftScheduleResponse[]>>(
     `${apiEndpoints.operations.shiftAssignments}/me${buildQuery(filter)}`,
   );
+}
+
+export type EmployeeShiftScheduleResponse = {
+  shiftAssignmentId: string;
+  shiftId: string;
+  parkingLotId: string;
+  parkingLotName: string;
+  shiftCode: string;
+  startTime: string;
+  endTime: string;
+  shiftStatus: ShiftStatusApi;
+  status: ShiftAssignmentStatusApi;
+};
+
+export function openShift(shiftId: string, openingCash: number, note?: string) {
+  return apiClient<ApiResponse<ShiftApiResponse>>(`${apiEndpoints.operations.shifts}/${shiftId}/open`, {
+    method: "PATCH",
+    body: { openingCash, note: note?.trim() || null },
+  });
 }
 
 export function createShiftAssignment(shiftId: string, payload: UpsertShiftAssignmentRequest) {

@@ -80,6 +80,6 @@ Xem còn chỗ, tạo đặt chỗ chờ trả tiền, trả tiền thành công
 Chưa nghiệm thu/publish trên corpus DB dev. Cấu hình cổng thanh toán và số tiền hiện hành cần kiểm tra tại môi trường thực tế. Xem báo cáo đợt 3 để biết giới hạn kiểm chứng.
 
 ## Lịch sử phiên bản
-- 2.1.0, 2026-11-24: rà soát lại với code hiện tại; làm rõ điều kiện và giới hạn trả lời, chuẩn hóa ngôn ngữ; tiếp tục DRAFT. Kiểm thử và giới hạn bằng chứng tại báo cáo ALL_BATCHES_QWEN_REVIEW_REPORT.vi.md.
+- 2.1.0, 2026-11-24: rà soát lại với code hiện tại; làm rõ điều kiện và giới hạn trả lời, chuẩn hóa ngôn ngữ; tiếp tục DRAFT. Kiểm thử và giới hạn bằng chứng tại báo cáo ALL_BATCHES_REVIEW_STATUS.vi.md.
 - 2.0.0: rà soát code ngày 20/11/2026; giữ DRAFT, không thay chính sách nghiệp vụ.
 <!-- authoring-only:end -->

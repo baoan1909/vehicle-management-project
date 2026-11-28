@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.application.operations.shiftassignment.usecase;
 
+import com.ban.vehicle_management.domain.operations.shiftassignment.model.EmployeeShiftSchedule;
+
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
 import com.ban.vehicle_management.application.iam.organization.model.result.ParkingLotAccessScope;
@@ -223,21 +225,30 @@ public class ShiftAssignmentUseCaseImpl
                         "Employee record not found for current account"
                 ));
 
-        ShiftAssignmentStatus resolvedStatus =
-                status == null
-                        ? ShiftAssignmentStatus.ACTIVE
-                        : status;
-
         return assignmentPortOut.findAll(
                 null,
                 null,
                 employee.getEmployeeId(),
                 null,
-                resolvedStatus,
+                status,
                 fromDate,
                 toDate,
                 null
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<EmployeeShiftSchedule> getMySchedule(
+            LocalDate fromDate, LocalDate toDate, ShiftAssignmentStatus status) {
+        return getMyAssignments(fromDate, toDate, status).stream().map(assignment -> {
+            Shift shift = shiftPortOut.findById(assignment.getShiftId())
+                    .orElseThrow(() -> new NotFoundException("Shift not found"));
+            var lot = parkingLotPortOut.findById(shift.getParkingLotId())
+                    .orElseThrow(() -> new NotFoundException("Parking lot not found"));
+            return new EmployeeShiftSchedule(
+                    assignment, shift, lot.getName());
+        }).toList();
     }
 
     @Override

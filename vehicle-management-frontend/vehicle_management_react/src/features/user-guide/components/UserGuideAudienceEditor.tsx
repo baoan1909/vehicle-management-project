@@ -8,11 +8,11 @@ import type {
 } from "@/features/user-guide/api/userGuideApi";
 
 const modeOptions = [
-  { label: "Công khai (PUBLIC)", value: "PUBLIC" },
+  { label: "Công khai", value: "PUBLIC" },
   { label: "Mọi tài khoản đăng nhập", value: "ALL_AUTHENTICATED" },
-  { label: "Theo vai trò (ROLE)", value: "ROLE" },
+  { label: "Theo vai trò", value: "ROLE" },
   { label: "Có ít nhất một quyền", value: "PERMISSION_ANY" },
-  { label: "Có mọi quyền", value: "PERMISSION_ALL" },
+  { label: "Có đầy đủ các quyền", value: "PERMISSION_ALL" },
 ];
 
 const targetOptions = [
@@ -63,7 +63,7 @@ export function UserGuideAudienceEditor({ audiences, mode, onChange, readOnly = 
         <div className="tw-flex tw-flex-col tw-gap-2">
           {audiences.length === 0 ? (
             <p className="tw-m-0 tw-rounded-vm-md tw-bg-vm-slate-25 tw-px-3 tw-py-3 tw-text-[0.82rem] tw-font-semibold tw-text-vm-slate-500">
-              Chế độ này yêu cầu ít nhất một dòng đối tượng (roleId cho ROLE, permissionId cho PERMISSION).
+              Chế độ này yêu cầu chọn ít nhất một vai trò hoặc một quyền phù hợp.
             </p>
           ) : null}
           {audiences.map((row, index) => (

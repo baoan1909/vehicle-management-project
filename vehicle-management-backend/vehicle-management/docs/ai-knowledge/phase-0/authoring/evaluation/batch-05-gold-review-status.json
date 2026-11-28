@@ -1,0 +1,9 @@
+{
+  "holdoutFrozen": true,
+  "holdoutEdited": false,
+  "usedForRuntimeTuning": false,
+  "author": "Independent AI agent",
+  "humanReviewer": null,
+  "status": "GOLD_REVIEW_REQUIRED",
+  "reason": "The independent author reported that a holdout expectation may rely on surviving organization-profile endpoints before checking the retirement migration. Keep the frozen dataset; adjudicate gold against code before grading. Do not count it as runtime failure or PASS without independent review."
+}

@@ -90,7 +90,7 @@ Hỏi cách đăng nhập khác với hỏi tài khoản của bạn đang bị 
 SLA email, xử lý tranh chấp identity và mở khóa do người có thẩm quyền quyết định. Không biến quyết định mục tiêu chưa triển khai thành lời hứa. DRAFT chưa phải phê duyệt publish.
 
 ## Lịch sử phiên bản
-- 2.2.0, 2026-11-24: rà soát lại với code hiện tại; làm rõ điều kiện và giới hạn trả lời, chuẩn hóa ngôn ngữ; tiếp tục DRAFT. Kiểm thử và giới hạn bằng chứng tại báo cáo ALL_BATCHES_QWEN_REVIEW_REPORT.vi.md.
+- 2.2.0, 2026-11-24: rà soát lại với code hiện tại; làm rõ điều kiện và giới hạn trả lời, chuẩn hóa ngôn ngữ; tiếp tục DRAFT. Kiểm thử và giới hạn bằng chứng tại báo cáo ALL_BATCHES_REVIEW_STATUS.vi.md.
 - 2.1.0, 2026-11-23: bổ sung phân biệt điều kiện và hướng xử lý theo lỗi hồi quy đợt 4; giữ DRAFT.
 2.0.0 — rà soát đợt 1 ngày 19/11/2026; tách hướng dẫn/cá nhân, cập nhật Keycloak và hỗ trợ trước duyệt. Giữ trạng thái DRAFT.
 <!-- authoring-only:end -->

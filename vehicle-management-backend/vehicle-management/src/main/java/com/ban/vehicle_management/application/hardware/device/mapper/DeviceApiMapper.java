@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.hardware.device.mapper;
 
 import com.ban.vehicle_management.domain.hardware.device.model.Device;
+import com.ban.vehicle_management.domain.hardware.device.model.DeviceLaneOption;
 import com.ban.vehicle_management.entrypoint.dto.hardware.device.request.CreateDeviceRequest;
 import com.ban.vehicle_management.entrypoint.dto.hardware.device.request.UpdateDeviceRequest;
 import com.ban.vehicle_management.entrypoint.dto.hardware.device.response.DeviceAdminResponse;
@@ -8,6 +9,7 @@ import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.Instant;
 import java.util.List;
 import org.mapstruct.Mapper;
+import com.ban.vehicle_management.entrypoint.dto.hardware.device.response.DeviceLaneOptionResponse;
 import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
@@ -31,6 +33,8 @@ public interface DeviceApiMapper {
     @Mapping(target = "updatedBy", ignore = true)
     Device toDomain(UpdateDeviceRequest request);
 
+    DeviceLaneOptionResponse toLaneOptionResponse(DeviceLaneOption option);
+    List<DeviceLaneOptionResponse> toLaneOptionResponses(List<DeviceLaneOption> options);
     DeviceAdminResponse toAdminResponse(Device device);
 
     List<DeviceAdminResponse> toAdminResponses(List<Device> devices);

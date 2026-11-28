@@ -64,7 +64,7 @@ Xem [ma trận truy vết đợt 4](../evaluation/batch-04-traceability.md). Ngu
 Xem khoảng trống và giới hạn bằng chứng trong báo cáo đợt 4; không dùng giá trị hoặc trạng thái chưa xác minh làm cam kết. Nội dung vẫn DRAFT, chưa được duyệt hoặc publish.
 
 ## Lịch sử phiên bản
-- 2.1.0, 2026-11-24: rà soát lại với code hiện tại; làm rõ điều kiện và giới hạn trả lời, chuẩn hóa ngôn ngữ; tiếp tục DRAFT. Kiểm thử và giới hạn bằng chứng tại báo cáo ALL_BATCHES_QWEN_REVIEW_REPORT.vi.md.
+- 2.1.0, 2026-11-24: rà soát lại với code hiện tại; làm rõ điều kiện và giới hạn trả lời, chuẩn hóa ngôn ngữ; tiếp tục DRAFT. Kiểm thử và giới hạn bằng chứng tại báo cáo ALL_BATCHES_REVIEW_STATUS.vi.md.
 - 2.0.0, 2026-11-23: rà soát đợt 4 theo code, UI và sổ quyết định; tách hướng dẫn khách khỏi thao tác nội bộ, bổ sung FAQ và giới hạn dữ liệu hiện tại. Chưa publish.
 
 <!-- authoring-only:end -->

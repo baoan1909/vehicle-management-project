@@ -1,6 +1,7 @@
+import { ParkingMapTiles } from "./ParkingMapTiles";
 import { useEffect, useMemo } from "react";
 import L from "leaflet";
-import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
+import { MapContainer, Marker, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
 import { cn } from "@/lib/cn";
@@ -39,7 +40,7 @@ export function ParkingLocationMap({ className, interactive = true, latitude, lo
         zoomControl={interactive}
         className="tw-h-full tw-w-full"
       >
-        <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <ParkingMapTiles />
         <Recenter latitude={latitude} longitude={longitude} />
         <Marker draggable={interactive} icon={icon} position={[latitude, longitude]} eventHandlers={{
           dragend: (event) => {

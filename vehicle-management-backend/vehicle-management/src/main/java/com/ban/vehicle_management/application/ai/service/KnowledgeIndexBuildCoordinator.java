@@ -28,10 +28,6 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Component
 public class KnowledgeIndexBuildCoordinator {
-    @org.springframework.beans.factory.annotation.Autowired
-    private com.ban.vehicle_management.application.ai.service.AiRuntimeModeService runtimeMode;
-
-
     private static final Logger log = LoggerFactory.getLogger(KnowledgeIndexBuildCoordinator.class);
 
     private final KnowledgeIndexVersionPortOut indexVersionPortOut;
@@ -68,7 +64,6 @@ public class KnowledgeIndexBuildCoordinator {
         AiModelConfiguration configuration = configurationPortOut.findByUseCaseAndStatus(
                         AiUseCase.EMBEDDING, AiModelStatus.ACTIVE)
                 .stream()
-                .filter(config -> runtimeMode == null || config.getProvider() == runtimeMode.provider())
                 .findFirst()
                 .orElse(null);
         if (configuration == null || configuration.getOutputDimension() == null) {
@@ -88,9 +83,9 @@ public class KnowledgeIndexBuildCoordinator {
                 configuration.getModelId(),
                 configuration.getOutputDimension(),
                 KnowledgeIndexVersionUseCaseImpl.CHUNKER_VERSION,
-                (configuration.getProvider() == com.ban.vehicle_management.shared.enumeration.ai.AiProvider.LM_STUDIO ? EmbeddingPromptFormatter.QWEN_QA_V1 : promptFormatter.version()),
+                promptFormatter.version(),
                 KnowledgeIndexVersionUseCaseImpl.DISTANCE_METRIC,
-                configuration.getProvider() == com.ban.vehicle_management.shared.enumeration.ai.AiProvider.LM_STUDIO ? "L2" : KnowledgeIndexVersionUseCaseImpl.NORMALIZATION,
+                KnowledgeIndexVersionUseCaseImpl.NORMALIZATION,
                 chunkPortOut.calculateEligibleCorpusChecksum(),
                 null,
                 now);

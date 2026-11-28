@@ -89,7 +89,7 @@ Chi tiết:
 3. Khi duyệt, hệ thống tạo Partner, cấp quyền `PARTNER_ADMIN` thông qua lời mời kích hoạt tài khoản, không gửi hoặc lưu mật khẩu thủ công.
 4. Partner Admin tạo một hay nhiều `ParkingLot`, khai báo địa chỉ và tọa độ để khách có thể tìm trên bản đồ.
 5. Partner Admin phân công `PARKING_MANAGER` cho từng bãi.
-6. Manager cấu hình topology, thiết bị, nhân viên và ca trực cho bãi được gán.
+6. Partner Admin phân công Employee vào bãi; Manager cấu hình topology, thiết bị và ca trực cho nhân viên đã thuộc bãi được gán.
 7. Bãi chỉ được công khai/hoạt động khi đáp ứng cấu hình tối thiểu theo chính sách hệ thống.
 
 ## 6. Phân tách dữ liệu
@@ -221,7 +221,7 @@ Partner Admin phải thao tác được trên **mọi bãi thuộc Partner của
 - Đã bổ sung khóa `parking_lot_id` trực tiếp cho `parking.parking_sessions`; chỉ backfill từ zone xác định được. Lượt cũ không còn zone được để `NULL`, không gán đoán từ thẻ. Lượt mới ghi bãi lúc check-in. Danh sách lượt xe của Partner/Manager được lọc ngay trong truy vấn theo bãi được phép.
 - Đã chặn theo bãi ở mẫu ca, quy tắc xếp lịch, ca trực và phân công; Partner Admin được cấp quyền vận hành nhóm này trong các bãi thuộc Partner, System Admin chỉ xem. Nhân viên check-in/check-out chỉ ở bãi có ca đang mở được phân công.
 - Nhân viên mới được gắn membership Partner khi cấp tài khoản. Migration lịch sử chỉ tự gắn khi người tạo tài khoản và các ca cũ suy ra duy nhất cùng một Partner. Nhân viên không xác định được Partner cần đối soát và gán thủ công trước khi xếp lịch.
-- Hồ sơ nhân viên đã có chốt quyền theo membership Partner ở backend: Partner Admin chỉ quản lý nhân sự thuộc Partner của mình; System Admin chỉ đọc. Manager cần có bãi được phân công và chỉ truy cập nhân sự cùng Partner. Đây **chưa phải** phạm vi nhân sự theo từng bãi; Manager của hai bãi cùng Partner vẫn có thể thấy nhân sự của nhau. Cần thêm quan hệ phân công nhân viên vào bãi ổn định (không suy đoán từ ca trực) trước khi tuyên bố hoàn tất phần này.
+- Hồ sơ nhân viên được chốt theo membership Partner và phân công bãi hiệu lực. Partner Admin quản lý nhân sự cùng Partner; Manager chỉ quản lý Employee trong bãi mình đang quản lý; System Admin chỉ đọc. Phân công/điều chuyển Employee giữa bãi thuộc Partner Admin.
 - System Admin vẫn được tạo Partner theo luồng quản trị nền tảng, nhưng không còn được tạo/sửa bãi của Partner hoặc phân công Manager vào bãi; các nút ghi tương ứng phải dựa vào permission thực tế.
 - **Chưa hoàn tất tách toàn hệ thống:** `people.employees` chưa có phạm vi bãi quản lý ổn định; `access_control.subscriptions` và `billing.invoices` chưa có `parking_lot_id`; danh mục loại xe/vé/giá vẫn toàn cục. Không cấp thêm quyền ghi cho Partner ở các module này cho đến khi khóa sở hữu, backfill và luồng tạo mới được hoàn thiện. Bộ chọn phạm vi trên frontend không thay thế kiểm tra scope tại backend.
 
@@ -235,3 +235,9 @@ Partner Admin phải thao tác được trên **mọi bãi thuộc Partner của
 - Khách có được dùng một voucher toàn sàn cùng voucher Partner/bãi không, hay chỉ chọn một voucher?
 - Quy tắc hoàn tiền qua ví, qua cổng thanh toán và tại quầy được ưu tiên theo thứ tự nào?
 - Tiêu chí tối thiểu để một bãi chuyển từ `ONBOARDING` sang `ACTIVE` là gì?
+
+### Quy tắc phân quyền bổ sung ngày 28/11/2026
+
+Thông báo toàn sàn chỉ được quản lý bởi SYSTEM_ADMIN có permission tương ứng. Partner Admin, Manager, Employee và Customer chỉ đọc các thông báo đã phát hành dành cho mình; không tạo/sửa/phát hành thông báo toàn sàn.
+
+API hồ sơ đầy đủ dành cho phạm vi nền tảng. Duyệt avatar dùng quyền riêng và scope nhân sự. Employee có scope theo ca phải có ca đang mở hợp lệ ở bãi được phân công để check-in/out và thu phí, kể cả khi đồng thời có scope theo bãi. Chi tiết chuẩn hiện hành tại [quy tắc cấp tài khoản](backend-account-provisioning-rules.md).

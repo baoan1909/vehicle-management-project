@@ -1,0 +1,11 @@
+{
+  "status" : "STOPPED",
+  "stopReason" : "DataIntegrityViolationException: PreparedStatementCallback; SQL [update iam.accounts set status='INACTIVE' where account_id=?]; ERROR: new row for relation \"accounts\" violates check constraint \"ck_accounts_status\"\n  Detail: Failing row contains (848c1ae9-3ee4-43fc-9b3b-dbaab3279ea8, cf42cc8a-d640-42e7-af6c-1970ae1c30aa, B5_INACTIVE_848C1AE9, B5_INACTIVE_848C1AE9@example.invalid, 2639ed87-d6dd-4a96-a145-81e319c854d2, INACTIVE, null, 0, null, null, 2026-11-27 01:51:23.011412+07, null, 2026-11-27 01:51:23.012706+07, null, subject-848c1ae9-3ee4-43fc-9b3b-dbaab3279ea8).",
+  "lastStageOrCase" : "BOOTSTRAP",
+  "caseIdsCompleted" : [ ],
+  "actualHttpRequests" : 0,
+  "reviewer" : "PENDING_INDEPENDENT_SEMANTIC_REVIEW",
+  "notAttempted" : "All cases absent from caseIdsCompleted; no quota balance inferred",
+  "database" : "Testcontainers fresh vehicle_management_test; no shared DB writes",
+  "recordedAt" : "2026-11-26T18:51:23.032483Z"
+}

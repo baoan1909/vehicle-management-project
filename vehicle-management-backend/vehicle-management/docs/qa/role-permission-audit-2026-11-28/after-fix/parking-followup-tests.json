@@ -1,0 +1,104 @@
+{
+  "backend": {
+    "totals": {
+      "tests": 75,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    "suites": [
+      {
+        "name": "com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuardTest",
+        "tests": 6,
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.ban.vehicle_management.application.iam.organization.authorization.ParkingLotScopeResolverTest",
+        "tests": 3,
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.ban.vehicle_management.application.parking.operation.usecase.ParkingOperationReadUseCaseImplTest",
+        "tests": 8,
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.ban.vehicle_management.application.parking.parkinglayout.usecase.ParkingLayoutUseCaseTest",
+        "tests": 10,
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.ban.vehicle_management.application.parking.parkinglevel.usecase.ParkingLevelUseCaseScopeTest",
+        "tests": 3,
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.ban.vehicle_management.application.parking.parkingsession.authorization.ParkingSessionAccessGuardTest",
+        "tests": 14,
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.ban.vehicle_management.application.parking.parkingspace.usecase.ParkingSpaceUseCaseScopeTest",
+        "tests": 6,
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.ban.vehicle_management.application.parking.parkingsummary.usecase.SpaceSummaryUseCaseTest",
+        "tests": 6,
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.ban.vehicle_management.infrastructure.persistence.ParkingOperationReadPostgresIT",
+        "tests": 8,
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.ban.vehicle_management.infrastructure.realtime.parking.ParkingRealtimeSubscriptionGuardTest",
+        "tests": 9,
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.ban.vehicle_management.infrastructure.security.authorization.PermissionFirstArchitectureTest",
+        "tests": 2,
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0
+      }
+    ]
+  },
+  "browser": {
+    "uniqueTests": 66,
+    "newParkingTests": 16,
+    "existingRoleTests": 19,
+    "existingLifecycleTests": 31,
+    "failed": 0,
+    "skipped": 0,
+    "note": "Combined 65-test run passed; the final 16-test parking suite, including an additional create-only route check, also passed."
+  },
+  "environment": {
+    "database": "Disposable PostgreSQL Testcontainers; application database not modified",
+    "ui": "Chromium with API fixtures and arbitrary lot/resource UUIDs",
+    "mapDns": "Resolved on this workstation using a scoped Windows NRPT rule for OpenStreetMap tiles; adapter DNS unchanged. Real HTTPS tiles return 200 and decode successfully in Chromium.",
+    "scopeChecks": "Rejects other organizations and same-organization unassigned lots for Employee/Manager"
+  }
+}

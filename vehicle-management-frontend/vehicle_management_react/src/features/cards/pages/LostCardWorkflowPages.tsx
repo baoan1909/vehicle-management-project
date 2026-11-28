@@ -1,3 +1,4 @@
+import { getEnumLabel } from "@/shared/utils/enumLabels";
 import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -59,7 +60,7 @@ const paymentMethodOptions: Array<{ label: string; value: LostCardPaymentMethod 
 ];
 
 function getPaymentMethodLabel(value: string | null | undefined) {
-  return paymentMethodOptions.find((option) => option.value === value)?.label ?? value ?? "-";
+  return paymentMethodOptions.find((option) => option.value === value)?.label ?? (value ? "Chưa xác định" : "-");
 }
 
 function toDateTimeLocalValue(value: string | Date | null | undefined) {
@@ -140,7 +141,7 @@ function getCardLabel(cardId: string | null | undefined) {
 function getSessionLabel(detail: LostCardReportDetailResponse) {
   const session = detail.parkingSession;
   if (!session) return "Không có phiên gửi xe";
-  return `${session.status ?? "Không xác định"} · ${formatApplicationDateTime(session.checkInTime)}`;
+  return `${getEnumLabel("parkingSessionStatus", session.status)} · ${formatApplicationDateTime(session.checkInTime)}`;
 }
 
 function requiresReplacementCard(context: LostCardReportContext | null | undefined) {
@@ -428,7 +429,7 @@ function getDetailHistorySteps(
   if (state === "unpaid") {
     return [
       historySteps[0],
-      { number: 2, title: "Chờ thanh toán", subtitle: "Invoice đang UNPAID, chưa được phép hoàn tất xử lý", state: "active" },
+      { number: 2, title: "Chờ thanh toán", subtitle: "Hóa đơn chưa thanh toán, chưa thể hoàn tất xử lý", state: "active" },
       {
         number: 3,
         title: needsNewCard ? "Cấp lại thẻ và hoàn tất" : "Hoàn tất xử lý",
@@ -651,7 +652,7 @@ function InvoiceDetailPanel({
       <div className="tw-mt-4 tw-grid tw-gap-3 tw-text-[0.9rem] tw-font-bold">
         <div className="tw-flex tw-items-center tw-justify-between tw-gap-3">
           <span className="tw-text-vm-slate-500">Trạng thái</span>
-          <b className="tw-text-slate-900">{invoice.status}</b>
+          <b className="tw-text-slate-900">{getEnumLabel("invoiceStatus", invoice.status)}</b>
         </div>
         <div className="tw-flex tw-items-center tw-justify-between tw-gap-3">
           <span className="tw-text-vm-slate-500">Ngày lập</span>

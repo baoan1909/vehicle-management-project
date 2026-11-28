@@ -1,3 +1,4 @@
+import { getRoleLabel as getAccountRoleLabel } from "@/shared/utils/accountStatus";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -147,7 +148,7 @@ function getEmployeeStatusLabel(status: EmployeeStatus) {
     INACTIVE: "Ngừng hoạt động",
     SUSPENDED: "Tạm khóa",
   };
-  return labels[status] ?? status;
+  return labels[status] ?? "Chưa xác định";
 }
 
 function getAccountStatusLabel(status: AccountStatus) {
@@ -158,15 +159,11 @@ function getAccountStatusLabel(status: AccountStatus) {
     PENDING: "Chờ kích hoạt",
     UNLINKED: "Chưa liên kết",
   };
-  return labels[status] ?? status;
+  return labels[status] ?? "Chưa xác định";
 }
 
 function getRoleLabel(role?: string | null, fallback?: string | null) {
-  if (fallback?.trim()) return fallback.trim();
-  if (role === "SYSTEM_ADMIN") return "Quản trị hệ thống";
-  if (role === "PARKING_MANAGER") return "Quản lý";
-  if (role === "EMPLOYEE") return "Nhân viên";
-  return "Chưa có vai trò";
+  return role ? getAccountRoleLabel(role, fallback ?? undefined) : "Chưa có vai trò";
 }
 
 type OperatorScope = "platform" | "partner" | "assigned" | "none";
@@ -222,7 +219,7 @@ function getShiftTypeLabel(shiftType?: string | null) {
     FULL_DAY: "Cả ngày",
     CUSTOM: "Tùy chỉnh",
   };
-  return shiftType ? labels[shiftType] ?? shiftType : "-";
+  return shiftType ? labels[shiftType] ?? "Chưa xác định" : "-";
 }
 
 function getShiftStatusLabel(status?: string | null) {
@@ -233,7 +230,7 @@ function getShiftStatusLabel(status?: string | null) {
     CANCELLED: "Đã hủy",
     REMOVED: "Đã gỡ",
   };
-  return status ? labels[status] ?? status : "-";
+  return status ? labels[status] ?? "Chưa xác định" : "-";
 }
 
 function getInitials(name: string) {
@@ -986,7 +983,7 @@ export function EmployeeListPage() {
     if (!employee.id) return "Chưa có nhân viên để mở chat.";
     if (!employee.accountId) return "Nhân viên chưa có tài khoản để tạo chat.";
     if (employee.accountId === user?.id) return "Không thể tạo hội thoại trực tiếp với chính mình.";
-    if (employee.accountStatus !== "ACTIVE") return "Chỉ có thể nhắn tin với tài khoản nhân viên đang ACTIVE.";
+    if (employee.accountStatus !== "ACTIVE") return "Chỉ có thể nhắn tin với tài khoản nhân viên đang hoạt động.";
     if (employee.role === "UNKNOWN") return "Chỉ có thể tạo chat với tài khoản nội bộ.";
     if (!canOpenSupportCenter) return "Cần quyền CHAT_CONVERSATION_READ_OWN hoặc CHAT_CONVERSATION_READ_ALL.";
     if (!canCreateChatConversation) return "Cần quyền CHAT_CONVERSATION_CREATE_OWN hoặc CHAT_CONVERSATION_CREATE_ALL để tạo hội thoại nội bộ.";
@@ -1065,7 +1062,7 @@ export function EmployeeListPage() {
   }
 
   const openEditDrawer = () => {
-    if (!selectedEmployee.id) {
+    if (!canManageSelectedEmployee || !selectedEmployee.id) {
       return;
     }
     setEditingEmployee(selectedEmployee);
@@ -1078,6 +1075,7 @@ export function EmployeeListPage() {
   };
 
   const handleUpdateEmployee = async (employeeId: string, payload: UpdateEmployeeAdminProfileRequest) => {
+    if (!canManageSelectedEmployee || employeeId !== selectedEmployee.id) return;
     const response = await updateEmployeeAdminProfile(employeeId, payload);
     upsertEmployee(mapEmployee(response.data));
     toast.success(response.message || "Đã cập nhật nhân viên.", "Cập nhật thành công");
@@ -1189,7 +1187,7 @@ export function EmployeeListPage() {
                   onChange={setSelectedParkingLotId}
                 />
                 <p className="tw-mb-0 tw-mt-1.5 tw-text-[0.71rem] tw-text-vm-slate-500">
-                  Lọc theo bãi được phân công hoặc đã có ca làm; người chưa phân công chỉ hiện ở Tất cả bãi xe.
+                  Lọc theo phân công quản lý hoặc công tác đang hiệu lực; người chưa được phân công chỉ hiện ở Tất cả bãi xe.
                 </p>
               </div> : null}
               <div className="tw-mt-3 tw-flex tw-flex-wrap tw-gap-2">
@@ -1287,27 +1285,29 @@ export function EmployeeListPage() {
                   <i className="far fa-comment-dots" />
                   Liên hệ
                 </Button>
-                <Button variant="secondary" disabled={!selectedEmployee.id || !canManageSelectedEmployee} onClick={openEditDrawer}>
+                {canManageSelectedEmployee ? <>
+                <Button variant="secondary" disabled={!selectedEmployee.id} onClick={openEditDrawer}>
                   <i className="fas fa-pen" />
                   Cập nhật
                 </Button>
                 {selectedEmployeeIsActive ? (
                   <>
-                    <Button variant="secondary" disabled={!selectedEmployee.id || !canManageSelectedEmployee} onClick={() => setPendingEmployeeAction("inactivate")}>
+                    <Button variant="secondary" disabled={!selectedEmployee.id} onClick={() => setPendingEmployeeAction("inactivate")}>
                       <i className="fas fa-user-slash" />
                       {selectedEmployee.role === "PARKING_MANAGER" ? "Ngừng làm việc" : "Ngừng hoạt động"}
                     </Button>
-                    <Button variant="danger" disabled={!selectedEmployee.id || !canManageSelectedEmployee} onClick={() => setPendingEmployeeAction("suspend")}>
+                    <Button variant="danger" disabled={!selectedEmployee.id} onClick={() => setPendingEmployeeAction("suspend")}>
                       <i className="fas fa-lock" />
                       Tạm khóa
                     </Button>
                   </>
                 ) : (
-                  <Button variant="primary" disabled={!selectedEmployee.id || !canManageSelectedEmployee} onClick={() => setPendingEmployeeAction("activate")}>
+                  <Button variant="primary" disabled={!selectedEmployee.id} onClick={() => setPendingEmployeeAction("activate")}>
                     <i className="fas fa-user-check" />
                     Kích hoạt
                   </Button>
                 )}
+                </> : null}
               </div>
             </Card>
 
@@ -1339,16 +1339,16 @@ export function EmployeeListPage() {
                   </div>
                 </div>
                 <div className="tw-mt-4 tw-grid tw-gap-3">
-                  <DetailRow label="Vai trò" value={selectedEmployee.role === "UNKNOWN" ? "-" : selectedEmployee.role} />
+                      <DetailRow label="Vai trò" value={getRoleLabel(selectedEmployee.role)} />
                   <DetailRow label="Tên vai trò" value={selectedEmployee.roleLabel} />
                   <DetailRow label="Trạng thái tài khoản" value={getAccountStatusLabel(selectedEmployee.accountStatus)} />
                 </div>
               </div>
               <div className="tw-mt-4 tw-grid tw-grid-cols-2 tw-gap-3">
-                <Button className="tw-whitespace-nowrap tw-px-3" variant="secondary" onClick={() => navigate("/admin/account")}>
+                {canReadProvisionedAccounts ? <Button className="tw-whitespace-nowrap tw-px-3" variant="secondary" onClick={() => navigate("/admin/account")}>
                   <i className="fas fa-user-shield" />
                   Tài khoản
-                </Button>
+                </Button> : null}
                 <Button className="tw-whitespace-nowrap tw-px-3" variant="secondary" onClick={() => void openSelectedRolePermissions()}>
                   <i className="fas fa-key" />
                   Quyền
@@ -1365,10 +1365,10 @@ export function EmployeeListPage() {
           </div>
         </div>
 
-        <EmployeeEditDrawer employee={editingEmployee} jobTitleOptions={jobTitleOptions} open={isEditOpen} onClose={closeEditDrawer} onSave={handleUpdateEmployee} />
+        <EmployeeEditDrawer employee={editingEmployee} jobTitleOptions={jobTitleOptions} open={isEditOpen && canManageSelectedEmployee} onClose={closeEditDrawer} onSave={handleUpdateEmployee} />
         <EmployeePermissionModal open={Boolean(permissionModalState)} state={permissionModalState} onClose={closePermissionModal} />
         <Modal
-          open={pendingEmployeeAction !== null}
+          open={pendingEmployeeAction !== null && canManageSelectedEmployee}
           title={pendingEmployeeAction === "activate"
             ? "Kích hoạt lại tài khoản"
             : pendingEmployeeAction === "suspend"

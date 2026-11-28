@@ -301,22 +301,16 @@ class GuestPublicAssistantServiceTest {
         assertEquals("Mở trang đăng nhập.", service.answer("Đăng nhập như thế nào?","session",null,"127.0.0.1").answer());
     }
 
-    @Test void sharedCanonicalAnswerWorksWhileEitherProviderIsPreparingWithoutGeneration() {
+    @Test void sharedCanonicalAnswerWorksWithoutGeneration() {
         var source=new KnowledgeSearchResult(UUID.randomUUID(),UUID.randomUUID(),"Đăng ký",
                 "Làm sao đăng ký CoParking? Mở Đăng ký và xác minh email.",null,null,"FAQ",BigDecimal.ONE);
         var result=new KnowledgeRetrievalResult(null,null,List.of(source),UUID.randomUUID(),BigDecimal.ONE,true,
                 "dang ky tai khoan","common-v1","COMMON_FAQ","source-snapshot","Mở Đăng ký và xác minh email.");
         when(retrievalService.search(any(),any(),eq(List.of("PUBLIC")),eq(5))).thenReturn(result);
         when(retrievalService.verifyCommonEvidence(any(),eq(List.of("PUBLIC")),eq(result))).thenReturn(true);
-        var store=org.mockito.Mockito.mock(com.ban.vehicle_management.application.ai.port.out.AiRuntimeModePortOut.class);
-        var runtime=new com.ban.vehicle_management.application.ai.service.AiRuntimeModeService(store,
-                org.mockito.Mockito.mock(com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn.class));
-        org.springframework.test.util.ReflectionTestUtils.setField(service,"runtimeMode",runtime);
-        for(var mode:com.ban.vehicle_management.shared.enumeration.ai.AiRuntimeMode.values()) {
-            when(store.current()).thenReturn(new com.ban.vehicle_management.domain.ai.model.AiRuntimeState(mode,mode,7,"PREPARING",null,java.time.Instant.now()));
-            var answer=service.answer("Đăng ký tài khoản như thế nào?","common-session",null,"127.0.0.1");
-            assertEquals("Mở Đăng ký và xác minh email.",answer.answer());assertEquals(1,answer.citations().size());
-        }
+        var answer=service.answer("Đăng ký tài khoản như thế nào?","common-session",null,"127.0.0.1");
+        assertEquals("Mở Đăng ký và xác minh email.",answer.answer());
+        assertEquals(1,answer.citations().size());
         org.mockito.Mockito.verifyNoInteractions(modelRouter);org.mockito.Mockito.verify(provider,org.mockito.Mockito.never()).generate(any(),any());
     }
 

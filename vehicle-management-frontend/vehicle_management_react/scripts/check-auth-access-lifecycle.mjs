@@ -8,6 +8,7 @@ const paths = {
   apiClient: new URL("../src/core/api/apiClient.ts", import.meta.url),
   accountCreate: new URL("../src/features/iam/components/AccountCreateDrawer.tsx", import.meta.url),
   accountList: new URL("../src/features/iam/pages/AccountListPage.tsx", import.meta.url),
+  enumLabels: new URL("../src/shared/utils/enumLabels.ts", import.meta.url),
   adminLayout: new URL("../src/shared/components/layout/AdminLayout.tsx", import.meta.url),
   authProvider: new URL("../src/core/auth/AuthProvider.tsx", import.meta.url),
   customerProfile: new URL("../src/features/customer-portal/pages/ProfilePage.tsx", import.meta.url),
@@ -107,7 +108,8 @@ assert.match(files.onboardingHub, /pendingCount > 0[\s\S]*?pendingCount > 99 \? 
 assert.match(files.accountList, /fetchOnboardingApprovalSummary\(\)/);
 assert.match(files.accountList, /partnerPendingCount \+ onboardingPendingSummary\.totalPending/);
 assert.match(files.accountList, /notification\.redirectUrl\?\.includes\("tab=onboarding"\)[\s\S]*?loadOnboardingPendingCounts/);
-assert.match(files.accountList, /Chưa gửi hồ sơ/);
+assert.match(files.accountList, /getEnumLabel\("accountLifecycle", state\)/);
+assert.match(files.enumLabels, /NOT_SUBMITTED: "Chưa gửi hồ sơ"/);
 assert.match(files.accountList, /quyền được gán/);
 assert.match(files.accountList, /quyền hiệu lực/);
 assert.match(files.accountList, /operationalAccessState/);

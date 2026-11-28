@@ -19,7 +19,7 @@ import {
 
 type LostCardStatus = "open" | "resolved" | "cancelled";
 type LostCardContext = "visitor" | "registered";
-type LostCardInvoiceStatus = "unpaid" | "paid" | "cancelled";
+type LostCardInvoiceStatus = "unpaid" | "paid" | "cancelled" | "refunded";
 
 type LostCardReportRow = {
   id: string;
@@ -48,9 +48,9 @@ type LostCardSummaryMetric = {
 function buildSummaryMetrics(summary: LostCardReportSummaryResponse | null): LostCardSummaryMetric[] {
   return [
     { accent: "red", icon: "!", label: "Phiếu đang mở", value: String(summary?.openCount ?? 0), hint: "Cần theo dõi thanh toán" },
-    { accent: "amber", icon: "đ", label: "Chờ thanh toán", value: String(summary?.unpaidInvoiceCount ?? 0), hint: "Invoice UNPAID" },
-    { accent: "green", icon: "✓", label: "Đã xử lý", value: String(summary?.resolvedCount ?? 0), hint: "RESOLVED trong kỳ" },
-    { accent: "blue", icon: "▣", label: "Thẻ đã khóa", value: String(summary?.lostCardCount ?? 0), hint: "Card status LOST" }
+    { accent: "amber", icon: "đ", label: "Chờ thanh toán", value: String(summary?.unpaidInvoiceCount ?? 0), hint: "Hóa đơn chưa thanh toán" },
+    { accent: "green", icon: "✓", label: "Đã xử lý", value: String(summary?.resolvedCount ?? 0), hint: "Đã xử lý trong kỳ" },
+    { accent: "blue", icon: "▣", label: "Thẻ báo mất", value: String(summary?.lostCardCount ?? 0), hint: "Thẻ đã báo mất" }
   ];
 }
 
@@ -72,22 +72,26 @@ function getContextLabel(context: LostCardContext) {
 function getInvoiceLabel(status: LostCardInvoiceStatus) {
   switch (status) {
     case "paid":
-      return "PAID";
+      return "Đã thanh toán";
     case "cancelled":
-      return "CANCELLED";
+      return "Đã hủy";
     case "unpaid":
-      return "UNPAID";
+      return "Chưa thanh toán";
+    case "refunded":
+      return "Đã hoàn tiền";
+    default:
+      return "Chưa xác định";
   }
 }
 
 function getStatusLabel(status: LostCardStatus) {
   switch (status) {
     case "open":
-      return "OPEN";
+      return "Đang mở";
     case "resolved":
-      return "RESOLVED";
+      return "Đã xử lý";
     case "cancelled":
-      return "CANCELLED";
+      return "Đã hủy";
   }
 }
 
@@ -168,7 +172,8 @@ function InvoiceText({ status }: { status: LostCardInvoiceStatus }) {
   const className = {
     unpaid: "tw-text-orange-500",
     paid: "tw-text-green-600",
-    cancelled: "tw-text-orange-500"
+    cancelled: "tw-text-orange-500",
+    refunded: "tw-text-blue-600"
   }[status];
 
   return <span className={cn("tw-text-[0.88rem] tw-font-extrabold", className)}>{getInvoiceLabel(status)}</span>;
@@ -492,9 +497,9 @@ export function LostCardListPage() {
                   }}
                   options={[
                     { label: "Tất cả", value: "all" },
-                    { label: "OPEN", value: "open" },
-                    { label: "RESOLVED", value: "resolved" },
-                    { label: "CANCELLED", value: "cancelled" }
+                    { label: "Đang mở", value: "open" },
+                    { label: "Đã xử lý", value: "resolved" },
+                    { label: "Đã hủy", value: "cancelled" }
                   ]}
                 />
 
@@ -555,7 +560,7 @@ export function LostCardListPage() {
                         <th>Người báo</th>
                         <th>Thời gian mất</th>
                         <th>Tổng tiền</th>
-                        <th>Invoice</th>
+                        <th>Hóa đơn</th>
                         <th>Trạng thái</th>
                         <th>Cập nhật</th>
                       </tr>

@@ -167,7 +167,7 @@ Hỏi tiếp sau lỗi Google ở cửa sổ thường giữ chế độ so sán
 
 - Hướng dẫn đã duyệt có thể trả bằng DB trước index/embedding; xem [hợp đồng tri thức chung](../../COMMON_KNOWLEDGE_RUNTIME.vi.md).
 - Dùng nguyên đáp án trong mục FAQ đã duyệt; giữ điều kiện, phủ định, nguồn, phiên bản và quyền. Không tự coi mọi đoạn mô tả hoặc nội dung model sinh là đáp án chuẩn.
-- Cùng tri thức/quyền có cùng đáp án chuẩn ở Google và Qwen; phần model tổng hợp vẫn cần nghiệm thu riêng.
+- Đáp án chuẩn phụ thuộc tri thức và quyền; phần model Google tổng hợp vẫn cần nghiệm thu riêng.
 - Câu hỏi tiếp về lỗi không được biến thành hướng dẫn ban đầu. Mâu thuẫn nguồn, nguồn bị thu hồi hoặc đầu ra bị chặn không được chữa bằng việc tự gọi model khác.
 - FAQ không đọc trạng thái tài khoản/giao dịch thực tế và không xác nhận thao tác đã thành công. Những việc đó giữ đường backend được cấp quyền.
 - Bằng chứng nghiệm thu phải tách mức bao phủ FAQ, tìm đúng nguồn, đủ ý, output validator, SQL và phản hồi model thật. Một lần trùng keyword hoặc đúng format không chứng minh đúng nghiệp vụ.
@@ -177,6 +177,6 @@ Hỏi tiếp sau lỗi Google ở cửa sổ thường giữ chế độ so sán
 - FAQ có cùng câu hỏi, cùng điều kiện và cùng phạm vi nghĩa trong các nguồn được phép cần thống nhất đáp án. Không thay bằng việc chọn nguồn có điểm cao hơn khi văn bản còn khác nhau; giữ chốt xung đột và kiểm lại nguồn trước công bố.
 - Dùng câu điều kiện rõ ràng khi mô tả thao tác chỉ được phép trong một trạng thái. Hướng dẫn hủy không xác nhận đã hủy; câu khẳng định đã thao tác vẫn phải bị chặn nếu chưa có kết quả backend. Không nới validator để làm câu trong dataset qua.
 - Nội dung code, mã quyền, lịch sử sửa và ghi chú biên soạn đặt trong vùng `authoring-only`, được script xuất loại bỏ. Bản xuất và manifest/checksum phải được kiểm tra trước khi xây fixture hoặc nhập theo quy trình được duyệt.
-- Fixture Qwen có thể giả lập dấu duyệt trong DB cô lập để kiểm thử FAQ; không có nghĩa tài liệu DRAFT được duyệt phát hành. Không nhận kết quả generation từ harness luôn gọi model cho cả FAQ là bằng chứng của luồng chung.
+- Fixture trong DB cô lập có thể đặt dấu duyệt để kiểm thử FAQ; không có nghĩa tài liệu DRAFT được duyệt phát hành. Không nhận kết quả từ harness luôn gọi model cho cả FAQ là bằng chứng của đường trả lời trực tiếp.
 - Bộ câu hỏi cũ và split được giữ để truy vết; không gọi các câu đã dùng trong rà soát là holdout mù. Chấm đúng/đủ ý bằng rubric và nguồn, không bằng dò từ khóa.
-- Trạng thái hiện tại theo [báo cáo 16 tài liệu](../../ALL_BATCHES_QWEN_REVIEW_REPORT.vi.md); gate Java/SQL/FE/live còn chờ phải hiển thị riêng, không gộp thành PASS.
+- Trạng thái hiện tại theo [báo cáo 16 tài liệu](../../ALL_BATCHES_REVIEW_STATUS.vi.md); gate Java/SQL/FE/live còn chờ phải hiển thị riêng, không gộp thành PASS.

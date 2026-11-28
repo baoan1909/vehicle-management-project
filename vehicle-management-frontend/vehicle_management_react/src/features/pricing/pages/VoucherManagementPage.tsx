@@ -185,6 +185,8 @@ export function VoucherManagementPage() {
   const [formError, setFormError] = useState("");
   const [parkingLots, setParkingLots] = useState<ParkingLotApiResponse[]>([]);
   const permissionCodes = useMemo(() => new Set(user?.permissionCodes ?? []), [user?.permissionCodes]);
+  const canCreate = permissionCodes.has("VOUCHER_CREATE_ALL");
+  const canUpdate = permissionCodes.has("VOUCHER_UPDATE_ALL");
   const isPlatformAdmin = permissionCodes.has("PARKING_SCOPE_PLATFORM");
   const isPartnerAdmin = permissionCodes.has("PARKING_SCOPE_PARTNER") && !isPlatformAdmin;
   const isParkingManager = permissionCodes.has("PARKING_SCOPE_ASSIGNED") && !isPartnerAdmin && !isPlatformAdmin;
@@ -208,11 +210,12 @@ export function VoucherManagementPage() {
 
   useEffect(() => { void load(); }, []);
   useEffect(() => {
-    if (isPlatformAdmin) return;
+    if (isPlatformAdmin || !permissionCodes.has("PARKING_LOT_READ_ALL")) return;
     getParkingLots().then((response) => setParkingLots(response.data ?? [])).catch(() => setParkingLots([]));
-  }, [isPlatformAdmin]);
+  }, [isPlatformAdmin, permissionCodes]);
 
   const openCreate = () => {
+    if (!canCreate) return;
     const initial = emptyForm();
     if (isPartnerAdmin) initial.scopeType = "PARTNER";
     if (isParkingManager) {
@@ -221,13 +224,14 @@ export function VoucherManagementPage() {
     }
     setEditing(null); setForm(initial); setFormError(""); setModalOpen(true);
   };
-  const openEdit = (voucher: VoucherResponse) => { setEditing(voucher); setForm(toForm(voucher)); setFormError(""); setModalOpen(true); };
+  const openEdit = (voucher: VoucherResponse) => { if (!canUpdate) return; setEditing(voucher); setForm(toForm(voucher)); setFormError(""); setModalOpen(true); };
   const updateForm = <K extends keyof VoucherForm>(key: K, value: VoucherForm[K]) => {
     setFormError("");
     setForm((current) => ({ ...current, [key]: value }));
   };
 
   const save = async () => {
+    if (editing ? !canUpdate : !canCreate) return;
     const validationMessage = validateVoucherForm(form);
     if (validationMessage) {
       setFormError(validationMessage);
@@ -269,6 +273,7 @@ export function VoucherManagementPage() {
   };
 
   const changeStatus = async (voucher: VoucherResponse) => {
+    if (!canUpdate || isParkingManager) return;
     try {
       if (voucher.status === "ACTIVE") await pauseVoucher(voucher.voucherId); else await activateVoucher(voucher.voucherId);
       toast.success(voucher.status === "ACTIVE" ? "Voucher đã tạm dừng." : "Voucher đã được kích hoạt.", "Đã cập nhật trạng thái");
@@ -279,13 +284,13 @@ export function VoucherManagementPage() {
   return <main className="tw-space-y-5 tw-p-5">
     <header className="tw-flex tw-flex-wrap tw-items-end tw-justify-between tw-gap-3">
       <div><p className="tw-m-0 tw-text-xs tw-font-semibold tw-uppercase tw-tracking-[.14em] tw-text-[#1263e9]">Khách đăng ký</p><h1 className="tw-m-0 tw-mt-1 tw-text-2xl tw-font-bold tw-text-slate-900">Voucher vé đăng ký</h1><p className="tw-m-0 tw-mt-1 tw-text-sm tw-text-slate-500">Voucher được giới hạn theo toàn sàn, Partner hoặc một bãi xe cụ thể.</p></div>
-      <button type="button" onClick={openCreate} className="tw-h-10 tw-rounded-md tw-border-0 tw-bg-[#1263e9] tw-px-4 tw-text-sm tw-font-semibold tw-text-white"><i className="fas fa-plus tw-mr-2" />Tạo voucher</button>
+      {canCreate ? <button type="button" onClick={openCreate} className="tw-h-10 tw-rounded-md tw-border-0 tw-bg-[#1263e9] tw-px-4 tw-text-sm tw-font-semibold tw-text-white"><i className="fas fa-plus tw-mr-2" />Tạo voucher</button> : null}
     </header>
     <section className="tw-rounded-xl tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-shadow-sm">
       <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-slate-100 tw-p-4"><strong className="tw-text-slate-800">Danh sách voucher</strong><label className="tw-relative"><i className="fas fa-search tw-pointer-events-none tw-absolute tw-left-3 tw-top-1/2 -tw-translate-y-1/2 tw-text-slate-400" /><input value={keyword} onChange={(event) => setKeyword(event.target.value)} className="tw-h-9 tw-w-64 tw-rounded-md tw-border tw-border-solid tw-border-slate-200 tw-pl-9 tw-pr-3 tw-text-sm" placeholder="Tìm theo mã, tên..." /></label></div>
-      <div className="tw-overflow-x-auto"><table className="tw-w-full tw-min-w-[1020px] tw-border-collapse tw-text-left tw-text-sm"><thead className="tw-bg-slate-50 tw-text-xs tw-uppercase tw-text-slate-500"><tr><th className="tw-px-4 tw-py-3">Voucher</th><th className="tw-px-4 tw-py-3">Phạm vi</th><th className="tw-px-4 tw-py-3">Ưu đãi</th><th className="tw-px-4 tw-py-3">Điều kiện</th><th className="tw-px-4 tw-py-3">Hiệu lực</th><th className="tw-px-4 tw-py-3">Trạng thái</th><th className="tw-px-4 tw-py-3 tw-text-right">Thao tác</th></tr></thead><tbody>{loading ? <tr><td colSpan={7} className="tw-p-8 tw-text-center tw-text-slate-500">Đang tải...</td></tr> : filtered.length === 0 ? <tr><td colSpan={7} className="tw-p-8 tw-text-center tw-text-slate-500">Chưa có voucher phù hợp.</td></tr> : filtered.map((voucher) => <tr key={voucher.voucherId} className="tw-border-0 tw-border-t tw-border-solid tw-border-slate-100"><td className="tw-px-4 tw-py-3"><strong className="tw-block tw-text-slate-800">{voucher.code}</strong><span className="tw-text-xs tw-text-slate-500">{voucher.name}</span>{voucher.showOnDashboard || voucher.showOnSubscriptionPage ? <span className="tw-mt-1 tw-inline-flex tw-rounded-full tw-bg-blue-50 tw-px-2 tw-py-0.5 tw-text-[0.65rem] tw-font-semibold tw-text-blue-700"><i className="fas fa-bullhorn tw-mr-1" />Đang quảng bá</span> : null}</td><td className="tw-px-4 tw-py-3"><span className="tw-inline-flex tw-rounded-full tw-bg-violet-50 tw-px-2.5 tw-py-1 tw-text-xs tw-font-semibold tw-text-violet-700">{voucher.scopeType === "PLATFORM" ? "Toàn sàn" : voucher.scopeType === "PARTNER" ? "Toàn Partner" : parkingLots.find((lot) => lot.parkingLotId === voucher.parkingLotId)?.name ?? "Một bãi xe"}</span></td><td className="tw-px-4 tw-py-3 tw-font-semibold tw-text-slate-700">{voucher.discountType === "PERCENTAGE" ? `${voucher.discountValue}%${voucher.maxDiscountAmount ? ` · tối đa ${money(voucher.maxDiscountAmount)}` : ""}` : money(voucher.discountValue)}</td><td className="tw-px-4 tw-py-3 tw-text-xs tw-text-slate-600">Đơn tối thiểu: {money(voucher.minimumSubscriptionAmount)}<br />Tổng: {voucher.maxRedemptions ?? "Không giới hạn"} ·/khách: {voucher.maxRedemptionsPerCustomer}</td><td className="tw-px-4 tw-py-3 tw-text-xs tw-text-slate-600">{formatDate(voucher.validFrom)}<br />{voucher.validTo ? `đến ${formatDate(voucher.validTo)}` : "Không giới hạn"}</td><td className="tw-px-4 tw-py-3"><span className={`tw-inline-flex tw-rounded-full tw-px-2.5 tw-py-1 tw-text-xs tw-font-semibold ${statusTone(voucher.status)}`}>{voucher.status === "ACTIVE" ? "Đang áp dụng" : voucher.status === "PAUSED" ? "Tạm dừng" : "Nháp"}</span></td><td className="tw-space-x-2 tw-px-4 tw-py-3 tw-text-right"><button type="button" onClick={() => openEdit(voucher)} className="tw-rounded tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-px-2.5 tw-py-1.5 tw-text-xs tw-font-semibold tw-text-slate-700">Sửa</button>{!isParkingManager ? <button type="button" onClick={() => void changeStatus(voucher)} className="tw-rounded tw-border tw-border-solid tw-border-blue-200 tw-bg-blue-50 tw-px-2.5 tw-py-1.5 tw-text-xs tw-font-semibold tw-text-blue-700">{voucher.status === "ACTIVE" ? "Tạm dừng" : "Kích hoạt"}</button> : null}</td></tr>)}</tbody></table></div>
+      <div className="tw-overflow-x-auto"><table className="tw-w-full tw-min-w-[1020px] tw-border-collapse tw-text-left tw-text-sm"><thead className="tw-bg-slate-50 tw-text-xs tw-uppercase tw-text-slate-500"><tr><th className="tw-px-4 tw-py-3">Voucher</th><th className="tw-px-4 tw-py-3">Phạm vi</th><th className="tw-px-4 tw-py-3">Ưu đãi</th><th className="tw-px-4 tw-py-3">Điều kiện</th><th className="tw-px-4 tw-py-3">Hiệu lực</th><th className="tw-px-4 tw-py-3">Trạng thái</th><th className="tw-px-4 tw-py-3 tw-text-right">Thao tác</th></tr></thead><tbody>{loading ? <tr><td colSpan={7} className="tw-p-8 tw-text-center tw-text-slate-500">Đang tải...</td></tr> : filtered.length === 0 ? <tr><td colSpan={7} className="tw-p-8 tw-text-center tw-text-slate-500">Chưa có voucher phù hợp.</td></tr> : filtered.map((voucher) => <tr key={voucher.voucherId} className="tw-border-0 tw-border-t tw-border-solid tw-border-slate-100"><td className="tw-px-4 tw-py-3"><strong className="tw-block tw-text-slate-800">{voucher.code}</strong><span className="tw-text-xs tw-text-slate-500">{voucher.name}</span>{voucher.showOnDashboard || voucher.showOnSubscriptionPage ? <span className="tw-mt-1 tw-inline-flex tw-rounded-full tw-bg-blue-50 tw-px-2 tw-py-0.5 tw-text-[0.65rem] tw-font-semibold tw-text-blue-700"><i className="fas fa-bullhorn tw-mr-1" />Đang quảng bá</span> : null}</td><td className="tw-px-4 tw-py-3"><span className="tw-inline-flex tw-rounded-full tw-bg-violet-50 tw-px-2.5 tw-py-1 tw-text-xs tw-font-semibold tw-text-violet-700">{voucher.scopeType === "PLATFORM" ? "Toàn sàn" : voucher.scopeType === "PARTNER" ? "Toàn Partner" : parkingLots.find((lot) => lot.parkingLotId === voucher.parkingLotId)?.name ?? "Một bãi xe"}</span></td><td className="tw-px-4 tw-py-3 tw-font-semibold tw-text-slate-700">{voucher.discountType === "PERCENTAGE" ? `${voucher.discountValue}%${voucher.maxDiscountAmount ? ` · tối đa ${money(voucher.maxDiscountAmount)}` : ""}` : money(voucher.discountValue)}</td><td className="tw-px-4 tw-py-3 tw-text-xs tw-text-slate-600">Đơn tối thiểu: {money(voucher.minimumSubscriptionAmount)}<br />Tổng: {voucher.maxRedemptions ?? "Không giới hạn"} ·/khách: {voucher.maxRedemptionsPerCustomer}</td><td className="tw-px-4 tw-py-3 tw-text-xs tw-text-slate-600">{formatDate(voucher.validFrom)}<br />{voucher.validTo ? `đến ${formatDate(voucher.validTo)}` : "Không giới hạn"}</td><td className="tw-px-4 tw-py-3"><span className={`tw-inline-flex tw-rounded-full tw-px-2.5 tw-py-1 tw-text-xs tw-font-semibold ${statusTone(voucher.status)}`}>{voucher.status === "ACTIVE" ? "Đang áp dụng" : voucher.status === "PAUSED" ? "Tạm dừng" : "Nháp"}</span></td><td className="tw-space-x-2 tw-px-4 tw-py-3 tw-text-right">{canUpdate ? <button type="button" onClick={() => openEdit(voucher)} className="tw-rounded tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-px-2.5 tw-py-1.5 tw-text-xs tw-font-semibold tw-text-slate-700">Sửa</button> : null}{canUpdate && !isParkingManager ? <button type="button" onClick={() => void changeStatus(voucher)} className="tw-rounded tw-border tw-border-solid tw-border-blue-200 tw-bg-blue-50 tw-px-2.5 tw-py-1.5 tw-text-xs tw-font-semibold tw-text-blue-700">{voucher.status === "ACTIVE" ? "Tạm dừng" : "Kích hoạt"}</button> : null}</td></tr>)}</tbody></table></div>
     </section>
-    <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? "Cập nhật voucher" : "Tạo voucher"} description="Voucher chỉ giảm giá hóa đơn của vé đăng ký." actions={<div className="tw-flex tw-justify-end tw-gap-2"><button type="button" onClick={() => setModalOpen(false)} className="tw-h-10 tw-rounded-md tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-px-4 tw-font-semibold tw-text-slate-700">Hủy</button><button type="button" disabled={saving} onClick={() => void save()} className="tw-h-10 tw-rounded-md tw-border-0 tw-bg-[#1263e9] tw-px-4 tw-font-semibold tw-text-white disabled:tw-opacity-60">{saving ? "Đang lưu..." : "Lưu voucher"}</button></div>}>
+    <Modal open={modalOpen && (editing ? canUpdate : canCreate)} onClose={() => setModalOpen(false)} title={editing ? "Cập nhật voucher" : "Tạo voucher"} description="Voucher chỉ giảm giá hóa đơn của vé đăng ký." actions={<div className="tw-flex tw-justify-end tw-gap-2"><button type="button" onClick={() => setModalOpen(false)} className="tw-h-10 tw-rounded-md tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-px-4 tw-font-semibold tw-text-slate-700">Hủy</button><button type="button" disabled={saving} onClick={() => void save()} className="tw-h-10 tw-rounded-md tw-border-0 tw-bg-[#1263e9] tw-px-4 tw-font-semibold tw-text-white disabled:tw-opacity-60">{saving ? "Đang lưu..." : "Lưu voucher"}</button></div>}>
       <div className="tw-grid tw-grid-cols-2 tw-gap-4 max-[640px]:tw-grid-cols-1">
         {formError ? <div className="tw-col-span-2 tw-flex tw-gap-2 tw-rounded-md tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-3 tw-text-sm tw-font-medium tw-text-red-700 max-[640px]:tw-col-span-1" role="alert"><i className="fas fa-exclamation-circle tw-mt-0.5" /><span>{formError}</span></div> : null}
         <Field className="tw-col-span-2 max-[640px]:tw-col-span-1" label="Bãi xe áp dụng"><SelectMenu ariaLabel="Bãi xe áp dụng"

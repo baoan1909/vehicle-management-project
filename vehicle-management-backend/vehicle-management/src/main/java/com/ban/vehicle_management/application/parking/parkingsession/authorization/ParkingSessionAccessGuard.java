@@ -38,8 +38,8 @@ public class ParkingSessionAccessGuard {
     }
 
     public void ensureCanOperateParkingLot(ParkingLot parkingLot) {
-        String roleCode = currentAccountPortIn.getCurrentAccountOrThrow().roleCode();
-        if ("EMPLOYEE".equalsIgnoreCase(roleCode)) {
+        var permissions = currentAccountPortIn.getCurrentAccountOrThrow().getEffectivePermissionCodes();
+        if (permissions.contains("PARKING_SCOPE_SHIFT")) {
             employeeParkingLotAccessGuard.ensureCanOperate(parkingLot.getParkingLotId());
             return;
         }

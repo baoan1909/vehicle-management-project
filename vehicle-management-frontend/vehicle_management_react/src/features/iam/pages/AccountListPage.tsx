@@ -1,3 +1,5 @@
+import { getEnumLabel } from "@/shared/utils/enumLabels";
+import { getRoleLabel } from "@/shared/utils/accountStatus";
 import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 
@@ -78,27 +80,27 @@ const emptyOnboardingPendingSummary: OnboardingApprovalSummaryResponse = {
 
 const allRoleOptions: Array<{ label: string; value: ProvisionableRoleCode | "all" }> = [
   { label: "Tất cả vai trò", value: "all" },
-  { label: "SYSTEM_ADMIN", value: "SYSTEM_ADMIN" },
-  { label: "PARTNER_ADMIN", value: "PARTNER_ADMIN" },
-  { label: "PARKING_MANAGER", value: "PARKING_MANAGER" },
-  { label: "EMPLOYEE", value: "EMPLOYEE" },
-  { label: "CUSTOMER", value: "CUSTOMER" },
+  { label: getRoleLabel("SYSTEM_ADMIN"), value: "SYSTEM_ADMIN" },
+  { label: getRoleLabel("PARTNER_ADMIN"), value: "PARTNER_ADMIN" },
+  { label: getRoleLabel("PARKING_MANAGER"), value: "PARKING_MANAGER" },
+  { label: getRoleLabel("EMPLOYEE"), value: "EMPLOYEE" },
+  { label: getRoleLabel("CUSTOMER"), value: "CUSTOMER" },
 ];
 
 const statusOptions = [
   { label: "Tất cả trạng thái", value: "all" },
-  { label: "ACTIVE", value: "ACTIVE" },
-  { label: "PENDING", value: "PENDING" },
-  { label: "LOCKED", value: "LOCKED" },
-  { label: "DISABLED", value: "DISABLED" },
+  { label: getEnumLabel("accountStatus", "ACTIVE"), value: "ACTIVE" },
+  { label: getEnumLabel("accountStatus", "PENDING"), value: "PENDING" },
+  { label: getEnumLabel("accountStatus", "LOCKED"), value: "LOCKED" },
+  { label: getEnumLabel("accountStatus", "DISABLED"), value: "DISABLED" },
 ];
 
 const statusTabs: Array<{ label: string; value: AccountStatus | "all" }> = [
   { label: "Tất cả", value: "all" },
-  { label: "ACTIVE", value: "ACTIVE" },
-  { label: "PENDING", value: "PENDING" },
-  { label: "LOCKED", value: "LOCKED" },
-  { label: "DISABLED", value: "DISABLED" },
+  { label: getEnumLabel("accountStatus", "ACTIVE"), value: "ACTIVE" },
+  { label: getEnumLabel("accountStatus", "PENDING"), value: "PENDING" },
+  { label: getEnumLabel("accountStatus", "LOCKED"), value: "LOCKED" },
+  { label: getEnumLabel("accountStatus", "DISABLED"), value: "DISABLED" },
 ];
 
 const editableStatusOptions: AccountStatus[] = ["ACTIVE", "LOCKED", "DISABLED"];
@@ -142,23 +144,7 @@ function lifecycleBadgeTone(state: string) {
 }
 
 function lifecycleLabel(state: string) {
-  const labels: Record<string, string> = {
-    PROFILE_REQUIRED: "Chưa hoàn tất hồ sơ",
-    PROFILE_COMPLETED: "Đã hoàn tất hồ sơ",
-    NOT_SUBMITTED: "Chưa gửi hồ sơ",
-    PENDING: "Chờ phê duyệt",
-    APPROVED: "Đã phê duyệt",
-    REJECTED: "Bị từ chối / Cần bổ sung",
-    NOT_CREATED: "Chưa tạo hồ sơ nhân sự",
-    ORGANIZATION_REQUIRED: "Chưa có đơn vị",
-    PARKING_LOT_ASSIGNMENT_REQUIRED: "Chưa được gán bãi",
-    SCOPE_READY: "Phạm vi sẵn sàng",
-    ONBOARDING_REQUIRED: "Cần onboarding",
-    PENDING_APPROVAL: "Đang chờ duyệt",
-    ORGANIZATION_ACCESS_REQUIRED: "Thiếu phạm vi vận hành",
-    NO_EFFECTIVE_PERMISSIONS: "Không có quyền hiệu lực",
-  };
-  return labels[state] ?? state;
+  return getEnumLabel("accountLifecycle", state);
 }
 
 function AccountMetric({
@@ -252,10 +238,10 @@ function AccountRow({
         </span>
       </span>
       <Badge tone={roleBadgeTone(account.roleCode)} className="tw-w-fit tw-rounded-full tw-px-3 max-[1180px]:tw-hidden">
-        {account.roleCode}
+        {getRoleLabel(account.roleCode, account.roleName)}
       </Badge>
-      <span className="tw-grid tw-gap-1">
-        <Badge tone={statusBadgeTone(account.status)} className="tw-w-fit tw-rounded-full tw-px-3">Account {account.status}</Badge>
+      <span className="tw-grid tw-min-w-0 tw-gap-1">
+        <Badge tone={statusBadgeTone(account.status)} className="tw-w-fit tw-rounded-full tw-px-3">{getEnumLabel("accountStatus", account.status)}</Badge>
         <Badge tone={lifecycleBadgeTone(account.operationalAccessState)} className="tw-w-fit tw-rounded-full tw-px-3">{lifecycleLabel(account.operationalAccessState)}</Badge>
       </span>
       <span className="tw-grid tw-gap-0.5 tw-text-[0.75rem] tw-font-extrabold tw-text-vm-slate-700">
@@ -355,11 +341,11 @@ function AccountRoleChangeModal({
           <div className="tw-grid tw-grid-cols-2 tw-gap-3">
             <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-3">
               <span className="tw-text-[0.72rem] tw-font-black tw-uppercase tw-text-vm-slate-500">Hiện tại</span>
-              <Badge tone={roleBadgeTone(modal.account.roleCode)} className="tw-mt-2 tw-w-fit tw-rounded-full tw-px-3">{modal.account.roleCode}</Badge>
+              <Badge tone={roleBadgeTone(modal.account.roleCode)} className="tw-mt-2 tw-w-fit tw-rounded-full tw-px-3">{getRoleLabel(modal.account.roleCode, modal.account.roleName)}</Badge>
             </div>
             <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-100 tw-bg-brand-50 tw-p-3">
-              <span className="tw-text-[0.72rem] tw-font-black tw-uppercase tw-text-vm-slate-500">Role mới</span>
-              <Badge tone={roleBadgeTone(modal.roleCode)} className="tw-mt-2 tw-w-fit tw-rounded-full tw-px-3">{modal.roleCode}</Badge>
+              <span className="tw-text-[0.72rem] tw-font-black tw-uppercase tw-text-vm-slate-500">Vai trò mới</span>
+              <Badge tone={roleBadgeTone(modal.roleCode)} className="tw-mt-2 tw-w-fit tw-rounded-full tw-px-3">{getRoleLabel(modal.roleCode)}</Badge>
             </div>
           </div>
 
@@ -445,18 +431,18 @@ function AccountStatusChangeModal({
                     selected ? "tw-border-vm-primary tw-bg-brand-50 tw-text-vm-primary" : "tw-border-vm-slate-100 tw-bg-white tw-text-vm-slate-700 hover:tw-border-brand-100",
                   )}
                   disabled={disabled || isSaving}
-                  key={status}
+                  key={getEnumLabel("accountStatus", status)}
                   onClick={() => onStatusChange(status)}
                   type="button"
                 >
-                  {status}
+                  {getEnumLabel("accountStatus", status)}
                 </button>
               );
             })}
           </div>
 
           {invalidTransition ? (
-            <InfoBanner tone="warning" title="Chuyển trạng thái không hợp lệ" description="Không cho chuyển tài khoản từ DISABLED sang LOCKED." icon={<i className="fas fa-ban" />} />
+            <InfoBanner tone="warning" title="Chuyển trạng thái không hợp lệ" description="Không thể chuyển tài khoản đã vô hiệu hóa sang trạng thái đã khóa." icon={<i className="fas fa-ban" />} />
           ) : null}
 
           <label className="tw-grid tw-gap-1.5">
@@ -471,7 +457,7 @@ function AccountStatusChangeModal({
             />
           </label>
 
-          <InfoBanner tone="info" title="PENDING không hỗ trợ cập nhật thủ công" description="Tài khoản cấp sẵn chỉ có thể cập nhật sang ACTIVE, LOCKED hoặc DISABLED." icon={<i className="fas fa-info-circle" />} />
+          <InfoBanner tone="info" title="Không thể đặt trạng thái chờ kích hoạt thủ công" description="Tài khoản cấp sẵn có thể chuyển sang đang hoạt động, đã khóa hoặc đã vô hiệu hóa." icon={<i className="fas fa-info-circle" />} />
           {errorMessage ? <InfoBanner tone="warning" title="Không thể đổi trạng thái" description={errorMessage} icon={<i className="fas fa-exclamation-circle" />} /> : null}
         </div>
 
@@ -519,11 +505,11 @@ function AccountPermissionModal({
           <div className="tw-grid tw-grid-cols-3 tw-gap-3 max-[640px]:tw-grid-cols-1">
             <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-3">
               <span className="tw-text-[0.72rem] tw-font-black tw-uppercase tw-text-vm-slate-500">Vai trò</span>
-              <Badge tone={roleBadgeTone(account.roleCode)} className="tw-mt-2 tw-w-fit tw-rounded-full tw-px-3">{account.roleCode}</Badge>
+              <Badge tone={roleBadgeTone(account.roleCode)} className="tw-mt-2 tw-w-fit tw-rounded-full tw-px-3">{getRoleLabel(account.roleCode, account.roleName)}</Badge>
             </div>
             <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-3">
               <span className="tw-text-[0.72rem] tw-font-black tw-uppercase tw-text-vm-slate-500">Trạng thái tài khoản</span>
-              <Badge tone={statusBadgeTone(account.status)} className="tw-mt-2 tw-w-fit tw-rounded-full tw-px-3">Account {account.status}</Badge>
+              <Badge tone={statusBadgeTone(account.status)} className="tw-mt-2 tw-w-fit tw-rounded-full tw-px-3">{getEnumLabel("accountStatus", account.status)}</Badge>
             </div>
             <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-3">
               <span className="tw-text-[0.72rem] tw-font-black tw-uppercase tw-text-vm-slate-500">Quyền vai trò / hiệu lực</span>
@@ -723,7 +709,7 @@ export function AccountListPage() {
     username: "Chưa có dữ liệu",
   };
   const activeAccount = selectedAccount ?? emptyAccount;
-  const canManageActiveAccount = canUpdateProvisionedAccount && activeAccount.accountId !== "-";
+  const canManageActiveAccount = canUpdateProvisionedAccount && activeAccount.accountId !== "-" && scopedProvisionedAccountRoleCodes.some((roleCode) => roleCode === activeAccount.roleCode);
   const availableActiveAccountRoleCodes = scopedProvisionedAccountRoleCodes.filter((roleCode) =>
     roleCode !== activeAccount.roleCode && canTransitionRole(activeAccount.roleCode, roleCode));
   const canChangeActiveAccountRole = canManageActiveAccount && availableActiveAccountRoleCodes.length > 0;
@@ -731,13 +717,13 @@ export function AccountListPage() {
   function openRoleModal(account: ProvisionedAccount) {
     const targetRoleCode = scopedProvisionedAccountRoleCodes.find((roleCode) =>
       roleCode !== account.roleCode && canTransitionRole(account.roleCode, roleCode));
-    if (!canUpdateProvisionedAccount || !targetRoleCode) return;
+    if (!canUpdateProvisionedAccount || !scopedProvisionedAccountRoleCodes.some((roleCode) => roleCode === account.roleCode) || !targetRoleCode) return;
     setActionErrorMessage("");
     setRoleModal({ account, roleCode: targetRoleCode });
   }
 
   function openStatusModal(account: ProvisionedAccount) {
-    if (!canUpdateProvisionedAccount) return;
+    if (!canUpdateProvisionedAccount || !scopedProvisionedAccountRoleCodes.some((roleCode) => roleCode === account.roleCode)) return;
     const defaultStatus = account.status === "ACTIVE" ? "LOCKED" : "ACTIVE";
     setActionErrorMessage("");
     setStatusModal({
@@ -761,7 +747,7 @@ export function AccountListPage() {
   function getAccountChatDisabledReason(account: ProvisionedAccount) {
     if (account.accountId === "-") return "Chưa có tài khoản để mở chat.";
     if (account.accountId === user?.id) return "Không thể tạo hội thoại trực tiếp với chính mình.";
-    if (account.status !== "ACTIVE") return "Chỉ có thể nhắn tin với tài khoản đang ACTIVE.";
+    if (account.status !== "ACTIVE") return "Chỉ có thể nhắn tin với tài khoản đang hoạt động.";
     if (!isInternalRole(account.roleCode)) return "Từ màn Tài khoản hiện chỉ tạo chat trực tiếp cho tài khoản nội bộ.";
     if (!canOpenSupportCenter) return "Cần quyền CHAT_CONVERSATION_READ_OWN hoặc CHAT_CONVERSATION_READ_ALL.";
     if (!canCreateChatConversation) return "Cần quyền CHAT_CONVERSATION_CREATE_OWN hoặc CHAT_CONVERSATION_CREATE_ALL để tạo hội thoại nội bộ.";
@@ -769,7 +755,9 @@ export function AccountListPage() {
   }
 
   async function submitRoleChange() {
-    if (!roleModal) return;
+    if (!roleModal || !canUpdateProvisionedAccount
+      || !scopedProvisionedAccountRoleCodes.some((role) => role === roleModal.account.roleCode)
+      || !scopedProvisionedAccountRoleCodes.some((role) => role === roleModal.roleCode)) return;
 
     setIsActionSaving(true);
     setActionErrorMessage("");
@@ -789,7 +777,8 @@ export function AccountListPage() {
   }
 
   async function submitStatusChange() {
-    if (!statusModal) return;
+    if (!statusModal || !canUpdateProvisionedAccount
+      || !scopedProvisionedAccountRoleCodes.some((role) => role === statusModal.account.roleCode)) return;
 
     setIsActionSaving(true);
     setActionErrorMessage("");
@@ -815,8 +804,8 @@ export function AccountListPage() {
     <>
       <div className="tw-px-4 tw-py-4 lg:tw-px-5">
         <section className="tw-mx-auto tw-min-h-[calc(100vh-104px)] tw-w-[min(100%,1500px)] tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-5 tw-shadow-vm-card">
-          <div className="tw-mb-5 tw-flex tw-items-center tw-justify-between tw-gap-4">
-            <div className="tw-flex tw-min-w-0 tw-items-center tw-gap-4">
+          <div className="tw-mb-5 tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-4">
+            <div className="tw-flex tw-min-w-0 tw-flex-wrap tw-items-center tw-gap-4">
               <h1 className="tw-m-0 tw-text-vm-page-title tw-tracking-[-0.03em] tw-text-vm-slate-900">Tài khoản</h1>
               <a className="tw-inline-flex tw-items-center tw-gap-2 tw-text-[0.86rem] tw-font-extrabold tw-text-vm-primary hover:tw-text-vm-primary-hover hover:tw-no-underline" href="#account-help">
                 <i className="far fa-question-circle tw-text-[1rem]" />
@@ -824,11 +813,11 @@ export function AccountListPage() {
               </a>
             </div>
             {activeWorkspaceTab === "accounts" && canReadProvisionedAccount ? (
-              <div className="tw-flex tw-flex-shrink-0 tw-items-center tw-gap-3">
-                <Button size="lg" variant="primary" disabled={!canCreateProvisionedAccount} onClick={() => setDrawerOpen(true)}>
+              <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-3">
+                {canCreateProvisionedAccount ? <Button size="lg" variant="primary" onClick={() => setDrawerOpen(true)}>
                   <i className="fas fa-plus" />
                   Tạo tài khoản
-                </Button>
+                </Button> : null}
                 <Button size="lg" variant="secondary">
                   <i className="fas fa-download" />
                   Xuất dữ liệu
@@ -880,7 +869,7 @@ export function AccountListPage() {
             <>
           <div className="tw-grid tw-grid-cols-4 tw-gap-4 max-[1180px]:tw-grid-cols-2">
             <AccountMetric icon="fas fa-users-cog" iconClassName="tw-bg-brand-100 tw-text-vm-primary" label="Tổng tài khoản" value={String(metricValues.total)} />
-            <AccountMetric icon="fas fa-user-check" iconClassName="tw-bg-green-50 tw-text-green-600" label="Tài khoản ACTIVE" value={String(metricValues.active)} />
+            <AccountMetric icon="fas fa-user-check" iconClassName="tw-bg-green-50 tw-text-green-600" label="Tài khoản đang hoạt động" value={String(metricValues.active)} />
             <AccountMetric icon="far fa-clock" iconClassName="tw-bg-amber-50 tw-text-amber-500" label="Chờ kích hoạt" value={String(metricValues.pending)} />
             <AccountMetric icon="fas fa-lock" iconClassName="tw-bg-red-50 tw-text-vm-danger" label="Bị khóa" value={String(metricValues.locked)} />
           </div>
@@ -937,17 +926,19 @@ export function AccountListPage() {
           </Card>
 
           <div className="tw-mt-4 tw-grid tw-grid-cols-[minmax(0,1fr)_340px] tw-gap-4 max-[1280px]:tw-grid-cols-1">
-            <Card className="tw-overflow-hidden">
+            <Card className="tw-min-w-0 tw-overflow-hidden">
               <div className="tw-flex tw-items-center tw-justify-between tw-gap-4 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-px-4 tw-py-4">
                 <div>
                   <h2 className="tw-m-0 tw-text-[0.98rem] tw-font-extrabold tw-text-vm-slate-900">Danh sách tài khoản</h2>
                   <p className="tw-m-0 tw-mt-1 tw-text-[0.78rem] tw-font-semibold tw-text-vm-slate-500">Quản lý tài khoản cấp sẵn, vai trò và trạng thái đồng bộ Keycloak.</p>
                 </div>
               </div>
+              <div className="tw-overflow-x-auto">
+              <div className="tw-min-w-[866px] max-[1180px]:tw-min-w-[606px]">
               <div className="tw-grid tw-grid-cols-[minmax(210px,1.35fr)_150px_180px_150px_96px] tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-px-4 tw-py-3 tw-text-[0.75rem] tw-font-extrabold tw-uppercase tw-tracking-[0.04em] tw-text-vm-slate-500 max-[1180px]:tw-grid-cols-[minmax(220px,1fr)_180px_150px]">
                 <span>Tài khoản</span>
                 <span className="max-[1180px]:tw-hidden">Vai trò</span>
-                <span>Account / Vận hành</span>
+                <span>Tài khoản / Vận hành</span>
                 <span>Quyền vai trò / hiệu lực</span>
                 <span className="max-[1180px]:tw-hidden">Cập nhật</span>
               </div>
@@ -983,7 +974,9 @@ export function AccountListPage() {
                   );
                 })}
               </div>
-              <div className="tw-flex tw-items-center tw-justify-between tw-gap-4 tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-px-4 tw-py-3">
+              </div>
+              </div>
+              <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-4 tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-px-4 tw-py-3">
                 <p className="tw-m-0 tw-text-[0.84rem] tw-font-semibold tw-text-vm-slate-500">Hiển thị {filteredAccounts.length} tài khoản</p>
                 <div className="tw-flex tw-items-center tw-gap-2">
                   <Button size="sm" variant="secondary"><i className="fas fa-chevron-left" /></Button>
@@ -993,10 +986,10 @@ export function AccountListPage() {
               </div>
             </Card>
 
-            <Card className="tw-flex tw-min-h-full tw-flex-col tw-p-5 max-[1280px]:tw-col-span-2 max-[960px]:tw-col-span-1">
+            <Card className="tw-flex tw-min-h-full tw-flex-col tw-p-5 tw-min-w-0">
               <div className="tw-flex tw-items-start tw-justify-between tw-gap-4">
                 <h2 className="tw-m-0 tw-text-[1.05rem] tw-font-extrabold tw-text-vm-slate-900">Chi tiết tài khoản</h2>
-                <Badge tone={statusBadgeTone(activeAccount.status)} className="tw-rounded-full tw-px-3">{activeAccount.status}</Badge>
+                <Badge tone={statusBadgeTone(activeAccount.status)} className="tw-rounded-full tw-px-3">{getEnumLabel("accountStatus", activeAccount.status)}</Badge>
               </div>
 
               <div className="tw-mt-5 tw-rounded-vm-lg tw-border tw-border-solid tw-border-brand-100 tw-bg-brand-50/70 tw-p-4">
@@ -1006,8 +999,7 @@ export function AccountListPage() {
                     <h3 className="tw-m-0 tw-truncate tw-text-[1.18rem] tw-font-extrabold tw-text-vm-slate-900">{activeAccount.username}</h3>
                     <p className="tw-m-0 tw-mt-1 tw-truncate tw-text-[0.82rem] tw-font-semibold tw-text-vm-slate-500">{activeAccount.email}</p>
                     <div className="tw-mt-3 tw-flex tw-flex-wrap tw-gap-2">
-                      <Badge tone={roleBadgeTone(activeAccount.roleCode)} className="tw-rounded-full tw-px-3">{activeAccount.roleCode}</Badge>
-                      <Badge tone="neutral" className="tw-rounded-full tw-px-3">{activeAccount.roleName}</Badge>
+                      <Badge tone={roleBadgeTone(activeAccount.roleCode)} className="tw-rounded-full tw-px-3">{getRoleLabel(activeAccount.roleCode, activeAccount.roleName)}</Badge>
                     </div>
                   </div>
                 </div>
@@ -1046,10 +1038,10 @@ export function AccountListPage() {
                   <i className="fas fa-user-shield" />
                   Đổi vai trò
                 </Button> : null}
-                <Button variant="secondary" disabled={!canManageActiveAccount} onClick={() => openStatusModal(activeAccount)}>
+                {canManageActiveAccount ? <Button variant="secondary" onClick={() => openStatusModal(activeAccount)}>
                   <i className="fas fa-toggle-on" />
                   Đổi trạng thái
-                </Button>
+                </Button> : null}
                 <Button variant="primary" disabled={activeAccount.accountId === "-"} onClick={() => setPermissionModal(activeAccount)}>
                   <i className="fas fa-key" />
                   Xem quyền
@@ -1078,7 +1070,7 @@ export function AccountListPage() {
       </div>
 
       <AccountCreateDrawer
-        isOpen={drawerOpen}
+        isOpen={drawerOpen && canCreateProvisionedAccount}
         onClose={() => setDrawerOpen(false)}
         onCreated={(account) => {
           const mappedAccount = mapProvisionedAccount(account);
@@ -1091,7 +1083,7 @@ export function AccountListPage() {
         canUpdateAccount={canUpdateProvisionedAccount}
         errorMessage={actionErrorMessage}
         isSaving={isActionSaving}
-        modal={roleModal}
+        modal={canUpdateProvisionedAccount && roleModal && scopedProvisionedAccountRoleCodes.some((role) => role === roleModal.account.roleCode) ? roleModal : null}
         onClose={() => {
           if (!isActionSaving) setRoleModal(null);
         }}
@@ -1101,7 +1093,7 @@ export function AccountListPage() {
       <AccountStatusChangeModal
         errorMessage={actionErrorMessage}
         isSaving={isActionSaving}
-        modal={statusModal}
+        modal={canUpdateProvisionedAccount && statusModal && scopedProvisionedAccountRoleCodes.some((role) => role === statusModal.account.roleCode) ? statusModal : null}
         onClose={() => {
           if (!isActionSaving) setStatusModal(null);
         }}

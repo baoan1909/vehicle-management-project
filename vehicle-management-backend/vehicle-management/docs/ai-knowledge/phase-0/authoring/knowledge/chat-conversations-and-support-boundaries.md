@@ -87,7 +87,7 @@ Chọn đúng kênh trước khi gửi: chat với đối tác để trao đổi
 Các kênh ngoài các loại đã kiểm chứng, hỗ trợ đa tổ chức riêng tư và SLA cụ thể không được tự suy diễn. Nếu thêm kênh mới phải rà soát lại permission, dữ liệu và test.
 
 ## Lịch sử phiên bản
-- 2.2.0, 2026-11-24: rà soát lại với code hiện tại; làm rõ điều kiện và giới hạn trả lời, chuẩn hóa ngôn ngữ; tiếp tục DRAFT. Kiểm thử và giới hạn bằng chứng tại báo cáo ALL_BATCHES_QWEN_REVIEW_REPORT.vi.md.
+- 2.2.0, 2026-11-24: rà soát lại với code hiện tại; làm rõ điều kiện và giới hạn trả lời, chuẩn hóa ngôn ngữ; tiếp tục DRAFT. Kiểm thử và giới hạn bằng chứng tại báo cáo ALL_BATCHES_REVIEW_STATUS.vi.md.
 - 2.1.0, 2026-11-23: bổ sung giải thích nghiệp vụ theo lỗi truy xuất hồi quy đợt 4, giữ DRAFT.
 2.0.0 — tài liệu mới đợt 1 ngày 19/11/2026; DRAFT; mô tả ranh giới hệ thống đã được xác nhận trong phiên làm việc.
 <!-- authoring-only:end -->

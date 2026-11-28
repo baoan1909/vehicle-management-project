@@ -44,9 +44,9 @@ Sau restart, cooldown còn trong Redis vẫn được đọc; lựa chọn stick
 
 Các wrapper Python kiểm tra key, smoke, retrieval và acceptance cũ đã được gỡ khi dọn repository. Những lệnh Python trong báo cáo trước ngày này là lịch sử, không còn là hướng dẫn chạy. Việc gỡ wrapper không thay đổi cấu hình key hoặc cơ chế đổi model/key trong Java.
 
-Không có kết quả kiểm tra quota Google mới trong lượt dọn này. Các kết quả cũ chỉ có giá trị trong phạm vi lượt chạy đã ghi; việc đọc được danh sách model không chứng minh còn quota sinh câu trả lời hoặc embedding. Không bật Google khi chọn Qwen local.
+Không có kết quả kiểm tra quota Google mới trong lượt dọn này. Các kết quả cũ chỉ có giá trị trong phạm vi lượt chạy đã ghi; việc đọc được danh sách model không chứng minh còn quota sinh câu trả lời hoặc embedding. Chatbot hiện chỉ có Google API; không còn chế độ local.
 
-Công cụ đồng bộ tài liệu hiện dùng `node scripts/sync-ai-knowledge.mjs`; bộ chạy API Qwen dùng PowerShell và Java. Xem [hướng dẫn bàn giao](TEAM_HANDOFF.vi.md) để biết lệnh hiện tại, yêu cầu tài nguyên và phần nghiệm thu còn thiếu. Các bằng chứng lịch sử được giữ nguyên; không suy kết quả kiểm tra hiện tại từ log cũ.
+Công cụ đồng bộ tài liệu hiện dùng `node scripts/sync-ai-knowledge.mjs`; kiểm thử Google dùng các test Java hiện có và phải được bật riêng khi cần live. Xem [hướng dẫn bàn giao](TEAM_HANDOFF.vi.md) để biết lệnh hiện tại, yêu cầu tài nguyên và phần nghiệm thu còn thiếu. Các bằng chứng lịch sử được giữ nguyên; không suy kết quả kiểm tra hiện tại từ log cũ.
 
 ## Bảo vệ bí mật
 
@@ -66,3 +66,9 @@ Harness cũ dùng hai model fixture và giới hạn ba model, nên không phả
 Script live nay nhận `--model-registry <snapshot.json>` từ bản xuất chỉ đọc các model SUPPORT_CHAT đã được duyệt. Chỉ nhận ACTIVE/FALLBACK có `freeTierApproved` dạng boolean true; giữ API version, temperature, token limit, priority và rollout. Không tự duyệt model trong catalog, không đổi dữ liệu dev. Harness dùng AiModelRouter/AiModelPolicyService thật để áp chính sách và thứ tự trên dữ liệu snapshot, không cắt danh sách ở ba model. Bản snapshot đã lọc được lưu cùng mỗi lượt chạy và có checksum; embedding vẫn giữ model/dimension/index cũ.
 
 Lượt đối chiếu registry dev ngày 24/11 cho thấy một ACTIVE và tám FALLBACK đã có cờ phê duyệt. Đây là trạng thái cấu hình của ứng dụng, không phải kiểm chứng mới về giá/quota của Google hay bằng chứng tất cả model đều gọi thành công. Snapshot và kết quả từng alias/model phải được ghi trong báo cáo nghiệm thu.
+
+## Ngân sách Google sau smoke đợt 5 — 27/11/2026
+
+Smoke thực tế ghi nhận Google generation trả HTTP 200 sau khoảng 16 giây, trong khi deadline cũ 4 giây đã kết thúc ở caller. Mặc định mới: generation tối đa 20 giây (vẫn bị cap bởi request-timeout), ngân sách provider plan 60 giây. Cấu hình môi trường rõ ràng vẫn được tôn trọng. Riêng .env cục bộ đang ghi đè 4s đã được đổi đúng dòng timeout sang 20s, không thay key hoặc cấu hình DB; .env vẫn không đưa vào Git. Retry/cooldown, project sharing và số attempt vẫn hữu hạn. Đây là đánh đổi độ trễ để cho model đang được duyệt đủ thời gian trả lời; không khẳng định mọi request cần 20/60 giây.
+
+Proxy quan sát trong harness dùng HTTP handlers đồng thời để không tạo head-of-line blocking khi một lượt trước đã timeout; bộ chạy case/worker vẫn tuần tự. Case/HTTP/cohort lưu riêng; kết quả 4/12 giây cũ không được gộp với cohort mới.

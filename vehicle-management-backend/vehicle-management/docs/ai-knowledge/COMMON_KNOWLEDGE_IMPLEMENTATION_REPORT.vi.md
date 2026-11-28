@@ -1,5 +1,8 @@
 # Báo cáo triển khai nền tảng trả lời chung
 
+> Báo cáo lịch sử: tích hợp local và bộ chạy tương ứng đã được gỡ ngày 27/11/2026. Các số đo dưới đây chỉ áp dụng phiên bản cũ. Dùng TEAM_HANDOFF.vi.md trong docs/ai-knowledge để vận hành Google API hiện tại.
+
+
 Ngày 24/11/2026. Code đã triển khai và có gate offline; **chưa nghiệm thu toàn bộ chất lượng chatbot hoặc xác nhận Google/Qwen có độ chính xác tương đương**. Chưa áp dụng migration, nhập corpus DRAFT, publish tài liệu hoặc kích hoạt index trong DB dev bằng công việc này.
 
 ## Luồng trước và sau
@@ -74,4 +77,4 @@ Google sau này vẫn cần kiểm thử riêng đường embedding/index, tổn
 
 ## Lượt rà soát 16 tài liệu tiếp theo — 24/11/2026
 
-Đã sửa nội dung và đồng bộ nguồn DRAFT của cả bốn đợt; sửa bộ thử Qwen để fixture có dấu duyệt/block provenance và phân biệt FAQ không gọi model với generation. Báo cáo này giữ nguyên các lượt đo cũ làm lịch sử; không coi chúng là nghiệm thu corpus/harness mới. Xem [báo cáo tổng hợp](ALL_BATCHES_QWEN_REVIEW_REPORT.vi.md) và [evidence mới](evidence/all-batches-review-2026-11-24/README.md). Các gate Java/SQL/full TypeScript/browser/live còn chờ tài nguyên; không gọi Google trong lượt này.
+Đã sửa nội dung và đồng bộ nguồn DRAFT của cả bốn đợt; sửa bộ thử Qwen để fixture có dấu duyệt/block provenance và phân biệt FAQ không gọi model với generation. Báo cáo này giữ nguyên các lượt đo cũ làm lịch sử; không coi chúng là nghiệm thu corpus/harness mới. Xem [báo cáo tổng hợp](ALL_BATCHES_REVIEW_STATUS.vi.md) và [evidence mới](evidence/all-batches-review-2026-11-24/README.md). Các gate Java/SQL/full TypeScript/browser/live còn chờ tài nguyên; không gọi Google trong lượt này.

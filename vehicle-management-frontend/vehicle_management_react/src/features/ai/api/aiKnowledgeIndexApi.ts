@@ -26,7 +26,7 @@ export type KnowledgeIndexVersionResponse = {
   modelConfigurationId: string;
   modelId: string;
   normalization: string;
-  provider: "GEMINI" | "LM_STUDIO";
+  provider: "GEMINI";
   readyAt: string | null;
   retiredAt: string | null;
   status: KnowledgeIndexVersionStatus;

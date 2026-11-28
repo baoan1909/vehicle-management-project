@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS pg_temp.price_rule_guide_upgrade;
 CREATE TEMP TABLE price_rule_guide_upgrade (
     guide_code varchar(120) PRIMARY KEY,
     guide_version_id uuid NOT NULL,
@@ -74,7 +75,7 @@ INSERT INTO notification.user_guide_steps (
 (md5('price-rule-guide:WORKFLOW_RULE_DRAFT:2:4')::uuid, md5('price-rule-guide:WORKFLOW_RULE_DRAFT:2')::uuid, 4,
  '4. Kích hoạt và kiểm tra readiness', 'Chỉ quy tắc ACTIVE của đúng bãi mới thỏa readiness và được dùng để tính phí tại bãi đó.',
  'WORKFLOW.PRICING.RULES', 'BOTTOM', 0)
-ON CONFLICT (guide_version_id, display_order) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 INSERT INTO notification.user_guide_audiences (
     audience_id, guide_version_id, target_type, role_id, permission_id
@@ -86,7 +87,7 @@ JOIN notification.user_guides guide ON guide.code = upgrade.guide_code
 JOIN LATERAL (
     SELECT version.*
     FROM notification.user_guide_versions version
-    WHERE version.guide_id = guide.guide_id
+    WHERE version.guide_id = guide.guide_id AND version.version_number = 1
     ORDER BY version.version_number DESC
     LIMIT 1
 ) previous ON true
@@ -98,4 +99,5 @@ UPDATE notification.user_guides guide
 SET current_version = 2,
     updated_at = now()
 FROM price_rule_guide_upgrade upgrade
-WHERE guide.code = upgrade.guide_code;
+WHERE guide.code = upgrade.guide_code
+  AND guide.current_version < 2;

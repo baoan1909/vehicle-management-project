@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { getEnumLabel } from "@/shared/utils/enumLabels";
 import { Button } from "@/components/ui";
 import { getAccessErrorMessage, type AccessError } from "@/core/auth/accessState";
 
@@ -29,7 +30,7 @@ export function AccessErrorScreen({ error, onLogout, onRetry, title }: AccessErr
           {message}
         </p>
         <p className="tw-mb-0 tw-mt-3 tw-text-[0.76rem] tw-font-semibold tw-text-vm-slate-400">
-          Mã trạng thái: {error.type}{error.status ? ` · HTTP ${error.status}` : ""}
+          Loại lỗi: {getEnumLabel("accessError", error.type)}{error.status ? ` · HTTP ${error.status}` : ""}
         </p>
         <div className="tw-mt-6 tw-flex tw-flex-wrap tw-justify-center tw-gap-3">
           {error.retryable && onRetry ? (

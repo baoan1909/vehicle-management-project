@@ -21,6 +21,31 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import java.time.Instant;
 
 public interface ParkingLotRepository extends JpaRepository<ParkingLotEntity, UUID>, JpaSpecificationExecutor<ParkingLotEntity> {
+    @org.springframework.data.jpa.repository.Query(value = """
+        select organization.name as "organizationName", manager.account_id as "accountId",
+               coalesce(nullif(profile.full_name, ''), manager.username) as "displayName"
+        from parking.parking_lots lot
+        join iam.organizations organization on organization.organization_id = lot.organization_id
+        left join iam.parking_lot_management_assignments assignment
+          on assignment.parking_lot_id = lot.parking_lot_id
+         and assignment.organization_id = lot.organization_id
+         and assignment.status = 'ACTIVE'
+         and assignment.effective_from <= current_timestamp
+         and (assignment.effective_to is null or assignment.effective_to > current_timestamp)
+        left join iam.accounts manager on manager.account_id = assignment.manager_account_id
+         and manager.status = 'ACTIVE'
+         and exists (select 1 from iam.organization_memberships membership
+                     where membership.account_id = manager.account_id
+                       and membership.organization_id = lot.organization_id and membership.status = 'ACTIVE')
+         and exists (select 1 from iam.roles role where role.role_id = manager.role_id and role.code = 'PARKING_MANAGER')
+        left join people.user_profiles profile on profile.user_profile_id = manager.user_profile_id
+         and profile.status <> 'DELETED'
+        where lot.parking_lot_id = :parkingLotId
+        order by assignment.management_role, manager.account_id
+        """, nativeQuery = true)
+    java.util.List<ParkingLotResponsibilityProjection> findResponsibility(
+            @org.springframework.data.repository.query.Param("parkingLotId") java.util.UUID parkingLotId);
+
 
     @Query(value = """
         select lot.parking_lot_id as "parkingLotId",

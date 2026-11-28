@@ -404,16 +404,12 @@ public class ParkingLotAssignmentUseCaseImpl implements ParkingLotAssignmentPort
     }
 
     private void ensureCanAssignEmployeeAtLot(UUID organizationId, UUID parkingLotId) {
-        requireLotInOrganization(organizationId, parkingLotId);
-        if (isPartner()) {
-            organizationAccessGuard.ensureCanManageOrganization(organizationId);
-            return;
-        }
-        UUID actor = currentAccountPortIn.getCurrentAccountIdOrThrow();
-        if (!scopeResolver.resolveManagerManagedLots(actor).contains(parkingLotId)) {
+        if (!isPartner()) {
             throw new ScopedAccessDeniedException(
-                    "MANAGER_NOT_ASSIGNED_TO_PARKING_LOT", "Manager is not assigned to this parking lot");
+                    "PARTNER_ASSIGNMENT_REQUIRED", "Only the Partner administrator may assign employees to parking lots");
         }
+        organizationAccessGuard.ensureCanManageOrganization(organizationId);
+        requireLotInOrganization(organizationId, parkingLotId);
     }
 
     private boolean isPartner() {

@@ -1,9 +1,20 @@
 ALTER TABLE billing.invoices DROP CONSTRAINT IF EXISTS ck_invoices_purpose;
-ALTER TABLE billing.invoices ADD CONSTRAINT ck_invoices_purpose CHECK (purpose IN (
-    'PARKING_SESSION', 'SUBSCRIPTION_PURCHASE', 'SUBSCRIPTION_RENEWAL',
-    'SUBSCRIPTION_CARD_DEPOSIT', 'LOST_CARD', 'MANUAL', 'RESERVATION_PREPAYMENT',
-    'PARKING_SESSION_PREPAYMENT'
-));
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid = 'billing.invoices'::regclass
+          AND conname = 'ck_invoices_purpose'
+    ) THEN
+        ALTER TABLE billing.invoices
+            ADD CONSTRAINT ck_invoices_purpose CHECK (purpose IN (
+            'PARKING_SESSION', 'SUBSCRIPTION_PURCHASE', 'SUBSCRIPTION_RENEWAL',
+            'SUBSCRIPTION_CARD_DEPOSIT', 'LOST_CARD', 'MANUAL', 'RESERVATION_PREPAYMENT',
+            'PARKING_SESSION_PREPAYMENT'
+        ));
+    END IF;
+END;
+$$;
 
 CREATE TABLE IF NOT EXISTS parking.parking_session_prepayments (
     prepayment_id uuid PRIMARY KEY,

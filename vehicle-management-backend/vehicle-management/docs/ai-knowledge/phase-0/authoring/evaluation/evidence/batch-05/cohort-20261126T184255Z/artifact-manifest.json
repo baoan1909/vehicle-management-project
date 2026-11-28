@@ -1,0 +1,47 @@
+[
+  {
+    "file": "checkpoint.json",
+    "sha256": "2b488e5b8568ff530e3c414e60f596a744986d23b790f886d4381cf1dbbbcafa"
+  },
+  {
+    "file": "cohort.json",
+    "sha256": "62e57927e08537bda99fb1669c83bf2a9f309a2253b028365bc78545880cf851"
+  },
+  {
+    "file": "wire-attempts.json",
+    "sha256": "865d6f8084b0b7cf42ded110b4405f8f49c1250869052c4dcf4f6cbf78a309ac"
+  },
+  {
+    "file": "credential-diagnostics.json",
+    "sha256": "af17637fd4c817fde1e3860b03a87145bbee0d29e1b0809f5efc1a371f43b23d"
+  },
+  {
+    "file": "credential-failures.json",
+    "sha256": "5984eac0c5c6d947241e29dd5671b81a1546cedf77e08d38438ac47029969afa"
+  },
+  {
+    "file": "ingestion.json",
+    "sha256": "90bdd5028a9d92e8cee207d107e92c215d67d0c590607e848716ef49a69c64d2"
+  },
+  {
+    "file": "transcript.json",
+    "sha256": "5984eac0c5c6d947241e29dd5671b81a1546cedf77e08d38438ac47029969afa"
+  },
+  {
+    "file": "approved-model-registry.json",
+    "sha256": "46c371b7a8b7ce57ff0e0a181ca77040c763759b9cb4c9f64d928b7128781cf3"
+  },
+  {
+    "file": "catalog-preflight.json",
+    "sha256": "8a6a06248f4c2814796f21ccd78b213a94a5771148d045ecea360fc1a4be4a34"
+  },
+  {
+    "file": "model-catalog.json",
+    "sha256": "b0445cf0c951f80509f77821572314095c669b548297021572f77e990793e41f"
+  },
+  {
+    "privateLog": "target/batch05-google-live/cohort-20261126T184255Z/run.log",
+    "sha256": "8fc80259077e352a68a75df18eadbf0d61a2022004d34878a150a62620689bf6",
+    "copiedToGit": false
+  }
+]

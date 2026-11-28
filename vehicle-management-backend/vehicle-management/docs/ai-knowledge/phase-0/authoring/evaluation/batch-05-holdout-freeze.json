@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "datasetFile": "batch-05-holdout.jsonl",
+  "caseCount": 40,
+  "perTopic": {
+    "partner-registration-and-organization": 10,
+    "partner-employees-roles-and-permissions": 10,
+    "parking-structure-and-layout": 10,
+    "partner-operational-catalogs": 10
+  },
+  "sha256": "33275fe1b0a1527517dbefa255a77d1b5fe974571257223bc61535ea9c272227",
+  "frozenAt": "2026-11-27T01:24:54+07:00",
+  "author": "Independent AI sub-agent /root/holdout_batch5",
+  "independentAuthoring": true,
+  "independentHumanReview": "PENDING",
+  "independenceLimit": "AI sub-agent with inherited user task; authored from code without reading main batch-05 dataset or runtime knowledge answers. This is not independent human review.",
+  "usedForTuning": false,
+  "consumedForEvaluation": false,
+  "runtimeEligible": false,
+  "liveStatus": "NOT_RUN",
+  "gradingStatus": "NOT_GRADED",
+  "replacementPolicy": "If used for tuning, retain this frozen dataset, mark usedForTuning with case IDs and date in a new usage record, and author a new independently frozen holdout. Never overwrite these frozen questions to improve scores.",
+  "preEvaluationAuthoringRevisions": [
+    {
+      "sha256": "421877273e71bc895ae519348e29ee2614672e8e4348f9f4ab152c39a2461a97",
+      "reason": "Pre-evaluation source mapping aligned to parent source split; question text, reference answers, cases and assertions unchanged. No model answer or main dataset consulted."
+    }
+  ],
+  "sourceScopes": {
+    "partner-registration-and-organization": "PUBLIC",
+    "partner-organization-administration": "EMPLOYEE",
+    "partner-employees-roles-and-permissions": "EMPLOYEE",
+    "parking-structure-and-layout": "EMPLOYEE",
+    "partner-operational-catalogs": "EMPLOYEE"
+  },
+  "sourceMappingNote": "documentSlug groups the four requested topics. expectedDocumentSlugs identifies concrete retrieval sources; ORG07 and ORG09 use internal organization administration. Shared guidance contains no organization-specific live records; live records still require business capability and scope guards."
+}

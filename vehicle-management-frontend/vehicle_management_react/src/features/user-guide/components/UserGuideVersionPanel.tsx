@@ -1,3 +1,4 @@
+import { getEnumLabel } from "@/shared/utils/enumLabels";
 import { useEffect, useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
@@ -19,9 +20,9 @@ const fieldClassName =
   "tw-h-10 tw-w-full tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none tw-transition placeholder:tw-text-vm-slate-400 focus:tw-border-brand-200 disabled:tw-cursor-not-allowed disabled:tw-bg-vm-slate-25";
 
 const modeOptions = [
-  { label: "Công khai (PUBLIC)", value: "PUBLIC" },
+  { label: "Công khai", value: "PUBLIC" },
   { label: "Mọi tài khoản đăng nhập", value: "ALL_AUTHENTICATED" },
-  { label: "Theo vai trò (ROLE)", value: "ROLE" },
+  { label: "Theo vai trò", value: "ROLE" },
   { label: "Có ít nhất một quyền", value: "PERMISSION_ANY" },
   { label: "Có mọi quyền", value: "PERMISSION_ALL" },
 ];
@@ -227,7 +228,7 @@ export function UserGuideVersionPanel({
       ) : (
         <div className="tw-flex tw-flex-col tw-gap-2">
           <p className="tw-m-0 tw-text-[0.84rem] tw-font-semibold tw-text-vm-slate-700">
-            {active.steps.length} bước · {active.audiences.length} đối tượng · Chế độ {active.audienceMode}
+            {active.steps.length} bước · {active.audiences.length} đối tượng · Chế độ {getEnumLabel("guideAudienceMode", active.audienceMode)}
           </p>
           {active.steps.map((step) => (
             <div key={step.stepId} className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-px-3 tw-py-2">

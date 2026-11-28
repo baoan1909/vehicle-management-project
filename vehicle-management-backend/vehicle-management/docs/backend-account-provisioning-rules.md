@@ -1,334 +1,50 @@
-# Backend account management rules
+# Quy tắc cấp và quản lý tài khoản
 
-Tài liệu này mô tả rule backend cho nhóm API quản lý provisioned account qua module IAM.
+Cập nhật 28/11/2026. Tài liệu này thay thế phân cấp cũ chưa có PARTNER_ADMIN. Đọc cùng [quản trị đa bãi](saas-multi-parking-governance.md).
 
-Rule chính:
+## Permission và phạm vi
 
-- `SYSTEM_ADMIN` chỉ quản lý được tài khoản có role `SYSTEM_ADMIN`, `PARKING_MANAGER`.
-- `PARKING_MANAGER` chỉ quản lý được tài khoản có role `EMPLOYEE`, `CUSTOMER`.
-- `EMPLOYEE`, `CUSTOMER` không được quản lý provisioned account.
+Mỗi thao tác cần permission hiệu lực tương ứng, tài khoản đủ điều kiện, target thuộc phạm vi tổ chức/bãi và trạng thái nghiệp vụ hợp lệ. Scope không tự cấp quyền thao tác. Ngoại lệ bắt buộc: quyền `BROADCAST_NOTIFICATION_*` chỉ có hiệu lực đối với SYSTEM_ADMIN; không cấp tự động nếu role này thiếu permission.
 
-Trong tài liệu này, "quản lý tài khoản" bao gồm: tạo account, xem danh sách/chi tiết account, cập nhật trạng thái account, và đổi role account.
+| Chủ thể mặc định | Scope | Target được tạo/quản lý | Đọc bổ sung |
+| --- | --- | --- | --- |
+| SYSTEM_ADMIN | PARKING_SCOPE_PLATFORM | SYSTEM_ADMIN, PARTNER_ADMIN, CUSTOMER | PARKING_MANAGER chỉ đọc |
+| PARTNER_ADMIN | PARKING_SCOPE_PARTNER | PARKING_MANAGER, EMPLOYEE cùng Partner | Không đọc Partner khác |
+| PARKING_MANAGER | PARKING_SCOPE_ASSIGNED | EMPLOYEE trong các bãi đang quản lý | Không đọc nhân sự ngoài phạm vi |
+| EMPLOYEE | Phân công bãi và ca | Không provision account | Dữ liệu vận hành được cấp quyền |
+| CUSTOMER | Bản thân | Không provision account | Dữ liệu thuộc sở hữu của mình |
 
-## 1. API áp dụng
+Các role tùy chỉnh vẫn phải tuân theo permission và scope hiệu lực. Vai trò người dùng không thay thế kiểm tra tài nguyên ở backend.
 
-### 1.1 Tạo provisioned account
+## API tài khoản
 
-```http
-POST /api/iam/accounts/provisioned
-```
+- `POST /api/iam/accounts/provisioned`: `ACCOUNT_CREATE_ALL`, kiểm tra target role, tạo hồ sơ và membership theo quy tắc nghiệp vụ.
+- `GET /api/iam/accounts/provisioned` và `GET /api/iam/accounts/provisioned/{accountId}`: `ACCOUNT_READ_ALL`, dùng cùng chính sách đọc target. System Admin có thể xem Manager mà không được sửa Manager.
+- `PATCH /api/iam/accounts/provisioned/{accountId}/status`: `ACCOUNT_UPDATE_ALL`, kiểm tra target hiện tại thuộc phạm vi quản lý.
+- `PATCH /api/iam/accounts/provisioned/{accountId}/role`: `ACCOUNT_UPDATE_ALL`, kiểm tra cả role hiện tại và role đích thuộc phạm vi quản lý; không chuyển qua lại giữa nhóm nội bộ và Customer.
 
-Body:
+Ví dụ: Partner tạo Manager/Employee cùng đơn vị; Manager tạo Employee thuộc đơn vị, Employee vẫn cần Partner phân công vào bãi trước khi sử dụng nghiệp vụ. Manager không tạo Customer hoặc Partner Admin. System Admin tạo Customer, nhưng không tạo Employee hoặc Manager trực tiếp qua API provision.
 
-```json
-{
-  "username": "employee.01",
-  "email": "employee.01@example.com",
-  "roleCode": "EMPLOYEE",
-  "fullName": "Nguyen Van Employee"
-}
-```
+## Phân công và vòng đời nhân sự
 
-### 1.2 Xem danh sách provisioned account
+- Partner Admin phân công/điều chuyển Manager và Employee giữa các bãi thuộc Partner của mình.
+- Manager quản lý Employee đã được phân công vào bãi mình quản lý và xếp ca trong phạm vi đó; không tự gán Employee vào bãi hoặc điều chuyển giữa bãi.
+- Hoàn tất hồ sơ, phê duyệt, trạng thái hoạt động và phân công hiệu lực là điều kiện mở sidebar nghiệp vụ. Đã duyệt nhưng chưa có phân công: `ORGANIZATION_ACCESS_REQUIRED`, hiển thị cảnh báo chờ phân công.
+- Employee có thể xem lịch và mở ca bằng `SHIFT_OPEN_OWN`. Mở ca yêu cầu đúng nhân viên trong ca, phân công bãi còn hiệu lực, bãi vận hành được, ca SCHEDULED, đúng thời gian và không có ca khác đang mở.
+- Check-in/out và thanh toán của actor có `PARKING_SCOPE_SHIFT` phải qua scope ca. Thanh toán lấy giao của bãi được phân công và bãi có ca đang mở hợp lệ; ca quá giờ, phân công hết hạn hoặc bãi đình chỉ không được vận hành.
 
-```http
-GET /api/iam/accounts/provisioned
-```
+## Hồ sơ và ảnh đại diện
 
-Backend phải chỉ trả về account nằm trong phạm vi role mà caller được quản lý.
+API `/api/people/user-profiles` trả hồ sơ đầy đủ nên yêu cầu thêm `PARKING_SCOPE_PLATFORM`. Nhân sự vận hành dùng endpoint Customer/Employee đã được giới hạn phạm vi; API hồ sơ bản thân không thay đổi.
 
-### 1.3 Xem chi tiết provisioned account
+`AVATAR_APPROVAL_READ_ALL` và `AVATAR_APPROVAL_REVIEW_ALL` tách biệt với quyền hồ sơ. System Admin duyệt phạm vi nền tảng; Partner duyệt nhân sự cùng đơn vị; Manager duyệt Employee thuộc bãi quản lý. Employee không được cấp quyền duyệt mặc định. List và thao tác theo ID đều phải kiểm tra scope.
 
-```http
-GET /api/iam/accounts/provisioned/{accountId}
-```
+## Giao diện và kiểm thử
 
-Nếu target account nằm ngoài phạm vi role được quản lý, backend trả `403 Forbidden`.
+- Thiếu permission: ẩn sidebar/tab/liên kết/nút/form, không phát request phụ trái quyền.
+- Có permission nhưng dữ liệu hoặc trạng thái chưa hợp lệ: có thể disable với giải thích phù hợp.
+- Khả năng đọc/sửa tài khoản được xét trên từng target; không bật nút sửa Manager cho System Admin.
+- Gọi API trực tiếp vẫn bị kiểm tra permission, scope và trạng thái.
+- Regression: `ProvisionedAccountUseCaseImplTest`, `ParkingLotAssignmentUseCaseImplTest`, `RoleScopeAuditTest`, `AvatarModerationUseCaseImplTest`, `ShiftUseCaseImplTest`, `ShiftAssignmentUseCaseImplTest`, `InternalRolePermissionMigrationTest` và `tests/role-permission.behavior.spec.ts`.
 
-### 1.4 Cập nhật trạng thái provisioned account
-
-```http
-PATCH /api/iam/accounts/provisioned/{accountId}/status
-```
-
-Body:
-
-```json
-{
-  "status": "LOCKED",
-  "reason": "Policy violation"
-}
-```
-
-Nếu target account nằm ngoài phạm vi role được quản lý, backend trả `403 Forbidden`.
-
-### 1.5 Đổi role provisioned account
-
-```http
-PATCH /api/iam/accounts/provisioned/{accountId}/role
-```
-
-Body:
-
-```json
-{
-  "roleCode": "PARKING_MANAGER"
-}
-```
-
-## 2. Rule phân quyền quản lý account theo role hiện tại
-
-Các permission như `ACCOUNT_CREATE_ALL`, `ACCOUNT_READ_ALL`, `ACCOUNT_UPDATE_ALL` chỉ là quyền kỹ thuật để được gọi API. Ngoài permission, backend vẫn phải kiểm tra role hiện tại được phép quản lý target role nào.
-
-| Current role | Được quản lý target role |
-| --- | --- |
-| `SYSTEM_ADMIN` | `SYSTEM_ADMIN`, `PARKING_MANAGER` |
-| `PARKING_MANAGER` | `EMPLOYEE`, `CUSTOMER` |
-| `EMPLOYEE` | Không được provision account |
-| `CUSTOMER` | Không được provision account |
-
-Nếu caller có permission kỹ thuật nhưng target role không nằm trong danh sách được phép quản lý, backend trả `403 Forbidden`.
-
-Migration quyền cần đồng bộ với rule này:
-
-- `SYSTEM_ADMIN` đã có `ACCOUNT_CREATE_ALL`, `ACCOUNT_READ_ALL`, `ACCOUNT_UPDATE_ALL`.
-- `PARKING_MANAGER` được cấp `ACCOUNT_CREATE_ALL`, `ACCOUNT_READ_ALL`, `ACCOUNT_UPDATE_ALL` để gọi nhóm API quản lý provisioned account cho `EMPLOYEE` và `CUSTOMER`.
-- Backend vẫn bắt buộc filter/check target role theo bảng trên, không được cho manager xem hoặc cập nhật `SYSTEM_ADMIN`, `PARKING_MANAGER`.
-
-## 3. Rule đổi role provisioned account
-
-API đổi role phải áp dụng hai lớp kiểm tra:
-
-1. Caller phải được phép quản lý target account hiện tại.
-2. Caller phải được phép quản lý target role mới.
-
-Mục đích là tránh bypass bằng cách:
-
-1. Tạo account hoặc lấy một account trong phạm vi được phép.
-2. Gọi API đổi role sang role nằm ngoài phạm vi quản lý.
-
-Ngoài rule target role, backend vẫn giữ rule hiện có:
-
-- Không đổi role qua lại giữa nhóm internal và customer.
-- Internal roles gồm `SYSTEM_ADMIN`, `PARKING_MANAGER`, `EMPLOYEE`.
-- `CUSTOMER` là nhóm customer.
-
-Ví dụ:
-
-- `SYSTEM_ADMIN` không được đổi một account sang `EMPLOYEE`.
-- `SYSTEM_ADMIN` không được xem, khóa, mở khóa, đổi role account `EMPLOYEE`, `CUSTOMER`.
-- `PARKING_MANAGER` không được đổi một account sang `SYSTEM_ADMIN`.
-- `PARKING_MANAGER` không được xem, khóa, mở khóa, đổi role account `SYSTEM_ADMIN`, `PARKING_MANAGER`.
-- Đổi từ internal role sang `CUSTOMER` vẫn bị chặn bởi rule không đổi giữa nhóm internal và customer.
-
-## 4. Ý nghĩa nghiệp vụ
-
-`SYSTEM_ADMIN` quản trị tầng hệ thống/IAM cấp cao, nên chỉ quản lý nhóm tài khoản cấp hệ thống:
-
-- `SYSTEM_ADMIN`: admin hệ thống, cần approval system admin onboarding.
-- `PARKING_MANAGER`: quản lý bãi xe, sau đó đi qua internal employee onboarding approval.
-
-`PARKING_MANAGER` quản lý vận hành bãi xe, nên chỉ quản lý nhóm tài khoản vận hành và khách hàng:
-
-- `EMPLOYEE`: nhân viên vận hành, sau đó đi qua internal employee onboarding approval.
-- `CUSTOMER`: tài khoản khách hàng được tạo bởi quản lý hoặc khách hàng tự đăng ký, sau đó đi qua customer onboarding approval khi cần.
-
-Rule này phải nằm ở application use case, không chỉ ở controller annotation, vì controller chỉ kiểm tra permission chung còn application use case mới nắm được target role hoặc target account.
-
-## 5. Test checklist
-
-### 5.1 SYSTEM_ADMIN tạo PARKING_MANAGER
-
-Kỳ vọng: thành công.
-
-```json
-{
-  "username": "manager.01",
-  "email": "manager01@example.com",
-  "roleCode": "PARKING_MANAGER",
-  "fullName": "Tran Manager"
-}
-```
-
-### 5.2 SYSTEM_ADMIN tạo EMPLOYEE
-
-Kỳ vọng: `403 Forbidden`.
-
-```json
-{
-  "username": "employee.01",
-  "email": "employee01@example.com",
-  "roleCode": "EMPLOYEE",
-  "fullName": "Nguyen Employee"
-}
-```
-
-### 5.3 SYSTEM_ADMIN tạo CUSTOMER
-
-Kỳ vọng: `403 Forbidden`.
-
-```json
-{
-  "username": "customer.01",
-  "email": "customer01@example.com",
-  "roleCode": "CUSTOMER",
-  "fullName": "Nguyen Customer"
-}
-```
-
-### 5.4 PARKING_MANAGER tạo EMPLOYEE
-
-Kỳ vọng: thành công.
-
-```json
-{
-  "username": "employee.02",
-  "email": "employee02@example.com",
-  "roleCode": "EMPLOYEE",
-  "fullName": "Le Employee"
-}
-```
-
-### 5.5 PARKING_MANAGER tạo CUSTOMER
-
-Kỳ vọng: thành công.
-
-```json
-{
-  "username": "customer.02",
-  "email": "customer02@example.com",
-  "roleCode": "CUSTOMER",
-  "fullName": "Pham Customer"
-}
-```
-
-### 5.6 PARKING_MANAGER tạo SYSTEM_ADMIN hoặc PARKING_MANAGER
-
-Kỳ vọng: `403 Forbidden`.
-
-### 5.7 SYSTEM_ADMIN xem hoặc cập nhật EMPLOYEE/CUSTOMER
-
-Kỳ vọng: `403 Forbidden`.
-
-### 5.8 PARKING_MANAGER xem hoặc cập nhật SYSTEM_ADMIN/PARKING_MANAGER
-
-Kỳ vọng: `403 Forbidden`.
-
-## 6. Code location
-
-Rule hiện được enforce ở:
-
-```text
-src/main/java/com/ban/vehicle_management/application/iam/account/usecase/ProvisionedAccountUseCaseImpl.java
-```
-
-Test chính:
-
-```text
-src/test/java/com/ban/vehicle_management/application/iam/account/usecase/ProvisionedAccountUseCaseImplTest.java
-```
-
-## 7. Phân tích BA và senior engineer
-
-### 7.1 Phân tích nghiệp vụ
-
-Rule quản lý account phải tách rõ hai khái niệm:
-
-- Permission kỹ thuật: caller có được gọi API hay không, ví dụ `ACCOUNT_CREATE_ALL`, `ACCOUNT_READ_ALL`, `ACCOUNT_UPDATE_ALL`.
-- Phạm vi nghiệp vụ: caller được quản lý account thuộc role nào.
-
-Nếu chỉ dựa vào permission kỹ thuật thì `SYSTEM_ADMIN` có `ACCOUNT_UPDATE_ALL` sẽ vô tình quản lý được `EMPLOYEE`, `CUSTOMER`. Điều này sai với rule nghiệp vụ mới vì:
-
-- `SYSTEM_ADMIN` là tầng quản trị hệ thống/IAM cấp cao, chỉ nên quản lý `SYSTEM_ADMIN`, `PARKING_MANAGER`.
-- `PARKING_MANAGER` là tầng vận hành, chỉ nên quản lý `EMPLOYEE`, `CUSTOMER`.
-- Việc để một role quản lý chéo tầng làm mờ trách nhiệm phê duyệt, audit và vận hành.
-
-Vì vậy, rule target role phải áp dụng cho tất cả API quản lý account, không chỉ API tạo account.
-
-### 7.2 Phân tích API theo hành vi mong muốn
-
-| API | Hành vi đúng |
-| --- | --- |
-| `POST /api/iam/accounts/provisioned` | Check permission tạo account, sau đó check target role trong body có thuộc phạm vi caller được quản lý không. |
-| `GET /api/iam/accounts/provisioned` | Trả danh sách đã được filter theo phạm vi role caller được quản lý. Không trả account ngoài phạm vi. |
-| `GET /api/iam/accounts/provisioned/{accountId}` | Load target account, nếu role của target account ngoài phạm vi quản lý thì trả `403 Forbidden`. |
-| `PATCH /api/iam/accounts/provisioned/{accountId}/status` | Load target account, check caller được quản lý role hiện tại của account đó, sau đó mới cập nhật status. |
-| `PATCH /api/iam/accounts/provisioned/{accountId}/role` | Check cả role hiện tại của target account và role mới trong request. Caller phải được quản lý cả hai. |
-
-Với API danh sách, nên filter dữ liệu thay vì trả `403` toàn bộ request. Với API thao tác trên một account cụ thể, nếu account tồn tại nhưng ngoài phạm vi quản lý thì trả `403`.
-
-### 7.3 Trạng thái triển khai code
-
-Rule quản lý account đã được enforce trong `ProvisionedAccountUseCaseImpl`:
-
-- `createProvisionedAccount(...)`: check target role trong body qua `ensureCanManageTargetRole(...)`.
-- `getProvisionedAccounts(...)`: truyền `managedRoleCodes` xuống filter query để chỉ trả account thuộc phạm vi caller được quản lý.
-- `getProvisionedAccountById(...)`: load target account rồi check role hiện tại của target account.
-- `updateProvisionedAccountStatus(...)`: load target account rồi check role hiện tại trước khi cập nhật status.
-- `updateProvisionedAccountRole(...)`: check cả role hiện tại của target account và role mới trong request.
-
-Filter danh sách được thực hiện ở `ProvisionedAccountSpecifications` bằng `managedRoleCodes`. Nếu command không có role scope hợp lệ, specification trả predicate rỗng theo hướng fail-closed thay vì trả toàn bộ provisioned accounts.
-
-Các rủi ro bypass đã được chặn:
-
-- `SYSTEM_ADMIN` không thể xem hoặc cập nhật account `EMPLOYEE`, `CUSTOMER`.
-- `SYSTEM_ADMIN` không thể đổi một account `EMPLOYEE` sang `PARKING_MANAGER` chỉ vì role mới nằm trong phạm vi của system admin.
-- Nếu sau này cấp `ACCOUNT_UPDATE_ALL` cho `PARKING_MANAGER`, manager vẫn không thể thao tác lên account ngoài phạm vi vì use case kiểm tra role hiện tại của target account.
-
-### 7.4 Thiết kế đã triển khai
-
-Không rải logic role matrix ở nhiều method. Rule đã được gom vào domain policy:
-
-```text
-src/main/java/com/ban/vehicle_management/domain/iam/account/policy/ProvisionedAccountPolicy.java
-```
-
-Policy này chứa các rule chính:
-
-- `managedTargetRoles(currentRole)`: xác định target roles mà caller được quản lý.
-- `canManageTargetRole(currentRole, targetRole)`: kiểm tra role matrix.
-- `validateRoleTransition(currentRole, targetRole)`: chặn đổi role giữa internal/customer.
-- `validateStatusTransition(currentStatus, targetStatus)`: chặn transition trạng thái không hợp lệ.
-- Mapping `AccountStatus` sang `UserProfileStatus`, `EmployeeStatus`, `CustomerStatus`.
-
-Use case dùng lại policy cho:
-
-- Create: check target role trong request.
-- List: truyền `managedRoleCodes` xuống filter query.
-- Detail: load account rồi check role hiện tại của target account.
-- Status update: load account rồi check role hiện tại của target account.
-- Role update: check cả role hiện tại và role mới.
-
-Riêng onboarding rule đã được tách vào:
-
-```text
-src/main/java/com/ban/vehicle_management/domain/iam/account/policy/AccountOnboardingPolicy.java
-```
-
-Policy onboarding chứa các rule như role nào cần employee/customer record, khi nào system admin cần approval request, và default job title theo role.
-
-### 7.5 Trạng thái triển khai kỹ thuật
-
-Các bước đã hoàn thành:
-
-1. Tạo domain policy xác định role được quản lý theo current role.
-2. Sửa list API để chỉ trả account thuộc allowed roles.
-3. Sửa detail/status/role update để check role hiện tại của target account.
-4. Sửa role update để check cả role hiện tại và role mới.
-5. Tách onboarding rule khỏi `AccountProfileUseCaseImpl`.
-6. Giữ unique check, port call, transaction và external integration ở application use case.
-
-Code đã có filter/check target role. `PARKING_MANAGER` được cấp permission kỹ thuật để gọi API create/read/update provisioned account, nhưng dữ liệu và thao tác vẫn bị giới hạn trong phạm vi `EMPLOYEE`, `CUSTOMER`.
-
-### 7.6 Test cần có
-
-| Case | Kỳ vọng |
-| --- | --- |
-| `SYSTEM_ADMIN` list account | Chỉ thấy `SYSTEM_ADMIN`, `PARKING_MANAGER`. |
-| `SYSTEM_ADMIN` detail `EMPLOYEE` | `403 Forbidden`. |
-| `SYSTEM_ADMIN` update status `CUSTOMER` | `403 Forbidden`. |
-| `SYSTEM_ADMIN` update role `EMPLOYEE -> PARKING_MANAGER` | `403 Forbidden` vì role hiện tại của target account ngoài phạm vi quản lý. |
-| `PARKING_MANAGER` list account | Chỉ thấy `EMPLOYEE`, `CUSTOMER`. |
-| `PARKING_MANAGER` detail `SYSTEM_ADMIN` | `403 Forbidden`. |
-| `PARKING_MANAGER` update status `PARKING_MANAGER` | `403 Forbidden`. |
-| `PARKING_MANAGER` update role `EMPLOYEE -> SYSTEM_ADMIN` | `403 Forbidden` vì role mới ngoài phạm vi quản lý. |
+Migration: `V20261128120000__harden_internal_role_permissions.sql`. Quyền broadcast ngoài SYSTEM_ADMIN bị vô hiệu hóa; quyền hồ sơ đầy đủ của nội bộ vận hành bị thu hồi; quyền avatar được cấp riêng. Backend policy tiếp tục chặn broadcast ngoài SYSTEM_ADMIN nếu dữ liệu cũ/custom grant vẫn còn.

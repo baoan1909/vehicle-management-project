@@ -321,11 +321,8 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
         ParkingLot parkingLot =
                 findParkingLot(shift.getParkingLotId());
 
-        // SHIFT_OPEN_OWN belongs to an employee assigned to this exact shift;
-        // the assignment check below is the employee's operational scope.
-        if (currentAccountPortIn.hasPermission(UPDATE_PERMISSION)) {
-            organizationAccessGuard.ensureCanOperateParkingLot(parkingLot);
-        }
+        // Opening a shift still requires an effective lot assignment, even for SHIFT_OPEN_OWN.
+        organizationAccessGuard.ensureCanOperateParkingLot(parkingLot);
 
         if (parkingLot.getStatus() != ParkingLotStatus.ACTIVE) {
             throw new ConflictException(
@@ -369,9 +366,9 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
 
         assignmentPortOut.saveAll(assignments);
 
-        Shift cancelledShift = shiftPortOut.save(shift);
-        assignments.forEach(assignment -> notifyEmployeeShiftCancelled(assignment, cancelledShift));
-        return cancelledShift;
+        Shift openedShift = shiftPortOut.save(shift);
+        assignments.forEach(assignment -> notifyEmployeeShiftOpened(assignment, openedShift));
+        return openedShift;
     }
 
     @Override
@@ -1086,6 +1083,18 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
                         "shifts",
                         shift.getShiftId()
                 )));
+    }
+
+    private void notifyEmployeeShiftOpened(ShiftAssignment assignment, Shift shift) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        employeePortOut.findAccountIdByEmployeeId(assignment.getEmployeeId())
+                .ifPresent(accountId -> notificationPortIn.sendWebNotification(new SendNotificationCommand(
+                        accountId, NotificationType.SHIFT_CHANGED,
+                        "Ca trực đã mở",
+                        "Ca " + shift.getShiftCode() + " ngày " + shift.getShiftDate() + " đã bắt đầu hoạt động.",
+                        "operations", "shifts", shift.getShiftId())));
     }
 
     private void notifyEmployeeShiftCancelled(ShiftAssignment assignment, Shift shift) {

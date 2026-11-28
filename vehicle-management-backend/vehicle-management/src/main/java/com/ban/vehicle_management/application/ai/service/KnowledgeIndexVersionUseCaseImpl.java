@@ -14,6 +14,7 @@ import com.ban.vehicle_management.shared.enumeration.ai.AiModelStatus;
 import com.ban.vehicle_management.shared.enumeration.ai.AiUseCase;
 import com.ban.vehicle_management.shared.enumeration.ai.KnowledgeIndexVersionStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.time.Instant;
@@ -24,10 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class KnowledgeIndexVersionUseCaseImpl implements KnowledgeIndexVersionPortIn {
-    @org.springframework.beans.factory.annotation.Autowired
-    private com.ban.vehicle_management.application.ai.service.AiRuntimeModeService runtimeMode;
-
-
     public static final String CHUNKER_VERSION = "chunker-v1";
     public static final String DISTANCE_METRIC = "COSINE";
     public static final String NORMALIZATION = "NONE";
@@ -79,6 +76,10 @@ public class KnowledgeIndexVersionUseCaseImpl implements KnowledgeIndexVersionPo
         if (dimension == null || dimension != SUPPORTED_DIMENSION) {
             throw new BadRequestException("Output dimension của model embedding phải là " + SUPPORTED_DIMENSION);
         }
+        indexVersionPortOut.lockCandidateAdvisory();
+        if (indexVersionPortOut.findFirstPendingCandidate().isPresent()) {
+            throw new ConflictException("Đã có phiên bản chỉ mục đang chờ xử lý. Vui lòng dùng phiên bản hiện có trước khi tạo mới.");
+        }
         String code = command.versionCode() == null || command.versionCode().isBlank()
                 ? generatedCode(configuration.getModelId())
                 : TextValidationUtils.normalizeCode(command.versionCode(), "versionCode", 120);
@@ -89,9 +90,9 @@ public class KnowledgeIndexVersionUseCaseImpl implements KnowledgeIndexVersionPo
                 configuration.getModelId(),
                 dimension,
                 CHUNKER_VERSION,
-                (configuration.getProvider() == com.ban.vehicle_management.shared.enumeration.ai.AiProvider.LM_STUDIO ? EmbeddingPromptFormatter.QWEN_QA_V1 : promptFormatter.version()),
+                promptFormatter.version(),
                 DISTANCE_METRIC,
-                configuration.getProvider() == com.ban.vehicle_management.shared.enumeration.ai.AiProvider.LM_STUDIO ? "L2" : NORMALIZATION,
+                NORMALIZATION,
                 null,
                 currentAccountPortIn.getCurrentAccountIdOrThrow(),
                 Instant.now()
@@ -127,7 +128,7 @@ public class KnowledgeIndexVersionUseCaseImpl implements KnowledgeIndexVersionPo
         KnowledgeIndexVersion target = lock(indexVersionId);
         KnowledgeIndexVersionPolicy.assertTransition(target.getStatus(), KnowledgeIndexVersionStatus.ACTIVE);
         validateReadyForActivation(target);
-        KnowledgeIndexVersion current = (runtimeMode == null ? indexVersionPortOut.findActiveForUpdate() : indexVersionPortOut.findActiveForUpdate(target.getProvider())).orElse(null);
+        KnowledgeIndexVersion current = indexVersionPortOut.findActiveForUpdate().orElse(null);
         if (current != null) {
             current.retire(actor, now);
             indexVersionPortOut.save(current);
@@ -147,7 +148,7 @@ public class KnowledgeIndexVersionUseCaseImpl implements KnowledgeIndexVersionPo
             throw new BadRequestException("Chỉ có thể quay lại một phiên bản đã từng hoạt động");
         }
         validateReadyForActivation(target);
-        KnowledgeIndexVersion current = (runtimeMode == null ? indexVersionPortOut.findActiveForUpdate() : indexVersionPortOut.findActiveForUpdate(target.getProvider()))
+        KnowledgeIndexVersion current = indexVersionPortOut.findActiveForUpdate()
                 .orElseThrow(() -> new BadRequestException("Không có index đang hoạt động để quay lại"));
         current.retire(actor, now);
         indexVersionPortOut.save(current);

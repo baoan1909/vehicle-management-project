@@ -8,6 +8,9 @@ import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccount
 import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.domain.hardware.device.model.Device;
+import com.ban.vehicle_management.domain.hardware.device.model.DeviceLaneOption;
+import com.ban.vehicle_management.shared.enumeration.parking.LaneDirection;
+import com.ban.vehicle_management.shared.enumeration.parking.LaneStatus;
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.shared.enumeration.hardware.DeviceStatus;
 import com.ban.vehicle_management.shared.enumeration.hardware.DeviceType;
@@ -49,6 +52,45 @@ class DeviceUseCaseImplTest {
     void defaultParkingLotLookup() {
         lenient().when(parkingLotPortOut.findById(any(UUID.class)))
                 .thenAnswer(invocation -> Optional.of(parkingLot(ParkingLotStatus.ACTIVE)));
+    }
+
+    private DeviceLaneOption laneOption(UUID lotId) {
+        return new DeviceLaneOption(UUID.randomUUID(), lotId, UUID.randomUUID(), "IN-1", "Entry",
+                LaneDirection.IN, LaneStatus.MAINTENANCE, "Gate", "Zone");
+    }
+
+    @Test
+    void laneLookupRequiresDeviceReadBeforeAnyScopeOrDatabaseAccess() {
+        doThrow(new AccessDeniedException("missing device read"))
+                .when(currentAccountPortIn).requirePermission("DEVICE_READ_ALL");
+        assertThrows(AccessDeniedException.class, () -> useCase.getLaneOptions(null));
+        verifyNoInteractions(devicePortOut, organizationAccessGuard);
+    }
+
+    @Test
+    void laneLookupIncludesNonActiveLanesButNeverReturnsOutOfScopeRows() {
+        UUID assignedLot = UUID.randomUUID();
+        var permittedLane = laneOption(assignedLot);
+        when(organizationAccessGuard.resolveAccessibleParkingLotIds(parkingLotPortOut)).thenReturn(Set.of(assignedLot));
+        when(devicePortOut.findLaneOptions(Set.of(assignedLot))).thenReturn(List.of(permittedLane, laneOption(UUID.randomUUID())));
+        assertEquals(List.of(permittedLane), useCase.getLaneOptions(null));
+        verify(currentAccountPortIn).requirePermission("DEVICE_READ_ALL");
+    }
+
+    @Test
+    void laneLookupWithEmptyScopeDoesNotQueryAllLanes() {
+        when(organizationAccessGuard.resolveAccessibleParkingLotIds(parkingLotPortOut)).thenReturn(Set.of());
+        assertTrue(useCase.getLaneOptions(null).isEmpty());
+        verifyNoInteractions(devicePortOut);
+    }
+
+    @Test
+    void laneLookupRejectsRequestedLotOutsideScopeBeforeQuerying() {
+        UUID otherLot = UUID.randomUUID();
+        doThrow(new AccessDeniedException("out of scope"))
+                .when(organizationAccessGuard).ensureCanAccessParkingLot(any(ParkingLot.class));
+        assertThrows(AccessDeniedException.class, () -> useCase.getLaneOptions(otherLot));
+        verifyNoInteractions(devicePortOut);
     }
 
     @Test

@@ -48,10 +48,6 @@ import org.springframework.data.domain.Pageable;
 
 @Service
 public class KnowledgeDocumentUseCaseImpl implements KnowledgeDocumentPortIn {
-    @org.springframework.beans.factory.annotation.Autowired
-    private AiRuntimeModeService runtimeMode;
-
-
     private final CurrentAccountPortIn currentAccountPortIn;
     private final KnowledgeSourcePortOut sourcePortOut;
     private final KnowledgeDocumentPortOut documentPortOut;
@@ -400,7 +396,6 @@ public class KnowledgeDocumentUseCaseImpl implements KnowledgeDocumentPortIn {
                         com.ban.vehicle_management.shared.enumeration.ai.AiUseCase.EMBEDDING,
                         com.ban.vehicle_management.shared.enumeration.ai.AiModelStatus.ACTIVE)
                 .stream()
-                .filter(config -> runtimeMode == null || config.getProvider() == runtimeMode.provider())
                 .findFirst()
                 .orElseThrow(() -> new BadRequestException("Không có cấu hình embedding đang hoạt động cho chế độ đã chọn"));
 
@@ -456,7 +451,7 @@ public class KnowledgeDocumentUseCaseImpl implements KnowledgeDocumentPortIn {
                         "Sai phiên bản chunker cho chunk " + chunkId);
             }
 
-            if (!(activeConfig.getProvider() == com.ban.vehicle_management.shared.enumeration.ai.AiProvider.LM_STUDIO ? EmbeddingPromptFormatter.QWEN_QA_V1 : promptFormatter.version()).equals(staged.getEmbeddingPromptVersion())) {
+            if (!promptFormatter.version().equals(staged.getEmbeddingPromptVersion())) {
                 throw new BadRequestException(
                         "Sai phiên bản embedding prompt cho chunk " + chunkId);
             }
@@ -472,7 +467,7 @@ public class KnowledgeDocumentUseCaseImpl implements KnowledgeDocumentPortIn {
             String expectedFingerprint = KnowledgeStagedEmbedding.fingerprint(
                     staged.getContentHash(),
                     staged.getModelId(),
-                    (activeConfig.getProvider() == com.ban.vehicle_management.shared.enumeration.ai.AiProvider.LM_STUDIO ? EmbeddingPromptFormatter.QWEN_QA_V1 : promptFormatter.version()),
+                    promptFormatter.version(),
                     KnowledgeIndexVersionUseCaseImpl.CHUNKER_VERSION);
             if (!expectedFingerprint.equals(staged.getEmbeddingFingerprint())) {
                 throw new BadRequestException(

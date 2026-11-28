@@ -1,0 +1,11 @@
+{
+  "status" : "STOPPED",
+  "stopReason" : "IllegalStateException: HTTP_404:/api/ai/knowledge/sources:<!doctype html><html lang=\"en\"><head><title>HTTP Status 404 – Not Found</title><style type=\"text/css\">body {font-family:Tahoma,Arial,sans-serif;} h1, h2, h3, b {color:white;background-color:#525D76;} ",
+  "lastStageOrCase" : "INGEST:parking-structure-and-layout",
+  "caseIdsCompleted" : [ ],
+  "actualHttpRequests" : 1,
+  "reviewer" : "PENDING_INDEPENDENT_SEMANTIC_REVIEW",
+  "notAttempted" : "All cases absent from caseIdsCompleted; no quota balance inferred",
+  "database" : "Testcontainers fresh vehicle_management_test; no shared DB writes",
+  "recordedAt" : "2026-11-26T18:37:41.211856Z"
+}

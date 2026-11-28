@@ -543,6 +543,8 @@ export function InternalProfilePage() {
   const [form, setForm] = useState<ProfileFormState>(() => normalizeProfile(buildFallbackProfile(user)));
   const [orgForm, setOrgForm] = useState<OrganizationFormState>(() => normalizeOrganization(buildFallbackProfile(user)));
   const isPartner = isPartnerAdminProfile(profile);
+  const waitingForParkingAssignment = user?.accessState === "ORGANIZATION_ACCESS_REQUIRED"
+    && (user.role === "PARKING_MANAGER" || user.role === "EMPLOYEE");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [resubmitting, setResubmitting] = useState(false);
@@ -817,6 +819,12 @@ export function InternalProfilePage() {
     <div className="content-header tw-px-0 tw-pb-4 tw-pt-3">
       <section className="content tw-pb-8">
         <div className="container-fluid tw-max-w-[1480px]">
+          {waitingForParkingAssignment ? (
+            <div role="status" className="tw-mb-4 tw-flex tw-items-start tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-amber-200 tw-bg-amber-50 tw-px-4 tw-py-3 tw-text-[0.86rem] tw-font-semibold tw-text-amber-800">
+              <i className="fas fa-exclamation-circle tw-mt-0.5" aria-hidden="true" />
+              <span>Bạn chưa được phân công vào bãi xe. Vui lòng chờ quản trị viên phân công để sử dụng các chức năng.</span>
+            </div>
+          ) : null}
           <div className="tw-grid tw-gap-4 tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-4 tw-shadow-[0_16px_34px_rgba(15,23,42,0.04)]">
             <header className="tw-flex tw-items-center tw-justify-between tw-gap-4 tw-px-1 tw-pb-[0.65rem] tw-pt-[0.3rem] max-[900px]:tw-flex-col max-[900px]:tw-items-stretch">
               <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-3">

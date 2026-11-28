@@ -1,3 +1,5 @@
+> Đợt 5 — 27/11/2026: 21 tài liệu DRAFT, registry 1.344 câu (1.104 cũ + 240 mới); holdout 40, bổ sung cũ 24 và 4 probe giữ riêng. Xem [báo cáo đợt 5](authoring/evaluation/batch-05-report.md). Các mốc đợt 4 bên dưới là lịch sử.
+
 # Bộ tri thức chatbot CoParking — Phase 0
 
 Thư mục này chứa bộ tài liệu soạn thảo và bản xuất để quản trị viên upload vào RAG qua luồng `/admin/ai-knowledge`. Đợt 1 xác minh ngày 19/11/2026; xem [báo cáo](authoring/evaluation/batch-01-report.md).
@@ -7,7 +9,7 @@ Thư mục này chứa bộ tài liệu soạn thảo và bản xuất để qu�
 ## Cấu trúc
 
 - `authoring/`: nguồn chuẩn gồm tài liệu YAML frontmatter, ma trận, dataset, rubric và báo cáo.
-- `knowledge/`: 16 bản xuất upload-safe; không chỉnh nội dung độc lập tại đây.
+- `knowledge/`: 21 bản xuất upload-safe; không chỉnh nội dung độc lập tại đây.
 - `authoring/knowledge-manifest.json`: scope, version và checksum cả hai bản. Chạy `node scripts/sync-ai-knowledge.mjs --write` từ backend để đồng bộ; bỏ `--write` để kiểm tra. Không truy cập DB.
 - Tài liệu giữ metadata quản trị trong HTML comment để không bị đưa vào chunk, gồm `status`, `accessScope`, `documentVersion`, `sourceOfTruth` và ngày rà soát.
 
@@ -59,4 +61,4 @@ Không seed nội dung tài liệu trực tiếp bằng Flyway và không đặt
 Đợt 3 ngày 20/11/2026 có bốn tài liệu về giá, thanh toán, ưu đãi và đặt chỗ; tổng dataset tích lũy 840 câu. Xem [báo cáo và giới hạn kiểm chứng](authoring/evaluation/batch-03-report.md).
 
 ### Trạng thái rà soát ngày 24/11/2026
-Corpus có 16 nguồn DRAFT, 1.104 câu trong registry (baseline120 và bốn đợt). Đợt4 có264 câu/44 tình huống; chưa có holdout mù. Kết quả có tính nghiệm thu phải lấy từ [báo cáo đợt4](authoring/evaluation/batch-04-report.md), không suy từ số test hoặc nhãn APPROVED của tài liệu quản trị cũ. Chưa nạp/publish corpus vào DB dev.
+Mốc lịch sử trước đợt 5: corpus có 16 nguồn DRAFT, 1.104 câu trong registry (baseline120 và bốn đợt). Đợt4 có264 câu/44 tình huống; chưa có holdout mù. Kết quả có tính nghiệm thu phải lấy từ [báo cáo đợt4](authoring/evaluation/batch-04-report.md), không suy từ số test hoặc nhãn APPROVED của tài liệu quản trị cũ. Chưa nạp/publish corpus vào DB dev.

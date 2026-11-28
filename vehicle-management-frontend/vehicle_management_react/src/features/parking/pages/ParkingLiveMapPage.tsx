@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { isApiError } from "@/core/api/apiError";
+import { getOperationAllocatedSpaceIds, getOperationMap as getLevelMap, getOperationLevels as getLevelsByLot, getOperationSummary as getLotSpaceSummary, getOperationPublishedLayout as getPublishedLayout, getOperationZones as getZones } from "@/features/parking/api/parkingOperationReadApi";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { Button, Card, Modal, useToast } from "@/components/ui";
@@ -6,11 +8,6 @@ import { useAuth } from "@/core/auth/useAuth";
 import { getVehicleTypes, type VehicleTypeApiResponse } from "@/features/catalog/api/vehicleTypesApi";
 import {
   createSpaceAllocation,
-  getEffectiveZoneAllocations,
-  getLevelMap,
-  getLevelsByLot,
-  getLotSpaceSummary,
-  getPublishedLayout,
   getSpaceAllocations,
   getSpaceOpenSession,
   updateSpaceStatus,
@@ -24,7 +21,7 @@ import {
   type SpaceSummaryApi,
 } from "@/features/parking/api/parkingLayoutApi";
 import { getParkingLots, type ParkingLotApiResponse } from "@/features/parking/api/parkingLotsApi";
-import { getZones, type ZoneApiResponse } from "@/features/parking/api/parkingTopologyApi";
+import { type ZoneApiResponse } from "@/features/parking/api/parkingTopologyApi";
 import { LiveOpsMap } from "@/features/parking/components/LiveOpsMap";
 import { ParkingLotWorkspaceHeader } from "@/features/parking/components/ParkingLotWorkspaceHeader";
 import { useParkingRealtime } from "@/features/parking/api/parkingRealtime";
@@ -46,14 +43,6 @@ type SpotView = {
   zoneName: string;
   vehicleType: string;
 };
-
-const MOCK_LOT = {
-  parkingLotId: "mock-lot-a1",
-  code: "A1",
-  name: "Bãi Trung tâm",
-  addressDisplay: "123 Nguyễn Văn Linh, P. Bình Thuận, Quận 7, TP. Hồ Chí Minh",
-  status: "ACTIVE",
-} as ParkingLotApiResponse;
 
 const STATUS_BADGE: Record<SpotStatus, { label: string; className: string }> = {
   AVAILABLE: { label: "Còn trống", className: "tw-bg-emerald-50 tw-text-emerald-700" },
@@ -115,7 +104,7 @@ export function ParkingLiveMapPage() {
   const [lots, setLots] = useState<ParkingLotApiResponse[]>([]);
   const [levels, setLevels] = useState<ParkingLevelApi[]>([]);
   const [zones, setZones] = useState<ZoneApiResponse[]>([]);
-  const [lotId, setLotId] = useState(searchParams.get("lotId") ?? "");
+  const [lotId, setLotId] = useState(searchParams.get("lotId") ?? searchParams.get("lot") ?? "");
   const [levelId, setLevelId] = useState(searchParams.get("levelId") ?? "");
   const [levelMap, setLevelMap] = useState<LevelMapApi | null>(null);
   const [publishedItems, setPublishedItems] = useState<LayoutSpaceItemApi[]>([]);
@@ -124,6 +113,14 @@ export function ParkingLiveMapPage() {
   const [summary, setSummary] = useState<SpaceSummaryApi | null>(null);
   const [allocatedSpaceIds, setAllocatedSpaceIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
+  const [topologyLoading, setTopologyLoading] = useState(true);
+  const [topologyError, setTopologyError] = useState("");
+  const [mapError, setMapError] = useState("");
+  const [reloadVersion, setReloadVersion] = useState(0);
+  const mapRequest = useRef(0);
+  const selection = useRef({ lotId, levelId });
+  selection.current = { lotId, levelId };
+  const canReadAllocations = hasAnyPermission(user, ["PARKING_SPACE_READ_ALL"]);
 
   const [zoneFilter, setZoneFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -147,11 +144,10 @@ export function ParkingLiveMapPage() {
   const canUpdateStatus = hasAnyPermission(user, ["PARKING_SPACE_STATUS_UPDATE_ALL"]);
   const canAssignSpace = hasAnyPermission(user, ["PARKING_SPACE_ASSIGN_ALL"]);
 
-  const lot: ParkingLotApiResponse = useMemo(
-    () => lots.find((item) => item.parkingLotId === lotId) ?? lots[0] ?? MOCK_LOT,
+  const lot = useMemo(
+    () => lots.find((item) => item.parkingLotId === lotId) ?? null,
     [lots, lotId],
   );
-  const activeLotId = lot.parkingLotId;
 
   /* Nạp chức năng hiện có: bãi xe -> tầng -> sơ đồ + tổng hợp */
   useEffect(() => {
@@ -161,7 +157,7 @@ export function ParkingLiveMapPage() {
         setLots(list);
         if (!lotId && list.length > 0) setLotId(list[0].parkingLotId);
       })
-      .catch(() => setLots([]));
+      .catch(() => { setLots([]); setTopologyError("Không tải được danh sách bãi xe."); setTopologyLoading(false); });
     getVehicleTypes({ isActive: true })
       .then((response) => setVehicleTypes(response.data ?? []))
       .catch(() => setVehicleTypes([]));
@@ -169,68 +165,68 @@ export function ParkingLiveMapPage() {
   }, []);
 
   useEffect(() => {
-    if (!lotId || lotId === MOCK_LOT.parkingLotId) {
-      setLevels([]);
-      setLevelId("");
-      setZones([]);
-      setLevelMap(null);
-      setPublishedItems([]);
-      setPublishedElements([]);
-      setSummary(null);
-      setAllocatedSpaceIds(new Set());
-      return;
-    }
+    let alive = true;
+    mapRequest.current += 1;
+    setLevelId("");
     setLevels([]);
     setZones([]);
+    setSelectedId("");
     setLevelMap(null);
     setPublishedItems([]);
     setPublishedElements([]);
     setSummary(null);
     setAllocatedSpaceIds(new Set());
-    setSearchParams((params) => {
-      params.set("lotId", lotId);
-      return params;
-    });
-    getLevelsByLot(lotId)
-      .then((response) => {
-        const list = response.data ?? [];
+    setTopologyError("");
+    setMapError("");
+    if (!lotId) { setTopologyLoading(false); return; }
+    setTopologyLoading(true);
+    setSearchParams((params) => { params.set("lotId", lotId); params.delete("lot"); params.delete("levelId"); return params; });
+    Promise.all([getLevelsByLot(lotId), getZones({ parkingLotId: lotId }), getLotSpaceSummary(lotId)])
+      .then(([levelResponse, zoneResponse, summaryResponse]) => {
+        if (!alive) return;
+        const list = levelResponse.data ?? [];
         setLevels(list);
-        if (!levelId || !list.some((level) => level.parkingLevelId === levelId)) {
-          setLevelId(list[0]?.parkingLevelId ?? "");
-        }
+        setZones(zoneResponse.data ?? []);
+        setSummary(summaryResponse.data);
+        setLevelId(list[0]?.parkingLevelId ?? "");
       })
-      .catch(() => setLevels([]));
-    getZones({ parkingLotId: lotId })
-      .then((response) => setZones(response.data ?? []))
-      .catch(() => setZones([]));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lotId]);
+      .catch((error) => {
+        if (alive) setTopologyError(error instanceof Error ? error.message : "Không tải được tầng và khu vực của bãi.");
+      })
+      .finally(() => { if (alive) setTopologyLoading(false); });
+    return () => { alive = false; mapRequest.current += 1; };
+  }, [lotId, reloadVersion]);
 
   const refresh = useCallback(async (reloadPublishedLayout = true) => {
-    if (!lotId || lotId === MOCK_LOT.parkingLotId || !levelId) {
+    if (!lotId || !levelId) {
       setLastUpdatedAt(Date.now());
       return;
     }
+    const request = ++mapRequest.current;
+    const isCurrent = () => request === mapRequest.current && selection.current.lotId === lotId && selection.current.levelId === levelId;
     setLoading(true);
+    setMapError("");
     try {
       const [mapResponse, summaryResponse] = await Promise.all([getLevelMap(levelId), getLotSpaceSummary(lotId)]);
+      if (!isCurrent()) return;
       const map = mapResponse.data;
       setLevelMap(map);
       setSummary(summaryResponse.data);
       const zoneIds = (map.zones ?? []).map((zone) => zone.zoneId);
       const [allocationLists, publishedLayouts] = await Promise.all([
         Promise.all(
-          zoneIds.map((zoneId) => getEffectiveZoneAllocations(zoneId).then((response) => response.data).catch(() => [])),
+          zoneIds.map((zoneId) => getOperationAllocatedSpaceIds(zoneId).then((response) => response.data)),
         ),
         reloadPublishedLayout
           ? Promise.all(
             zoneIds.map((zoneId) => getPublishedLayout(zoneId)
               .then((response) => ({ zoneId, layout: response.data }))
-              .catch(() => null)),
+              .catch((error) => { if (isApiError(error) && error.status === 404) return null; throw error; })),
           )
           : Promise.resolve([]),
       ]);
 
+      if (!isCurrent()) return;
       if (reloadPublishedLayout) {
         const layoutByZone = new Map(
           publishedLayouts
@@ -269,9 +265,11 @@ export function ParkingLiveMapPage() {
         setPublishedItems(nextItems);
         setPublishedElements([...elementById.values()]);
       }
-      setAllocatedSpaceIds(new Set(allocationLists.flat().map((item) => item.parkingSpaceId)));
+      setAllocatedSpaceIds(new Set(allocationLists.flat()));
       setLastUpdatedAt(Date.now());
-    } catch {
+    } catch (error) {
+      if (!isCurrent()) return;
+      setMapError(error instanceof Error ? error.message : "Không tải được sơ đồ trực tiếp.");
       setLevelMap(null);
       setPublishedItems([]);
       setPublishedElements([]);
@@ -279,9 +277,9 @@ export function ParkingLiveMapPage() {
       setAllocatedSpaceIds(new Set());
       toast.error("Không tải được sơ đồ trực tiếp của tầng đã chọn.");
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
-  }, [lotId, levelId]);
+  }, [lotId, levelId, canReadAllocations]);
 
   useEffect(() => {
     setLevelMap(null);
@@ -295,11 +293,11 @@ export function ParkingLiveMapPage() {
       });
       void refresh();
     } else {
-      setSummary(null);
       setAllocatedSpaceIds(new Set());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [levelId]);
+    return () => { mapRequest.current += 1; };
+  }, [levelId, refresh]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setTick((value) => value + 1), 5000);
@@ -307,7 +305,7 @@ export function ParkingLiveMapPage() {
   }, []);
 
   useParkingRealtime({
-    parkingLotId: lotId && lotId !== MOCK_LOT.parkingLotId ? lotId : null,
+    parkingLotId: lotId || null,
     onEvent: (event) => {
       setRealtimeOk(true);
       if (event.parkingSpaceId && event.status && ["AVAILABLE", "OCCUPIED", "RESERVED", "MAINTENANCE"].includes(event.status)) {
@@ -335,7 +333,7 @@ export function ParkingLiveMapPage() {
   });
 
   const zoneNameOf = useCallback(
-    (zoneId: string) => zones.find((zone) => zone.zoneId === zoneId)?.name ?? "Khu A",
+    (zoneId: string) => zones.find((zone) => zone.zoneId === zoneId)?.name ?? "—",
     [zones],
   );
 
@@ -372,7 +370,7 @@ export function ParkingLiveMapPage() {
     setDetailAllocations([]);
     setDetailSession(null);
     if (!selected || selected.id.startsWith("s-")) return;
-    getSpaceAllocations(selected.id)
+    if (canReadAllocations) getSpaceAllocations(selected.id)
       .then((response) => {
         if (alive) setDetailAllocations(response.data ?? []);
       })
@@ -385,14 +383,14 @@ export function ParkingLiveMapPage() {
     return () => {
       alive = false;
     };
-  }, [selected]);
+  }, [selected, canReadAllocations]);
 
   useEffect(() => {
     if (selected) setManualStatus(selected.status);
   }, [selected]);
 
   async function handleManualStatusUpdate() {
-    if (!selected || !statusReason.trim() || selected.id.startsWith("s-")) {
+    if (!canUpdateStatus || !selected || !statusReason.trim() || selected.id.startsWith("s-")) {
       if (selected?.id.startsWith("s-")) toast.error("Dữ liệu demo — kết nối API để cập nhật trạng thái.");
       return;
     }
@@ -414,6 +412,7 @@ export function ParkingLiveMapPage() {
   }
 
   function handleAssignSpot() {
+    if (!canAssignSpace) return;
     if (!selected || selected.id.startsWith("s-")) {
       navigate("/admin/subscription-approvals");
       return;
@@ -423,7 +422,7 @@ export function ParkingLiveMapPage() {
   }
 
   async function handleConfirmAssignment() {
-    if (!selected || !subscriptionId.trim() || operationBusy) return;
+    if (!canAssignSpace || !selected || !subscriptionId.trim() || operationBusy) return;
     setOperationBusy(true);
     try {
       const from = new Date().toISOString().slice(0, 10);
@@ -468,6 +467,12 @@ export function ParkingLiveMapPage() {
       .map((zone) => ({ label: `${zone.code} — ${zone.name}`, value: zone.zoneId })),
   ];
 
+  if (!lot) {
+    return <main className="tw-p-6"><Card className="tw-p-6"><h1 className="tw-text-xl tw-font-bold">Sơ đồ trực tiếp</h1>
+      <p role="status">{topologyError || "Chưa có bãi xe trong phạm vi truy cập hoặc đang tải danh sách bãi."}</p>
+    </Card></main>;
+  }
+
   return (
     <main className="tw-mx-auto tw-w-full tw-max-w-[1480px] tw-px-5 tw-py-5 max-[768px]:tw-px-4">
       {/* Breadcrumb */}
@@ -501,20 +506,21 @@ export function ParkingLiveMapPage() {
           {realtimeOk ? "Realtime đang kết nối" : "Mất kết nối realtime"}
         </strong>
         <span className="tw-hidden tw-h-4 tw-w-px tw-bg-vm-slate-100 sm:tw-block" />
-        <span className="tw-text-[0.84rem] tw-font-medium tw-text-vm-slate-500">Cập nhật {secondsAgo} giây trước</span>
-        <Button variant="secondary" size="sm" className="tw-ml-auto tw-rounded-vm-md tw-font-bold tw-text-vm-primary" loading={loading} onClick={() => void refresh()}>
+        <span className="tw-text-[0.84rem] tw-font-medium tw-text-vm-slate-500">{summary && !mapError && !topologyError ? `Cập nhật ${secondsAgo} giây trước` : "Chưa có dữ liệu sơ đồ"}</span>
+        <Button variant="secondary" size="sm" className="tw-ml-auto tw-rounded-vm-md tw-font-bold tw-text-vm-primary" loading={loading || topologyLoading} onClick={() => setReloadVersion((version) => version + 1)}>
           <i className="fas fa-sync-alt" aria-hidden="true" />
           Làm mới
         </Button>
       </Card>
 
+      {topologyError || mapError ? <div role="alert" className="tw-mt-4 tw-rounded-lg tw-bg-amber-50 tw-p-4 tw-text-amber-900">Không tải được dữ liệu sơ đồ: {topologyError || mapError}. Vui lòng làm mới để thử lại.</div> : null}
       {/* KPI */}
       <div className="tw-mt-4 tw-grid tw-grid-cols-5 tw-gap-3.5 max-[1200px]:tw-grid-cols-3 max-[720px]:tw-grid-cols-2">
-        <KpiCard icon="fas fa-th-large" iconWrap="tw-bg-brand-50 tw-text-vm-primary" label="Tổng số ô" value={String(totals.total)} />
-        <KpiCard icon="fas fa-check-circle" iconWrap="tw-bg-[#dcfce7] tw-text-[#16a34a]" label="Còn trống" value={String(totals.available)} />
-        <KpiCard icon="fas fa-car" iconWrap="tw-bg-[#fee2e2] tw-text-[#dc2626]" label="Đang có xe" value={String(totals.occupied)} />
-        <KpiCard icon="far fa-clock" iconWrap="tw-bg-[#fef3c7] tw-text-[#d97706]" label="Đặt trước" value={String(totals.reserved)} />
-        <KpiCard icon="fas fa-wrench" iconWrap="tw-bg-vm-slate-50 tw-text-vm-slate-700" label="Bảo trì" value={String(totals.maintenance)} />
+        <KpiCard icon="fas fa-th-large" iconWrap="tw-bg-brand-50 tw-text-vm-primary" label="Tổng số ô" value={summary && !topologyError && !mapError ? String(totals.total) : "—"} />
+        <KpiCard icon="fas fa-check-circle" iconWrap="tw-bg-[#dcfce7] tw-text-[#16a34a]" label="Còn trống" value={summary && !topologyError && !mapError ? String(totals.available) : "—"} />
+        <KpiCard icon="fas fa-car" iconWrap="tw-bg-[#fee2e2] tw-text-[#dc2626]" label="Đang có xe" value={summary && !topologyError && !mapError ? String(totals.occupied) : "—"} />
+        <KpiCard icon="far fa-clock" iconWrap="tw-bg-[#fef3c7] tw-text-[#d97706]" label="Đặt trước" value={summary && !topologyError && !mapError ? String(totals.reserved) : "—"} />
+        <KpiCard icon="fas fa-wrench" iconWrap="tw-bg-vm-slate-50 tw-text-vm-slate-700" label="Bảo trì" value={summary && !topologyError && !mapError ? String(totals.maintenance) : "—"} />
       </div>
 
       {/* Bộ lọc */}
@@ -527,7 +533,7 @@ export function ParkingLiveMapPage() {
             setZoneFilter("all");
             setSelectedId("");
           }}
-          options={[{ label: levels.length > 0 ? "Chọn tầng" : "Bãi chưa có tầng", value: "" }, ...levelOptions]}
+          options={[{ label: topologyLoading ? "Đang tải tầng…" : topologyError ? "Không tải được tầng" : levels.length > 0 ? "Chọn tầng" : "Bãi chưa có tầng", value: "" }, ...levelOptions]}
           clearValue=""
         />
         <SelectMenu ariaLabel="Lọc khu" value={zoneFilter} onChange={setZoneFilter} options={zoneOptions} />
@@ -632,7 +638,7 @@ export function ParkingLiveMapPage() {
             </p>
             <p className="tw-m-0 tw-flex tw-items-center tw-gap-2.5 tw-text-[0.86rem] tw-text-vm-slate-700">
               <i className="far fa-map tw-w-5 tw-text-center tw-text-vm-slate-500" aria-hidden="true" />
-              {selected?.zoneName ?? "Khu A"}
+              {selected?.zoneName ?? "—"}
             </p>
             <p className="tw-m-0 tw-flex tw-items-center tw-gap-2.5 tw-text-[0.86rem] tw-text-vm-slate-700">
               <i className="fas fa-car tw-w-5 tw-text-center tw-text-vm-slate-500" aria-hidden="true" />
@@ -647,6 +653,7 @@ export function ParkingLiveMapPage() {
 
           <div className="tw-my-4 tw-h-px tw-bg-vm-slate-100" />
 
+          {canUpdateStatus ? <>
           <p className="tw-m-0 tw-text-[0.86rem] tw-font-extrabold tw-text-vm-slate-900">Cập nhật trạng thái</p>
           <div className="tw-mt-2">
             <SelectMenu
@@ -670,10 +677,11 @@ export function ParkingLiveMapPage() {
           <Button className="tw-mt-3 tw-h-11 tw-w-full tw-rounded-vm-md tw-font-bold" loading={operationBusy} disabled={!canUpdateStatus || !statusReason.trim()} onClick={() => void handleManualStatusUpdate()}>
             Cập nhật trạng thái
           </Button>
-          <Button variant="secondary" className="tw-mt-2.5 tw-h-11 tw-w-full tw-rounded-vm-md tw-border-vm-primary tw-font-bold tw-text-vm-primary hover:tw-bg-brand-50" disabled={!canAssignSpace} onClick={handleAssignSpot}>
+          </> : null}
+          {canAssignSpace ? <Button variant="secondary" className="tw-mt-2.5 tw-h-11 tw-w-full tw-rounded-vm-md tw-border-vm-primary tw-font-bold tw-text-vm-primary hover:tw-bg-brand-50" disabled={!canAssignSpace} onClick={handleAssignSpot}>
             <i className="far fa-user-plus tw-text-[0.9rem]" aria-hidden="true" />
             Gán chỗ
-          </Button>
+          </Button> : null}
           <Link to="/admin/swipe/sessions" className="tw-mt-2.5 tw-block tw-text-center tw-text-[0.86rem] tw-font-bold tw-text-vm-primary hover:tw-underline">
             Xem phiên gửi xe <i className="fas fa-external-link-alt tw-text-[0.72rem]" aria-hidden="true" />
           </Link>

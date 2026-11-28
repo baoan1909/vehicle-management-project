@@ -43,6 +43,7 @@ public class UserProfileUseCaseImpl implements UserProfilePortIn {
     @Transactional
     public UserProfile createUserProfile(UserProfile userProfile) {
         currentAccountPortIn.requirePermission(USER_PROFILE_CREATE_ALL);
+        currentAccountPortIn.requirePermission("PARKING_SCOPE_PLATFORM");
         userProfile.setAvatarUrl(null);
         userProfilePolicy.initialize(userProfile);
         validateUniqueFields(userProfile);
@@ -55,6 +56,7 @@ public class UserProfileUseCaseImpl implements UserProfilePortIn {
     @Transactional
     public UserProfile updateUserProfile(UUID userProfileId, UserProfile userProfile) {
         currentAccountPortIn.requirePermission(USER_PROFILE_UPDATE_ALL);
+        currentAccountPortIn.requirePermission("PARKING_SCOPE_PLATFORM");
         UserProfile existingUserProfile = getUserProfileById(userProfileId);
 
         existingUserProfile.setFullName(userProfile.getFullName());
@@ -79,6 +81,7 @@ public class UserProfileUseCaseImpl implements UserProfilePortIn {
     @Transactional(readOnly = true)
     public UserProfile getUserProfileById(UUID userProfileId) {
         currentAccountPortIn.requirePermission(USER_PROFILE_READ_ALL);
+        currentAccountPortIn.requirePermission("PARKING_SCOPE_PLATFORM");
         return userProfileAvatarPortIn.withResolvedAvatarUrl(userProfilePort.findById(userProfileId)
                 .orElseThrow(() -> new NotFoundException("User profile not found")));
     }
@@ -87,6 +90,7 @@ public class UserProfileUseCaseImpl implements UserProfilePortIn {
     @Transactional(readOnly = true)
     public List<UserProfile> getUserProfiles(UserProfileStatus status, String keyword) {
         currentAccountPortIn.requirePermission(USER_PROFILE_READ_ALL);
+        currentAccountPortIn.requirePermission("PARKING_SCOPE_PLATFORM");
         return userProfileAvatarPortIn.withResolvedAvatarUrls(userProfilePort.findAll(status, keyword));
     }
 

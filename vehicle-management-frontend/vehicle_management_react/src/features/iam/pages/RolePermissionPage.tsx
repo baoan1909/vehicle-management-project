@@ -1,3 +1,5 @@
+import { getRoleLabel } from "@/shared/utils/accountStatus";
+import { getPermissionActionLabel, getPermissionModuleLabel, getPermissionScopeLabel } from "@/features/iam/utils/permissionLabels";
 import { useEffect, useMemo, useState } from "react";
 import {
   initialPermissionModules,
@@ -127,7 +129,7 @@ function parsePermissionCode(permissionCode: string): ParsedPermissionCode {
 }
 
 function formatScopeLabel(scope: string) {
-  return scope === "ALL" ? "" : ` / ${scope}`;
+  return scope === "ALL" ? "" : ` / ${getPermissionScopeLabel(scope)}`;
 }
 
 function isBackendRoleId(roleId?: string | null) {
@@ -141,7 +143,7 @@ function mapRoleResponseToRecord(role: RoleAdminResponse): RolePermissionRecord 
   return {
     active: isActive,
     code: role.code,
-    description: role.description || (isSystem ? "Role hệ thống" : "Role tùy chỉnh"),
+    description: role.description || (isSystem ? "Vai trò hệ thống" : "Vai trò tùy chỉnh"),
     editable: !isSystem && isActive,
     id: role.roleId ?? role.id ?? role.code,
     kind: isSystem ? "system" : "custom",
@@ -173,7 +175,7 @@ function buildPermissionActions(permissions: PermissionAdminResponse[]) {
   const extraActions = Array.from(dynamicActionKeys)
     .filter((action) => !fixedActionKeys.has(action))
     .sort((left, right) => left.localeCompare(right))
-    .map((action) => ({ key: action, label: action.toUpperCase() }));
+    .map((action) => ({ key: action, label: getPermissionActionLabel(action) }));
 
   return [...permissionActions, ...extraActions];
 }
@@ -198,7 +200,7 @@ function buildPermissionModules(
       modules.get(moduleKey) ??
       ({
         key: moduleKey,
-        label: `${parsed.moduleCode}${formatScopeLabel(parsed.scope)}`,
+        label: `${getPermissionModuleLabel(parsed.moduleCode)}${formatScopeLabel(parsed.scope)}`,
         permissionCodes: {},
         permissionIds: {},
         permissionKeys: {},
@@ -485,8 +487,8 @@ function RoleListPanel({
 }) {
   const filters: Array<{ label: string; value: RoleFilter }> = [
     { label: "Tất cả", value: "all" },
-    { label: "Role hệ thống", value: "system" },
-    { label: "Role tùy chỉnh", value: "custom" },
+    { label: "Vai trò hệ thống", value: "system" },
+    { label: "Vai trò tùy chỉnh", value: "custom" },
     { label: "Đã ngừng", value: "inactive" }
   ];
 
@@ -539,7 +541,7 @@ function RoleListPanel({
             >
               <RoleIcon kind={role.kind} selected={selected} />
               <span className="tw-grid tw-min-w-0 tw-gap-1">
-                <strong className={cn("tw-min-w-0 tw-truncate tw-text-[0.9rem] tw-font-extrabold tw-text-slate-900", selected ? "tw-text-vm-primary" : "")}>{role.code}</strong>
+                <strong className={cn("tw-min-w-0 tw-whitespace-normal tw-break-words tw-text-[0.9rem] tw-font-extrabold tw-text-slate-900", selected ? "tw-text-vm-primary" : "")}>{getRoleLabel(role.code, role.name)}</strong>
                 {role.kind !== "system" ? <small className="tw-text-[0.82rem] tw-font-medium tw-text-vm-slate-500">{role.description}</small> : null}
               </span>
               <span className="tw-flex tw-flex-col tw-items-end tw-gap-1">
@@ -684,8 +686,8 @@ function PermissionMatrix({
                 </span>
               </th>
               {actions.map((action) => (
-                <th className="tw-h-11 tw-min-w-[74px] tw-border-0 tw-border-b tw-border-l tw-border-solid tw-border-slate-200/70 tw-bg-slate-50/80 tw-px-2 tw-py-2 tw-text-center tw-align-middle" key={action.key}>
-                  <span className="tw-mx-auto tw-flex tw-min-h-[26px] tw-max-w-[86px] tw-items-center tw-justify-center tw-break-words tw-rounded-vm-md tw-bg-white tw-px-2 tw-py-1 tw-text-[0.68rem] tw-font-black tw-leading-[1.05] tw-text-slate-700 tw-ring-1 tw-ring-slate-200/90">
+                <th className="tw-h-11 tw-min-w-[104px] tw-border-0 tw-border-b tw-border-l tw-border-solid tw-border-slate-200/70 tw-bg-slate-50/80 tw-px-2 tw-py-2 tw-text-center tw-align-middle" key={action.key} title={action.key.toUpperCase()}>
+                  <span className="tw-mx-auto tw-flex tw-min-h-[26px] tw-max-w-[128px] tw-items-center tw-justify-center tw-break-words tw-rounded-vm-md tw-bg-white tw-px-2 tw-py-1 tw-text-[0.68rem] tw-font-black tw-leading-snug tw-text-slate-700 tw-ring-1 tw-ring-slate-200/90">
                     {formatMatrixHeaderLabel(action.label)}
                   </span>
                 </th>
@@ -695,7 +697,7 @@ function PermissionMatrix({
           <tbody>
             {modules.map((module) => (
               <tr key={module.key}>
-                <td className="tw-sticky tw-left-0 tw-z-[1] tw-h-[52px] tw-w-[172px] tw-min-w-[172px] tw-border-0 tw-border-b tw-border-r tw-border-solid tw-border-slate-200/80 tw-bg-white tw-px-3 tw-py-2 tw-text-left tw-text-[0.78rem] tw-font-extrabold tw-leading-tight tw-text-slate-900">{module.label}</td>
+                <td className="tw-sticky tw-left-0 tw-z-[1] tw-h-[52px] tw-w-[172px] tw-min-w-[172px] tw-border-0 tw-border-b tw-border-r tw-border-solid tw-border-slate-200/80 tw-bg-white tw-px-3 tw-py-2 tw-text-left tw-text-[0.78rem] tw-font-extrabold tw-leading-tight tw-text-slate-900" title={module.key}>{module.label}</td>
                 {actions.map((action) => {
                   const permissionId = module.permissionIds[action.key];
                   const permissionCode = module.permissionCodes[action.key];
@@ -705,7 +707,7 @@ function PermissionMatrix({
                   const disabledByPermission = state === "granted" ? !canRevokePermissions : !canAssignPermissions;
 
                   return (
-                  <td className="tw-h-[52px] tw-border-0 tw-border-b tw-border-l tw-border-solid tw-border-slate-100 tw-bg-white tw-text-center tw-align-middle" key={action.key}>
+                  <td className="tw-h-[52px] tw-border-0 tw-border-b tw-border-l tw-border-solid tw-border-slate-100 tw-bg-white tw-text-center tw-align-middle" key={action.key} title={action.key.toUpperCase()}>
                     <PermissionCheck
                       disabled={disabled || !permissionId || disabledByPermission}
                       state={state}
@@ -779,7 +781,7 @@ function SummaryPanel({
           <i className="far fa-user" />
         </span>
         <div>
-          <h4 className="tw-m-0 tw-mb-[0.35rem] tw-text-[0.98rem] tw-font-black tw-text-slate-900">{role.code}</h4>
+          <h4 className="tw-m-0 tw-mb-[0.35rem] tw-text-[0.98rem] tw-font-black tw-text-slate-900">{getRoleLabel(role.code, role.name)}</h4>
           <span className={cn("tw-inline-flex tw-min-h-[22px] tw-items-center tw-rounded-full tw-px-[0.55rem] tw-text-[0.72rem] tw-font-extrabold", role.locked ? "tw-bg-slate-100 tw-text-slate-500" : "tw-bg-emerald-500/10 tw-text-emerald-600")}>{role.locked ? "Bị khóa" : "Có thể chỉnh sửa"}</span>
           <p className="tw-m-0 tw-mt-[0.45rem] tw-text-[0.82rem] tw-font-semibold tw-text-vm-slate-700">{role.description}</p>
         </div>
@@ -878,7 +880,7 @@ function RoleEditorModal({
   const description = isEdit ? "Chỉ role tùy chỉnh được phép đổi thông tin." : "Role mới luôn là role tùy chỉnh và có thể copy quyền từ role đang có.";
   const copyRoleOptions: SelectMenuOption[] = [
     { label: "Không copy quyền", value: "" },
-    ...roles.map((role) => ({ label: `${role.code} - ${role.name}`, value: role.id }))
+    ...roles.map((role) => ({ label: getRoleLabel(role.code, role.name), value: role.id }))
   ];
 
   return (
@@ -943,7 +945,7 @@ function RoleEditorModal({
               />
               {!canCopyPermissions ? (
                 <span className="tw-text-[0.74rem] tw-font-bold tw-leading-snug tw-text-amber-600">
-                  Cần quyền ROLE_ASSIGN_PERMISSION_ALL để copy quyền từ role có sẵn.
+                  Cần quyền gán quyền cho vai trò để sao chép từ vai trò có sẵn.
                 </span>
               ) : null}
             </label>
@@ -987,7 +989,7 @@ function RoleDeactivateModal({
           <div>
             <h3 id="role-deactivate-title" className="tw-m-0 tw-text-lg tw-font-black tw-text-slate-900">Ngừng dùng role</h3>
             <p className="tw-m-0 tw-mt-1 tw-text-[0.84rem] tw-font-semibold tw-leading-6 tw-text-slate-600">
-              Role <strong className="tw-text-red-600">{role.code}</strong> sẽ bị ẩn khỏi danh sách active và không còn dùng để phân quyền mới.
+              Vai trò <strong className="tw-text-red-600">{getRoleLabel(role.code, role.name)}</strong> sẽ bị ẩn khỏi danh sách đang hoạt động và không còn dùng để phân quyền mới.
             </p>
           </div>
         </header>
@@ -1033,7 +1035,7 @@ function RoleAuditHistoryModal({
         <header className="tw-flex tw-items-start tw-justify-between tw-gap-4 tw-border-0 tw-border-b tw-border-solid tw-border-slate-200 tw-p-5">
           <div>
             <h3 id="role-audit-title" className="tw-m-0 tw-text-lg tw-font-black tw-text-slate-900">Lịch sử chỉnh sửa</h3>
-            <p className="tw-m-0 tw-mt-1 tw-text-[0.84rem] tw-font-semibold tw-text-slate-500">{role.code}</p>
+            <p className="tw-m-0 tw-mt-1 tw-text-[0.84rem] tw-font-semibold tw-text-slate-500">{getRoleLabel(role.code, role.name)}</p>
           </div>
           <button className="tw-inline-flex tw-h-9 tw-w-9 tw-items-center tw-justify-center tw-rounded-vm-md tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-text-slate-700" onClick={onClose} type="button" aria-label="Đóng">
             <i className="fas fa-times" />
@@ -1619,16 +1621,16 @@ export function RolePermissionPage() {
             ) : null}
             {!canReadRolePermissions ? (
               <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-slate-200 tw-bg-slate-50 tw-px-4 tw-py-3 tw-text-[0.82rem] tw-font-bold tw-text-slate-600">
-                Role hien tai chua co ROLE_READ_ALL nen khong the tai danh sach quyen cua vai tro.
+                Bạn chưa có quyền xem vai trò nên không thể tải danh sách quyền đã gán.
               </div>
             ) : !canReadPermissionCatalog ? (
               <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-slate-200 tw-bg-slate-50 tw-px-4 tw-py-3 tw-text-[0.82rem] tw-font-bold tw-text-slate-600">
-                Role hien tai chua co PERMISSION_READ_ALL nen chi hien thi cac quyen da duoc gan cho vai tro dang chon.
+                Bạn chưa có quyền xem danh mục quyền; chỉ hiển thị các quyền đã gán cho vai trò đang chọn.
               </div>
             ) : null}
             {pendingCount > 0 && !canPersistPendingPermissionChanges ? (
               <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-orange-300/80 tw-bg-orange-50 tw-px-4 tw-py-3 tw-text-[0.82rem] tw-font-bold tw-text-orange-700">
-                Thay doi hien tai can {hasPendingPermissionAddition && !canAssignPermissions ? "ROLE_ASSIGN_PERMISSION_ALL" : ""}{hasPendingPermissionAddition && hasPendingPermissionRemoval && (!canAssignPermissions || !canRevokePermissions) ? " va " : ""}{hasPendingPermissionRemoval && !canRevokePermissions ? "ROLE_REVOKE_PERMISSION_ALL" : ""}.
+                Để lưu thay đổi, bạn cần quyền {hasPendingPermissionAddition && !canAssignPermissions ? "gán quyền cho vai trò" : ""}{hasPendingPermissionAddition && hasPendingPermissionRemoval && (!canAssignPermissions || !canRevokePermissions) ? " và " : ""}{hasPendingPermissionRemoval && !canRevokePermissions ? "thu hồi quyền của vai trò" : ""}.
               </div>
             ) : null}
 

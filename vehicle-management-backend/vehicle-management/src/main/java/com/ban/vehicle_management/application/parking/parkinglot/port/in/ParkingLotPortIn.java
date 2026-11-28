@@ -1,11 +1,15 @@
 package com.ban.vehicle_management.application.parking.parkinglot.port.in;
 
+import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLotResponsibility;
+
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import java.util.List;
 import java.util.UUID;
 
 public interface ParkingLotPortIn {
+    ParkingLotResponsibility getResponsibility(UUID parkingLotId);
+
     ParkingLot createParkingLot(ParkingLot parkingLot);
 
     ParkingLot getParkingLotById(UUID parkingLotId);

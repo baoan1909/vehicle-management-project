@@ -1,6 +1,0 @@
-{
-  "reason": "Direct loaded-model probe paused below256MB freeRAM; full harness guard unchanged",
-  "availableMb": 231,
-  "planned": 40,
-  "nextCase": "LIVE512-14-UNACCENTED"
-}

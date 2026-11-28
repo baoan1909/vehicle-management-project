@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import { AuthContext } from "@/core/auth/AuthProvider";
 import { ToastProvider } from "@/components/ui";
 import { AiKnowledgeAdminPage } from "@/features/ai/pages/AiKnowledgeAdminPage";
+import { AiModelManagementPage } from "@/features/ai/pages/AiModelManagementPage";
 import type { CurrentUser } from "@/shared/types/common";
 import "@/app/styles/globals.css";
 
@@ -19,5 +20,5 @@ const auth: NonNullable<ContextType<typeof AuthContext>> = {
   resolveAccess: () => {}, retryAccess: () => {}, retryAuthentication: async () => {}, setUser: () => {},
 };
 createRoot(document.getElementById("root")!).render(
-  <BrowserRouter><ToastProvider><AuthContext.Provider value={auth}><AiKnowledgeAdminPage /></AuthContext.Provider></ToastProvider></BrowserRouter>,
+  <BrowserRouter><ToastProvider><AuthContext.Provider value={auth}>{new URLSearchParams(location.search).get("page") === "models" ? <AiModelManagementPage /> : <AiKnowledgeAdminPage />}</AuthContext.Provider></ToastProvider></BrowserRouter>,
 );

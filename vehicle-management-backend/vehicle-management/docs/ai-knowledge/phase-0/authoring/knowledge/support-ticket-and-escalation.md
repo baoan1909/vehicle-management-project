@@ -93,6 +93,6 @@ Nếu đã bấm Gửi mà chưa rõ kết quả, xem Yêu cầu của tôi trư
 Các SLA/giới hạn reopen/appeal đã nêu trong decision register cũ là chính sách mục tiêu nếu chưa có enforcement. Không triển khai chính sách mới trong đợt này chỉ để khớp tài liệu. Transcript retention và quy trình tranh chấp cần quyết định riêng. DRAFT chưa được publish tự động.
 
 ## Lịch sử phiên bản
-- 2.1.0, 2026-11-24: rà soát lại với code hiện tại; làm rõ điều kiện và giới hạn trả lời, chuẩn hóa ngôn ngữ; tiếp tục DRAFT. Kiểm thử và giới hạn bằng chứng tại báo cáo ALL_BATCHES_QWEN_REVIEW_REPORT.vi.md.
+- 2.1.0, 2026-11-24: rà soát lại với code hiện tại; làm rõ điều kiện và giới hạn trả lời, chuẩn hóa ngôn ngữ; tiếp tục DRAFT. Kiểm thử và giới hạn bằng chứng tại báo cáo ALL_BATCHES_REVIEW_STATUS.vi.md.
 2.0.0 — 19/11/2026: cập nhật requester account/quyền, category, ranh giới chat, trạng thái RESOLVED và tool thực có. Không tự thay đổi policy nghiệp vụ.
 <!-- authoring-only:end -->

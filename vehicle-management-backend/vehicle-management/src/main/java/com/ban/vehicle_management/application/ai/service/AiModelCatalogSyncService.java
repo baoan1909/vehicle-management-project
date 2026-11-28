@@ -12,10 +12,6 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class AiModelCatalogSyncService {
-    @org.springframework.beans.factory.annotation.Autowired
-    private com.ban.vehicle_management.application.ai.service.AiRuntimeModeService runtimeMode;
-
-
     private static final Logger LOGGER = LoggerFactory.getLogger(AiModelCatalogSyncService.class);
 
     private final AiAssistantProperties properties;
@@ -38,13 +34,12 @@ public class AiModelCatalogSyncService {
             return;
         }
         AiProviderPortOut providerPortOut = providerPorts.stream()
-                .filter(provider -> provider.provider() == (runtimeMode == null ? AiProvider.GEMINI : runtimeMode.provider()))
+                .filter(provider -> provider.provider() == AiProvider.GEMINI)
                 .findFirst()
                 .orElse(null);
         if (providerPortOut == null) {
             return;
         }
-        if (runtimeMode != null && !runtimeMode.allows(providerPortOut.provider())) return;
         List<AiProviderModel> models = providerPortOut.listModels();
         catalogPortOut.upsertGeminiModels(models);
         LOGGER.info("Synced selected AI provider catalog count={}", models.size());

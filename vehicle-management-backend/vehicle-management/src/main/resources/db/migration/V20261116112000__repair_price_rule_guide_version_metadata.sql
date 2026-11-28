@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS pg_temp.price_rule_guide_version_repair;
 CREATE TEMP TABLE price_rule_guide_version_repair (
     guide_code varchar(120) PRIMARY KEY,
     guide_version_id uuid NOT NULL
@@ -9,14 +10,25 @@ INSERT INTO price_rule_guide_version_repair VALUES
 
 -- Guide step order is zero-based throughout the user-guide runtime. Move the
 -- rows out of the unique-index range first, then normalize 1..N to 0..N-1.
+-- Only versions still using 1..N need repair; reruns must preserve 0..N-1.
+DROP TABLE IF EXISTS pg_temp.price_rule_guide_step_order_repair;
+CREATE TEMP TABLE price_rule_guide_step_order_repair ON COMMIT DROP AS
+SELECT repair.guide_version_id
+FROM price_rule_guide_version_repair repair
+JOIN notification.user_guide_steps step
+  ON step.guide_version_id = repair.guide_version_id
+GROUP BY repair.guide_version_id
+HAVING min(step.display_order) = 1
+   AND max(step.display_order) = count(*);
+
 UPDATE notification.user_guide_steps step
 SET display_order = step.display_order + 100
-FROM price_rule_guide_version_repair repair
+FROM price_rule_guide_step_order_repair repair
 WHERE step.guide_version_id = repair.guide_version_id;
 
 UPDATE notification.user_guide_steps step
 SET display_order = step.display_order - 101
-FROM price_rule_guide_version_repair repair
+FROM price_rule_guide_step_order_repair repair
 WHERE step.guide_version_id = repair.guide_version_id;
 
 -- V20261116111000 selected the newest version after inserting version 2, so it

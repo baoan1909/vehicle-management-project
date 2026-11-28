@@ -1,3 +1,4 @@
+import { getEnumLabel } from "@/shared/utils/enumLabels";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
@@ -69,14 +70,14 @@ const emptyGuideCounts = (): Record<GuideTab, number> => ({
 
 const displayTypeOptions = [
   { label: "Mọi loại hiển thị", value: "all" },
-  { label: "Modal", value: "MODAL" },
-  { label: "Bottom sheet", value: "BOTTOM_SHEET" },
-  { label: "Coach mark", value: "COACH_MARK" },
-  { label: "Tooltip", value: "TOOLTIP" },
-  { label: "Popover", value: "POPOVER" },
-  { label: "Banner", value: "BANNER" },
-  { label: "Inline card", value: "INLINE_CARD" },
-  { label: "Callout", value: "CALLOUT" },
+  { label: "Hộp thoại", value: "MODAL" },
+  { label: "Bảng trượt từ dưới", value: "BOTTOM_SHEET" },
+  { label: "Hướng dẫn từng bước", value: "COACH_MARK" },
+  { label: "Chú thích", value: "TOOLTIP" },
+  { label: "Khung thông tin nổi", value: "POPOVER" },
+  { label: "Dải thông báo", value: "BANNER" },
+  { label: "Thẻ trong trang", value: "INLINE_CARD" },
+  { label: "Khung lưu ý", value: "CALLOUT" },
   { label: "Lộ trình vận hành", value: "JOURNEY" },
 ];
 
@@ -615,9 +616,9 @@ export function UserGuideManagementPage() {
                   <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-2">
                     <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
                       <strong className="tw-text-[0.95rem] tw-text-vm-slate-900">{guide.code}</strong>
-                      <Badge tone={statusTone(guide.status)}>{guide.status}</Badge>
+                      <Badge tone={statusTone(guide.status)}>{getEnumLabel("guideStatus", guide.status)}</Badge>
                       <Badge tone="neutral">v{guide.currentVersion}</Badge>
-                      <Badge tone="neutral">{guide.displayType}</Badge>
+                      <Badge tone="neutral">{getEnumLabel("guideDisplayType", guide.displayType)}</Badge>
                     </div>
                     <div className="tw-flex tw-flex-wrap tw-gap-1">
                       {canUpdate ? <Button onClick={() => openEditGuide(guide)} size="sm" variant="secondary">Sửa</Button> : null}
@@ -801,7 +802,7 @@ export function UserGuideManagementPage() {
             <Button onClick={() => setVersionsOpen(false)} variant="secondary">Đóng</Button>
           </div>
         )}
-        description={versionsGuide ? `Mã ${versionsGuide.code} · trạng thái ${versionsGuide.status} · bản phát hành v${versionsGuide.currentVersion}` : undefined}
+        description={versionsGuide ? `Mã ${versionsGuide.code} · trạng thái ${getEnumLabel("guideStatus", versionsGuide.status)} · bản phát hành v${versionsGuide.currentVersion}` : undefined}
         onClose={() => setVersionsOpen(false)}
         open={versionsOpen}
         title="Phiên bản hướng dẫn"

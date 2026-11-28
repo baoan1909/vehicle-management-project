@@ -1,3 +1,4 @@
+import { getEnumLabel } from "@/shared/utils/enumLabels";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useBlocker, useSearchParams } from "react-router-dom";
 import { Button, Card, ConfirmDialog, Modal, SelectMenu, useToast } from "@/components/ui";
@@ -703,7 +704,7 @@ export function ParkingLayoutEditorPage() {
             {draft ? (
               <div ref={setToolbarTarget} className="tw-ml-auto tw-flex tw-min-h-10 tw-items-center tw-justify-end" />
             ) : selectedZone ? (
-              <span className="tw-text-xs tw-font-semibold tw-text-slate-500">{selectedZone.code} · {selectedZone.trackingMode ?? "SPACE"}</span>
+              <span className="tw-text-xs tw-font-semibold tw-text-slate-500">{selectedZone.code} · {getEnumLabel("trackingMode", selectedZone.trackingMode ?? "SPACE")}</span>
             ) : null}
           </div>
           {error ? <p className="tw-m-3 tw-rounded-md tw-bg-red-50 tw-p-3 tw-text-xs tw-font-bold tw-text-red-700">{error}</p> : null}
@@ -970,10 +971,10 @@ export function ParkingLayoutEditorPage() {
         <Card className="tw-p-4">
           <div className="tw-flex tw-flex-wrap tw-gap-x-6 tw-gap-y-2 tw-text-[0.8rem] tw-font-semibold tw-text-vm-slate-700">
             <span>Khu: <strong>{selectedZone.name}</strong></span>
-            <span>Tracking: <strong>{selectedZone.trackingMode ?? "—"}</strong></span>
-            <span>Layout: <strong>{selectedZone.layoutStatus ?? "—"}</strong></span>
+            <span>Theo dõi: <strong>{getEnumLabel("trackingMode", selectedZone.trackingMode)}</strong></span>
+            <span>Sơ đồ: <strong>{getEnumLabel("layoutStatus", selectedZone.layoutStatus)}</strong></span>
             <span>Phiên bản: <strong>{selectedZone.layoutVersion ?? draft?.version ?? "—"}</strong></span>
-            <span>Draft revision: <strong>{draft?.draftRevision ?? "—"}</strong></span>
+            <span>Lần sửa bản nháp: <strong>{draft?.draftRevision ?? "—"}</strong></span>
             <span>Lưu gần nhất: <strong>{draft?.lastSavedAt ?? "—"}</strong></span>
             <span>Xuất bản: <strong>{draft?.publishedBy ?? "—"} lúc {draft?.publishedAt ?? "—"}</strong></span>
             {dirty && <span className="tw-font-extrabold tw-text-amber-600">• Có thay đổi chưa lưu</span>}
@@ -1007,7 +1008,7 @@ export function ParkingLayoutEditorPage() {
                 <Button variant="secondary" onClick={() => addSpace()}>+ Ô đỗ</Button>
                 {(["WALL", "COLUMN", "DRIVE_LANE", "ENTRY", "EXIT", "TEXT", "BACKGROUND"] as const).map((type) => (
                   <Button key={type} variant="secondary" onClick={() => addElement(type)}>
-                    + {type}
+                    + {getEnumLabel("layoutElementType", type)}
                   </Button>
                 ))}
               </div>

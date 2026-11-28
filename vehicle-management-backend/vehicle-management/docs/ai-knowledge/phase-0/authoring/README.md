@@ -1,3 +1,5 @@
+> Đợt 5 — 27/11/2026: 21 tài liệu DRAFT, registry 1.344 câu (1.104 cũ + 240 mới); holdout 40, bổ sung cũ 24 và 4 probe giữ riêng. Xem [báo cáo đợt 5](evaluation/batch-05-report.md). Các mốc đợt 4 bên dưới là lịch sử.
+
 # Phase 0 — Chốt nghiệp vụ và baseline trợ lý AI
 
 > Đợt 4 — 23/11/2026: 16 tài liệu, bốn đợt và 1.104 câu. Xem [báo cáo đợt 4](evaluation/batch-04-report.md); mọi bản tri thức đang làm mới vẫn DRAFT và chưa publish.
@@ -105,4 +107,4 @@ Kết thúc đợt 2: kiểm thử cục bộ đã qua; gate Gemini bản cuối
 Bọc ghi chú kỹ thuật/nguồn truy vết bằng `<!-- authoring-only:start -->` và `<!-- authoring-only:end -->`. Script sync loại khối này trước khi xuất, giữ hash nguồn đầy đủ và hash import riêng. Marker thiếu, đảo thứ tự hoặc lồng nhau làm kiểm tra thất bại; không publish khi lỗi. Nội dung điều kiện và giới hạn cần cho người dùng phải nằm ngoài khối nội bộ. Bốn tài liệu đợt 4 áp dụng quy ước này; không tự loại các hạn chế nghiệp vụ ở tài liệu cũ.
 
 ### Trạng thái rà soát ngày 24/11/2026
-Corpus có 16 nguồn DRAFT, 1.104 câu trong registry (baseline120 và bốn đợt). Đợt4 có264 câu/44 tình huống; chưa có holdout mù. Kết quả có tính nghiệm thu phải lấy từ [báo cáo đợt4](evaluation/batch-04-report.md), không suy từ số test hoặc nhãn APPROVED của tài liệu quản trị cũ. Chưa nạp/publish corpus vào DB dev.
+Mốc lịch sử trước đợt 5: corpus có 16 nguồn DRAFT, 1.104 câu trong registry (baseline120 và bốn đợt). Đợt4 có264 câu/44 tình huống; chưa có holdout mù. Kết quả có tính nghiệm thu phải lấy từ [báo cáo đợt4](evaluation/batch-04-report.md), không suy từ số test hoặc nhãn APPROVED của tài liệu quản trị cũ. Chưa nạp/publish corpus vào DB dev.

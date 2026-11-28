@@ -1,3 +1,4 @@
+import { getEnumLabel } from "@/shared/utils/enumLabels";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -93,7 +94,7 @@ export function PostOnboardingReadinessDrawer({ onClose, open }: Props) {
   }, [load, open, user?.accessRevision]);
 
   const lotOptions = useMemo(() => (data?.parkingLots ?? []).map((lot) => ({
-    label: `${lot.name} · ${lot.status ?? "Chưa rõ trạng thái"}`,
+    label: `${lot.name} · ${getEnumLabel("parkingLotStatus", lot.status)}`,
     value: lot.parkingLotId,
   })), [data?.parkingLots]);
 

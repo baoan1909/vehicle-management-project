@@ -143,6 +143,52 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+for (const roleCode of ["PARKING_MANAGER", "EMPLOYEE"]) {
+  test(`${roleCode} sees the parking assignment explanation until assigned`, async ({ page }) => {
+    await page.route("**/vehicle-management/api/**", (route) => route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify(envelope(new URL(route.request().url()).pathname.includes("/administrative-divisions/") ? [] : null)),
+    }));
+    await seedToken(page);
+    await mockProfile(page);
+    await mockAccess(page, access({
+      roleCode,
+      accessState: "ORGANIZATION_ACCESS_REQUIRED",
+      requiredAction: "CONTACT_ORGANIZATION_ADMIN",
+      permissionCodes: [],
+    }));
+    await page.goto("/admin/profile");
+    const warning = page.getByRole("status").filter({ hasText: "Bạn chưa được phân công vào bãi xe." });
+    await expect(warning).toBeVisible();
+    await expect(warning).toContainText("Vui lòng chờ quản trị viên phân công để sử dụng các chức năng.");
+    await expect(page.getByLabel("CoParking admin sidebar")).toHaveCount(0);
+
+    await mockAccess(page, access({ roleCode }));
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "Thông tin tài khoản", exact: true })).toBeVisible();
+    await expect(warning).toHaveCount(0);
+    await expect(page.getByLabel("CoParking admin sidebar")).toBeVisible();
+  });
+}
+
+test("pending approval does not show a parking assignment explanation", async ({ page }) => {
+  await page.route("**/vehicle-management/api/**", (route) => route.fulfill({
+    contentType: "application/json",
+    body: JSON.stringify(envelope(new URL(route.request().url()).pathname.includes("/administrative-divisions/") ? [] : null)),
+  }));
+  await seedToken(page);
+  await mockProfile(page);
+  await mockAccess(page, access({
+    roleCode: "EMPLOYEE",
+    accessState: "PENDING_APPROVAL",
+    requiredAction: "WAIT_FOR_APPROVAL",
+    permissionCodes: [],
+  }));
+  await page.goto("/admin/profile");
+  await expect(page.getByRole("heading", { name: "Thông tin tài khoản", exact: true })).toBeVisible();
+  await expect(page.getByText("Bạn chưa được phân công vào bãi xe.", { exact: false })).toHaveCount(0);
+});
+
 test("1 fresh login resolves current-access before exposing permissions", async ({ page }) => {
   await mockProfile(page);
   await mockAccess(page, access());

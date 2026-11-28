@@ -1,0 +1,65 @@
+{
+  "cohort": "cohort-20261126T192655Z",
+  "groups": {
+    "ACCENTED": {
+      "planned": 40,
+      "observed": 4,
+      "completedUngraded": 4,
+      "notRun": 36,
+      "graded": 0,
+      "pass": 0,
+      "semanticScore": null,
+      "gate": "PENDING"
+    },
+    "UNACCENTED": {
+      "planned": 40,
+      "observed": 4,
+      "completedUngraded": 4,
+      "notRun": 36,
+      "graded": 0,
+      "pass": 0,
+      "semanticScore": null,
+      "gate": "PENDING"
+    },
+    "TYPO": {
+      "planned": 40,
+      "observed": 0,
+      "completedUngraded": 0,
+      "notRun": 40,
+      "graded": 0,
+      "pass": 0,
+      "semanticScore": null,
+      "gate": "PENDING"
+    },
+    "PARAPHRASE": {
+      "planned": 40,
+      "observed": 0,
+      "completedUngraded": 0,
+      "notRun": 40,
+      "graded": 0,
+      "pass": 0,
+      "semanticScore": null,
+      "gate": "PENDING"
+    },
+    "SHORT": {
+      "planned": 40,
+      "observed": 0,
+      "completedUngraded": 0,
+      "notRun": 40,
+      "graded": 0,
+      "pass": 0,
+      "semanticScore": null,
+      "gate": "PENDING"
+    },
+    "CONTEXTUAL": {
+      "planned": 40,
+      "observed": 0,
+      "completedUngraded": 0,
+      "notRun": 40,
+      "graded": 0,
+      "pass": 0,
+      "semanticScore": null,
+      "gate": "PENDING"
+    }
+  }
+}

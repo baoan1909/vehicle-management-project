@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.application.operations.shiftassignment.port.in;
 
+import com.ban.vehicle_management.domain.operations.shiftassignment.model.EmployeeShiftSchedule;
+
 import com.ban.vehicle_management.domain.operations.shiftassignment.model.ShiftAssignment;
 import com.ban.vehicle_management.shared.enumeration.operations.ShiftAssignmentStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ShiftType;
@@ -8,6 +10,9 @@ import java.util.List;
 import java.util.UUID;
 
 public interface ShiftAssignmentPortIn {
+    List<EmployeeShiftSchedule> getMySchedule(
+            LocalDate fromDate, LocalDate toDate, ShiftAssignmentStatus status);
+
 
     ShiftAssignment createAssignment(
             UUID shiftId,

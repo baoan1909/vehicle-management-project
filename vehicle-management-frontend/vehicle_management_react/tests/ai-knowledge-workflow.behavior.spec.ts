@@ -9,8 +9,8 @@ const knowledgeDocument = {
   tenantId: null, effectiveFrom: null, effectiveTo: null, reviewedAt: null, archivedAt: null, failureCode: null, createdAt: source.createdAt, updatedAt: null,
 };
 const version = {
-  indexVersionId: "index-qwen", versionCode: "LOCAL-2026-11", status: "READY", provider: "LM_STUDIO", modelId: "qwen3-embedding-0.6b",
-  modelConfigurationId: "embedding-local", dimension: 768, chunkerVersion: "chunks-v1", embeddingPromptVersion: "qwen-qa-v1", distanceMetric: "COSINE", normalization: "L2",
+  indexVersionId: "index-google", versionCode: "GOOGLE-2026-11", status: "READY", provider: "GEMINI", modelId: "gemini-embedding-001",
+  modelConfigurationId: "embedding-google", dimension: 768, chunkerVersion: "chunks-v1", embeddingPromptVersion: "rag-qa-v1", distanceMetric: "COSINE", normalization: "L2",
   embeddedChunkCount: 16, expectedChunkCount: 16, failedChunkCount: 0, failureCode: null, contentChecksum: "fixture", createdAt: source.createdAt, updatedAt: source.createdAt,
   readyAt: source.createdAt, activatedAt: null as string | null, retiredAt: null,
 };
@@ -49,7 +49,8 @@ async function fixture(page: Page, options: { empty?: boolean; readonly?: boolea
     }
     if (path === "/ai/index-versions") return route.fulfill({ json: envelope([{ ...version, status: versionStatus }]) });
     if (path === "/ai/models/configurations") return route.fulfill({ json: envelope([]) });
-    if (path === "/ai/index-versions/index-qwen/activate" && request.method() === "POST") {
+    if (path === "/ai/models/catalog" || path === "/ai/models/warnings") return route.fulfill({ json: envelope([]) });
+    if (path === "/ai/index-versions/index-google/activate" && request.method() === "POST") {
       versionStatus = "ACTIVE";
       return route.fulfill({ json: envelope({ ...version, status: versionStatus, activatedAt: source.createdAt }) });
     }
@@ -142,7 +143,7 @@ test("old index deep link works; technical fields are collapsed and activation r
   expect(state.requests.filter((request) => request.method !== "GET")).toEqual([]);
   await page.getByRole("dialog", { name: "Bật phiên bản tìm kiếm" }).getByRole("button", { name: "Bật sử dụng", exact: true }).click();
   await expect(page.getByRole("cell", { name: "Đang dùng", exact: true })).toBeVisible();
-  expect(state.requests.filter((request) => request.method === "POST")).toEqual([{ path: "/ai/index-versions/index-qwen/activate", method: "POST" }]);
+  expect(state.requests.filter((request) => request.method === "POST")).toEqual([{ path: "/ai/index-versions/index-google/activate", method: "POST" }]);
   expect(state.unknown).toEqual([]);
 });
 
@@ -178,4 +179,15 @@ test("archived-only warehouse guides back to upload; mobile overview has no page
   await page.screenshot({ path: testInfo.outputPath("knowledge-mobile.png"), fullPage: true });
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.screenshot({ path: testInfo.outputPath("knowledge-desktop.png"), fullPage: true });
+});
+
+test("Google model management does not request the removed provider switch endpoint", async ({ page }) => {
+  const state = await fixture(page);
+  await page.goto("/tests/ai-knowledge-workflow-harness.html?page=models");
+  await expect(page.getByRole("heading", { name: "Quản lý mô hình AI" })).toBeVisible();
+  await expect(page.getByText(/Chatbot sử dụng Google API/)).toBeVisible();
+  await expect.poll(() => state.requests.filter((request) => request.path.startsWith("/ai/models/")).length).toBe(3);
+  await expect(page.getByRole("cell", { name: "Đang tải...", exact: true })).toHaveCount(0);
+  expect(state.requests.some((request) => request.path === "/ai/runtime")).toBe(false);
+  expect(state.unknown).toEqual([]);
 });

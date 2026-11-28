@@ -77,12 +77,12 @@ const segmentTabs: Array<{ label: string; value: SegmentValue }> = [
   { label: "Tất cả", value: "all" },
   { label: "Đã duyệt", value: "approved" },
   { label: "Chờ duyệt", value: "pending" },
-  { label: "VIP", value: "vip" },
+  { label: "Khách ưu tiên", value: "vip" },
 ];
 
 const customerTypeOptions = [
   { label: "Đăng ký", value: "REGISTERED" },
-  { label: "VIP", value: "VIP" },
+  { label: "Khách ưu tiên", value: "VIP" },
 ];
 
 const genderOptions = [
@@ -148,14 +148,14 @@ function approvalLabel(status?: CustomerApprovalStatus | null) {
 }
 
 function customerTypeLabel(type?: CustomerType | null) {
-  if (type === "VIP") return "VIP";
+  if (type === "VIP") return "Khách ưu tiên";
   if (type === "REGISTERED") return "Đăng ký";
   return "--";
 }
 
 function customerStatusLabel(status?: string | null) {
-  if (status === "ACTIVE") return "ACTIVE";
-  if (status === "INACTIVE") return "INACTIVE";
+  if (status === "ACTIVE") return "Đang hoạt động";
+  if (status === "INACTIVE") return "Ngừng hoạt động";
   return "--";
 }
 
@@ -179,7 +179,7 @@ function subscriptionStatusLabel(status?: string | null) {
   if (status === "EXPIRED") return "Hết hạn";
   if (status === "CANCELLED") return "Đã hủy";
   if (status === "REJECTED") return "Từ chối";
-  return status || "--";
+  return status ? "Chưa xác định" : "--";
 }
 
 function subscriptionStatusTone(status?: string | null) {

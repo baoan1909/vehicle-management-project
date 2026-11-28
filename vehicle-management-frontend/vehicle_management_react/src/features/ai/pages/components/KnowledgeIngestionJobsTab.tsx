@@ -1,3 +1,4 @@
+import { getEnumLabel } from "@/shared/utils/enumLabels";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge, Button, Drawer, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
@@ -141,7 +142,7 @@ export function KnowledgeIngestionJobsTab() {
                       <span className="tw-text-xs tw-font-semibold tw-text-slate-500">#{job.documentId}</span>
                     </td>
                     <td className="tw-px-3 tw-py-3"><Badge tone={meta.tone} className="tw-w-fit tw-whitespace-nowrap tw-px-2.5">{meta.label}</Badge></td>
-                    <td className="tw-px-3 tw-py-3 tw-text-xs tw-font-semibold tw-text-slate-600">{job.currentStage ? (stageLabel[job.currentStage] ?? job.currentStage) : "—"}</td>
+                    <td className="tw-px-3 tw-py-3 tw-text-xs tw-font-semibold tw-text-slate-600">{job.currentStage ? (stageLabel[job.currentStage] ?? "Chưa xác định") : "—"}</td>
                     <td className="tw-px-3 tw-py-3 tw-text-xs tw-font-bold tw-text-slate-700">{job.progressPercent != null ? `${job.progressPercent}%` : "—"}</td>
                     <td className="tw-px-3 tw-py-3 tw-text-xs tw-font-semibold tw-text-slate-600">{job.attemptCount}/{job.maxAttempts}</td>
                     <td className="tw-px-3 tw-py-3">
@@ -186,8 +187,8 @@ export function KnowledgeIngestionJobsTab() {
           ) : events.map((event) => (
             <div className="tw-rounded-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-slate-50 tw-p-3" key={event.eventId}>
               <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
-                <Badge tone="neutral" className="tw-w-fit tw-whitespace-nowrap tw-px-2 tw-text-[0.7rem]">{event.eventType}</Badge>
-                {event.stage ? <span className="tw-text-[0.7rem] tw-font-black tw-text-slate-500">{stageLabel[event.stage] ?? event.stage}</span> : null}
+                <Badge tone="neutral" className="tw-w-fit tw-whitespace-nowrap tw-px-2 tw-text-[0.7rem]">{getEnumLabel("ingestionEvent", event.eventType)}</Badge>
+                {event.stage ? <span className="tw-text-[0.7rem] tw-font-black tw-text-slate-500">{stageLabel[event.stage] ?? "Chưa xác định"}</span> : null}
                 <span className="tw-ml-auto tw-text-[0.7rem] tw-font-semibold tw-text-slate-400">{formatApplicationDateTime(event.createdAt)}</span>
               </div>
               {event.detail ? <p className="tw-m-0 tw-mt-1 tw-text-xs tw-leading-5 tw-text-slate-600">{event.detail}</p> : null}

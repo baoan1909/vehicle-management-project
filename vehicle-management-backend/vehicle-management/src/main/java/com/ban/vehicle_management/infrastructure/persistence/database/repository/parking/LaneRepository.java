@@ -4,6 +4,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.par
 import com.ban.vehicle_management.shared.enumeration.parking.LaneDirection;
 import com.ban.vehicle_management.shared.enumeration.parking.LaneStatus;
 import java.util.UUID;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -78,4 +79,30 @@ public interface LaneRepository extends JpaRepository<LaneEntity, UUID>, JpaSpec
     int closeAllByOrganizationIds(
             @Param("organizationIds") Collection<UUID> organizationIds,
             @Param("now") Instant now);
+    // Include non-active lanes: device inventory must still be filterable by their location.
+    @Query(value = """
+            select lane.lane_id as "laneId", zone.parking_lot_id as "parkingLotId",
+                   lane.gate_id as "gateId", lane.code as "code", lane.name as "name",
+                   lane.direction as "direction", lane.status as "status",
+                   gate.name as "gateName", zone.name as "zoneName"
+              from parking.lanes lane
+              join parking.gates gate on gate.gate_id = lane.gate_id
+              join parking.zones zone on zone.zone_id = gate.zone_id
+             order by zone.parking_lot_id, lane.code, lane.lane_id
+            """, nativeQuery = true)
+    List<DeviceLaneOptionProjection> findDeviceLaneOptions();
+
+    @Query(value = """
+            select lane.lane_id as "laneId", zone.parking_lot_id as "parkingLotId",
+                   lane.gate_id as "gateId", lane.code as "code", lane.name as "name",
+                   lane.direction as "direction", lane.status as "status",
+                   gate.name as "gateName", zone.name as "zoneName"
+              from parking.lanes lane
+              join parking.gates gate on gate.gate_id = lane.gate_id
+              join parking.zones zone on zone.zone_id = gate.zone_id
+             where zone.parking_lot_id in (:parkingLotIds)
+             order by zone.parking_lot_id, lane.code, lane.lane_id
+            """, nativeQuery = true)
+    List<DeviceLaneOptionProjection> findDeviceLaneOptionsForLots(
+            @Param("parkingLotIds") Collection<UUID> parkingLotIds);
 }
