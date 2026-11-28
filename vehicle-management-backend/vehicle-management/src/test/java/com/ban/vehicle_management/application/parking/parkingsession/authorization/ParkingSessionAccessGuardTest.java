@@ -177,7 +177,7 @@ class ParkingSessionAccessGuardTest {
         EmployeeParkingLotAccessGuard employeeGuard = mock(EmployeeParkingLotAccessGuard.class);
         ParkingSessionAccessGuard accessGuard = new ParkingSessionAccessGuard(
                 new FakeCurrentAccountPortIn(currentAccount("EMPLOYEE", EmployeeStatus.ACTIVE,
-                        Set.of(ParkingSessionAccessGuard.PARKING_SESSION_CHECK_IN_ALL))),
+                        Set.of(ParkingSessionAccessGuard.PARKING_SESSION_CHECK_IN_ALL, "PARKING_SCOPE_SHIFT"))),
                 organizationGuard, employeeGuard);
         ParkingLot lot = new ParkingLot();
         lot.setParkingLotId(UUID.randomUUID());

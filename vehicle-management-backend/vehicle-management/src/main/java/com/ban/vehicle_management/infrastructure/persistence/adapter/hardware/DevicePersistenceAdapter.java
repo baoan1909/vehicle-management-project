@@ -2,6 +2,7 @@ package com.ban.vehicle_management.infrastructure.persistence.adapter.hardware;
 
 import com.ban.vehicle_management.application.hardware.device.port.out.DevicePortOut;
 import com.ban.vehicle_management.domain.hardware.device.model.Device;
+import com.ban.vehicle_management.domain.hardware.device.model.DeviceLaneOption;
 import com.ban.vehicle_management.infrastructure.mapper.hardware.DevicePersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.hardware.DeviceEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.hardware.DeviceRepository;
@@ -31,6 +32,15 @@ public class DevicePersistenceAdapter implements DevicePortOut {
         this.deviceRepository = deviceRepository;
         this.laneRepository = laneRepository;
         this.devicePersistenceMapper = devicePersistenceMapper;
+    }
+
+    @Override
+    public List<DeviceLaneOption> findLaneOptions(Set<UUID> accessibleParkingLotIds) {
+        if (accessibleParkingLotIds != null && accessibleParkingLotIds.isEmpty()) return List.of();
+        var lanes = accessibleParkingLotIds == null
+                ? laneRepository.findDeviceLaneOptions()
+                : laneRepository.findDeviceLaneOptionsForLots(accessibleParkingLotIds);
+        return lanes.stream().map(devicePersistenceMapper::toLaneOption).toList();
     }
 
     @Override

@@ -17,7 +17,7 @@ const requiredMessages = [
   "Xác nhận hành động",
   "Hệ thống chỉ thực hiện sau khi bạn xác nhận.",
   "Không thể cập nhật hành động.",
-  "Đồng bộ catalog",
+  "Đồng bộ danh mục",
   "Đang tải...",
 ];
 

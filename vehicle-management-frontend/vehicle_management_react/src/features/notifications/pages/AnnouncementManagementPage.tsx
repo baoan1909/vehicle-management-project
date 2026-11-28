@@ -1,3 +1,4 @@
+import { getRoleLabel } from "@/shared/utils/accountStatus";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Badge, Button, DateTimeScheduleField, Drawer, Modal, PaginationFooter, SelectMenu, nowLocalDateTime, useToast } from "@/components/ui";
@@ -104,7 +105,7 @@ function buildAudienceOptions(roleOptions: RoleOption[]) {
   return [
     { label: "Tất cả đối tượng", value: "all" },
     { label: "Tất cả tài khoản đang hoạt động", value: "ALL_ACTIVE_ACCOUNTS" },
-    ...roleOptions.map((role) => ({ label: role.code, value: role.code })),
+  ...roleOptions.map((role) => ({ label: getRoleLabel(role.code, role.label), value: role.code })),
   ];
 }
 
@@ -286,9 +287,9 @@ function buildCopyForm(announcement: BroadcastAnnouncementResponse): Announcemen
 }
 
 function getExpectedRecipientText(form: AnnouncementFormState | BroadcastAnnouncementResponse) {
-  if (form.audienceType === "ALL_ACTIVE_ACCOUNTS") return "Tính theo toàn bộ account ACTIVE khi phát";
+  if (form.audienceType === "ALL_ACTIVE_ACCOUNTS") return "Tính theo toàn bộ tài khoản đang hoạt động lúc gửi";
   const roleCount = (form.roleCodes ?? []).length;
-  return roleCount ? `${roleCount} role được chọn, backend lọc account ACTIVE khi phát` : "Chưa chọn role nhận";
+  return roleCount ? `${roleCount} vai trò được chọn, chỉ gửi tới tài khoản đang hoạt động` : "Chưa chọn vai trò nhận";
 }
 
 function getRedirectOptions(currentRedirectUrl: string) {
@@ -775,7 +776,7 @@ function AnnouncementDrawer({
                       if (!selected) clearFieldError("roleCodes");
                     }}
                   >
-                    <span>{role.code}</span>
+                    <span>{getRoleLabel(role.code, role.label)}</span>
                     {selected ? <i className="fas fa-times tw-text-[0.68rem]" /> : null}
                   </button>
                 );
@@ -1147,7 +1148,7 @@ export function AnnouncementManagementPage() {
         toast.info("Backend hiện lưu thời điểm phát trên bản nháp; scheduler tự phát chưa có endpoint riêng.", "Đã lưu lịch dự kiến");
       } else {
         await publishBroadcastAnnouncement(saved.data.broadcastId);
-        toast.success("Thông báo đã được phát tới các tài khoản ACTIVE thuộc đối tượng nhận.", "Đã xuất bản");
+        toast.success("Thông báo đã được gửi tới các tài khoản đang hoạt động thuộc đối tượng nhận.", "Đã xuất bản");
       }
       setDrawerOpen(false);
       setEditingAnnouncement(null);

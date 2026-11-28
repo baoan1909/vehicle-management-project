@@ -20,7 +20,7 @@ type OnboardingCategoryTab = {
 const categoryTabs: OnboardingCategoryTab[] = [
   {
     icon: "fas fa-user-shield",
-    label: "System Admin",
+    label: "Quản trị hệ thống",
     permissions: ["ONBOARDING_APPROVAL_REVIEW_SYSTEM_ADMIN_ALL"],
     value: "system-admin",
   },

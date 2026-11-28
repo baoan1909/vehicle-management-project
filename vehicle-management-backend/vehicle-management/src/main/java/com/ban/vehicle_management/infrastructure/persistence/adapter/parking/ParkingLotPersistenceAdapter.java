@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.infrastructure.persistence.adapter.parking;
 
+import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLotResponsibility;
+
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.parking.parkinglot.model.result.ParkingLotActivationReadiness;
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
@@ -43,6 +45,14 @@ public class ParkingLotPersistenceAdapter implements ParkingLotPortOut {
         this.gateRepository = gateRepository;
         this.laneRepository = laneRepository;
         this.parkingLotPersistenceMapper = parkingLotPersistenceMapper;
+    }
+
+    @Override
+    public ParkingLotResponsibility findResponsibility(UUID parkingLotId) {
+        var rows = parkingLotRepository.findResponsibility(parkingLotId);
+        return new ParkingLotResponsibility(rows.isEmpty() ? null : rows.getFirst().getOrganizationName(),
+                rows.stream().filter(row -> row.getAccountId() != null)
+                    .map(parkingLotPersistenceMapper::toResponsibleManager).distinct().toList());
     }
 
     @Override

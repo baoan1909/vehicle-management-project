@@ -94,7 +94,7 @@ Không còn biến LM Studio trong cấu hình. Đường FAQ hợp lệ chỉ c
 - KnowledgeRetrievalServiceTest: FAQ trước index/embedding, không tương tác các port model/embedding trên đường chung, provenance đúng.
 - GuestPublicAssistantServiceTest và AssistantOrchestratorTest: hai chế độ, PREPARING, nguồn đổi, citation và không generation.
 - CommonKnowledgePersistenceTest: JPA/SQL trong DB Testcontainers riêng, quyền ba tầng, tenant, duyệt, phiên bản và hiệu lực. Không nạp toàn ứng dụng hoặc khởi tạo AI HTTP clients.
-- CommonKnowledgeCorpusTest: 984 câu DRAFT fixture hiện có, domain resolver/matcher/output validator. Không coi là SQL ranking, model live hoặc công bố corpus.
+- CommonKnowledgeCorpusTest: số câu batch DRAFT fixture lấy động từ manifest (mốc trước đợt 5 là 984, sau thêm đợt 5 là 1.224), domain resolver/matcher/output validator. Không coi là SQL ranking, model live hoặc công bố corpus.
 
 Chạy từng nhóm tuần tự; không chạy compiler, browser, DB integration và kiểm thử Google live cùng lúc. Xem báo cáo để biết nhóm nào đã chạy thực tế.
 

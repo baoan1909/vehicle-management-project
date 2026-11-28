@@ -165,7 +165,7 @@ app:
     recent-message-limit: ${AI_ASSISTANT_RECENT_MESSAGE_LIMIT:8}
     max-attempts: ${AI_ASSISTANT_MAX_ATTEMPTS:3}
     prompt-version: ${AI_ASSISTANT_PROMPT_VERSION:support-assistant-v3}
-    generation-timeout: ${AI_ASSISTANT_GENERATION_TIMEOUT:4s}
+    generation-timeout: ${AI_ASSISTANT_GENERATION_TIMEOUT:20s}
     assistant-job-concurrency: ${AI_ASSISTANT_JOB_CONCURRENCY:2}
     assistant-job-fixed-delay-ms: ${AI_ASSISTANT_JOB_FIXED_DELAY_MS:500}
     embedding:
@@ -203,7 +203,7 @@ app:
       project-id: ${GEMINI_PROJECT_ID:}
       base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com}
       max-attempts: ${GEMINI_MAX_ATTEMPTS:20}
-      call-budget: ${GEMINI_CALL_BUDGET:12s}
+      call-budget: ${GEMINI_CALL_BUDGET:60s}
       generation-min-interval: ${GEMINI_GENERATION_MIN_INTERVAL:5s}
       embedding-min-interval: ${GEMINI_EMBEDDING_MIN_INTERVAL:650ms}
     cache:

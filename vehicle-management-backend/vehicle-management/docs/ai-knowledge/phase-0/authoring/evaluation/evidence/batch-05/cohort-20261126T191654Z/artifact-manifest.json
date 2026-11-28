@@ -1,0 +1,63 @@
+[
+  {
+    "file": "checkpoint.json",
+    "sha256": "6b511c32e53f21c1ebeea457799748a191703ea15383bfd581355163cba601d9"
+  },
+  {
+    "file": "cohort.json",
+    "sha256": "aea49f7ce728626a73bc5a075740fdd9e69cebcbd969b0bb1562c5d5abf37574"
+  },
+  {
+    "file": "wire-attempts.json",
+    "sha256": "a8761174f0a55afc3c0f1c5e141f9619578fe7cae8f6f37ae7132d67f686b7b9"
+  },
+  {
+    "file": "credential-diagnostics.json",
+    "sha256": "7a462f2fa5bbe1f03a150a1ff35ef1fbd91565bc4f9132da4ca2add776656663"
+  },
+  {
+    "file": "credential-failures.json",
+    "sha256": "33127a282574e18b29ca7094cefa78e4aaa1e4b8032d3d6e6b65026bd333206b"
+  },
+  {
+    "file": "ingestion.json",
+    "sha256": "c2638ddbbd953ff1ca50f9719049f6a1c46e370d7d688a520c1e7b250a0c62c0"
+  },
+  {
+    "file": "transcript.json",
+    "sha256": "26056c885fd95c71329a5dde967d5eee3757d90ae80423754565ff1750a0e4aa"
+  },
+  {
+    "file": "approved-model-registry.json",
+    "sha256": "46c371b7a8b7ce57ff0e0a181ca77040c763759b9cb4c9f64d928b7128781cf3"
+  },
+  {
+    "file": "catalog-preflight.json",
+    "sha256": "8a6a06248f4c2814796f21ccd78b213a94a5771148d045ecea360fc1a4be4a34"
+  },
+  {
+    "file": "model-catalog.json",
+    "sha256": "b0445cf0c951f80509f77821572314095c669b548297021572f77e990793e41f"
+  },
+  {
+    "file": "api-security-checks.json",
+    "sha256": "e5bd449e26d3d0d411ddc75cfb58ce6245bde463be29ddcd58692af31e1437d3"
+  },
+  {
+    "file": "index-before-build.json",
+    "sha256": "28c0d3000ce77985cab9430618e8ea8339ff4959a634c9c50c0eb6968ef6bd3a"
+  },
+  {
+    "file": "index-duplicate-check.json",
+    "sha256": "04844cef4097309d122636804a0712bc583b32fc677ebfa5100c4503be339059"
+  },
+  {
+    "privateLog": "target/batch05-google-live/cohort-20261126T191654Z/run.log",
+    "sha256": "64d40fc1175d4c41782d570e9dc22c82f7c297f09dcb21f9eb8d60cb654ad949",
+    "copiedToGit": false
+  },
+  {
+    "file": "independent-semantic-review.json",
+    "sha256": "771b2dd7ac3348b532d33db2a5cf0406d66f400656d3b81386d7843b2e4936a2"
+  }
+]

@@ -284,7 +284,7 @@ class ShiftAssignmentUseCaseImplTest {
                 null,
                 employeeId,
                 null,
-                ShiftAssignmentStatus.ACTIVE,
+                null,
                 fromDate,
                 toDate,
                 null
@@ -299,6 +299,43 @@ class ShiftAssignmentUseCaseImplTest {
         assertEquals(1, result.size());
         verify(currentAccountPortIn)
                 .requirePermission("SHIFT_ASSIGNMENT_READ_OWN");
+    }
+
+    @Test
+    void ownScheduleIncludesScheduledShiftDetailsWithoutAdminAuditFields() {
+        UUID accountId = UUID.randomUUID();
+        UUID employeeId = UUID.randomUUID();
+        UUID lotId = UUID.randomUUID();
+        Shift shift = new Shift();
+        shift.setShiftId(UUID.randomUUID());
+        shift.setParkingLotId(lotId);
+        shift.setShiftCode("OWN-SHIFT");
+        shift.setStatus(com.ban.vehicle_management.shared.enumeration.operations.ShiftStatus.SCHEDULED);
+        shift.setStartTime(java.time.Instant.now());
+        shift.setEndTime(java.time.Instant.now().plusSeconds(3600));
+        ShiftAssignment assignment = new ShiftAssignment();
+        assignment.setShiftAssignmentId(UUID.randomUUID());
+        assignment.setShiftId(shift.getShiftId());
+        assignment.setEmployeeId(employeeId);
+        assignment.setStatus(ShiftAssignmentStatus.SCHEDULED);
+        com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot lot =
+                new com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot();
+        lot.setName("Own lot");
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(accountId);
+        when(employeePortOut.findByAccountId(accountId)).thenReturn(Optional.of(employee(employeeId, EmployeeStatus.ACTIVE)));
+        when(assignmentPortOut.findAll(null, null, employeeId, null, null, null, null, null)).thenReturn(List.of(assignment));
+        when(shiftPortOut.findById(shift.getShiftId())).thenReturn(Optional.of(shift));
+        when(parkingLotPortOut.findById(lotId)).thenReturn(Optional.of(lot));
+
+        var schedule = useCase.getMySchedule(null, null, null);
+        var mapper = org.mapstruct.factory.Mappers.getMapper(
+                com.ban.vehicle_management.application.operations.shiftassignment.mapper.ShiftAssignmentApiMapper.class);
+        var response = mapper.toOwnResponse(schedule.get(0));
+        assertEquals("OWN-SHIFT", response.getShiftCode());
+        assertEquals("Own lot", response.getParkingLotName());
+        assertEquals(ShiftAssignmentStatus.SCHEDULED, response.getStatus());
+        assertEquals(shift.getStartTime(), response.getStartTime());
+        verify(currentAccountPortIn).requirePermission("SHIFT_ASSIGNMENT_READ_OWN");
     }
 
     @Test

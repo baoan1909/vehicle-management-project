@@ -1,0 +1,686 @@
+{
+  "runs": [
+    {
+      "cohort": "cohort-20261126T183340Z",
+      "status": "STOPPED",
+      "stopReason": "InvalidDefinitionException: Java 8 date/time type `java.time.Instant` not supported by default: add Module \"com.fasterxml.jackson.datatype:jackson-datatype-jsr310\" to enable handling (or disable `MapperFeature.REQUIRE_HANDLERS_FOR_JAVA8_TIMES`) (through reference chain: java.util.ImmutableCollections$ListN[0]->com.ban.vehicle_management.domain.ai.model.AiModelConfiguration[\"createdAt\"])",
+      "actualGoogleHttpRequests": 0,
+      "checkpointHttpCount": 0,
+      "httpCountConsistent": true,
+      "inFlightObservations": 0,
+      "wireByTask": {
+        "catalog": 0,
+        "embedding": 0,
+        "generation": 0
+      },
+      "credentialsAttempted": [],
+      "documentsUploaded": 0,
+      "documentsPublished": 0,
+      "completedCaseIds": [],
+      "transcriptRows": 0,
+      "files": [
+        {
+          "file": "checkpoint.json",
+          "sha256": "e84f83857189fe2e89ec0ff5bf668d8e04d5533bd444c16e82a10dd4d88155ed"
+        },
+        {
+          "file": "cohort.json",
+          "sha256": "2bacc3556fd0181409ad518de45689ba4e79f98d4e5c7e4c491435388854e247"
+        },
+        {
+          "file": "wire-attempts.json",
+          "sha256": "5984eac0c5c6d947241e29dd5671b81a1546cedf77e08d38438ac47029969afa"
+        },
+        {
+          "file": "credential-diagnostics.json",
+          "sha256": "5100ab803a570945aa04c7687a4b33dd66f3d5878bf83db95a30e6ea696248f4"
+        },
+        {
+          "file": "credential-failures.json",
+          "sha256": "5984eac0c5c6d947241e29dd5671b81a1546cedf77e08d38438ac47029969afa"
+        },
+        {
+          "file": "ingestion.json",
+          "sha256": "5984eac0c5c6d947241e29dd5671b81a1546cedf77e08d38438ac47029969afa"
+        },
+        {
+          "file": "transcript.json",
+          "sha256": "5984eac0c5c6d947241e29dd5671b81a1546cedf77e08d38438ac47029969afa"
+        },
+        {
+          "file": "approved-model-registry.json",
+          "sha256": "f3a88ca2e94cb43b42ace10e3756a8cd0af67384aff86778941b344817b4de59"
+        },
+        {
+          "privateLog": "target/batch05-google-live/cohort-20261126T183340Z/run.log",
+          "sha256": "c32e2b4e343eae4a2e49911678a38131560d52b8899f1c0c48fd8cc6e312670c",
+          "copiedToGit": false
+        }
+      ]
+    },
+    {
+      "cohort": "cohort-20261126T183628Z",
+      "status": "STOPPED",
+      "stopReason": "IllegalStateException: HTTP_404:/api/ai/knowledge/sources:<!doctype html><html lang=\"en\"><head><title>HTTP Status 404 – Not Found</title><style type=\"text/css\">body {font-family:Tahoma,Arial,sans-serif;} h1, h2, h3, b {color:white;background-color:#525D76;} ",
+      "actualGoogleHttpRequests": 1,
+      "checkpointHttpCount": 1,
+      "httpCountConsistent": true,
+      "inFlightObservations": null,
+      "wireByTask": {
+        "catalog": 1,
+        "embedding": 0,
+        "generation": 0
+      },
+      "credentialsAttempted": [
+        "GEMINI_API_KEY"
+      ],
+      "documentsUploaded": 0,
+      "documentsPublished": 0,
+      "completedCaseIds": [],
+      "transcriptRows": 0,
+      "files": [
+        {
+          "file": "checkpoint.json",
+          "sha256": "2b8f4e87bb110521c7b401a745a575c831453e5c1e344e340e4a4353e0f2e506"
+        },
+        {
+          "file": "cohort.json",
+          "sha256": "9fa10a56a169dcd4c0057155f9fab761dad195bab83682af5d54ba756a41cdd3"
+        },
+        {
+          "file": "wire-attempts.json",
+          "sha256": "fd34c987ffd40ad254847c848ad8b1b33c70db309e496af1de58185fdb6d9a4d"
+        },
+        {
+          "file": "credential-diagnostics.json",
+          "sha256": "9d5cad3785fd28e189cc3b1fe6c62a00a5bd692390aab29185fea7946bb01844"
+        },
+        {
+          "file": "credential-failures.json",
+          "sha256": "5984eac0c5c6d947241e29dd5671b81a1546cedf77e08d38438ac47029969afa"
+        },
+        {
+          "file": "ingestion.json",
+          "sha256": "b8a79ed7024dab901e3e6332c0ad9c3f48ad41e0e7e8024ded3318b050b459b8"
+        },
+        {
+          "file": "transcript.json",
+          "sha256": "5984eac0c5c6d947241e29dd5671b81a1546cedf77e08d38438ac47029969afa"
+        },
+        {
+          "file": "approved-model-registry.json",
+          "sha256": "46c371b7a8b7ce57ff0e0a181ca77040c763759b9cb4c9f64d928b7128781cf3"
+        },
+        {
+          "file": "catalog-preflight.json",
+          "sha256": "59527e96b2ea90df7b85da323bacc6b84f8d52037a7b2746705102e9d66aecb1"
+        },
+        {
+          "file": "model-catalog.json",
+          "sha256": "b0445cf0c951f80509f77821572314095c669b548297021572f77e990793e41f"
+        },
+        {
+          "privateLog": "target/batch05-google-live/cohort-20261126T183628Z/run.log",
+          "sha256": "c2eff3194813ccfd225f1a065aef841a668966bb0da08151a68f9596de911476",
+          "copiedToGit": false
+        }
+      ]
+    },
+    {
+      "cohort": "cohort-20261126T184009Z",
+      "status": "STOPPED",
+      "stopReason": "IllegalStateException: HTTP_400:UPLOAD",
+      "actualGoogleHttpRequests": 1,
+      "checkpointHttpCount": 1,
+      "httpCountConsistent": true,
+      "inFlightObservations": null,
+      "wireByTask": {
+        "catalog": 1,
+        "embedding": 0,
+        "generation": 0
+      },
+      "credentialsAttempted": [
+        "GEMINI_API_KEY"
+      ],
+      "documentsUploaded": 0,
+      "documentsPublished": 0,
+      "completedCaseIds": [],
+      "transcriptRows": 0,
+      "files": [
+        {
+          "file": "checkpoint.json",
+          "sha256": "63e46f20deef12ef8b65bdbdac8781b626b20c8ebba14ab47d962c8745071ff4"
+        },
+        {
+          "file": "cohort.json",
+          "sha256": "4bf03229cd6c86b986662d0c13cd6405f4a775aa61a55bb6ffe9adae45c06426"
+        },
+        {
+          "file": "wire-attempts.json",
+          "sha256": "e11039ea0134fe65135fdb3aa669ee5090ac00168e63a2b7b66bbe8abc70e788"
+        },
+        {
+          "file": "credential-diagnostics.json",
+          "sha256": "9d5cad3785fd28e189cc3b1fe6c62a00a5bd692390aab29185fea7946bb01844"
+        },
+        {
+          "file": "credential-failures.json",
+          "sha256": "5984eac0c5c6d947241e29dd5671b81a1546cedf77e08d38438ac47029969afa"
+        },
+        {
+          "file": "ingestion.json",
+          "sha256": "46dd8cf14c45d13581e6865cb534c79560dcbaee48d9a9cdb8c279d0d513701c"
+        },
+        {
+          "file": "transcript.json",
+          "sha256": "5984eac0c5c6d947241e29dd5671b81a1546cedf77e08d38438ac47029969afa"
+        },
+        {
+          "file": "approved-model-registry.json",
+          "sha256": "46c371b7a8b7ce57ff0e0a181ca77040c763759b9cb4c9f64d928b7128781cf3"
+        },
+        {
+          "file": "catalog-preflight.json",
+          "sha256": "8a6a06248f4c2814796f21ccd78b213a94a5771148d045ecea360fc1a4be4a34"
+        },
+        {
+          "file": "model-catalog.json",
+          "sha256": "b0445cf0c951f80509f77821572314095c669b548297021572f77e990793e41f"
+        },
+        {
+          "privateLog": "target/batch05-google-live/cohort-20261126T184009Z/run.log",
+          "sha256": "24e2a2861ecf1172079d5f9be80a3064e30bbedc60d7594389c66cd5891f1ede",
+          "copiedToGit": false
+        }
+      ]
+    },
+    {
+      "cohort": "cohort-20261126T184255Z",
+      "status": "STOPPED",
+      "stopReason": "IllegalStateException: HTTP_400:/api/ai/knowledge/documents/4e1b83cd-8ab9-438c-a2ab-725ffe4e3de7/chunks:{\"success\":false,\"message\":\"Dữ liệu gửi lên không hợp lệ\",\"data\":{\"status\":400,\"path\":\"/vehicle-management/api/ai/knowledge/documents/4e1b83cd-8ab9-438c-a2ab-725ffe4e3de7/chunks\",\"error\":\"Bad Request\"",
+      "actualGoogleHttpRequests": 6,
+      "checkpointHttpCount": 6,
+      "httpCountConsistent": true,
+      "inFlightObservations": null,
+      "wireByTask": {
+        "catalog": 1,
+        "embedding": 5,
+        "generation": 0
+      },
+      "credentialsAttempted": [
+        "GEMINI_API_KEY"
+      ],
+      "documentsUploaded": 1,
+      "documentsPublished": 0,
+      "completedCaseIds": [],
+      "transcriptRows": 0,
+      "files": [
+        {
+          "file": "checkpoint.json",
+          "sha256": "2b488e5b8568ff530e3c414e60f596a744986d23b790f886d4381cf1dbbbcafa"
+        },
+        {
+          "file": "cohort.json",
+          "sha256": "62e57927e08537bda99fb1669c83bf2a9f309a2253b028365bc78545880cf851"
+        },
+        {
+          "file": "wire-attempts.json",
+          "sha256": "865d6f8084b0b7cf42ded110b4405f8f49c1250869052c4dcf4f6cbf78a309ac"
+        },
+        {
+          "file": "credential-diagnostics.json",
+          "sha256": "af17637fd4c817fde1e3860b03a87145bbee0d29e1b0809f5efc1a371f43b23d"
+        },
+        {
+          "file": "credential-failures.json",
+          "sha256": "5984eac0c5c6d947241e29dd5671b81a1546cedf77e08d38438ac47029969afa"
+        },
+        {
+          "file": "ingestion.json",
+          "sha256": "90bdd5028a9d92e8cee207d107e92c215d67d0c590607e848716ef49a69c64d2"
+        },
+        {
+          "file": "transcript.json",
+          "sha256": "5984eac0c5c6d947241e29dd5671b81a1546cedf77e08d38438ac47029969afa"
+        },
+        {
+          "file": "approved-model-registry.json",
+          "sha256": "46c371b7a8b7ce57ff0e0a181ca77040c763759b9cb4c9f64d928b7128781cf3"
+        },
+        {
+          "file": "catalog-preflight.json",
+          "sha256": "8a6a06248f4c2814796f21ccd78b213a94a5771148d045ecea360fc1a4be4a34"
+        },
+        {
+          "file": "model-catalog.json",
+          "sha256": "b0445cf0c951f80509f77821572314095c669b548297021572f77e990793e41f"
+        },
+        {
+          "privateLog": "target/batch05-google-live/cohort-20261126T184255Z/run.log",
+          "sha256": "8fc80259077e352a68a75df18eadbf0d61a2022004d34878a150a62620689bf6",
+          "copiedToGit": false
+        }
+      ]
+    },
+    {
+      "cohort": "cohort-20261126T184526Z",
+      "status": "STOPPED",
+      "stopReason": "IllegalStateException: HTTP_500:/api/ai/index-versions:{\"success\":false,\"message\":\"Hệ thống đang gặp sự cố. Vui lòng thử lại sau\",\"data\":{\"path\":\"/vehicle-management/api/ai/index-versions\",\"error\":\"Internal Server Error\",\"status\":500},\"timestamp\":\"2026-11",
+      "actualGoogleHttpRequests": 79,
+      "checkpointHttpCount": 79,
+      "httpCountConsistent": true,
+      "inFlightObservations": null,
+      "wireByTask": {
+        "catalog": 1,
+        "embedding": 78,
+        "generation": 0
+      },
+      "credentialsAttempted": [
+        "GEMINI_API_KEY"
+      ],
+      "documentsUploaded": 21,
+      "documentsPublished": 21,
+      "completedCaseIds": [],
+      "transcriptRows": 0,
+      "files": [
+        {
+          "file": "checkpoint.json",
+          "sha256": "7e367ef31715fd166ee592d071ea913e9b355df0d36710a58fce649d4b2e2020"
+        },
+        {
+          "file": "cohort.json",
+          "sha256": "d5a41029f5b302d74e3300d97f8a2a2879cf7df01be351f594a5f7347f471ded"
+        },
+        {
+          "file": "wire-attempts.json",
+          "sha256": "1f5376f76de6b0783eef863b8bef37af6022899ce1935e31cfbc0d224445326f"
+        },
+        {
+          "file": "credential-diagnostics.json",
+          "sha256": "09217bedb9be03d5f23e077d1568e9f5da3f6615d6f502bb4bec8adea65cc03f"
+        },
+        {
+          "file": "credential-failures.json",
+          "sha256": "5984eac0c5c6d947241e29dd5671b81a1546cedf77e08d38438ac47029969afa"
+        },
+        {
+          "file": "ingestion.json",
+          "sha256": "c492b5cf4612d88af418c3594287ab5b39f7168beae7694bb4efbe4cecb3976a"
+        },
+        {
+          "file": "transcript.json",
+          "sha256": "5984eac0c5c6d947241e29dd5671b81a1546cedf77e08d38438ac47029969afa"
+        },
+        {
+          "file": "approved-model-registry.json",
+          "sha256": "46c371b7a8b7ce57ff0e0a181ca77040c763759b9cb4c9f64d928b7128781cf3"
+        },
+        {
+          "file": "catalog-preflight.json",
+          "sha256": "8a6a06248f4c2814796f21ccd78b213a94a5771148d045ecea360fc1a4be4a34"
+        },
+        {
+          "file": "model-catalog.json",
+          "sha256": "b0445cf0c951f80509f77821572314095c669b548297021572f77e990793e41f"
+        },
+        {
+          "privateLog": "target/batch05-google-live/cohort-20261126T184526Z/run.log",
+          "sha256": "ca277b96298d7cd610a3bcc493ebbfaff425318a59c663095c377d0a004ac944",
+          "copiedToGit": false
+        }
+      ]
+    },
+    {
+      "cohort": "cohort-20261126T185016Z",
+      "status": "STOPPED",
+      "stopReason": "DataIntegrityViolationException: PreparedStatementCallback; SQL [update iam.accounts set status='INACTIVE' where account_id=?]; ERROR: new row for relation \"accounts\" violates check constraint \"ck_accounts_status\"\n  Detail: Failing row contains (848c1ae9-3ee4-43fc-9b3b-dbaab3279ea8, cf42cc8a-d640-42e7-af6c-1970ae1c30aa, B5_INACTIVE_848C1AE9, B5_INACTIVE_848C1AE9@example.invalid, 2639ed87-d6dd-4a96-a145-81e319c854d2, INACTIVE, null, 0, null, null, 2026-11-27 01:51:23.011412+07, null, 2026-11-27 01:51:23.012706+07, null, subject-848c1ae9-3ee4-43fc-9b3b-dbaab3279ea8).",
+      "actualGoogleHttpRequests": 0,
+      "checkpointHttpCount": 0,
+      "httpCountConsistent": true,
+      "inFlightObservations": 0,
+      "wireByTask": {
+        "catalog": 0,
+        "embedding": 0,
+        "generation": 0
+      },
+      "credentialsAttempted": [],
+      "documentsUploaded": 0,
+      "documentsPublished": 0,
+      "completedCaseIds": [],
+      "transcriptRows": 0,
+      "files": [
+        {
+          "file": "checkpoint.json",
+          "sha256": "f97065b1e8b32c0a29132f3c01169a1d65da30dd1685aeecc742bccae9cdeb90"
+        },
+        {
+          "file": "wire-attempts.json",
+          "sha256": "5984eac0c5c6d947241e29dd5671b81a1546cedf77e08d38438ac47029969afa"
+        },
+        {
+          "file": "credential-diagnostics.json",
+          "sha256": "5100ab803a570945aa04c7687a4b33dd66f3d5878bf83db95a30e6ea696248f4"
+        },
+        {
+          "file": "credential-failures.json",
+          "sha256": "5984eac0c5c6d947241e29dd5671b81a1546cedf77e08d38438ac47029969afa"
+        },
+        {
+          "file": "ingestion.json",
+          "sha256": "5984eac0c5c6d947241e29dd5671b81a1546cedf77e08d38438ac47029969afa"
+        },
+        {
+          "file": "transcript.json",
+          "sha256": "5984eac0c5c6d947241e29dd5671b81a1546cedf77e08d38438ac47029969afa"
+        },
+        {
+          "file": "api-security-checks.json",
+          "sha256": "614f9b80b8ced5b0ca76df11ebfb60561c04b796f7a56e6787f978091c619603"
+        },
+        {
+          "privateLog": "target/batch05-google-live/cohort-20261126T185016Z/run.log",
+          "sha256": "0fe71e5b452ceebce9305a2fdee5cc53103c1505c5b75eed57d95eb2d7eff09d",
+          "copiedToGit": false
+        }
+      ]
+    },
+    {
+      "cohort": "cohort-20261126T185736Z",
+      "status": "STOPPED",
+      "stopReason": "IllegalStateException: HTTP_500:/api/ai/index-versions:{\"success\":false,\"message\":\"Hệ thống đang gặp sự cố. Vui lòng thử lại sau\",\"data\":{\"path\":\"/vehicle-management/api/ai/index-versions\",\"error\":\"Internal Server Error\",\"status\":500},\"timestamp\":\"2026-11",
+      "actualGoogleHttpRequests": 80,
+      "checkpointHttpCount": 80,
+      "httpCountConsistent": true,
+      "inFlightObservations": null,
+      "wireByTask": {
+        "catalog": 1,
+        "embedding": 79,
+        "generation": 0
+      },
+      "credentialsAttempted": [
+        "GEMINI_API_KEY",
+        "GEMINI_API_KEY_1"
+      ],
+      "documentsUploaded": 21,
+      "documentsPublished": 21,
+      "completedCaseIds": [],
+      "transcriptRows": 0,
+      "files": [
+        {
+          "file": "checkpoint.json",
+          "sha256": "7cbea6d7194511a42671fca652fe1085bab8dc7e01cbc6896c6d4898cab8520f"
+        },
+        {
+          "file": "cohort.json",
+          "sha256": "4c1ed276215b646c473ab9eee0a42c107795b74eb5606e05d6413689d0c09165"
+        },
+        {
+          "file": "wire-attempts.json",
+          "sha256": "f101097961dd9d6f39d8b5210f02cfaaddc53f3c007c89da86d006bcd20edf1f"
+        },
+        {
+          "file": "credential-diagnostics.json",
+          "sha256": "21033de7214615cae5f644246073b8e25a084b1ed19c14e7fbcd519e214094f3"
+        },
+        {
+          "file": "credential-failures.json",
+          "sha256": "bccfe7cff81e9b4970aeb2cb029cca41025c24f70c2c4968a2204020467f6e20"
+        },
+        {
+          "file": "ingestion.json",
+          "sha256": "22372a2f152ce7b47946f12db6cc9b7a8daf93cc25ffc23b6ed5a80228418f23"
+        },
+        {
+          "file": "transcript.json",
+          "sha256": "5984eac0c5c6d947241e29dd5671b81a1546cedf77e08d38438ac47029969afa"
+        },
+        {
+          "file": "approved-model-registry.json",
+          "sha256": "46c371b7a8b7ce57ff0e0a181ca77040c763759b9cb4c9f64d928b7128781cf3"
+        },
+        {
+          "file": "catalog-preflight.json",
+          "sha256": "8a6a06248f4c2814796f21ccd78b213a94a5771148d045ecea360fc1a4be4a34"
+        },
+        {
+          "file": "model-catalog.json",
+          "sha256": "b0445cf0c951f80509f77821572314095c669b548297021572f77e990793e41f"
+        },
+        {
+          "file": "api-security-checks.json",
+          "sha256": "1fa751c8bd07526e24cadd2032994b346162e21f4abbbf209a6af9cb40b6222c"
+        },
+        {
+          "privateLog": "target/batch05-google-live/cohort-20261126T185736Z/run.log",
+          "sha256": "a7dbf55d618f4938a6e4373013e94a1da44fa152b74a9f02df1e0167ef1112d4",
+          "copiedToGit": false
+        }
+      ]
+    },
+    {
+      "cohort": "cohort-20261126T191654Z",
+      "status": "STOPPED",
+      "stopReason": "IllegalStateException: CASE_NOT_COMPLETED_CHECKPOINT:FAILED:not_a_claim_that_all_keys_are_exhausted",
+      "actualGoogleHttpRequests": 97,
+      "checkpointHttpCount": 96,
+      "httpCountConsistent": false,
+      "inFlightObservations": null,
+      "wireByTask": {
+        "catalog": 1,
+        "embedding": 91,
+        "generation": 5
+      },
+      "credentialsAttempted": [
+        "GEMINI_API_KEY",
+        "GEMINI_API_KEY_1",
+        "GEMINI_API_KEY_2",
+        "GEMINI_API_KEY_3",
+        "GEMINI_API_KEY_4"
+      ],
+      "documentsUploaded": 21,
+      "documentsPublished": 21,
+      "completedCaseIds": [
+        "B5-CAT01-1",
+        "B5-CAT01-2",
+        "B5-EMP01-1",
+        "B5-EMP01-2",
+        "B5-LAY01-1",
+        "B5-LAY01-2",
+        "B5-REG01-1",
+        "B5-REG01-2"
+      ],
+      "transcriptRows": 9,
+      "files": [
+        {
+          "file": "checkpoint.json",
+          "sha256": "6b511c32e53f21c1ebeea457799748a191703ea15383bfd581355163cba601d9"
+        },
+        {
+          "file": "cohort.json",
+          "sha256": "aea49f7ce728626a73bc5a075740fdd9e69cebcbd969b0bb1562c5d5abf37574"
+        },
+        {
+          "file": "wire-attempts.json",
+          "sha256": "a8761174f0a55afc3c0f1c5e141f9619578fe7cae8f6f37ae7132d67f686b7b9"
+        },
+        {
+          "file": "credential-diagnostics.json",
+          "sha256": "7a462f2fa5bbe1f03a150a1ff35ef1fbd91565bc4f9132da4ca2add776656663"
+        },
+        {
+          "file": "credential-failures.json",
+          "sha256": "33127a282574e18b29ca7094cefa78e4aaa1e4b8032d3d6e6b65026bd333206b"
+        },
+        {
+          "file": "ingestion.json",
+          "sha256": "c2638ddbbd953ff1ca50f9719049f6a1c46e370d7d688a520c1e7b250a0c62c0"
+        },
+        {
+          "file": "transcript.json",
+          "sha256": "26056c885fd95c71329a5dde967d5eee3757d90ae80423754565ff1750a0e4aa"
+        },
+        {
+          "file": "approved-model-registry.json",
+          "sha256": "46c371b7a8b7ce57ff0e0a181ca77040c763759b9cb4c9f64d928b7128781cf3"
+        },
+        {
+          "file": "catalog-preflight.json",
+          "sha256": "8a6a06248f4c2814796f21ccd78b213a94a5771148d045ecea360fc1a4be4a34"
+        },
+        {
+          "file": "model-catalog.json",
+          "sha256": "b0445cf0c951f80509f77821572314095c669b548297021572f77e990793e41f"
+        },
+        {
+          "file": "api-security-checks.json",
+          "sha256": "e5bd449e26d3d0d411ddc75cfb58ce6245bde463be29ddcd58692af31e1437d3"
+        },
+        {
+          "file": "index-before-build.json",
+          "sha256": "28c0d3000ce77985cab9430618e8ea8339ff4959a634c9c50c0eb6968ef6bd3a"
+        },
+        {
+          "file": "index-duplicate-check.json",
+          "sha256": "04844cef4097309d122636804a0712bc583b32fc677ebfa5100c4503be339059"
+        },
+        {
+          "privateLog": "target/batch05-google-live/cohort-20261126T191654Z/run.log",
+          "sha256": "64d40fc1175d4c41782d570e9dc22c82f7c297f09dcb21f9eb8d60cb654ad949",
+          "copiedToGit": false
+        },
+        {
+          "file": "independent-semantic-review.json",
+          "sha256": "771b2dd7ac3348b532d33db2a5cf0406d66f400656d3b81386d7843b2e4936a2"
+        }
+      ]
+    },
+    {
+      "cohort": "cohort-20261126T192655Z",
+      "status": "STOPPED",
+      "stopReason": "IllegalStateException: CASE_NOT_COMPLETED_CHECKPOINT:PROCESSING:not_a_claim_that_all_keys_are_exhausted",
+      "actualGoogleHttpRequests": 99,
+      "checkpointHttpCount": 99,
+      "httpCountConsistent": true,
+      "inFlightObservations": null,
+      "wireByTask": {
+        "catalog": 1,
+        "embedding": 90,
+        "generation": 8
+      },
+      "credentialsAttempted": [
+        "GEMINI_API_KEY",
+        "GEMINI_API_KEY_1",
+        "GEMINI_API_KEY_2",
+        "GEMINI_API_KEY_3",
+        "GEMINI_API_KEY_4",
+        "GEMINI_API_KEY_5"
+      ],
+      "documentsUploaded": 21,
+      "documentsPublished": 21,
+      "completedCaseIds": [
+        "B5-CAT01-1",
+        "B5-CAT01-2",
+        "B5-EMP01-1",
+        "B5-EMP01-2",
+        "B5-LAY01-1",
+        "B5-LAY01-2",
+        "B5-REG01-1",
+        "B5-REG01-2"
+      ],
+      "transcriptRows": 9,
+      "files": [
+        {
+          "file": "checkpoint.json",
+          "sha256": "c0900b9b5ee425d5fa368b5046dc5b66c932ea12b5a8fb063f51a40c9399bf5b"
+        },
+        {
+          "file": "cohort.json",
+          "sha256": "89fd90a809a63f0ef19dfbed08ceaae821674e4843517ee35727e678bb035271"
+        },
+        {
+          "file": "wire-attempts.json",
+          "sha256": "3c5413a995c9d74427bddbce71a6f24484a19fe7b4f53a3573cdb511c4e0a232"
+        },
+        {
+          "file": "credential-diagnostics.json",
+          "sha256": "2dd0ffdad2f856a5cbdaaf3251ba3a5745786a5777a133876328cb1eabbd5351"
+        },
+        {
+          "file": "credential-failures.json",
+          "sha256": "01237fd5b2ff566bf4f425754f2d2725b3561de209d96801942b7281da317f3b"
+        },
+        {
+          "file": "ingestion.json",
+          "sha256": "9f7fbc4a97090c52cb60e9b37c7b7bb8ecdaf3f77cb8efea1a6b90b5e58a9192"
+        },
+        {
+          "file": "transcript.json",
+          "sha256": "2c8cd8dad15a27f6f9dc048cdc4dbcb2ab65dfed88bf8d66090bd96d9c839f7e"
+        },
+        {
+          "file": "approved-model-registry.json",
+          "sha256": "46c371b7a8b7ce57ff0e0a181ca77040c763759b9cb4c9f64d928b7128781cf3"
+        },
+        {
+          "file": "catalog-preflight.json",
+          "sha256": "d3d2ac3ce14a80cd2be44fbcc652288b417af39c75549ae7a095465ddcf75611"
+        },
+        {
+          "file": "model-catalog.json",
+          "sha256": "b0445cf0c951f80509f77821572314095c669b548297021572f77e990793e41f"
+        },
+        {
+          "file": "api-security-checks.json",
+          "sha256": "1305632e29ae83bcb8fe8a7ff79fd661348e32decc2aa07f647e896d062567c3"
+        },
+        {
+          "file": "index-before-build.json",
+          "sha256": "4ab3d27c4f0fbe8c5616539dbdfe56b84c8013bf6c0403e10acec869bb02708b"
+        },
+        {
+          "file": "index-duplicate-check.json",
+          "sha256": "04844cef4097309d122636804a0712bc583b32fc677ebfa5100c4503be339059"
+        },
+        {
+          "privateLog": "target/batch05-google-live/cohort-20261126T192655Z/run.log",
+          "sha256": "60edc1a32dcdd1c6ef5628a9f8dbcd5ab131791b3290771d722b455179a5c650",
+          "copiedToGit": false
+        }
+      ]
+    }
+  ],
+  "totals": {
+    "LEGACY_1104": {
+      "planned": 1104,
+      "observed": 0,
+      "graded": 0,
+      "pass": 0
+    },
+    "BATCH5_MAIN_240": {
+      "planned": 240,
+      "observed": 8,
+      "graded": 0,
+      "pass": 0
+    },
+    "ADDITIONAL_24": {
+      "planned": 24,
+      "observed": 0,
+      "graded": 0,
+      "pass": 0
+    },
+    "BATCH5_HOLDOUT_40": {
+      "planned": 40,
+      "observed": 0,
+      "graded": 0,
+      "pass": 0
+    },
+    "GENERATION_PROBES_4": {
+      "planned": 4,
+      "observed": 1,
+      "graded": 0,
+      "pass": 0
+    }
+  },
+  "semanticAcceptance": false,
+  "googleChatboxAcceptance": false
+}

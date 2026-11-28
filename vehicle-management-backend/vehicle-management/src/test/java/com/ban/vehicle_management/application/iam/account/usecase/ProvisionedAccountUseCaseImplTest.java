@@ -360,6 +360,20 @@ class ProvisionedAccountUseCaseImplTest {
     }
 
     @Test
+    void platformCanReadManagerDetailButCannotChangeItsStatus() {
+        UUID id = UUID.randomUUID();
+        ProvisionedAccountResult target = buildResult(id, UUID.randomUUID(),
+                AdminProvisionableAccountRoleCode.PARKING_MANAGER, "manager", "manager@example.com");
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentAccount("SYSTEM_ADMIN"));
+        when(provisionedAccountPortOut.findProvisionedAccountById(id)).thenReturn(Optional.of(target));
+        assertEquals(target, provisionedAccountUseCase.getProvisionedAccountById(id));
+        assertThrows(org.springframework.security.access.AccessDeniedException.class,
+                () -> provisionedAccountUseCase.updateProvisionedAccountStatus(id,
+                        new UpdateProvisionedAccountStatusCommand(AccountStatus.LOCKED, "reason")));
+        verify(identityProviderAdminPortOut, never()).updateUserEnabled(any(), org.mockito.ArgumentMatchers.anyBoolean());
+    }
+
+    @Test
     void shouldFilterProvisionedAccountListByParkingManagerManagedRoles() {
         ProvisionedAccountFilterCommand command = new ProvisionedAccountFilterCommand(
                 null,

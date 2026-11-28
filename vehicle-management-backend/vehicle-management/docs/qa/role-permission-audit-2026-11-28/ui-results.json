@@ -1,0 +1,589 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "C:\\DiskD\\VehicleManagementProject\\vehicle-management-frontend\\vehicle_management_react\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "--config",
+      "../../vehicle-management-backend/vehicle-management/docs/qa/role-permission-audit-2026-11-28/playwright.config.ts",
+      "--reporter=json"
+    ],
+    "configFile": "C:\\DiskD\\VehicleManagementProject\\vehicle-management-backend\\vehicle-management\\docs\\qa\\role-permission-audit-2026-11-28\\playwright.config.ts",
+    "rootDir": "C:/DiskD/VehicleManagementProject/vehicle-management-backend/vehicle-management/docs/qa/role-permission-audit-2026-11-28",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/DiskD/VehicleManagementProject/vehicle-management-backend/vehicle-management/docs/qa/role-permission-audit-2026-11-28/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "C:/DiskD/VehicleManagementProject/vehicle-management-backend/vehicle-management/docs/qa/role-permission-audit-2026-11-28",
+        "testIgnore": [],
+        "testMatch": [
+          "ui-audit.spec.ts"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "C:\\DiskD\\VehicleManagementProject\\vehicle-management-backend\\vehicle-management\\docs\\qa\\role-permission-audit-2026-11-28\\test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "",
+        "testDir": "C:\\DiskD\\VehicleManagementProject\\vehicle-management-backend\\vehicle-management\\docs\\qa\\role-permission-audit-2026-11-28",
+        "snapshotDir": "C:\\DiskD\\VehicleManagementProject\\vehicle-management-backend\\vehicle-management\\docs\\qa\\role-permission-audit-2026-11-28",
+        "testIgnore": [],
+        "testMatch": "ui-audit.spec.ts",
+        "timeout": 30000,
+        "use": {
+          "baseURL": "http://127.0.0.1:4174",
+          "browserName": "chromium",
+          "headless": true
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": ""
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev -- --host 127.0.0.1 --port 4174",
+      "cwd": "C:\\DiskD\\VehicleManagementProject\\vehicle-management-frontend\\vehicle_management_react",
+      "url": "http://127.0.0.1:4174/tests/auth-access-harness.html",
+      "reuseExistingServer": true,
+      "timeout": 30000
+    }
+  },
+  "suites": [
+    {
+      "title": "ui-audit.spec.ts",
+      "file": "ui-audit.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "audit sidebar CUSTOMER",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6038,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-28T05:03:04.930Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b1f5fdeb991d5e404bae-1df5b4b4c2c9a6b112cd",
+          "file": "ui-audit.spec.ts",
+          "line": 50,
+          "column": 3
+        },
+        {
+          "title": "audit sidebar EMPLOYEE",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2616,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-28T05:03:11.400Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b1f5fdeb991d5e404bae-5bece44bf8afe3e68f7b",
+          "file": "ui-audit.spec.ts",
+          "line": 50,
+          "column": 3
+        },
+        {
+          "title": "audit sidebar PARKING_MANAGER",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1184,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-28T05:03:14.027Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b1f5fdeb991d5e404bae-cde2ac2ee0fc024cd2ad",
+          "file": "ui-audit.spec.ts",
+          "line": 50,
+          "column": 3
+        },
+        {
+          "title": "audit sidebar PARTNER_ADMIN",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1188,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-28T05:03:15.222Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b1f5fdeb991d5e404bae-5ec5520e425995a1a7cf",
+          "file": "ui-audit.spec.ts",
+          "line": 50,
+          "column": 3
+        },
+        {
+          "title": "audit sidebar SYSTEM_ADMIN",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 535,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-28T05:03:16.424Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b1f5fdeb991d5e404bae-0370ebe45011bf8c4e11",
+          "file": "ui-audit.spec.ts",
+          "line": 50,
+          "column": 3
+        },
+        {
+          "title": "audit unassigned EMPLOYEE",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 778,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-28T05:03:16.968Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b1f5fdeb991d5e404bae-3294506e6de8dc46e03c",
+          "file": "ui-audit.spec.ts",
+          "line": 85,
+          "column": 3
+        },
+        {
+          "title": "audit unassigned PARKING_MANAGER",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 796,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-28T05:03:17.756Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b1f5fdeb991d5e404bae-086224a06a8afb0c1034",
+          "file": "ui-audit.spec.ts",
+          "line": 85,
+          "column": 3
+        },
+        {
+          "title": "audit reproduce employee card creation controls remain visible",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1374,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-28T05:03:18.565Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b1f5fdeb991d5e404bae-4e3f3424e5645e0f291a",
+          "file": "ui-audit.spec.ts",
+          "line": 93,
+          "column": 1
+        },
+        {
+          "title": "audit reproduce read-only shift user sees write controls",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 954,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-28T05:03:19.948Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b1f5fdeb991d5e404bae-f87dc8203a608614c07f",
+          "file": "ui-audit.spec.ts",
+          "line": 102,
+          "column": 1
+        },
+        {
+          "title": "audit reproduce employee shift view has no open action",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 825,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-28T05:03:20.911Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b1f5fdeb991d5e404bae-40310647724eec69d08d",
+          "file": "ui-audit.spec.ts",
+          "line": 112,
+          "column": 1
+        },
+        {
+          "title": "audit reproduce read-only voucher user sees create action",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 887,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-28T05:03:21.747Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b1f5fdeb991d5e404bae-3dccddef1f5d4bb97d91",
+          "file": "ui-audit.spec.ts",
+          "line": 123,
+          "column": 1
+        },
+        {
+          "title": "audit reproduce assigned manager cannot find employee lot assignment",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 846,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-28T05:03:22.647Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b1f5fdeb991d5e404bae-af9fdda194441bf0cbc2",
+          "file": "ui-audit.spec.ts",
+          "line": 132,
+          "column": 1
+        },
+        {
+          "title": "audit reproduce employee parking navigation exposes unauthorized layout",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1958,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-28T05:03:23.503Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b1f5fdeb991d5e404bae-c785107e924faa8b9f91",
+          "file": "ui-audit.spec.ts",
+          "line": 140,
+          "column": 1
+        },
+        {
+          "title": "audit reproduce manager can choose a global notification audience",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 940,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-28T05:03:25.473Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b1f5fdeb991d5e404bae-4b953769dd03bd0e01d8",
+          "file": "ui-audit.spec.ts",
+          "line": 150,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-28T05:03:03.815Z",
+    "duration": 23881.178,
+    "expected": 14,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

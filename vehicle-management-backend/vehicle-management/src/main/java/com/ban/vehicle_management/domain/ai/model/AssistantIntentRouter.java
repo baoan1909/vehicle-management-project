@@ -7,6 +7,9 @@ import java.util.regex.Pattern;
 /** Backend-owned intent routing. Matching views never replace identifiers or authorize actions. */
 public final class AssistantIntentRouter {
     private static final Pattern SECURITY = pattern(
+            "(?:tu nang|tu cap|tu them).{0,25}(?:quyen|quan tri)",
+            "(?:sua|xem|doc|lay|cap|gan|doi).{0,70}(?:ngoai pham vi|khong duoc giao|vuot quyen)",
+            "(?:xem|doc|lay).{0,60}(?:to chuc|don vi).{0,35}khong co quyen",
             "(?:bo qua|vuot qua).{0,25}(?:quyen|xac nhan)",
             "khong can.{0,15}(?:hoi lai|xac nhan)",
             "(?:toi|minh|em).{0,15}gui.{0,40}(?:cccd|cmnd|can cuoc|giay to dinh danh).{0,20}(?:day du|nguyen)",
@@ -28,9 +31,14 @@ public final class AssistantIntentRouter {
             "doi nhan vien ho tro|muon quan ly xem xet|quan ly phai phan cong");
     private static final Pattern OUTSIDE = pattern("chung khoan|forex|crypto|bitcoin|bong da|du doan xo so");
     private static final Pattern GUIDE = pattern(
+            "ai.{0,25}(?:co the|co quyen|duoc|du quyen)|quyen nao|nguoi nao|co quyen.{0,60}(?:chu|chua|khong)",
             "bao nhieu|sau khi|truoc khi",
             "nhu the nao|nhu nao|the nao|ra sao|lam sao|lam the nao|can lam gi|phai lam sao|huong dan|quy trinh|quy dinh|dieu kien|thu tuc|cach|o dau|tai sao|vi sao|la gi|nghia la|co nen|bao lau|duoc khong|co\\b.{0,60}\\bkhong|co\\b.{0,50}\\bduoc khong|can\\b.{0,25}\\b(?:gi|nao)");
     private static final Pattern WRITE = pattern(
+            "(?:tao|them|sua|xoa|cap nhat|ngung).{0,30}(?:nhan vien|nhan su|vai tro|so do|cau truc bai|bang gia|voucher)",
+            "(?:duyet|phe duyet|gan|cap quyen|phan cong).{0,40}(?:nhan vien|nhan su|quan ly|vai tro|quyen)",
+            "(?:sua|xuat ban|phat hanh).{0,35}(?:so do|cau truc bai)",
+            "(?:bat|tat|kich hoat|sua).{0,35}(?:danh muc|loai xe|loai ve|quy tac gia|gia cho bai)",
             "(?:mo|dong|nang|ha).{0,15}(?:cong|barrier|rao chan)(?:.{0,25}(?:giup|ho|dum|cho)\\s+(?:toi|minh|em)|$)",
             "(?:ghi nhan|xac nhan|check in|check out|check-in|check-out).{0,20}(?:xe vao|xe ra|phien gui|giup toi)",
             "(?:thanh toan|hoan tien|ap dung ma|ap ma|chuyen tien).{0,50}(?:giup|ho|dum|cho)\\s+(?:toi|minh|em)",
@@ -43,11 +51,12 @@ public final class AssistantIntentRouter {
             "(?:bao mat|khoa|mo khoa|cap lai|thay).{0,20}the",
             "(?:sua|xoa|doi).{0,20}(?:lich su|gio vao|gio ra)");
     private static final Pattern NEGATED_WRITE = pattern(
-            "(?:dung|khong(?: muon| can)?|chua(?: muon)?)\\s+(?:tu\\s+)?(?:tao|mo|lap|them|sua|xoa|gia han|huy|khoa|bao mat)");
+            "(?:dung|khong(?: muon| can)?|chua(?: muon)?)\\s+(?:tu\\s+)?(?:tao|mo|lap|them|sua|xoa|gia han|huy|khoa|bao mat|duyet|phe duyet|gan|cap quyen|phan cong|xuat ban|phat hanh|bat|tat|cap nhat)");
     private static final Pattern FAILED_OPERATION = pattern(
             "(?:loi|khong biet|khong the|chua biet).{0,20}(?:tao|mo|lap).{0,20}(?:phieu|ticket)",
             "(?:tao|mo|lap).{0,25}(?:phieu|ticket).{0,20}(?:bi loi|khong duoc|khong thanh cong|that bai)");
     private static final Pattern PERSONAL = pattern(
+            "(?:to chuc|don vi|nhan vien|nhan su|danh muc|loai xe|loai ve).{0,45}(?:cua toi|cua minh|cua em)",
             "(?:hoa don|giao dich|dat cho|khoan thanh toan).{0,35}(?:cua toi|cua minh|cua em)",
             "(?:cua toi|cua minh|cua em|my).{0,40}(?:phieu|ve|dang ky|ticket|subscription|xe|phuong tien|ho so|the|lich su)",
             "(?:phieu|ve|dang ky|ticket|subscription|xe|phuong tien|ho so|the|lich su).{0,35}(?:cua toi|cua minh|cua em)",
@@ -62,12 +71,16 @@ public final class AssistantIntentRouter {
     private static final Pattern EXPLICIT_READ = pattern("xem|tra cuu|kiem tra|liet ke");
     private static final Pattern IDENTIFIER = Pattern.compile("\\b[A-Z]{2,5}-\\d{4,}\\b");
     private static final Pattern TOPIC = pattern(
+            "bo tri.{0,25}bai|thiet ke.{0,25}(?:so do|bai)",
+            "o (?:dang )?co xe|phan bo ve|cau hinh khu|cau hinh tang",
+            "to chuc|nhan su|nhan vien|vai tro|phan quyen|danh muc|loai xe|loai ve|loai the|cho do|o do|quy tac gia|ban nhap|so do|cau truc bai",
+            "(?:tang|khu).{0,30}(?:bai|khu|tang|o do|cho do)|xoa o.{0,20}(?:xe|ve)",
             "vao bai|ra bai|xe vang lai|the vang lai|the (?:da )?co (?:xe|luot)|luot chua ket thuc|bai nao|bai con cho|bai (?:con |dang )?hoat dong|trang thai bai|tim quanh vi tri|tru so|dia chi lien he|loi ket noi|tro ly|tru tien",
             "tim bai|bai gan|ban do|dinh vi|gps|chi duong|toa do|ban kinh|gio mo cua|gio dong cua|hotline|phan hoi|cong bai xe|cong xe|cong (?:khong|chua|tu choi)|loi cong|mo cong|qua(?: duoc)? cong|dong cong|quet the|quet qr|nhan dang bien so|phien gui xe|failed to fetch",
             "hoa don|voucher|khuyen mai|uu dai|ma giam|dat cho|giu cho|dat truoc|phi qua dem|tinh phi|tinh tien|chuyen khoan|phi ban ngay|phi ban dem|gia hien tai|muc phi|phi gui|ranh gioi gio ban ngay|tra tien|ve chua hieu luc",
             "dang nhap|dang ky|mat khau|xac minh|email|google|oauth|ho so|phieu|ticket|ho tro|hoi thoai|chat|quyen|bao mat|du lieu|token|otp|api[-_ ]?key|giay to dinh danh|ve thang|subscription|bang gia|phi gui xe|thanh toan|dong tien|huy ve|vnpay|sepay|hoan tien|xe vao|xe ra|the xe|mat the|gio hoat dong|dia diem|sla|so do|bai xe|he thong|doi tac|don hang|chatbot|noi dung loi|bao loi|lien he|phuong tien|bien so|xe mac dinh|them xe|sua xe|xoa xe|ngung dung xe|lich su|luot gui|lan gui xe|gio vao|gio ra|gia han|cap lai the|khoa the|the bi khoa|tim thay the|tim lai the|ve dang|ve da|ve con|ve cho|ve bat dau|xe da ngung dung|xe bi khoa|trang thai phien");
     private static final Pattern VAGUE = Pattern.compile(
-            "^(?:loi|van loi|bao loi|khong duoc|khong duoc nua|van khong duoc|khong biet|lam sao|nhu nao|nhu the nao|phai lam sao|can lam gi|buoc tiep theo|con buoc sau|cai do o dau|toi lam roi nhung chua duoc|ve thang|phieu|ticket|ho so|thanh toan|the|ve|xe|phuong tien|bien so|lich su|mat the)[?.!\\s]*$");
+            "^(?:doi tac|to chuc|nhan vien|nhan su|quyen|nhan vien va quyen|so do|danh muc|loi|van loi|bao loi|khong duoc|khong duoc nua|van khong duoc|khong biet|lam sao|nhu nao|nhu the nao|phai lam sao|can lam gi|buoc tiep theo|con buoc sau|cai do o dau|toi lam roi nhung chua duoc|ve thang|phieu|ticket|ho so|thanh toan|the|ve|xe|phuong tien|bien so|lich su|mat the)[?.!\\s]*$");
 
     private AssistantIntentRouter() { }
 
@@ -88,6 +101,17 @@ public final class AssistantIntentRouter {
         if (VAGUE.matcher(text).matches()) return decision(AssistantIntent.CLARIFICATION, "missing-topic-or-goal");
         boolean guide = GUIDE.matcher(text).find() || NEGATED_WRITE.matcher(text).find()
                 || FAILED_OPERATION.matcher(text).find() || OPERATION_ERROR.matcher(text).find();
+        if (AssistantBusinessRequestPolicy.partnerSubject(text) != null && WRITE.matcher(text).find()
+                && text.matches(".*\\b(?:giup|ho|dum|cho) (?:toi|minh|em)\\b.*")
+                && !STRONG_GUIDE.matcher(text).find() && !NEGATED_WRITE.matcher(text).find()
+                && !FAILED_OPERATION.matcher(text).find() && !OPERATION_ERROR.matcher(text).find())
+            return decision(AssistantIntent.WRITE_ACTION, "explicit-partner-write-request");
+        if (AssistantBusinessRequestPolicy.partnerSubject(text) != null
+                && !PROCEDURAL.matcher(text).find() && !STRONG_GUIDE.matcher(text).find()
+                && !WHY.matcher(text).find() && !OPERATION_ERROR.matcher(text).find()
+                && (EXPLICIT_READ.matcher(text).find() || text.contains("danh sach")
+                    || (OWNER.matcher(text).find() && text.matches(".*\\b(?:hien|dang|bao nhieu)\\b.*"))))
+            return decision(AssistantIntent.PERSONAL_DATA, "partner-current-data-requires-business-tool");
         if (!STRONG_GUIDE.matcher(text).find() && !OPERATION_ERROR.matcher(text).find() && !WHY.matcher(text).find()
                 && (!guide || OWNER.matcher(text).find()) && EXPLICIT_READ.matcher(text).find() && PERSONAL.matcher(text).find()) return decision(AssistantIntent.PERSONAL_DATA, "explicit-personal-read");
         if (WRITE.matcher(text).find() && !guide) return decision(AssistantIntent.WRITE_ACTION, "explicit-write-request");
@@ -99,7 +123,8 @@ public final class AssistantIntentRouter {
         if ((!procedural || personalQuestion) && (PERSONAL.matcher(text).find() || OWN_RECENT_HISTORY.matcher(text).find() || IDENTIFIER.matcher(rawInput).find())) {
             return decision(AssistantIntent.PERSONAL_DATA, "deterministic-personal");
         }
-        if (TOPIC.matcher(text).find()) return decision(AssistantIntent.STATIC_KNOWLEDGE, "deterministic-domain-knowledge");
+        if (TOPIC.matcher(text).find() || AssistantBusinessRequestPolicy.partnerSubject(text) != null)
+            return decision(AssistantIntent.STATIC_KNOWLEDGE, "deterministic-domain-knowledge");
         if (guide || text.contains("?")) return decision(AssistantIntent.CLARIFICATION, "question-without-domain");
         return decision(AssistantIntent.OUT_OF_SCOPE, "fallback-out-of-scope");
     }

@@ -29,7 +29,7 @@ assert.match(page, /Phân công nhân viên vào bãi/);
 
 // Partner has a complete management lifecycle: list, history, and scoped transfer.
 assert.match(page, /Phân công bãi xe/);
-assert.match(page, /Danh sách phân công bãi xe/);
+assert.match(page, /Nhân viên công tác/);
 assert.match(page, /Chuyển công tác sang bãi khác/);
 assert.match(page, /transferEmployeeToParkingLot\(assignment\.organizationId,[\s\S]*?sourceParkingLotId:[\s\S]*?targetParkingLotId/);
 assert.match(page, /hasAnyPermission\(user, \["ORGANIZATION_MEMBERSHIP_MANAGE_ALL"\]\)/);

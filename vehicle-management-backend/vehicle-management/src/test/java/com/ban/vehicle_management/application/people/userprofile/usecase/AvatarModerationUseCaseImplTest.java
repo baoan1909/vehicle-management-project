@@ -48,14 +48,8 @@ class AvatarModerationUseCaseImplTest {
     @Mock private StorageUrlResolver storageUrlResolver;
     @Mock private FileStoragePort fileStoragePort;
 
-    private AvatarModerationUseCaseImpl useCase;
-
-    @BeforeEach
-    void setUp() {
-        useCase = new AvatarModerationUseCaseImpl(currentAccountPortIn, systemAccountIdPortOut,
-                moderationPortOut, avatarPortOut, policyPortOut, notificationSender,
-                storageUrlResolver, fileStoragePort);
-    }
+    @Mock private com.ban.vehicle_management.application.people.employee.authorization.EmployeeAccessGuard employeeAccessGuard;
+    @org.mockito.InjectMocks private AvatarModerationUseCaseImpl useCase;
 
     @Test
     void shouldCreatePendingApprovalAndKeepApprovedAvatarVisible() {
@@ -91,6 +85,7 @@ class AvatarModerationUseCaseImplTest {
 
     @Test
     void shouldApproveCandidateAndReplaceCurrentAvatarAtomically() {
+        when(currentAccountPortIn.hasPermission("PARKING_SCOPE_PLATFORM")).thenReturn(true);
         UUID reviewerId = UUID.randomUUID();
         UUID ownerId = UUID.randomUUID();
         ApprovalRequest request = request(ownerId, ApprovalRequestStatus.PENDING);
@@ -107,7 +102,7 @@ class AvatarModerationUseCaseImplTest {
 
         var result = useCase.approve(request.getApprovalRequestId(), "Hợp lệ");
 
-        verify(currentAccountPortIn).requirePermission("USER_PROFILE_UPDATE_ALL");
+        verify(currentAccountPortIn).requirePermission("AVATAR_APPROVAL_REVIEW_ALL");
         verify(avatarPortOut).markCurrentAsReplaced(candidate.getUserProfileId());
         assertEquals(UserProfileAvatarStatus.ACTIVE, candidate.getStatus());
         assertTrue(candidate.getCurrent());
@@ -121,6 +116,7 @@ class AvatarModerationUseCaseImplTest {
     @Test
     void shouldRejectCandidateWithoutChangingCurrentAvatar() {
         UUID ownerId = UUID.randomUUID();
+        when(employeeAccessGuard.canReadAccount(ownerId)).thenReturn(true);
         ApprovalRequest request = request(ownerId, ApprovalRequestStatus.PENDING);
         UserProfileAvatar candidate = avatar(UserProfileAvatarStatus.PENDING, false, "av/new-public.jpg");
         request.setTargetId(candidate.getAvatarId());
@@ -143,12 +139,31 @@ class AvatarModerationUseCaseImplTest {
 
     @Test
     void shouldRejectRepeatedReview() {
+        when(currentAccountPortIn.hasPermission("PARKING_SCOPE_PLATFORM")).thenReturn(true);
         ApprovalRequest request = request(UUID.randomUUID(), ApprovalRequestStatus.APPROVED);
         when(moderationPortOut.findForUpdate(request.getApprovalRequestId())).thenReturn(Optional.of(request));
 
         assertThrows(ConflictException.class, () -> useCase.approve(request.getApprovalRequestId(), null));
 
         verify(avatarPortOut, never()).findByIdForUpdate(any(UUID.class));
+    }
+
+    @Test
+    void rejectsAvatarOutsidePersonnelScopeBeforeLoadingCandidate() {
+        ApprovalRequest request = request(UUID.randomUUID(), ApprovalRequestStatus.PENDING);
+        when(moderationPortOut.findForUpdate(request.getApprovalRequestId())).thenReturn(Optional.of(request));
+        assertThrows(org.springframework.security.access.AccessDeniedException.class,
+                () -> useCase.approve(request.getApprovalRequestId(), null));
+        org.mockito.Mockito.verifyNoInteractions(avatarPortOut, notificationSender);
+    }
+
+    @Test
+    void excludesUnrelatedAvatarRequestsFromQueue() {
+        ApprovalRequest request = request(UUID.randomUUID(), ApprovalRequestStatus.PENDING);
+        when(moderationPortOut.findAll(ApprovalRequestStatus.PENDING)).thenReturn(java.util.List.of(request));
+        assertTrue(useCase.getAvatarApprovals(ApprovalRequestStatus.PENDING).isEmpty());
+        org.mockito.Mockito.verifyNoInteractions(avatarPortOut);
+        verify(currentAccountPortIn).requirePermission("AVATAR_APPROVAL_READ_ALL");
     }
 
     private ApprovalRequest request(UUID ownerId, ApprovalRequestStatus status) {

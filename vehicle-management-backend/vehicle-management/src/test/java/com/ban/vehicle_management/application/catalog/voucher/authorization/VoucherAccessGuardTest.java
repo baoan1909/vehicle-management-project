@@ -125,6 +125,11 @@ class VoucherAccessGuardTest {
 
     private ParkingLotPortOut parkingLotPort() {
         return new ParkingLotPortOut() {
+            @Override
+            public com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLotResponsibility findResponsibility(UUID parkingLotId) {
+                throw new UnsupportedOperationException("Not used by voucher scope tests");
+            }
+
             @Override public ParkingLot save(ParkingLot parkingLot) { return parkingLot; }
             @Override public Optional<ParkingLot> findById(UUID parkingLotId) {
                 return storedParkingLot != null && storedParkingLot.getParkingLotId().equals(parkingLotId)

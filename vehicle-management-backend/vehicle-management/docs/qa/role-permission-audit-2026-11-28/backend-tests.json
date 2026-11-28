@@ -1,0 +1,191 @@
+[
+  {
+    "name": "com.ban.vehicle_management.application.accesscontrol.lostcardreport.authorization.LostCardReportAccessGuardTest",
+    "tests": "3",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.accesscontrol.subscription.authorization.SubscriptionAccessGuardTest",
+    "tests": "5",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.billing.invoice.authorization.InvoiceAccessGuardTest",
+    "tests": "5",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.billing.payment.authorization.PaymentAccessGuardTest",
+    "tests": "5",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.billing.platformfee.authorization.PlatformFeeAccessGuardTest",
+    "tests": "8",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.billing.wallet.authorization.WalletAccessGuardTest",
+    "tests": "4",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.catalog.authorization.CatalogAccessGuardTest",
+    "tests": "7",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.catalog.voucher.authorization.VoucherAccessGuardTest",
+    "tests": "4",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.iam.account.usecase.ProvisionedAccountUseCaseImplTest",
+    "tests": "21",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuardTest",
+    "tests": "6",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.iam.organization.authorization.ParkingLotScopeResolverTest",
+    "tests": "3",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.iam.organization.usecase.ParkingLotAssignmentUseCaseImplTest",
+    "tests": "7",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.operations.approvalrequest.authorization.CustomerOnboardingApprovalAccessGuardTest",
+    "tests": "5",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.operations.approvalrequest.authorization.InternalEmployeeApprovalAccessGuardTest",
+    "tests": "9",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.operations.approvalrequest.authorization.SystemAdminApprovalAccessGuardTest",
+    "tests": "4",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.parking.parkingsession.authorization.EmployeeParkingLotAccessGuardTest",
+    "tests": "2",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.parking.parkingsession.authorization.ParkingSessionAccessGuardTest",
+    "tests": "14",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.people.customer.authorization.CustomerAccessGuardTest",
+    "tests": "4",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.people.customervehicle.authorization.CustomerVehicleAccessGuardTest",
+    "tests": "9",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.people.employee.authorization.EmployeeAccessGuardTest",
+    "tests": "7",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.people.employee.authorization.EmployeeOrganizationAccessGuardTest",
+    "tests": "2",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.people.employee.usecase.EmployeeManagerReadUseCaseImplTest",
+    "tests": "4",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.people.userprofile.usecase.RoleScopeAuditTest",
+    "tests": "6",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ban.vehicle_management.domain.iam.account.policy.CurrentAccessStatePolicyTest",
+    "tests": "3",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ban.vehicle_management.domain.iam.account.policy.EffectiveAccountAccessPolicyTest",
+    "tests": "18",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ban.vehicle_management.infrastructure.persistence.adapter.iam.AccountAuthorizationPersistenceAdapterTest",
+    "tests": "6",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ban.vehicle_management.infrastructure.security.authorization.PermissionFirstArchitectureTest",
+    "tests": "2",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  }
+]

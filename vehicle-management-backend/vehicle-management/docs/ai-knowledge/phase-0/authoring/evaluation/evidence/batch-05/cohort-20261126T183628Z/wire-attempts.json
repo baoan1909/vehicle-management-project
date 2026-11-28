@@ -1,0 +1,10 @@
+[ {
+  "caseId" : "CATALOG_PREFLIGHT",
+  "sequence" : 1,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models",
+  "startedAt" : "2026-11-26T18:37:40.599227500Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 516
+} ]

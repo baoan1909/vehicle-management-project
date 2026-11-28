@@ -1,0 +1,290 @@
+[
+  {
+    "name": "com.ban.vehicle_management.application.accesscontrol.lostcardreport.authorization.LostCardReportAccessGuardTest",
+    "tests": "3",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "1.453"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.accesscontrol.subscription.authorization.SubscriptionAccessGuardTest",
+    "tests": "5",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.258"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.billing.invoice.authorization.InvoiceAccessGuardTest",
+    "tests": "5",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.047"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.billing.payment.authorization.PaymentAccessGuardTest",
+    "tests": "5",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.063"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.billing.platformfee.authorization.PlatformFeeAccessGuardTest",
+    "tests": "8",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.041"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.billing.wallet.authorization.WalletAccessGuardTest",
+    "tests": "4",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.079"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.catalog.authorization.CatalogAccessGuardTest",
+    "tests": "7",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.058"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.catalog.voucher.authorization.VoucherAccessGuardTest",
+    "tests": "4",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.02"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.iam.account.usecase.ProvisionedAccountUseCaseImplTest",
+    "tests": "22",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.555"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuardTest",
+    "tests": "6",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.05"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.iam.organization.authorization.ParkingLotScopeResolverTest",
+    "tests": "3",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.085"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.iam.organization.usecase.ParkingLotAssignmentUseCaseImplTest",
+    "tests": "7",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.207"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.operations.approvalrequest.authorization.CustomerOnboardingApprovalAccessGuardTest",
+    "tests": "5",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.021"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.operations.approvalrequest.authorization.InternalEmployeeApprovalAccessGuardTest",
+    "tests": "9",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.094"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.operations.approvalrequest.authorization.SystemAdminApprovalAccessGuardTest",
+    "tests": "4",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.017"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.operations.shift.usecase.ShiftUseCaseImplTest",
+    "tests": "12",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "1.65"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.operations.shiftassignment.usecase.ShiftAssignmentUseCaseImplTest",
+    "tests": "16",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.251"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.parking.parkinglot.usecase.ParkingLotUseCaseImplTest",
+    "tests": "19",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.249"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.parking.parkingsession.authorization.EmployeeParkingLotAccessGuardTest",
+    "tests": "2",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.009"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.parking.parkingsession.authorization.ParkingSessionAccessGuardTest",
+    "tests": "14",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.089"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.people.customer.authorization.CustomerAccessGuardTest",
+    "tests": "4",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.15"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.people.customervehicle.authorization.CustomerVehicleAccessGuardTest",
+    "tests": "9",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.1"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.people.employee.authorization.EmployeeAccessGuardTest",
+    "tests": "7",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.089"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.people.employee.authorization.EmployeeOrganizationAccessGuardTest",
+    "tests": "2",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.0"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.people.employee.usecase.EmployeeManagerReadUseCaseImplTest",
+    "tests": "4",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.039"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.people.userprofile.usecase.AvatarModerationUseCaseImplTest",
+    "tests": "6",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.224"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.people.userprofile.usecase.RoleScopeAuditTest",
+    "tests": "13",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.809"
+  },
+  {
+    "name": "com.ban.vehicle_management.application.people.userprofile.usecase.UserProfileUseCaseImplTest",
+    "tests": "8",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.033"
+  },
+  {
+    "name": "com.ban.vehicle_management.domain.iam.account.policy.CurrentAccessStatePolicyTest",
+    "tests": "3",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.007"
+  },
+  {
+    "name": "com.ban.vehicle_management.domain.iam.account.policy.EffectiveAccountAccessPolicyTest",
+    "tests": "18",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.021"
+  },
+  {
+    "name": "com.ban.vehicle_management.infrastructure.persistence.adapter.billing.EmployeePaymentScopePersistenceAdapterTest",
+    "tests": "1",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.143"
+  },
+  {
+    "name": "com.ban.vehicle_management.infrastructure.persistence.adapter.iam.AccountAuthorizationPersistenceAdapterTest",
+    "tests": "6",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.754"
+  },
+  {
+    "name": "com.ban.vehicle_management.infrastructure.persistence.adapter.iam.InternalOnboardingEffectiveAccessPersistenceTest",
+    "tests": "3",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "53.639"
+  },
+  {
+    "name": "com.ban.vehicle_management.infrastructure.persistence.adapter.iam.PartnerAdminEffectiveAccessPersistenceIT",
+    "tests": "8",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "8.05"
+  },
+  {
+    "name": "com.ban.vehicle_management.infrastructure.persistence.InternalRolePermissionMigrationTest",
+    "tests": "1",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "24.705"
+  },
+  {
+    "name": "com.ban.vehicle_management.infrastructure.security.authorization.PermissionFirstArchitectureTest",
+    "tests": "2",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "0.006"
+  }
+]

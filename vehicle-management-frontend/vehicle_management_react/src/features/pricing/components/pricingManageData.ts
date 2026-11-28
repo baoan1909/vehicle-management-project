@@ -35,6 +35,7 @@ export type PriceRuleRecord = {
   vehicleTypeName: string;
   ticketTypeId: string;
   ticketTypeCode: string;
+  ticketTypeName?: string;
   ruleName: string;
   timeFrom: string | null;
   timeTo: string | null;

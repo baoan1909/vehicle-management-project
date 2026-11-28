@@ -164,7 +164,7 @@ const CameraCaptureBox = forwardRef<CameraCaptureBoxHandle, CameraCaptureBoxProp
   const visibleRestoredImageUrl = restoredImageDismissed ? "" : restoredImageUrl;
   const hasVisualCapture = capture || visibleRestoredImageUrl;
   const captureStatusLabel = isCapturing
-    ? "LIVE"
+    ? "Trực tiếp"
     : capture
       ? "Đã chụp"
       : visibleRestoredImageUrl

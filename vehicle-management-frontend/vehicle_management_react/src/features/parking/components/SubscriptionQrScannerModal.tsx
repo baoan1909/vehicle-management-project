@@ -155,7 +155,7 @@ export function SubscriptionQrScannerModal({ mode, onClose, onConfirm, onConfirm
         {error ? <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-3 tw-text-sm tw-font-semibold tw-text-red-700" role="alert">{error}</div> : null}
         {result ? (
           <div className={`tw-rounded-vm-md tw-border tw-border-solid tw-p-4 ${valid ? "tw-border-emerald-200 tw-bg-emerald-50 tw-text-emerald-800" : "tw-border-amber-200 tw-bg-amber-50 tw-text-amber-800"}`}>
-            <strong className="tw-flex tw-items-center tw-gap-2 tw-text-base"><i className={valid ? "fas fa-check-circle" : "fas fa-exclamation-circle"} />{STATUS_LABELS[result.status] ?? result.status}</strong>
+            <strong className="tw-flex tw-items-center tw-gap-2 tw-text-base"><i className={valid ? "fas fa-check-circle" : "fas fa-exclamation-circle"} />{STATUS_LABELS[result.status] ?? "Chưa xác định"}</strong>
             {result.licensePlate ? <span className="tw-mt-2 tw-block tw-text-sm">Biển số đăng ký: <b>{result.licensePlate}</b></span> : null}
             {result.effectiveFrom && result.effectiveTo ? <span className="tw-block tw-text-sm">Hiệu lực: {result.effectiveFrom} — {result.effectiveTo}</span> : null}
           </div>

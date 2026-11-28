@@ -1,3 +1,4 @@
+import { getEnumLabel } from "@/shared/utils/enumLabels";
 import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
@@ -22,9 +23,9 @@ const journeyStates: Array<{ label: string; value: UserGuideJourneyStepState }> 
   { label: "Đang bị chặn", value: "BLOCKED" },
 ];
 const placementOptions = [
-  { label: "Mặc định", value: "" }, { label: "Trên (TOP)", value: "TOP" },
-  { label: "Phải (RIGHT)", value: "RIGHT" }, { label: "Dưới (BOTTOM)", value: "BOTTOM" },
-  { label: "Trái (LEFT)", value: "LEFT" }, { label: "Giữa (CENTER)", value: "CENTER" },
+  { label: "Mặc định", value: "" }, { label: "Trên", value: "TOP" },
+  { label: "Phải", value: "RIGHT" }, { label: "Dưới", value: "BOTTOM" },
+  { label: "Trái", value: "LEFT" }, { label: "Giữa", value: "CENTER" },
 ];
 const fieldClassName = "tw-h-10 tw-w-full tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none tw-transition placeholder:tw-text-vm-slate-400 focus:tw-border-brand-200 disabled:tw-cursor-not-allowed disabled:tw-bg-vm-slate-25";
 const textAreaClassName = "tw-min-h-20 tw-w-full tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-py-2 tw-text-[0.86rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 disabled:tw-cursor-not-allowed disabled:tw-bg-vm-slate-25";
@@ -63,17 +64,17 @@ export function UserGuideStepBuilder({ displayType, fieldErrors = {}, onChange, 
     let active = true;
     getUserGuideJourneyMetadata()
       .then((response) => { if (active) setMetadata(response.data); })
-      .catch((error) => { if (active) setMetadataError(error instanceof Error ? error.message : "Không tải được metadata Journey."); });
+      .catch((error) => { if (active) setMetadataError(error instanceof Error ? error.message : "Không tải được cấu hình lộ trình."); });
     return () => { active = false; };
   }, [isJourney]);
 
   const readinessOptions = useMemo(() => [
-    { label: "Chọn readiness key", value: "" },
-    ...(metadata?.readinessKeys ?? []).map((key) => ({ label: key, value: key })),
+    { label: "Chọn điều kiện thực hiện", value: "" },
+    ...(metadata?.readinessKeys ?? []).map((key) => ({ label: getEnumLabel("guideReadiness", key), value: key })),
   ], [metadata]);
   const coachMarkOptions = useMemo(() => [
-    { label: "Không liên kết Coach mark", value: "" },
-    ...(metadata?.linkedCoachMarks ?? []).map((guide) => ({ label: `${guide.code} · ${guide.status}`, value: guide.guideId })),
+    { label: "Không liên kết hướng dẫn từng bước", value: "" },
+    ...(metadata?.linkedCoachMarks ?? []).map((guide) => ({ label: `${guide.code} · ${getEnumLabel("guideStatus", guide.status)}`, value: guide.guideId })),
   ], [metadata]);
 
   const updateStep = (index: number, patch: Partial<UserGuideStepPayload>) => {
@@ -136,7 +137,7 @@ export function UserGuideStepBuilder({ displayType, fieldErrors = {}, onChange, 
                       const content = journey?.stateContent?.[state.value] ?? {};
                       const setContent = (patch: typeof content) => updateJourney(index, { stateContent: { ...(journey?.stateContent ?? {}), [state.value]: { ...content, ...patch } } });
                       return <div key={state.value} className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3">
-                        <strong className="tw-text-[0.78rem] tw-text-vm-slate-700">{state.label} · {state.value}</strong>
+                        <strong className="tw-text-[0.78rem] tw-text-vm-slate-700">{state.label}</strong>
                         <textarea className={`${textAreaClassName} tw-mt-2 tw-min-h-16`} disabled={readOnly} onChange={(event) => setContent({ description: event.target.value || null })} placeholder="Mô tả trạng thái" value={content.description ?? ""} />
                         <div className="tw-mt-2 tw-grid tw-grid-cols-2 tw-gap-2 max-[700px]:tw-grid-cols-1">
                           <Input className={fieldClassName} disabled={readOnly} onChange={(event) => setContent({ ownerHint: event.target.value || null })} placeholder="Gợi ý người phụ trách" value={content.ownerHint ?? ""} />

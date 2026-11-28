@@ -43,7 +43,7 @@ export function AvatarApprovalManagementPage() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
-  const canReview = hasAnyPermission(user, ["USER_PROFILE_UPDATE_ALL"]);
+  const canReview = hasAnyPermission(user, ["AVATAR_APPROVAL_REVIEW_ALL"]);
 
   const loadItems = useCallback(async () => {
     setLoading(true);
@@ -64,6 +64,7 @@ export function AvatarApprovalManagementPage() {
   }), [loadItems]);
 
   const review = async (item: AvatarModerationStatus, decision: "approve" | "reject") => {
+    if (!canReview || item.approvalStatus !== "PENDING") return;
     const note = notes[item.approvalRequestId]?.trim();
     if (decision === "reject" && !note) {
       setError("Vui lòng nhập lý do từ chối ảnh đại diện.");

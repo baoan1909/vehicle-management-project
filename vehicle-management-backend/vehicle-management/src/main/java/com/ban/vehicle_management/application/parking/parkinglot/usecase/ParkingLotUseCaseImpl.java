@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.application.parking.parkinglot.usecase;
 
+import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLotResponsibility;
+
 import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.model.NotificationAudience;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
@@ -68,6 +70,13 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
         this.featurePortIn = featurePortIn;
         this.administrativeBoundaryPortOut = administrativeBoundaryPortOut;
         this.auditLogPortOut = auditLogPortOut;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ParkingLotResponsibility getResponsibility(UUID parkingLotId) {
+        getParkingLotById(parkingLotId);
+        return parkingLotPortOut.findResponsibility(parkingLotId);
     }
 
     @Override
@@ -278,6 +287,7 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
     @Transactional
     public ParkingLot requestParkingLotActivation(UUID parkingLotId) {
         currentAccountPortIn.requirePermission(PARKING_LOT_READ_ALL);
+        currentAccountPortIn.requirePermission("PARKING_TOPOLOGY_CONFIGURE_ALL");
         ParkingLot existingParkingLot = getParkingLotById(parkingLotId);
 
         if (!organizationAccessGuard.isCurrentParkingManager()) {

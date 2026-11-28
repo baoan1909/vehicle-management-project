@@ -58,7 +58,7 @@ function walletStatusLabel(status?: string | null) {
     DEBIT_BLOCKED: "Tạm ngưng chi",
     LOCKED: "Đã khóa",
   };
-  return status ? labels[status] ?? status : "Đang khởi tạo";
+  return status ? labels[status] ?? "Chưa xác định" : "Đang khởi tạo";
 }
 
 function transactionKind(type: string): Exclude<TransactionFilter, "ALL"> | "OTHER" {
@@ -72,7 +72,7 @@ function transactionStatus(status: string) {
   if (["POSTED", "COMPLETED"].includes(status)) return { icon: "fas fa-check-circle", label: "Thành công", style: "tw-bg-emerald-50 tw-text-emerald-600" };
   if (status === "PENDING") return { icon: "fas fa-clock", label: "Đang xử lý", style: "tw-bg-amber-50 tw-text-amber-600" };
   if (status === "REVERSED") return { icon: "fas fa-undo-alt", label: "Đã hoàn", style: "tw-bg-blue-50 tw-text-blue-600" };
-  return { icon: "fas fa-times-circle", label: status === "FAILED" ? "Thất bại" : status, style: "tw-bg-rose-50 tw-text-rose-600" };
+  return { icon: "fas fa-times-circle", label: status === "FAILED" ? "Thất bại" : "Chưa xác định", style: "tw-bg-rose-50 tw-text-rose-600" };
 }
 
 function transactionMeta(transaction: WalletTransactionResponse, topupById: Map<string, WalletTopupResponse>) {

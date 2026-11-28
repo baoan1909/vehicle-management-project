@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.application.parking.parkinglot.port.out;
 
+import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLotResponsibility;
+
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.application.parking.parkinglot.model.result.ParkingLotActivationReadiness;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
@@ -9,6 +11,8 @@ import java.util.Set;
 import java.util.UUID;
 
 public interface ParkingLotPortOut {
+    ParkingLotResponsibility findResponsibility(UUID parkingLotId);
+
     ParkingLot save(ParkingLot parkingLot);
 
     Optional<ParkingLot> findById(UUID parkingLotId);

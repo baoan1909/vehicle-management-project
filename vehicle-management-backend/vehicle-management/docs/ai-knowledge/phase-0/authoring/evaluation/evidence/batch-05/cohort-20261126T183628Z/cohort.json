@@ -1,0 +1,6 @@
+{
+  "testBoundary" : "Real socket HTTP and DB permissions; test JWT verifier and private filesystem storage; one manual worker",
+  "semanticAcceptance" : false,
+  "manifestSha256" : "99d04a7b7decb23fdb829316a027c5414d677ec7e7bd6f6ecff2216dc0bc03f7",
+  "holdoutSha256" : "33275fe1b0a1527517dbefa255a77d1b5fe974571257223bc61535ea9c272227"
+}

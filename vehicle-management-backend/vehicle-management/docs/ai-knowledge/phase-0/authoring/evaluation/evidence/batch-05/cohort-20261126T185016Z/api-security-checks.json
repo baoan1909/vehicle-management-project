@@ -1,0 +1,16 @@
+[ {
+  "actualHttpStatus" : 200,
+  "passed" : true,
+  "expectedHttpStatus" : 200,
+  "checkId" : "OWN_ORGANIZATION"
+}, {
+  "actualHttpStatus" : 403,
+  "passed" : true,
+  "expectedHttpStatus" : 403,
+  "checkId" : "OTHER_ORGANIZATION"
+}, {
+  "actualHttpStatus" : 403,
+  "passed" : true,
+  "expectedHttpStatus" : 403,
+  "checkId" : "PUBLIC_CANNOT_MANAGE_KNOWLEDGE"
+} ]

@@ -8,7 +8,7 @@ Giữ nguyên GEMINI_API_KEY, GEMINI_PROJECT_ID và các cặp dự phòng _1 đ
 
 ## Kho tri thức
 
-Giữ đủ 16 tài liệu trong phase-0/knowledge và bản soạn thảo phase-0/authoring/knowledge. Tài liệu vẫn DRAFT cho đến khi được rà soát và duyệt qua luồng quản trị. Tài liệu upload cần đúng source, scope, phiên bản, hiệu lực và dấu duyệt.
+Kho hiện có 21 tài liệu: 16 nguồn đợt 1–4 và 5 nguồn đợt 5 (đăng ký công khai tách quản trị tổ chức nội bộ). Bản xuất ở phase-0/knowledge và bản soạn thảo ở phase-0/authoring/knowledge. Tài liệu vẫn DRAFT cho đến khi được rà soát và duyệt qua luồng quản trị. Tài liệu upload cần đúng source, scope, phiên bản, hiệu lực và dấu duyệt.
 
 Bốn đợt có 984 câu (240/240/240/264), bộ nền 120 câu; 24 câu bổ sung ở additional-evaluation.jsonl, tách khỏi runtime. Các kết quả cũ không phải nghiệm thu Google live.
 
@@ -35,3 +35,9 @@ Bảng lưu lịch sử không được ứng dụng dùng để sinh câu trả
 ## Giới hạn nghiệm thu
 
 Google live còn cần kiểm bằng đáp án chuẩn qua API chatbox; kết quả offline, FAQ hoặc nhà cung cấp cũ không chứng minh Google đạt các ngưỡng. Báo riêng câu FAQ, câu Google sinh, tool và hỏi lại. Không dùng HTTP 200 làm điểm đúng nghiệp vụ. Xem ALL_BATCHES_REVIEW_STATUS.vi.md.
+
+## Đợt 5 — quản trị đối tác
+
+Thêm 240 câu chính (60/chủ đề), 40 holdout đóng băng riêng và 4 probe tổng hợp generation. Tập cũ 1.104 câu cùng 24 câu bổ sung giữ riêng và nguyên hash. Registry chính gồm 1.344 câu; không cộng holdout/probe/bổ sung vào đó. Nguồn vẫn DRAFT; duyệt trong DB kiểm thử không phê duyệt DB dùng chung.
+
+Xem [báo cáo đợt 5](phase-0/authoring/evaluation/batch-05-report.md), [runbook DB sạch](phase-0/authoring/evaluation/batch-05-runbook.md) và [rubric](phase-0/authoring/evaluation/batch-05-rubric.md). Trạng thái live, checkpoint, lỗi harness/provider và gate còn thiếu nằm trong báo cáo, không suy từ kết quả các đợt cũ.

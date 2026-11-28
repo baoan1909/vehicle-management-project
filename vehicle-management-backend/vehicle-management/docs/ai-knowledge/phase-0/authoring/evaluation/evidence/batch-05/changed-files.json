@@ -1,0 +1,33 @@
+{
+  "trackedFilesChanged": [
+    "vehicle-management-backend/vehicle-management/.env.example",
+    "vehicle-management-backend/vehicle-management/docs/ai-knowledge/ALL_BATCHES_REVIEW_STATUS.vi.md",
+    "vehicle-management-backend/vehicle-management/docs/ai-knowledge/COMMON_KNOWLEDGE_RUNTIME.vi.md",
+    "vehicle-management-backend/vehicle-management/docs/ai-knowledge/GEMINI_CREDENTIAL_FAILOVER.vi.md",
+    "vehicle-management-backend/vehicle-management/docs/ai-knowledge/README.md",
+    "vehicle-management-backend/vehicle-management/docs/ai-knowledge/TEAM_HANDOFF.vi.md",
+    "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/README.md",
+    "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/README.md",
+    "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/knowledge-batches.json",
+    "vehicle-management-backend/vehicle-management/docs/ai-knowledge/phase-0/authoring/knowledge-manifest.json",
+    "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/ai/service/AiAssistantProperties.java",
+    "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/application/ai/service/KnowledgeIndexVersionUseCaseImpl.java",
+    "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/domain/ai/model/AssistantBusinessRequestPolicy.java",
+    "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/domain/ai/model/AssistantIntentRouter.java",
+    "vehicle-management-backend/vehicle-management/src/main/java/com/ban/vehicle_management/infrastructure/ai/gemini/GeminiProperties.java",
+    "vehicle-management-backend/vehicle-management/src/main/resources/application.yaml",
+    "vehicle-management-backend/vehicle-management/src/test/java/com/ban/vehicle_management/ai/golden/CommonKnowledgeCorpusTest.java"
+  ],
+  "newDeliverablesRoot": "docs/ai-knowledge/phase-0/authoring/evaluation",
+  "newKnowledgeDocuments": 5,
+  "localIgnoredConfigChange": {
+    "variable": "AI_ASSISTANT_GENERATION_TIMEOUT",
+    "before": "4s",
+    "after": "20s",
+    "otherEnvironmentLinesChanged": 0
+  },
+  "commitCreated": false,
+  "pushPerformed": false,
+  "sharedDatabaseMutated": false,
+  "googleAcceptance": false
+}

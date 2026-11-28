@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.hardware.device.port.in;
 
 import com.ban.vehicle_management.domain.hardware.device.model.Device;
+import com.ban.vehicle_management.domain.hardware.device.model.DeviceLaneOption;
 import com.ban.vehicle_management.shared.enumeration.hardware.DeviceStatus;
 import com.ban.vehicle_management.shared.enumeration.hardware.DeviceType;
 import java.util.List;
@@ -8,6 +9,7 @@ import java.util.UUID;
 
 public interface DevicePortIn {
 
+    List<DeviceLaneOption> getLaneOptions(UUID parkingLotId);
     Device createDevice(Device device);
 
     Device getDeviceById(UUID deviceId);

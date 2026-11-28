@@ -38,7 +38,7 @@ function statusLabel(status?: string | null) {
   if (status === "ACTIVE") return "Đang hoạt động";
   if (status === "BLOCKED") return "Bị khóa";
   if (status === "INACTIVE") return "Ngưng dùng";
-  return status || "--";
+  return status ? "Chưa xác định" : "--";
 }
 
 function vehicleToForm(vehicle: CustomerPortalVehicle): VehicleForm {

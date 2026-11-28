@@ -16,6 +16,8 @@ import {
   activateDevice,
   createDevice,
   getDevices,
+  getDeviceLaneOptions,
+  type DeviceLaneOption,
   markDeviceMaintenance,
   markDeviceOffline,
   retireDevice,
@@ -26,23 +28,13 @@ import {
   type SaveDeviceRequest,
 } from "@/features/hardware/api/deviceApi";
 import {
-  getGates,
-  getLanes,
-  getZones,
-  type LaneApiResponse,
-} from "@/features/parking/api/parkingTopologyApi";
-import {
   getParkingLots,
   type ParkingLotApiResponse,
 } from "@/features/parking/api/parkingLotsApi";
 import { cn } from "@/lib/cn";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 
-type TopologyLane = LaneApiResponse & {
-  gateName: string;
-  parkingLotId: string;
-  zoneName: string;
-};
+type TopologyLane = DeviceLaneOption;
 
 type DeviceFormState = {
   configText: string;
@@ -130,43 +122,6 @@ function getInitialForm(device: DeviceApiResponse | null): DeviceFormState {
   };
 }
 
-async function loadTopology(parkingLots: ParkingLotApiResponse[]) {
-  const zoneGroups = await Promise.all(
-    parkingLots.map(async (parkingLot) => ({
-      parkingLotId: parkingLot.parkingLotId,
-      zones: (await getZones({ parkingLotId: parkingLot.parkingLotId })).data ?? [],
-    })),
-  );
-
-  const zones = zoneGroups.flatMap(({ parkingLotId, zones: items }) =>
-    items.map((zone) => ({ ...zone, parkingLotId })),
-  );
-  const gateGroups = await Promise.all(
-    zones.map(async (zone) => ({
-      zone,
-      gates: (await getGates({ zoneId: zone.zoneId })).data ?? [],
-    })),
-  );
-  const gates = gateGroups.flatMap(({ zone, gates: items }) =>
-    items.map((gate) => ({ gate, zone })),
-  );
-  const laneGroups = await Promise.all(
-    gates.map(async ({ gate, zone }) => ({
-      gate,
-      lanes: (await getLanes({ gateId: gate.gateId })).data ?? [],
-      zone,
-    })),
-  );
-
-  return laneGroups.flatMap(({ gate, lanes, zone }) =>
-    lanes.map<TopologyLane>((lane) => ({
-      ...lane,
-      gateName: gate.name,
-      parkingLotId: zone.parkingLotId,
-      zoneName: zone.name,
-    })),
-  );
-}
 
 function DeviceMetric({
   icon,
@@ -652,6 +607,7 @@ export function DeviceManagementPage() {
   const [devices, setDevices] = useState<DeviceApiResponse[]>([]);
   const [parkingLots, setParkingLots] = useState<ParkingLotApiResponse[]>([]);
   const [lanes, setLanes] = useState<TopologyLane[]>([]);
+  const [laneLoadError, setLaneLoadError] = useState("");
   const [keyword, setKeyword] = useState("");
   const [parkingLotFilter, setParkingLotFilter] = useState("all");
   const [laneFilter, setLaneFilter] = useState("all");
@@ -678,6 +634,7 @@ export function DeviceManagementPage() {
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    setLaneLoadError("");
     try {
       const [deviceResponse, parkingLotResponse] = await Promise.all([
         getDevices(),
@@ -688,12 +645,16 @@ export function DeviceManagementPage() {
       setParkingLots(nextParkingLots);
 
       try {
-        setLanes(await loadTopology(nextParkingLots));
-      } catch (topologyError) {
+        const laneResponse = await getDeviceLaneOptions();
+        const permittedLots = new Set(nextParkingLots.map((lot) => lot.parkingLotId));
+        setLanes((laneResponse.data ?? []).filter((lane) => permittedLots.has(lane.parkingLotId)));
+      } catch (laneError) {
         setLanes([]);
+        setLaneFilter("all");
+        setLaneLoadError(laneError instanceof Error ? laneError.message : "Không tải được danh sách làn xe.");
         toast.warning(
-          topologyError instanceof Error
-            ? topologyError.message
+          laneError instanceof Error
+            ? laneError.message
             : "Không thể tải thông tin làn xe.",
           "Thiếu dữ liệu vị trí",
         );
@@ -876,7 +837,7 @@ export function DeviceManagementPage() {
     })),
   ];
   const laneOptions = [
-    { label: "Làn xe: Tất cả", value: "all" },
+    { label: laneLoadError ? "Không tải được làn xe" : "Làn xe: Tất cả", value: "all" },
     ...filterLanes.map((lane) => ({
       label: `${lane.code} - ${lane.name}`,
       value: lane.laneId,
@@ -886,6 +847,7 @@ export function DeviceManagementPage() {
   return (
     <div className="tw-px-4 tw-py-4 lg:tw-px-5">
       <section data-user-guide-anchor="WORKFLOW.DEVICES.WORKSPACE" className="tw-mx-auto tw-min-h-[calc(100vh-104px)] tw-w-[min(100%,1560px)] tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-5 tw-shadow-vm-card">
+        {laneLoadError ? <div role="alert" className="tw-mb-3 tw-rounded-md tw-bg-amber-50 tw-p-3 tw-text-sm tw-text-amber-900">Không tải được bộ lọc làn: {laneLoadError}. Hãy làm mới để thử lại.</div> : null}
         <header data-user-guide-anchor="WORKFLOW.DEVICES.HEADER" className="tw-flex tw-items-start tw-justify-between tw-gap-4 max-[720px]:tw-flex-col">
           <div>
             <h1 className="tw-m-0 tw-text-vm-page-title tw-text-vm-slate-900">
@@ -1077,7 +1039,7 @@ export function DeviceManagementPage() {
                           {parkingLot?.name ?? "Không xác định"}
                         </strong>
                         <small className="tw-mt-1 tw-block tw-truncate tw-text-[0.72rem] tw-font-semibold tw-text-vm-slate-500">
-                          {lane ? `${lane.code} · ${lane.name}` : "Không liên kết làn"}
+                          {lane ? `${lane.code} · ${lane.name}` : device.laneId ? "Chưa tải được thông tin làn" : "Không liên kết làn"}
                         </small>
                       </td>
                       <td>

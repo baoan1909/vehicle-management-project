@@ -9,6 +9,7 @@ import com.ban.vehicle_management.application.notification.notification.model.No
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.domain.hardware.device.model.Device;
+import com.ban.vehicle_management.domain.hardware.device.model.DeviceLaneOption;
 import com.ban.vehicle_management.domain.hardware.device.policy.DevicePolicy;
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.shared.enumeration.hardware.DeviceStatus;
@@ -52,6 +53,23 @@ public class DeviceUseCaseImpl implements DevicePortIn {
         this.parkingLotPortOut = parkingLotPortOut;
         this.organizationAccessGuard = organizationAccessGuard;
         this.notificationPortIn = notificationPortIn;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DeviceLaneOption> getLaneOptions(UUID parkingLotId) {
+        currentAccountPortIn.requirePermission(DEVICE_READ_ALL);
+        Set<UUID> scope;
+        if (parkingLotId != null) {
+            ensureCanReadParkingLot(parkingLotId);
+            scope = Set.of(parkingLotId);
+        } else {
+            scope = organizationAccessGuard.resolveAccessibleParkingLotIds(parkingLotPortOut);
+        }
+        if (scope != null && scope.isEmpty()) return List.of();
+        return devicePortOut.findLaneOptions(scope).stream()
+                .filter(lane -> scope == null || scope.contains(lane.parkingLotId()))
+                .toList();
     }
 
     @Override

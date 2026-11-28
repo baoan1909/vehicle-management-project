@@ -1,0 +1,9 @@
+[
+  {
+    "credentialVariable": "GEMINI_API_KEY",
+    "kind": "RATE_LIMIT",
+    "operation": "embedContent",
+    "model": "gemini-embedding-2",
+    "retryAt": "2026-11-26T19:00:07.459967300Z"
+  }
+]

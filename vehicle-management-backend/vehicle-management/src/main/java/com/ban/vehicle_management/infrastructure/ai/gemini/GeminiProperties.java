@@ -9,7 +9,7 @@ public class GeminiProperties {
     private String baseUrl = "https://generativelanguage.googleapis.com";
     private String projectId;
     private int maxAttempts = 20;
-    private java.time.Duration callBudget = java.time.Duration.ofSeconds(12);
+    private java.time.Duration callBudget = java.time.Duration.ofSeconds(60);
     private java.time.Duration generationMinInterval = java.time.Duration.ofSeconds(5);
     private java.time.Duration embeddingMinInterval = java.time.Duration.ofMillis(650);
 

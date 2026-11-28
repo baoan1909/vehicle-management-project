@@ -1,5 +1,8 @@
 package com.ban.vehicle_management.application.operations.shiftassignment.mapper;
 
+import com.ban.vehicle_management.domain.operations.shiftassignment.model.EmployeeShiftSchedule;
+import com.ban.vehicle_management.entrypoint.dto.operations.shiftassignment.response.EmployeeShiftScheduleResponse;
+
 import com.ban.vehicle_management.domain.operations.shiftassignment.model.ShiftAssignment;
 import com.ban.vehicle_management.entrypoint.dto.operations.shiftassignment.request.CreateShiftAssignmentRequest;
 import com.ban.vehicle_management.entrypoint.dto.operations.shiftassignment.request.UpdateShiftAssignmentRequest;
@@ -12,6 +15,20 @@ import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface ShiftAssignmentApiMapper {
+    @Mapping(target = "shiftAssignmentId", source = "assignment.shiftAssignmentId")
+    @Mapping(target = "shiftId", source = "shift.shiftId")
+    @Mapping(target = "parkingLotId", source = "shift.parkingLotId")
+    @Mapping(target = "shiftCode", source = "shift.shiftCode")
+    @Mapping(target = "startTime", source = "shift.startTime")
+    @Mapping(target = "endTime", source = "shift.endTime")
+    @Mapping(target = "shiftStatus", source = "shift.status")
+    @Mapping(target = "status", source = "assignment.status")
+    EmployeeShiftScheduleResponse toOwnResponse(
+            EmployeeShiftSchedule schedule);
+
+    List<EmployeeShiftScheduleResponse> toOwnResponses(
+            List<EmployeeShiftSchedule> schedules);
+
 
     @Mapping(target = "shiftAssignmentId", ignore = true)
     @Mapping(target = "shiftId", ignore = true)

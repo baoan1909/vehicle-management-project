@@ -1,0 +1,10 @@
+{
+  "kind": "OFFLINE_ROUTE_MATCHER_NOT_SEMANTIC_ACCEPTANCE",
+  "corpusCases": 1224,
+  "newCases": 240,
+  "historicalRouteChanges": [],
+  "staticGuideRoutedStatic": 147,
+  "staticGuidePlanned": 150,
+  "faqMatcherHits": 53,
+  "note": "Semantic answer modes are not router enum values. No Google/live accuracy rate is inferred."
+}

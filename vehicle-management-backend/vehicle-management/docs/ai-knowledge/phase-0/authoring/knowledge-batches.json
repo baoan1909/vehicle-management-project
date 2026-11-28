@@ -59,6 +59,22 @@
       "scenarios": "batch-04-scenarios.json",
       "scenarioCount": 44,
       "variantsPerScenario": 6
+    },
+    {
+      "batch": 5,
+      "documentSlugs": [
+        "partner-registration-and-organization",
+        "partner-organization-administration",
+        "partner-employees-roles-and-permissions",
+        "parking-structure-and-layout",
+        "partner-operational-catalogs"
+      ],
+      "dataset": "batch-05-questions.jsonl",
+      "scenarios": "batch-05-scenarios.json",
+      "scenarioCount": 40,
+      "variantsPerScenario": 6,
+      "holdout": "batch-05-holdout.jsonl",
+      "holdoutExpectedCount": 40
     }
   ]
 }

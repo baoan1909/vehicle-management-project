@@ -434,18 +434,14 @@ function ReviewDrawer({
               {actionError}
             </div>
           ) : null}
-          <div className={cn("tw-grid tw-gap-3", canApprove ? "tw-grid-cols-[1fr_1fr_1.15fr]" : "tw-grid-cols-[1fr_1.15fr]")}>
+          <div className="tw-flex tw-flex-wrap tw-gap-3">
             <Button variant="secondary" onClick={onClose}>Đóng</Button>
             {canApprove && canRejectAction ? <Button {...userGuideAnchorProps("SUBSCRIPTION.APPROVAL.REJECT")} disabled={actionLoading} variant="danger" onClick={() => onReject(request, rejectReason)}>Từ chối</Button> : null}
-            {canApprove && !canRejectAction && guideCode === "SUBSCRIPTION_REVIEW_PENDING" ? <Button {...userGuideAnchorProps("SUBSCRIPTION.APPROVAL.REJECT")} disabled variant="danger">Không có quyền từ chối</Button> : null}
             {canApprove && canApproveAction ? <Button {...userGuideAnchorProps("SUBSCRIPTION.APPROVAL.APPROVE")} disabled={actionLoading} onClick={() => onApprove(request)}>Duyệt yêu cầu</Button> : null}
-            {canApprove && !canApproveAction && guideCode === "SUBSCRIPTION_REVIEW_PENDING" ? <Button {...userGuideAnchorProps("SUBSCRIPTION.APPROVAL.APPROVE")} disabled>Không có quyền duyệt</Button> : null}
             {canAssignCard && canAssignCardAction ? <Button {...userGuideAnchorProps("SUBSCRIPTION.APPROVAL.ASSIGN_CARD")} disabled={actionLoading} onClick={() => onAssignCard(request)}>Gán thẻ</Button> : null}
-            {!canAssignCard && guideCode === "SUBSCRIPTION_CARD_FULFILLMENT" ? <Button {...userGuideAnchorProps("SUBSCRIPTION.APPROVAL.ASSIGN_CARD")} disabled>Chưa đủ điều kiện gán thẻ</Button> : null}
+            {canAssignCardAction && !canAssignCard && guideCode === "SUBSCRIPTION_CARD_FULFILLMENT" ? <Button {...userGuideAnchorProps("SUBSCRIPTION.APPROVAL.ASSIGN_CARD")} disabled>Chưa đủ điều kiện gán thẻ</Button> : null}
             {waitingPayment && canRecordPaymentAction ? <Button {...userGuideAnchorProps("SUBSCRIPTION.APPROVAL.CASH_PAYMENT")} disabled={actionLoading} onClick={() => onOpenCashPayment(request)}>Xác nhận tại quầy</Button> : null}
             {canManageAccess ? <Button {...userGuideAnchorProps("SUBSCRIPTION.APPROVAL.ACCESS_TOGGLE")} disabled={actionLoading} variant={request.accessBlocked ? "primary" : "danger"} onClick={() => onToggleAccess(request)}>{request.accessBlocked ? "Kích hoạt lại vé" : "Khóa vé"}</Button> : null}
-            {!canManageAccess && guideCode === "SUBSCRIPTION_CARD_FULFILLMENT" ? <Button {...userGuideAnchorProps("SUBSCRIPTION.APPROVAL.ACCESS_TOGGLE")} disabled>Không có quyền đổi truy cập</Button> : null}
-            {!(canApprove && (canApproveAction || canRejectAction)) && !(canAssignCard && canAssignCardAction) && !(waitingPayment && canRecordPaymentAction) && !canManageAccess ? <Button disabled>Chỉ xem</Button> : null}
           </div>
         </div>
       }

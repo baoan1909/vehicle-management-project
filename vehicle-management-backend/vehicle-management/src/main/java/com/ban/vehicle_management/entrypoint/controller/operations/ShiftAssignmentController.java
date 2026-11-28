@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.controller.operations;
 
+import com.ban.vehicle_management.entrypoint.dto.operations.shiftassignment.response.EmployeeShiftScheduleResponse;
+
 import com.ban.vehicle_management.application.operations.shiftassignment.mapper.ShiftAssignmentApiMapper;
 import com.ban.vehicle_management.application.operations.shiftassignment.port.in.ShiftAssignmentPortIn;
 import com.ban.vehicle_management.domain.operations.shiftassignment.model.ShiftAssignment;
@@ -89,12 +91,12 @@ public class ShiftAssignmentController {
                     "'SHIFT_ASSIGNMENT_READ_OWN')"
     )
     public ResponseEntity<
-            ApiResponse<List<ShiftAssignmentAdminResponse>>
+            ApiResponse<List<EmployeeShiftScheduleResponse>>
             > getMyAssignments(
             @ModelAttribute MyShiftAssignmentFilterRequest request
     ) {
-        List<ShiftAssignment> results =
-                assignmentPortIn.getMyAssignments(
+        var results =
+                assignmentPortIn.getMySchedule(
                         request.fromDate(),
                         request.toDate(),
                         request.status()
@@ -102,7 +104,7 @@ public class ShiftAssignmentController {
 
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched current employee assignments successfully",
-                apiMapper.toAdminResponses(results)
+                apiMapper.toOwnResponses(results)
         ));
     }
 

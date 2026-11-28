@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "verifiedAt": "2026-11-24",
+  "verifiedAt": "2026-11-27",
   "sourceRoot": "docs/ai-knowledge/phase-0/authoring/knowledge",
   "exportRoot": "docs/ai-knowledge/phase-0/knowledge",
   "documents": [
@@ -115,6 +115,56 @@
       "exportSha256": "630273662370b5116827a034fdfeea10864911d096d8639eacb98ce81ac6ae06"
     },
     {
+      "slug": "parking-structure-and-layout",
+      "file": "parking-structure-and-layout.md",
+      "accessScope": "EMPLOYEE",
+      "documentVersion": "1.0.0",
+      "status": "DRAFT",
+      "batch": 5,
+      "sourceSha256": "2eeedc3b2d655178d7e12155ce1c90009096b46667d9c07deae441106b3f6847",
+      "exportSha256": "54ea0474a0a52c32ea56f4cad824b325189a4f65cb2a2e393ab0bf6a062e15a8"
+    },
+    {
+      "slug": "partner-employees-roles-and-permissions",
+      "file": "partner-employees-roles-and-permissions.md",
+      "accessScope": "EMPLOYEE",
+      "documentVersion": "1.0.0",
+      "status": "DRAFT",
+      "batch": 5,
+      "sourceSha256": "02093b316afd4289a72f324392047952135efac733be99f3e46777279fbcbba2",
+      "exportSha256": "115605255c38400f3a94566683682141b7fb92f97c13fcf04f1374e9a9fea78f"
+    },
+    {
+      "slug": "partner-operational-catalogs",
+      "file": "partner-operational-catalogs.md",
+      "accessScope": "EMPLOYEE",
+      "documentVersion": "1.0.0",
+      "status": "DRAFT",
+      "batch": 5,
+      "sourceSha256": "6d9a1c14abaad84239f35d1305a5433af50df5423b2c5b0c106793e76e878389",
+      "exportSha256": "abc18300429fdf002785990ddc16b93d3f91cd55f6a164f6014aef92d930d881"
+    },
+    {
+      "slug": "partner-organization-administration",
+      "file": "partner-organization-administration.md",
+      "accessScope": "EMPLOYEE",
+      "documentVersion": "1.0.0",
+      "status": "DRAFT",
+      "batch": 5,
+      "sourceSha256": "adccdd6e4764b3e571edf4f3d98aded9433b84504e41d6e8bab3f8679de2dae0",
+      "exportSha256": "02a62271c45c14e9a1a04f84d62593b1c8904448c78fcc48b81926caef3fb35f"
+    },
+    {
+      "slug": "partner-registration-and-organization",
+      "file": "partner-registration-and-organization.md",
+      "accessScope": "PUBLIC",
+      "documentVersion": "1.0.0",
+      "status": "DRAFT",
+      "batch": 5,
+      "sourceSha256": "1e6c34efae3c7ba957550543facc9f2cbf9b132d8e5988acdc165919d8b99a67",
+      "exportSha256": "6dcb9c47ad84c8eb3f27fe7d3cbd0960939794c12c556c1998efc3d62eb94ac7"
+    },
+    {
       "slug": "pricing-and-fee-calculation",
       "file": "pricing-and-fee-calculation.md",
       "accessScope": "PUBLIC",
@@ -199,6 +249,13 @@
       "batch": 4,
       "expectedCount": 264,
       "sha256": "82644eb7048f994833b5f7ab01706a2a8c78c3e98b89b119c04acb284e4826c9"
+    },
+    {
+      "file": "batch-05-questions.jsonl",
+      "kind": "batch",
+      "batch": 5,
+      "expectedCount": 240,
+      "sha256": "ac546632d6b36374722de9c7454ddc34c16488c66b4aa64ac2dc3aa9ff39d07b"
     }
   ]
 }

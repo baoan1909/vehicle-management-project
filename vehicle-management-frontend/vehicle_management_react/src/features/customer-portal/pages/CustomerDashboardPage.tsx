@@ -59,7 +59,7 @@ function statusLabel(status?: string | null) {
   if (status === "EXPIRED") return "Hết hạn";
   if (status === "CANCELLED") return "Đã hủy";
   if (status === "REJECTED") return "Từ chối";
-  return status || "--";
+  return status ? "Chưa xác định" : "--";
 }
 
 function approvalLabel(status?: string | null) {
@@ -67,7 +67,7 @@ function approvalLabel(status?: string | null) {
   if (status === "PENDING") return "Chờ duyệt";
   if (status === "REJECTED") return "Từ chối";
   if (status === "SUSPENDED") return "Tạm khóa";
-  return status || "--";
+  return status ? "Chưa xác định" : "--";
 }
 
 function approvalTone(status?: string | null): StatusTone {

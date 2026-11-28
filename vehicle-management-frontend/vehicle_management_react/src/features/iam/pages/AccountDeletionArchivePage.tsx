@@ -1,3 +1,4 @@
+import { getEnumLabel } from "@/shared/utils/enumLabels";
 import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 import { useState } from "react";
 
@@ -26,7 +27,7 @@ const identityTypes: Array<{ label: string; value: DeletedIdentityType }> = [
   { label: "CCCD/CMND", value: "IDENTIFY_CARD" },
   { label: "Mã khách hàng", value: "CUSTOMER_CODE" },
   { label: "Mã nhân viên", value: "EMPLOYEE_CODE" },
-  { label: "Provider subject", value: "PROVIDER_SUBJECT" },
+  { label: "Định danh đăng nhập ngoài", value: "PROVIDER_SUBJECT" },
 ];
 
 function formatTime(value?: string | null) {
@@ -103,8 +104,8 @@ export function AccountDeletionArchivePage() {
               </div>
               <div className="tw-mt-4 tw-grid tw-gap-2">
                 {accounts.map((item) => <button key={item.requestId} className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-3 tw-text-left" type="button" onClick={() => canReadAudit && void loadAudit(item.requestId)}>
-                  <span className="tw-flex tw-items-center tw-justify-between tw-gap-2"><strong className="tw-break-all">{item.accountId}</strong><Badge tone="neutral">{item.accountStatus}</Badge></span>
-                  <small className="tw-mt-1 tw-block tw-text-vm-slate-500">Hoàn tất: {formatTime(item.completedAt)} · Request: {item.requestId}</small>
+                  <span className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-2"><strong className="tw-break-all">{item.accountId}</strong><Badge tone="neutral">{getEnumLabel("accountStatus", item.accountStatus)}</Badge></span>
+                  <small className="tw-mt-1 tw-block tw-text-vm-slate-500">Hoàn tất: {formatTime(item.completedAt)} · Yêu cầu: {item.requestId}</small>
                 </button>)}
                 {accounts.length === 0 ? <p className="tw-m-0 tw-text-sm tw-text-vm-slate-500">Chưa tải dữ liệu.</p> : null}
               </div>
@@ -123,7 +124,7 @@ export function AccountDeletionArchivePage() {
               </div>
               <div className="tw-mt-4 tw-grid tw-gap-2">
                 {organizations.map((item) => <article key={item.organizationId} className="tw-rounded-vm-md tw-bg-vm-slate-25 tw-p-3">
-                  <span className="tw-flex tw-items-center tw-justify-between tw-gap-2"><strong>{item.name} ({item.code})</strong><Badge tone="neutral">{item.status}</Badge></span>
+                  <span className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-2"><strong>{item.name} ({item.code})</strong><Badge tone="neutral">{getEnumLabel("organizationStatus", item.status)}</Badge></span>
                   <small className="tw-mt-1 tw-block tw-text-vm-slate-500">Đóng lúc: {formatTime(item.closedAt)} · {item.organizationId}</small>
                 </article>)}
                 {organizations.length === 0 ? <p className="tw-m-0 tw-text-sm tw-text-vm-slate-500">Chưa tải dữ liệu.</p> : null}
@@ -142,14 +143,14 @@ export function AccountDeletionArchivePage() {
               <input className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-200 tw-px-3" placeholder="Giá trị cần đối chiếu (không được lưu thô)" value={identityValue} onChange={(event) => setIdentityValue(event.target.value)} />
               <Button disabled={!identityValue.trim()} loading={loading === "identity"} type="button" onClick={() => void run("identity", async () => setIdentityMatches(await lookupDeletedIdentity(identityType, identityValue, reason)))}>Đối chiếu</Button>
             </div>
-            <div className="tw-mt-3 tw-grid tw-gap-2">{identityMatches.map((match) => <div key={`${match.requestId}-${match.identityType}`} className="tw-rounded-vm-md tw-bg-vm-slate-25 tw-p-3 tw-text-sm"><strong>{match.accountId}</strong> · {match.identityType} · Request {match.requestId}</div>)}</div>
+            <div className="tw-mt-3 tw-grid tw-gap-2">{identityMatches.map((match) => <div key={`${match.requestId}-${match.identityType}`} className="tw-rounded-vm-md tw-bg-vm-slate-25 tw-p-3 tw-text-sm"><strong>{match.accountId}</strong> · {getEnumLabel("identityType", match.identityType)} · Yêu cầu {match.requestId}</div>)}</div>
           </Card> : null}
 
           {canReadAudit && audit ? <Card className="tw-mt-4 tw-p-4">
-            <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-2"><h2 className="tw-m-0 tw-text-lg tw-font-black">Timeline yêu cầu {audit.requestId}</h2><Badge tone="neutral">{audit.status}</Badge></div>
+            <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-2"><h2 className="tw-m-0 tw-text-lg tw-font-black">Tiến trình yêu cầu {audit.requestId}</h2><Badge tone="neutral">{getEnumLabel("deletionStatus", audit.status)}</Badge></div>
             <p className="tw-mb-0 tw-mt-2 tw-text-sm tw-text-vm-slate-600">Yêu cầu: {formatTime(audit.requestedAt)} · Dự kiến: {formatTime(audit.scheduledDeletionAt)} · Hoàn tất: {formatTime(audit.completedAt)} · Số lần xử lý: {audit.attemptCount}</p>
             {audit.lastErrorCode ? <p className="tw-mb-0 tw-mt-2 tw-font-bold tw-text-amber-700">Mã lỗi gần nhất: {audit.lastErrorCode}</p> : null}
-            <div className="tw-mt-4 tw-overflow-x-auto"><table className="tw-w-full tw-border-collapse tw-text-sm"><thead><tr className="tw-bg-vm-slate-25 tw-text-left"><th className="tw-p-2">Loại cleanup</th><th className="tw-p-2">Trạng thái</th><th className="tw-p-2">Lịch chạy</th><th className="tw-p-2">Số lần thử</th></tr></thead><tbody>{audit.cleanupItems.map((item) => <tr key={item.cleanupItemId} className="tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100"><td className="tw-p-2">{item.resourceType}</td><td className="tw-p-2">{item.status}</td><td className="tw-p-2">{formatTime(item.scheduledAt)}</td><td className="tw-p-2">{item.attemptCount}</td></tr>)}</tbody></table></div>
+            <div className="tw-mt-4 tw-overflow-x-auto"><table className="tw-w-full tw-min-w-[600px] tw-border-collapse tw-text-sm"><thead><tr className="tw-bg-vm-slate-25 tw-text-left"><th className="tw-p-2">Dữ liệu cần dọn dẹp</th><th className="tw-p-2">Trạng thái</th><th className="tw-p-2">Lịch chạy</th><th className="tw-p-2">Số lần thử</th></tr></thead><tbody>{audit.cleanupItems.map((item) => <tr key={item.cleanupItemId} className="tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100"><td className="tw-p-2">{getEnumLabel("cleanupResource", item.resourceType)}</td><td className="tw-p-2">{getEnumLabel("cleanupStatus", item.status)}</td><td className="tw-p-2">{formatTime(item.scheduledAt)}</td><td className="tw-p-2">{item.attemptCount}</td></tr>)}</tbody></table></div>
           </Card> : null}
         </Card>
       </div>

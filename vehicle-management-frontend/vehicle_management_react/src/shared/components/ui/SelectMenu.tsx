@@ -255,7 +255,7 @@ export function SelectMenu({
                 >
                   {selectedOption ? <span className="tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-white" /> : null}
                 </span> : null}
-                <span className="tw-min-w-0 tw-flex-1 tw-truncate">{option.label}</span>
+                <span className="tw-min-w-0 tw-flex-1 tw-whitespace-normal tw-break-words tw-leading-5">{option.label}</span>
                 {selectedOption ? selectedOptionAdornment : null}
               </button>
               <button
@@ -307,7 +307,7 @@ export function SelectMenu({
             >
               {selectedOption ? <span className="tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-white" /> : null}
             </span> : null}
-            <span className="tw-min-w-0 tw-flex-1 tw-truncate">{option.label}</span>
+            <span className="tw-min-w-0 tw-flex-1 tw-whitespace-normal tw-break-words tw-leading-5">{option.label}</span>
             {selectedOption ? selectedOptionAdornment : null}
           </button>
         );
@@ -367,7 +367,7 @@ export function SelectMenu({
         aria-expanded={open}
         aria-label={ariaLabel}
         className={cn(
-          "vm-select-menu-trigger tw-group tw-flex tw-h-[42px] tw-w-full tw-items-center tw-justify-between tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-py-0 tw-pl-[0.95rem] tw-pr-[0.8rem] tw-text-left tw-text-[0.92rem] tw-font-semibold tw-text-[#111827] tw-shadow-[0_4px_10px_rgba(15,23,42,0.025)] tw-transition focus-visible:tw-outline-none",
+          "vm-select-menu-trigger tw-group tw-flex !tw-h-auto tw-min-h-[42px] tw-w-full tw-items-center tw-justify-between tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white !tw-py-2 tw-pl-[0.95rem] tw-pr-[0.8rem] tw-text-left tw-text-[0.92rem] tw-font-semibold tw-text-[#111827] tw-shadow-[0_4px_10px_rgba(15,23,42,0.025)] tw-transition focus-visible:tw-outline-none",
           "hover:tw-border-vm-slate-200 hover:tw-shadow-[0_0_0_3px_rgba(148,163,184,0.08)] focus-visible:tw-border-brand-200 focus-visible:tw-shadow-[0_0_0_3px_rgba(37,99,235,0.08)]",
           disabled ? "tw-cursor-not-allowed tw-bg-vm-slate-25 tw-text-vm-slate-500 hover:tw-border-vm-slate-100 hover:tw-shadow-none" : "",
           open ? "tw-border-brand-200 tw-shadow-[0_0_0_3px_rgba(37,99,235,0.08)]" : "",
@@ -380,7 +380,7 @@ export function SelectMenu({
           setOpen((current) => !current);
         }}
       >
-        <span className="tw-min-w-0 tw-flex-1 tw-truncate">{triggerLabel ?? selected?.label}</span>
+        <span className="tw-min-w-0 tw-flex-1 tw-whitespace-normal tw-break-words tw-leading-5">{triggerLabel ?? selected?.label}</span>
         {canClear ? (
           <span
             className="tw-ml-auto tw-inline-flex tw-h-[18px] tw-w-[18px] tw-flex-shrink-0 tw-scale-90 tw-items-center tw-justify-center tw-rounded-full tw-bg-slate-900/15 tw-text-[0.62rem] tw-text-vm-slate-700 tw-opacity-0 tw-transition hover:tw-bg-slate-900/25 hover:tw-text-vm-slate-900 group-hover:tw-scale-100 group-hover:tw-opacity-100 focus-visible:tw-scale-100 focus-visible:tw-opacity-100 focus-visible:tw-outline-none"

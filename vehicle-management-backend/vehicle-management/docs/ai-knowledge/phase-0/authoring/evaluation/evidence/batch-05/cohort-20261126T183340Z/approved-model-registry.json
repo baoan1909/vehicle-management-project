@@ -1,0 +1,16 @@
+[ {
+  "configurationId" : "7f4f11d7-2b52-4c20-bf11-0e4200000401",
+  "provider" : "GEMINI",
+  "useCase" : "SUPPORT_CHAT",
+  "modelId" : "gemini-3.6-flash",
+  "apiVersion" : "v1beta",
+  "temperature" : 0.30,
+  "maxOutputTokens" : 1024,
+  "outputDimension" : null,
+  "priority" : 10,
+  "rolloutPercentage" : 100,
+  "status" : "ACTIVE",
+  "requiresFunctionCalling" : false,
+  "requiresStructuredOutput" : true,
+  "freeTierApproved" : true,
+  "createdAt"

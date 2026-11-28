@@ -1,0 +1,55 @@
+[ {
+  "caseId" : "CATALOG_PREFLIGHT",
+  "sequence" : 1,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models",
+  "startedAt" : "2026-11-26T18:44:07.090874100Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 445
+}, {
+  "caseId" : "INGEST:parking-structure-and-layout",
+  "sequence" : 2,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:44:08.371158200Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 700
+}, {
+  "caseId" : "INGEST:parking-structure-and-layout",
+  "sequence" : 3,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:44:09.092592500Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 656
+}, {
+  "caseId" : "INGEST:parking-structure-and-layout",
+  "sequence" : 4,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:44:09.758450700Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 699
+}, {
+  "caseId" : "INGEST:parking-structure-and-layout",
+  "sequence" : 5,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:44:10.466607400Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 883
+}, {
+  "caseId" : "INGEST:parking-structure-and-layout",
+  "sequence" : 6,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:44:11.357795600Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 803
+} ]

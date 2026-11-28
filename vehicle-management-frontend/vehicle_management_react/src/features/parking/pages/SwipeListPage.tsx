@@ -1,3 +1,4 @@
+import { getOperationLevels as getLevelsByLot, getOperationZones as getZones, getOperationSpaces as getZoneSpaces, getOperationLanes as fetchParkingLanes } from "@/features/parking/api/parkingOperationReadApi";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
@@ -14,13 +15,11 @@ import {
 import { getDevices, type DeviceApiResponse } from "@/features/hardware/api/deviceApi";
 import { getParkingLots, type ParkingLotApiResponse } from "@/features/parking/api/parkingLotsApi";
 import {
-  getLevelsByLot,
-  getZoneSpaces,
   type ParkingLevelApi,
   type ParkingSpaceApi,
 } from "@/features/parking/api/parkingLayoutApi";
 import { useParkingRealtime, type ParkingRealtimeEvent } from "@/features/parking/api/parkingRealtime";
-import { getZones, type ZoneApiResponse } from "@/features/parking/api/parkingTopologyApi";
+import { type ZoneApiResponse } from "@/features/parking/api/parkingTopologyApi";
 import {
   checkInParkingSession,
   checkOutParkingSession,
@@ -29,7 +28,6 @@ import {
   fetchOpenParkingSessionBySubscriptionQr,
   fetchParkingCheckOutByInvoice,
   fetchParkingCards,
-  fetchParkingLanes,
   fetchVehicleTypes,
   prepareVisitorParkingCheckOut,
   recognizeLicensePlate,
@@ -463,7 +461,7 @@ export function SwipeListPage() {
               clearPendingVnpayCheckOut();
             } else {
               toast.warning(
-                "Cổng thanh toán đã chuyển về nhưng hóa đơn chưa được máy chủ xác nhận PAID.",
+                "Cổng thanh toán đã chuyển về nhưng máy chủ chưa xác nhận hóa đơn đã thanh toán.",
                 "Đang chờ xác nhận thanh toán",
               );
             }
@@ -519,8 +517,8 @@ export function SwipeListPage() {
       value: lane.laneId,
     }));
     if (options.length) return options;
-    return [{ label: isLoadingLanes ? "Đang tải làn..." : "Chưa có làn active", value: "" }];
-  }, [isLoadingLanes, lanes]);
+    return [{ label: isLoadingLanes ? "Đang tải làn..." : laneError ? "Không tải được danh sách làn" : "Chưa có làn hoạt động", value: "" }];
+  }, [isLoadingLanes, laneError, lanes]);
   const parkingLotOptions = useMemo(() => {
     const options = parkingLots.map((parkingLot) => ({
       label: `${parkingLot.code} — ${parkingLot.name}`,
@@ -895,6 +893,9 @@ export function SwipeListPage() {
       return undefined;
     }
 
+    setZones([]);
+    setParkingLevels([]);
+    setParkingLotError("");
     void Promise.all([
       getZones({ parkingLotId, status: "ACTIVE" }),
       getLevelsByLot(parkingLotId),
@@ -1004,6 +1005,8 @@ export function SwipeListPage() {
         return;
       }
       setIsLoadingLanes(true);
+      setLanes([]);
+      setLaneId("");
       try {
         const nextLanes = await fetchParkingLanes(laneDirection, parkingLotId);
         const operationalLanes = nextLanes.filter((lane) => Boolean(lane.gateId));
@@ -1953,6 +1956,7 @@ export function SwipeListPage() {
           </div>
         </header>
 
+        {operationError ? <div role="alert" className="tw-mb-3 tw-rounded-lg tw-bg-amber-50 tw-p-3 tw-text-amber-900">{operationError}</div> : null}
         <div className={mode === "check-in" ? "tw-grid tw-min-h-0 tw-grid-cols-[minmax(430px,1.12fr)_minmax(340px,0.88fr)] tw-gap-3 max-[980px]:tw-grid-cols-1" : "tw-grid tw-min-h-0 tw-grid-cols-[minmax(460px,1.2fr)_minmax(350px,0.9fr)_minmax(300px,0.7fr)] tw-gap-3 max-[1380px]:tw-grid-cols-[minmax(390px,1fr)_minmax(330px,0.9fr)] max-[980px]:tw-grid-cols-1"}>
           <div {...userGuideAnchorProps("PARKING_OPERATION.CAPTURE")} className="tw-min-h-0">
           <ParkingCameraPanel

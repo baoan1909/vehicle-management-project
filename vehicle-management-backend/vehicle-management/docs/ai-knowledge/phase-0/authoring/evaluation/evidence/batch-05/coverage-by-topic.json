@@ -1,0 +1,45 @@
+{
+  "cohort": "cohort-20261126T192655Z",
+  "groups": {
+    "REGISTRATION": {
+      "planned": 60,
+      "observed": 2,
+      "completedUngraded": 2,
+      "notRun": 58,
+      "graded": 0,
+      "pass": 0,
+      "semanticScore": null,
+      "gate": "PENDING"
+    },
+    "WORKFORCE": {
+      "planned": 60,
+      "observed": 2,
+      "completedUngraded": 2,
+      "notRun": 58,
+      "graded": 0,
+      "pass": 0,
+      "semanticScore": null,
+      "gate": "PENDING"
+    },
+    "TOPOLOGY": {
+      "planned": 60,
+      "observed": 2,
+      "completedUngraded": 2,
+      "notRun": 58,
+      "graded": 0,
+      "pass": 0,
+      "semanticScore": null,
+      "gate": "PENDING"
+    },
+    "CATALOG": {
+      "planned": 60,
+      "observed": 2,
+      "completedUngraded": 2,
+      "notRun": 58,
+      "graded": 0,
+      "pass": 0,
+      "semanticScore": null,
+      "gate": "PENDING"
+    }
+  }
+}

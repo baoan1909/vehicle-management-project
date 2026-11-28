@@ -1,0 +1,13 @@
+{
+  "status" : "STOPPED",
+  "stopReason" : "IllegalStateException: CASE_NOT_COMPLETED_CHECKPOINT:PROCESSING:not_a_claim_that_all_keys_are_exhausted",
+  "lastStageOrCase" : "B5-GEN-01",
+  "caseIdsCompleted" : [ "B5-CAT01-1", "B5-CAT01-2", "B5-EMP01-1", "B5-EMP01-2", "B5-LAY01-1", "B5-LAY01-2", "B5-REG01-1", "B5-REG01-2" ],
+  "caseIdsCompletedThisRun" : [ "B5-REG01-1", "B5-REG01-2", "B5-EMP01-1", "B5-EMP01-2", "B5-LAY01-1", "B5-LAY01-2", "B5-CAT01-1", "B5-CAT01-2" ],
+  "inheritedCaseIdsCompleted" : [ ],
+  "actualHttpRequests" : 99,
+  "reviewer" : "PENDING_INDEPENDENT_SEMANTIC_REVIEW",
+  "notAttempted" : "All cases absent from caseIdsCompleted; no quota balance inferred",
+  "database" : "Testcontainers fresh vehicle_management_test; no shared DB writes",
+  "recordedAt" : "2026-11-26T19:31:21.478101Z"
+}

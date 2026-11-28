@@ -14,6 +14,7 @@ import com.ban.vehicle_management.shared.enumeration.ai.AiModelStatus;
 import com.ban.vehicle_management.shared.enumeration.ai.AiUseCase;
 import com.ban.vehicle_management.shared.enumeration.ai.KnowledgeIndexVersionStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.time.Instant;
@@ -74,6 +75,10 @@ public class KnowledgeIndexVersionUseCaseImpl implements KnowledgeIndexVersionPo
         Integer dimension = configuration.getOutputDimension();
         if (dimension == null || dimension != SUPPORTED_DIMENSION) {
             throw new BadRequestException("Output dimension của model embedding phải là " + SUPPORTED_DIMENSION);
+        }
+        indexVersionPortOut.lockCandidateAdvisory();
+        if (indexVersionPortOut.findFirstPendingCandidate().isPresent()) {
+            throw new ConflictException("Đã có phiên bản chỉ mục đang chờ xử lý. Vui lòng dùng phiên bản hiện có trước khi tạo mới.");
         }
         String code = command.versionCode() == null || command.versionCode().isBlank()
                 ? generatedCode(configuration.getModelId())

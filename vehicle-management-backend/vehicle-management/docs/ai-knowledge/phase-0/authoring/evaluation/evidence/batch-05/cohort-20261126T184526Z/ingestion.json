@@ -1,0 +1,211 @@
+[ {
+  "slug" : "parking-structure-and-layout",
+  "sourceCreated" : true,
+  "uploadHttpStatus" : 202,
+  "documentId" : "ce86c5f9-4924-4a53-b8b9-21b4ccebbe84",
+  "processedStatus" : "REVIEW",
+  "failureCode" : "null",
+  "previewRead" : true,
+  "previewSha256" : "39e94482fae33dc270c5ec12f672c84131c1259403441151aa2fe3bbf17ca2ec",
+  "publishedStatus" : "READY"
+}, {
+  "slug" : "partner-employees-roles-and-permissions",
+  "sourceCreated" : true,
+  "uploadHttpStatus" : 202,
+  "documentId" : "df06e1df-8522-4ecf-97ba-4b9921c42326",
+  "processedStatus" : "REVIEW",
+  "failureCode" : "null",
+  "previewRead" : true,
+  "previewSha256" : "e613f25556fc1018bb7601675bfc95d9f98f9997973f0c9ac2a9da4ec205b6fa",
+  "publishedStatus" : "READY"
+}, {
+  "slug" : "partner-operational-catalogs",
+  "sourceCreated" : true,
+  "uploadHttpStatus" : 202,
+  "documentId" : "0692fd45-7a72-41c3-a756-462fdbcaae8f",
+  "processedStatus" : "REVIEW",
+  "failureCode" : "null",
+  "previewRead" : true,
+  "previewSha256" : "1d3e82480c771922335a787f7a77e0abb8d289cc2fb097a945070bb43648aa2c",
+  "publishedStatus" : "READY"
+}, {
+  "slug" : "partner-organization-administration",
+  "sourceCreated" : true,
+  "uploadHttpStatus" : 202,
+  "documentId" : "13fbcdd1-3b46-4a27-9949-5ac510777b17",
+  "processedStatus" : "REVIEW",
+  "failureCode" : "null",
+  "previewRead" : true,
+  "previewSha256" : "fd5f131d28169ea50bdf78fddfe2558b69486fafa2b9c049040314d100f23e48",
+  "publishedStatus" : "READY"
+}, {
+  "slug" : "partner-registration-and-organization",
+  "sourceCreated" : true,
+  "uploadHttpStatus" : 202,
+  "documentId" : "bef65f97-79a5-466d-8675-02c7aa73a292",
+  "processedStatus" : "REVIEW",
+  "failureCode" : "null",
+  "previewRead" : true,
+  "previewSha256" : "f5836fce43e55452bcdb03ebc3aed6c8a5ad04731eab4109cb90d70f64b06f9e",
+  "publishedStatus" : "READY"
+}, {
+  "slug" : "authentication-and-profile",
+  "sourceCreated" : true,
+  "uploadHttpStatus" : 202,
+  "documentId" : "6bdcbc34-6e75-4ec1-b978-085ea37bcaf5",
+  "processedStatus" : "REVIEW",
+  "failureCode" : "null",
+  "previewRead" : true,
+  "previewSha256" : "530bca5d456fbed9eb40b960166d291d99a629ac81c3cd949ec0087da8f0710f",
+  "publishedStatus" : "READY"
+}, {
+  "slug" : "cards-and-lost-card",
+  "sourceCreated" : true,
+  "uploadHttpStatus" : 202,
+  "documentId" : "e9ab7272-31d0-4583-b127-883317346681",
+  "processedStatus" : "REVIEW",
+  "failureCode" : "null",
+  "previewRead" : true,
+  "previewSha256" : "f3e8b1f744c0080675f1940b5dc4cc83be8637bec0cd9138d852e1a3f5162022",
+  "publishedStatus" : "READY"
+}, {
+  "slug" : "chat-conversations-and-support-boundaries",
+  "sourceCreated" : true,
+  "uploadHttpStatus" : 202,
+  "documentId" : "94732f29-bfbd-42a2-bca8-f05ff64a67c5",
+  "processedStatus" : "REVIEW",
+  "failureCode" : "null",
+  "previewRead" : true,
+  "previewSha256" : "49616daebfb21399941c80b95e3cc60088300b6bd07e1356f5c084db0d730ed1",
+  "publishedStatus" : "READY"
+}, {
+  "slug" : "chatbot-privacy-and-prohibited-data",
+  "sourceCreated" : true,
+  "uploadHttpStatus" : 202,
+  "documentId" : "bde2e029-fe09-4e73-b965-c05853a98bb7",
+  "processedStatus" : "REVIEW",
+  "failureCode" : "null",
+  "previewRead" : true,
+  "previewSha256" : "036a8dcacaffbf5328245238194c5d7f78518abbae911d2f61a4f27069eb9a18",
+  "publishedStatus" : "READY"
+}, {
+  "slug" : "common-errors-and-troubleshooting",
+  "sourceCreated" : true,
+  "uploadHttpStatus" : 202,
+  "documentId" : "5841d511-daaf-4a8b-8fae-315077210dc4",
+  "processedStatus" : "REVIEW",
+  "failureCode" : "null",
+  "previewRead" : true,
+  "previewSha256" : "c4cdbd5452fa36e6ceb0ac380871bce0cc92b7da67738cea3a5087e53424f595",
+  "publishedStatus" : "READY"
+}, {
+  "slug" : "customer-vehicle-management",
+  "sourceCreated" : true,
+  "uploadHttpStatus" : 202,
+  "documentId" : "d40b9868-056e-4c5e-b990-1983b96ca876",
+  "processedStatus" : "REVIEW",
+  "failureCode" : "null",
+  "previewRead" : true,
+  "previewSha256" : "ae4ab3f8ab78ee050034fd73a12d3b1dd9f423491d7aeda28c6a8b5e9a8c7d99",
+  "publishedStatus" : "READY"
+}, {
+  "slug" : "invoice-vnpay-payment-refund",
+  "sourceCreated" : true,
+  "uploadHttpStatus" : 202,
+  "documentId" : "840deb04-61e1-4f8d-8829-99f1fc2989df",
+  "processedStatus" : "REVIEW",
+  "failureCode" : "null",
+  "previewRead" : true,
+  "previewSha256" : "ac613552c240fbdcb3c4702e592fdcc81ba445f344fcc90da61227204786f4b3",
+  "publishedStatus" : "READY"
+}, {
+  "slug" : "locations-hours-sla-contact",
+  "sourceCreated" : true,
+  "uploadHttpStatus" : 202,
+  "documentId" : "50ebf0ca-2faa-4d6c-b2bd-41dfcb860d04",
+  "processedStatus" : "REVIEW",
+  "failureCode" : "null",
+  "previewRead" : true,
+  "previewSha256" : "3a1a9d798536910d9b54bb30d8ca13cf59c49864bba31197c88a222356c06618",
+  "publishedStatus" : "READY"
+}, {
+  "slug" : "parking-entry-exit",
+  "sourceCreated" : true,
+  "uploadHttpStatus" : 202,
+  "documentId" : "f2c31aa4-82e4-439d-ba12-2559bd76d0a0",
+  "processedStatus" : "REVIEW",
+  "failureCode" : "null",
+  "previewRead" : true,
+  "previewSha256" : "1c76cbc18b70d4711033404f2c8852b900708b1948faf6517e33658456e917ea",
+  "publishedStatus" : "READY"
+}, {
+  "slug" : "parking-history",
+  "sourceCreated" : true,
+  "uploadHttpStatus" : 202,
+  "documentId" : "ff40765c-2333-42b6-b129-2a20ea33bb72",
+  "processedStatus" : "REVIEW",
+  "failureCode" : "null",
+  "previewRead" : true,
+  "previewSha256" : "e2b80fc7a042c1da97260284af6c25b474f667f59050776462c7389563a8244d",
+  "publishedStatus" : "READY"
+}, {
+  "slug" : "parking-search-and-map",
+  "sourceCreated" : true,
+  "uploadHttpStatus" : 202,
+  "documentId" : "297fb769-c009-4b60-a8dd-dc715df64262",
+  "processedStatus" : "REVIEW",
+  "failureCode" : "null",
+  "previewRead" : true,
+  "previewSha256" : "3d21d73208637f673a44d96d993710b662894febcb72d4dff352c812dc1f5271",
+  "publishedStatus" : "READY"
+}, {
+  "slug" : "pricing-and-fee-calculation",
+  "sourceCreated" : true,
+  "uploadHttpStatus" : 202,
+  "documentId" : "5865f150-aa45-45bc-9db1-a23248530ba7",
+  "processedStatus" : "REVIEW",
+  "failureCode" : "null",
+  "previewRead" : true,
+  "previewSha256" : "ec0041cc72e3f7456560f9a02c3643c45a8d2320dfe8a96c9ee82cec269d514d",
+  "publishedStatus" : "READY"
+}, {
+  "slug" : "reservations-and-holds",
+  "sourceCreated" : true,
+  "uploadHttpStatus" : 202,
+  "documentId" : "864b0bc7-495e-43ac-9ea6-c1477a74369d",
+  "processedStatus" : "REVIEW",
+  "failureCode" : "null",
+  "previewRead" : true,
+  "previewSha256" : "87d25193f649c6643eab80e4ed11793027d1dfcaad09633ff3cef1418e7bd861",
+  "publishedStatus" : "READY"
+}, {
+  "slug" : "subscription-lifecycle",
+  "sourceCreated" : true,
+  "uploadHttpStatus" : 202,
+  "documentId" : "89d96bab-8dfd-4e63-8fca-926cebc4b5cb",
+  "processedStatus" : "REVIEW",
+  "failureCode" : "null",
+  "previewRead" : true,
+  "previewSha256" : "de2cf2bf856aa4229a5da2f92a9414453222a21152b3787f3efc6a7552a193ea",
+  "publishedStatus" : "READY"
+}, {
+  "slug" : "support-ticket-and-escalation",
+  "sourceCreated" : true,
+  "uploadHttpStatus" : 202,
+  "documentId" : "d7870865-284b-4417-b33f-5f9140485040",
+  "processedStatus" : "REVIEW",
+  "failureCode" : "null",
+  "previewRead" : true,
+  "previewSha256" : "89ba626d139e78fc529dfb9f79b8e21c374013d85e5a691bead8051da332b86c",
+  "publishedStatus" : "READY"
+}, {
+  "slug" : "voucher-and-promotions",
+  "sourceCreated" : true,
+  "uploadHttpStatus" : 202,
+  "documentId" : "9548501f-e55a-4250-af03-4bfde01590b2",
+  "processedStatus" : "REVIEW",
+  "failureCode" : "null",
+  "previewRead" : true,
+  "previewSha256" : "82da20842226ba7605f9baffc9986626af5c2e623e4e631bed482b79c6927883",
+  "publishedStatus" : "READY"
+} ]

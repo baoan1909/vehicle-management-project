@@ -67,13 +67,17 @@ public class PaymentAccessGuard {
     private Set<UUID> resolveVisibleParkingLotIds() {
         var currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
         Set<String> permissions = currentAccount.getEffectivePermissionCodes();
+        if (permissions.contains(SHIFT_SCOPE_PERMISSION)) {
+            Set<UUID> openShiftLots = employeePaymentScopePortOut
+                    .findOpenShiftParkingLotIds(currentAccount.accountId());
+            return currentAccount.assignedParkingLotIds().stream()
+                    .filter(openShiftLots::contains)
+                    .collect(java.util.stream.Collectors.toUnmodifiableSet());
+        }
         if (permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_PLATFORM)
                 || permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_PARTNER)
                 || permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED)) {
             return organizationAccessGuard.resolveAccessibleParkingLotIds(parkingLotPortOut);
-        }
-        if (permissions.contains(SHIFT_SCOPE_PERMISSION)) {
-            return employeePaymentScopePortOut.findOpenShiftParkingLotIds(currentAccount.accountId());
         }
         throw new AccessDeniedException("Current account has no parking lot payment scope");
     }

@@ -27,6 +27,23 @@ export type DeviceApiResponse = {
   updatedBy: string | null;
 };
 
+export type DeviceLaneOption = {
+  laneId: string;
+  parkingLotId: string;
+  gateId: string;
+  code: string;
+  name: string;
+  direction: "IN" | "OUT" | "BOTH";
+  status: "ACTIVE" | "MAINTENANCE" | "CLOSED";
+  gateName: string;
+  zoneName: string;
+};
+
+export function getDeviceLaneOptions(parkingLotId?: string) {
+  const query = parkingLotId ? `?parkingLotId=${encodeURIComponent(parkingLotId)}` : "";
+  return apiClient<ApiResponse<DeviceLaneOption[]>>(`${apiEndpoints.hardware.devices}/lane-options${query}`);
+}
+
 export type DeviceFilter = {
   deviceType?: DeviceTypeApi;
   keyword?: string;

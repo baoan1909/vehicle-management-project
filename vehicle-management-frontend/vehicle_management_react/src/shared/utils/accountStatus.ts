@@ -79,23 +79,23 @@ const toneClassName: Record<StatusTone, Pick<StatusMeta, "className" | "dotClass
 };
 
 export function getRoleLabel(role?: string, roleLabel?: string) {
-  if (roleLabel) return roleLabel;
-
   switch (role) {
     case "SYSTEM_ADMIN":
       return "Quản trị hệ thống";
     case "PARTNER_ADMIN":
       return "Quản trị đối tác";
     case "PARKING_MANAGER":
-      return "Quản lý";
+      return "Quản lý bãi xe";
     case "EMPLOYEE":
       return "Nhân viên";
     case "CUSTOMER":
       return "Khách hàng";
     case "UNKNOWN":
+    case undefined:
+    case "":
       return "Người dùng";
     default:
-      return "Người dùng";
+      return roleLabel?.trim() && !/^[A-Z][A-Z0-9_]*$/.test(roleLabel.trim()) ? roleLabel : "Vai trò tùy chỉnh";
   }
 }
 

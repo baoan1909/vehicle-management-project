@@ -1,0 +1,19 @@
+{
+  "baselineDocuments": 16,
+  "baselineQuestions": 1104,
+  "additionalSeparate": 24,
+  "documents": 21,
+  "mainCases": 240,
+  "holdoutCases": 40,
+  "topics": {
+    "REGISTRATION": 60,
+    "WORKFORCE": 60,
+    "TOPOLOGY": 60,
+    "CATALOG": 60
+  },
+  "historicalHashesUnchanged": true,
+  "holdoutFrozen": true,
+  "semanticAcceptance": false,
+  "googleAcceptance": false,
+  "errors": []
+}

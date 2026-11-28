@@ -1,3 +1,4 @@
+import { getEnumLabel } from "@/shared/utils/enumLabels";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/core/auth/useAuth";
 import { hasAnyPermission } from "@/shared/auth/permissions";
@@ -541,7 +542,7 @@ export function WalletManagementPage() {
                   ? transactions.map((tx) => ({
                       id: tx.financialTransactionId,
                       code: tx.transactionCode,
-                      title: tx.transactionType,
+                      title: getEnumLabel("transactionType", tx.transactionType),
                       time: tx.occurredAt,
                       status: tx.status,
                     }))
@@ -556,7 +557,7 @@ export function WalletManagementPage() {
                       <strong className="tw-block tw-text-[13px] tw-font-extrabold tw-text-[#0F172A]">{tx.code} · {tx.title}</strong>
                       <span className="tw-block tw-text-[12px] tw-text-[#64748B]">{tx.time}</span>
                     </span>
-                    <span className="tw-rounded-full tw-bg-[#DCFCE7] tw-px-3 tw-py-1 tw-text-[12px] tw-font-bold tw-text-[#15803D]">{tx.status}</span>
+                    <span className="tw-rounded-full tw-bg-[#DCFCE7] tw-px-3 tw-py-1 tw-text-[12px] tw-font-bold tw-text-[#15803D]">{getEnumLabel("transactionStatus", tx.status)}</span>
                   </li>
                 ))}
               </ul>
@@ -574,13 +575,13 @@ export function WalletManagementPage() {
                   </thead>
                   <tbody>
                     {(transactions.length > 0
-                      ? transactions.map((tx) => ({ id: tx.financialTransactionId, code: tx.transactionCode, title: tx.transactionType, status: tx.status }))
+                      ? transactions.map((tx) => ({ id: tx.financialTransactionId, code: tx.transactionCode, title: getEnumLabel("transactionType", tx.transactionType), status: tx.status }))
                       : [{ id: "t1", code: "TXN-88412", title: "Nạp tiền qua VNPAY", status: "POSTED" }]
                     ).map((tx) => (
                       <tr key={tx.id} className="tw-border-0 tw-border-t tw-border-solid tw-border-[#EDF1F7]">
                         <td className="tw-px-4 tw-py-3 tw-font-bold tw-text-[#0F172A]">{tx.code}</td>
                         <td className="tw-px-4 tw-py-3 tw-text-[#334155]">{tx.title}</td>
-                        <td className="tw-px-4 tw-py-3 tw-text-right tw-font-bold tw-text-[#15803D]">{tx.status}</td>
+                        <td className="tw-px-4 tw-py-3 tw-text-right tw-font-bold tw-text-[#15803D]">{getEnumLabel("transactionStatus", tx.status)}</td>
                       </tr>
                     ))}
                   </tbody>

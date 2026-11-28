@@ -132,3 +132,13 @@ export function deleteParkingLot(parkingLotId: string) {
     method: "DELETE",
   });
 }
+
+export type ParkingLotResponsibility = {
+  organizationName: string | null;
+  managers: Array<{ accountId: string; displayName: string }>;
+};
+export function getParkingLotResponsibility(parkingLotId: string) {
+  return apiClient<ApiResponse<ParkingLotResponsibility>>(
+    `${apiEndpoints.parking.parkingLots}/${parkingLotId}/responsibility`,
+  );
+}

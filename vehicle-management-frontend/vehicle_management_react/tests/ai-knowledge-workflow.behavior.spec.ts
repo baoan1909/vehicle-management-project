@@ -184,7 +184,7 @@ test("archived-only warehouse guides back to upload; mobile overview has no page
 test("Google model management does not request the removed provider switch endpoint", async ({ page }) => {
   const state = await fixture(page);
   await page.goto("/tests/ai-knowledge-workflow-harness.html?page=models");
-  await expect(page.getByRole("heading", { name: "Quản trị model AI" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Quản lý mô hình AI" })).toBeVisible();
   await expect(page.getByText(/Chatbot sử dụng Google API/)).toBeVisible();
   await expect.poll(() => state.requests.filter((request) => request.path.startsWith("/ai/models/")).length).toBe(3);
   await expect(page.getByRole("cell", { name: "Đang tải...", exact: true })).toHaveCount(0);

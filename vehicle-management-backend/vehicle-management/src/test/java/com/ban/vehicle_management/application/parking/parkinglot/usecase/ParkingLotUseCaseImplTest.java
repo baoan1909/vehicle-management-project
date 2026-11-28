@@ -75,6 +75,16 @@ class ParkingLotUseCaseImplTest {
     }
 
     @Test
+    void employeeCannotRequestActivationWithOnlyReadPermission() {
+        org.mockito.Mockito.doNothing().when(currentAccountPortIn).requirePermission("PARKING_LOT_READ_ALL");
+        org.mockito.Mockito.doThrow(new org.springframework.security.access.AccessDeniedException("Missing topology permission"))
+                .when(currentAccountPortIn).requirePermission("PARKING_TOPOLOGY_CONFIGURE_ALL");
+        assertThrows(org.springframework.security.access.AccessDeniedException.class,
+                () -> parkingLotUseCase.requestParkingLotActivation(UUID.randomUUID()));
+        org.mockito.Mockito.verifyNoInteractions(parkingLotPortOut);
+    }
+
+    @Test
     void shouldRejectCrossOrganizationUpdateBeforeSaving() {
         UUID parkingLotId = UUID.randomUUID();
         ParkingLot existing = validParkingLot();

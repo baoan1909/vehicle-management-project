@@ -139,7 +139,7 @@ function subscriptionState(status?: string | null): CardSubscriptionState {
 
 function subscriptionLabel(status?: string | null) {
   if (!status) return "Không";
-  return subscriptionStatusLabels[status] ?? status;
+  return subscriptionStatusLabels[status] ?? "Chưa xác định";
 }
 
 function buildCardTypeOptions(cardTypes: CardTypeResponse[]): SelectMenuOption[] {

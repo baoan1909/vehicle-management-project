@@ -25,7 +25,7 @@ public class AiAssistantProperties {
     private boolean allowUnpaidSupportData;
     private Duration retryInitialDelay = Duration.ofSeconds(20);
     private Duration requestTimeout = Duration.ofSeconds(20);
-    private Duration generationTimeout = Duration.ofSeconds(4);
+    private Duration generationTimeout = Duration.ofSeconds(20);
     private Duration lockSafetyMargin = Duration.ofSeconds(90);
     private AiDataMode dataMode = AiDataMode.UNPAID;
     private String promptVersion = "support-assistant-v3";

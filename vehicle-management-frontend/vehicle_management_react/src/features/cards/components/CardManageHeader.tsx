@@ -20,7 +20,7 @@ export function CardManageHeader({ canCreate, onCreate, onCreateBatch }: CardMan
         />
       </div>
 
-      <div className="tw-flex tw-flex-wrap tw-justify-end tw-gap-[0.65rem] max-[760px]:tw-justify-start">
+      {canCreate ? <div className="tw-flex tw-flex-wrap tw-justify-end tw-gap-[0.65rem] max-[760px]:tw-justify-start">
         <button
           className="tw-inline-flex tw-min-h-[46px] tw-items-center tw-justify-center tw-gap-[0.6rem] tw-whitespace-nowrap tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-primary/30 tw-bg-white tw-px-5 tw-py-[0.7rem] tw-text-[0.95rem] tw-font-bold tw-text-vm-primary tw-transition-colors hover:tw-bg-brand-600/5 disabled:tw-cursor-not-allowed disabled:tw-border-slate-200 disabled:tw-bg-slate-50 disabled:tw-text-slate-400"
           disabled={!canCreate}
@@ -41,7 +41,7 @@ export function CardManageHeader({ canCreate, onCreate, onCreateBatch }: CardMan
           <i className="far fa-plus-square" />
           <span>Cấp thẻ mới</span>
         </button>
-      </div>
+      </div> : null}
     </div>
   );
 }

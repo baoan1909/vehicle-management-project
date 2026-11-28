@@ -134,7 +134,14 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
     @Transactional(readOnly = true)
     public ProvisionedAccountResult getProvisionedAccountById(UUID accountId) {
         currentAccountPortIn.requirePermission(ACCOUNT_READ_ALL);
-        return getManagedAccount(accountId);
+        ProvisionedAccountResult result = provisionedAccountPortOut.findProvisionedAccountById(accountId)
+                .orElseThrow(() -> new NotFoundException("Provisioned account not found"));
+        if (result.role() == null || !readableTargetRolesForCurrentAccount().contains(
+                provisionedAccountPolicy.resolveProvisionableRole(result.role().roleCode()))
+                || !isWithinCurrentAccountScope(result)) {
+            throw new AccessDeniedException("Current account cannot read this account outside its scope");
+        }
+        return result;
     }
 
     @Override

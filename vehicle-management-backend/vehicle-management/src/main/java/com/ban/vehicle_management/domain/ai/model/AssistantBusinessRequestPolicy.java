@@ -4,8 +4,30 @@ package com.ban.vehicle_management.domain.ai.model;
 public final class AssistantBusinessRequestPolicy {
     private AssistantBusinessRequestPolicy() { }
 
+    /** Classifies a business subject only; never grants access or corrects identifiers. */
+    public static String partnerSubject(String folded) {
+        if (folded.matches(".*\\b(?:so do|cau truc bai|tang bai|khu bai)\\b.*")) return "sơ đồ và cấu trúc bãi";
+        if (folded.matches(".*\\b(?:danh muc|loai xe|loai ve|loai the|quy tac gia|bang gia)\\b.*")
+                || folded.matches(".*\\b(?:tao|sua|xoa|cap nhat|kich hoat|ngung|danh sach).{0,25}voucher\\b.*")) return "danh mục vận hành";
+        if (folded.matches(".*\\b(?:nhan su|vai tro|phan quyen)\\b.*")
+                || (!folded.contains("ho tro") && !folded.contains("phieu") && folded.matches(".*\\b(?:tao|duyet|phe duyet|gan|cap|phan cong|liet ke|danh sach|xem|kiem tra).{0,30}nhan vien\\b.*"))) return "nhân sự và phân quyền";
+        if (folded.matches(".*\\b(?:to chuc|don vi|doi tac)\\b.*")) return "hồ sơ tổ chức";
+        return null;
+    }
+
     public static String unsupported(AssistantIntent intent, String question) {
         String folded = AssistantIntentRouter.matching(question);
+        String partner = partnerSubject(folded);
+        boolean explicitSupportCreation = folded.matches(".*\\b(?:tao|lap|mo).{0,35}(?:phieu ho tro|ticket|yeu cau ho tro)\\b.*");
+        boolean customerOwnRead = intent == AssistantIntent.PERSONAL_DATA && folded.matches(
+                ".*\\b(?<!loai )(?:xe|phuong tien|ve(?: thang)?) cua (?:toi|minh|em)\\b.*");
+        if (partner != null && !explicitSupportCreation && !customerOwnRead
+                && (intent == AssistantIntent.PERSONAL_DATA || intent == AssistantIntent.WRITE_ACTION)) {
+            if (intent == AssistantIntent.WRITE_ACTION) return "Trợ lý chưa có chức năng thay đổi " + partner
+                    + " trong chat. Người có thẩm quyền cần kiểm tra đúng đơn vị, bãi và thực hiện trên màn hình quản trị phù hợp; tôi chưa thực hiện thay đổi nào.";
+            return "Trợ lý chưa có chức năng đọc dữ liệu thực tế về " + partner
+                    + " trong chat. Hãy chọn đúng đơn vị, bãi và xem màn hình được cấp quyền hoặc liên hệ người phụ trách; tôi không thể đoán dữ liệu hiện tại.";
+        }
         boolean gateOperation = folded.matches(".*\\b(?:mo|dong|nang|ha).{0,15}(?:cong|barrier|rao chan)\\b.*")
                 || folded.matches(".*\\b(?:ghi nhan|xac nhan).{0,20}(?:xe vao|xe ra|phien gui)\\b.*")
                 || folded.contains("check-in") || folded.contains("check-out")

@@ -1,5 +1,9 @@
 package com.ban.vehicle_management.application.parking.parkinglot.mapper;
 
+import com.ban.vehicle_management.entrypoint.dto.parking.parkinglot.response.ParkingLotResponsibilityResponse;
+
+import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLotResponsibility;
+
 import com.ban.vehicle_management.application.parking.parkinglot.model.result.NearbyParkingLotResult;
 import com.ban.vehicle_management.application.parking.parkinglot.model.result.PublicParkingLotDirectoryResult;
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
@@ -17,6 +21,7 @@ import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface ParkingLotApiMapper {
+    ParkingLotResponsibilityResponse toResponsibilityResponse(ParkingLotResponsibility result);
 
     default String toGeolocationOutcome(GeolocationTelemetryRequest request) {
         return request == null ? null : request.outcome();

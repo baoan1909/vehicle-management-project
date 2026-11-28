@@ -23,6 +23,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
+import com.ban.vehicle_management.entrypoint.dto.hardware.device.response.DeviceLaneOptionResponse;
 
 @RestController
 @RequestMapping("/api/hardware/devices")
@@ -37,6 +39,14 @@ public class DeviceController {
     ) {
         this.devicePortIn = devicePortIn;
         this.deviceApiMapper = deviceApiMapper;
+    }
+
+    @GetMapping("/lane-options")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('DEVICE_READ_ALL')")
+    public ResponseEntity<ApiResponse<List<DeviceLaneOptionResponse>>> laneOptions(
+            @RequestParam(required = false) UUID parkingLotId) {
+        return ResponseEntity.ok(ApiResponse.ok("Fetched device lane options successfully",
+                deviceApiMapper.toLaneOptionResponses(devicePortIn.getLaneOptions(parkingLotId))));
     }
 
     @PostMapping

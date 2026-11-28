@@ -1,3 +1,4 @@
+import { getEnumLabel } from "@/shared/utils/enumLabels";
 import { useEffect, useState } from "react";
 import type { LostCardReportResponse } from "@/features/cards/api/lostCardReportsApi";
 import { CardStateBadge } from "@/features/cards/components/CardStateBadge";
@@ -25,6 +26,7 @@ function formatCurrency(value?: number | null) {
 function enumLabel(value?: string | null) {
   const labels: Record<string, string> = {
     ACTIVE: "Đang hoạt động",
+    INACTIVE: "Ngừng hoạt động",
     APPROVED: "Đã phê duyệt",
     BUSINESS: "Doanh nghiệp",
     INDIVIDUAL: "Cá nhân",
@@ -34,7 +36,7 @@ function enumLabel(value?: string | null) {
     SUSPENDED: "Tạm ngưng",
   };
   if (!value) return "-";
-  return labels[value] ?? value;
+  return labels[value] ?? "Chưa xác định";
 }
 
 function lostCardReportStatusLabel(status?: LostCardReportResponse["status"] | null) {
@@ -199,7 +201,7 @@ export function CardDetailPanel({
                   </div>
                   <div className="tw-grid tw-grid-cols-[76px_1fr] tw-items-start tw-gap-[0.65rem]">
                     <span className="tw-text-[0.88rem] tw-font-medium tw-text-vm-slate-500">Trước khóa</span>
-                    <strong className="tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">{fallback(row.blockedPreviousStatus)}</strong>
+                    <strong className="tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">{getEnumLabel("cardStatus", row.blockedPreviousStatus)}</strong>
                   </div>
                   <div className="tw-grid tw-grid-cols-[76px_1fr] tw-items-start tw-gap-[0.65rem]">
                     <span className="tw-text-[0.88rem] tw-font-medium tw-text-vm-slate-500">Người khóa</span>
@@ -227,7 +229,7 @@ export function CardDetailPanel({
               </div>
               <div className="tw-mb-[0.8rem] tw-flex tw-items-center tw-justify-between tw-gap-3">
                 <span className="tw-text-[0.9rem] tw-text-vm-slate-700">Loại khách</span>
-                <strong className="tw-text-right tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">{enumLabel(row.customerType)}</strong>
+                <strong className="tw-text-right tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">{getEnumLabel("customerType", row.customerType)}</strong>
               </div>
               <div className="tw-grid tw-grid-cols-2 tw-gap-3">
                 <div className="tw-grid tw-gap-1">

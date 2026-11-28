@@ -1,3 +1,4 @@
+import { getEnumLabel } from "@/shared/utils/enumLabels";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { getTopupOrder, payInvoiceByWallet } from "@/features/billing/api/walletApi";
@@ -61,7 +62,7 @@ export function WalletTopupResultPage() {
 
         if (["FAILED", "EXPIRED", "CANCELLED"].includes(order.status)) {
           sessionStorage.removeItem("wallet-topup-pending-order");
-          setStatus(`Đơn nạp tiền ở trạng thái ${order.status}. Số dư ví không thay đổi.`);
+          setStatus(`Đơn nạp tiền ở trạng thái ${getEnumLabel("topupStatus", order.status)}. Số dư ví không thay đổi.`);
           return;
         }
 

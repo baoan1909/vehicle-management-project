@@ -41,7 +41,7 @@ public final class PermissionAccessPrerequisitePolicy {
             "CHAT_ATTACHMENT_DELETE_OWN"
     );
     private static final Set<String> EMPLOYEE_PERMISSIONS = Set.of(
-            "EMPLOYEE_READ_OWN", "SHIFT_OPEN_OWN", "SHIFT_ASSIGNMENT_READ_OWN", "PARKING_SCOPE_ASSIGNED",
+            "EMPLOYEE_READ_OWN", "SHIFT_OPEN_OWN", "SHIFT_ASSIGNMENT_READ_OWN", "PARKING_SCOPE_ASSIGNED", "PARKING_SCOPE_SHIFT",
             "SUPPORT_TICKET_CLAIM_OWN"
     );
     private static final Set<String> EMPLOYEE_OWN_PREFIXES = Set.of("EMPLOYEE_", "SHIFT_");
@@ -75,6 +75,8 @@ public final class PermissionAccessPrerequisitePolicy {
             return false;
         }
         return switch (classificationFor(permissionCode)) {
+            // Global announcements are reserved for SYSTEM_ADMIN, even if a stale/custom role retains a grant.
+            case SYSTEM_ADMINISTRATION -> "SYSTEM_ADMIN".equals(state.roleCode());
             case CUSTOMER_APPROVED -> CustomerStatus.ACTIVE.equals(state.customerStatus())
                     && CustomerApprovalStatus.APPROVED.equals(state.customerApprovalStatus());
             case CUSTOMER_SUPPORT -> (state.customerStatus() == null
@@ -98,6 +100,9 @@ public final class PermissionAccessPrerequisitePolicy {
     public PermissionPrerequisite classificationFor(String permissionCode) {
         if (permissionCode == null) {
             return PermissionPrerequisite.COMMON_ACCOUNT_ROLE;
+        }
+        if (permissionCode.startsWith("BROADCAST_NOTIFICATION_")) {
+            return PermissionPrerequisite.SYSTEM_ADMINISTRATION;
         }
         if (PRE_APPROVAL_SUPPORT_PERMISSIONS.contains(permissionCode)) {
             return PermissionPrerequisite.CUSTOMER_SUPPORT;
@@ -138,6 +143,7 @@ public final class PermissionAccessPrerequisitePolicy {
     }
 
     public enum PermissionPrerequisite {
+        SYSTEM_ADMINISTRATION,
         COMMON_ACCOUNT_ROLE,
         CUSTOMER_SUPPORT,
         CUSTOMER_APPROVED,

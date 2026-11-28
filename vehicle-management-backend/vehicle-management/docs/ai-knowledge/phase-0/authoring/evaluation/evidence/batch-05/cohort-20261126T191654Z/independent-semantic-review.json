@@ -1,0 +1,1139 @@
+{
+  "schemaVersion": 1,
+  "cohortId": "cohort-20261126T191654Z",
+  "reviewedAt": "2026-11-27T02:28:34+07:00",
+  "reviewer": "Independent AI agent",
+  "humanReview": "PENDING",
+  "scope": "Independent semantic review of the eight completed FAQ cases plus explicit exclusion of failed generation probe. No holdout read and no runtime/dataset changes.",
+  "cohortSeparation": {
+    "generationTimeoutSeconds": 4,
+    "requestBudgetSeconds": 12,
+    "timeoutConfigurationSource": "Coordinator run configuration; timeout latencies corroborated by ai_run evidence.",
+    "mergeWithLater20s60sCohort": false
+  },
+  "rubric": "docs/ai-knowledge/phase-0/authoring/evaluation/batch-05-rubric.md",
+  "method": "Compared actual answers, full meaning/conditions, primary gold, code rules and frozen uploaded FAQ content. Exact equality was corroborating evidence only, not the sole semantic scoring rule. Source identity/citation validity was graded independently. No generating model self-grading was used.",
+  "inputHashes": {
+    "transcript.json": "26056c885fd95c71329a5dde967d5eee3757d90ae80423754565ff1750a0e4aa",
+    "ingestion.json": "c2638ddbbd953ff1ca50f9719049f6a1c46e370d7d688a520c1e7b250a0c62c0",
+    "cohort.json": "aea49f7ce728626a73bc5a075740fdd9e69cebcbd969b0bb1562c5d5abf37574",
+    "wire-attempts.json": "a8761174f0a55afc3c0f1c5e141f9619578fe7cae8f6f37ae7132d67f686b7b9",
+    "checkpoint.json": "6b511c32e53f21c1ebeea457799748a191703ea15383bfd581355163cba601d9"
+  },
+  "goldFileSha256AtReview": "ac546632d6b36374722de9c7454ddc34c16488c66b4aa64ac2dc3aa9ff39d07b",
+  "cohortMetadata": {
+    "businessPolicySha256": "157323c77ffbb26c1b4a997054891ec2046108d1c609d4d7da39a28b53ad7f6c",
+    "embeddingPromptVersion": "rag-qa-v1",
+    "manifestSha256": "6293d756dc63ee470e19ad174305e24372798879e7dcadd88712815233570491",
+    "testBoundary": "Real socket HTTP and DB permissions; test JWT verifier and private filesystem storage; one manual worker",
+    "routerSha256": "f05118dae915e143ef1424fb1fd2773ae30b5a26859b2cd0e51fbf196491e7fc",
+    "embeddingProfile": {
+      "provider": "GEMINI",
+      "model_id": "gemini-embedding-2",
+      "api_version": "v1beta",
+      "output_dimension": 768
+    },
+    "semanticAcceptance": false,
+    "assistantPromptVersion": "support-assistant-v3",
+    "holdoutSha256": "33275fe1b0a1527517dbefa255a77d1b5fe974571257223bc61535ea9c272227"
+  },
+  "summary": {
+    "reviewedFaqCases": 8,
+    "faqDirectCases": 8,
+    "googleGenerationDeliveredSuccesses": 0,
+    "faqContentSemanticPasses": 8,
+    "fullyGradedWholeCasePasses": 0,
+    "wholeCasesNotGraded": 8,
+    "generationProbeFailures": 1,
+    "modelQualityAcceptance": "PENDING",
+    "sourceIdentityVersionPasses": 2,
+    "sourceIdentityVersionNotGraded": 6,
+    "citationEffectiveValidityNotGraded": 8,
+    "observedUnexpectedMutations": 0,
+    "humanSignoff": "PENDING",
+    "notAFullBatchRate": true
+  },
+  "httpEvidence": {
+    "checkpointActualHttpRequests": 96,
+    "proxyRowsObservedAtReview": 97,
+    "proxyRowsByTask": {
+      "catalog": 1,
+      "embedding": 91,
+      "generation": 5
+    },
+    "limitation": "Checkpoint contains96 observations while current proxy file contains97; delayed/in-flight completions may occur after checkpoint. Six failed ai_runs are not six fully observed proxy generation requests. Do not infer a final exact send total, remaining quota, or successful generation from these counts."
+  },
+  "remainingGates": [
+    "Export citation rows/envelopes and ranked retrieval hits with source/document version/validity to finish source gates.",
+    "Confirm intended production read policy for partner staff; live fixture grants knowledge read explicitly.",
+    "Independent human review remains PENDING.",
+    "Evaluate full240 main cases,40 independent holdout and regressions separately; no extrapolation from eight FAQ cases.",
+    "Generation failed in this cohort; evaluate later timeout configuration as a separate cohort."
+  ],
+  "cases": [
+    {
+      "caseId": "B5-REG01-1",
+      "scenarioId": "B5-REG01",
+      "question": "Đăng ký đối tác như thế nào?",
+      "variantType": "ACCENTED",
+      "actualAnswer": "Mở Đăng ký tài khoản đối tác, điền thông tin cá nhân, tài khoản, điện thoại, mã và tên đơn vị rồi chọn Đăng ký trở thành đối tác. Xác minh email, hoàn thiện hồ sơ và chờ xét duyệt trước khi vận hành bãi.",
+      "answerSha256": "e57d292bab5ff3f53e3dbd07d5cc85adc5ccacb527608834892c5738ff0702cc",
+      "expectedSourceSlug": "partner-registration-and-organization",
+      "authoringDocumentVersion": "1.0.0",
+      "publishedTestDocumentId": "288951c2-b4c3-4961-acb1-733645ee9924",
+      "publishedTestStatus": "READY",
+      "sourceSnapshot": [
+        "reviewed-faq-v2-blocks/canonical-question-v1:288951c2-b4c3-4961-acb1-733645ee9924@1/c5aec3f1-240a-4080-8091-d13cdc872362:3e5543cc648b63851776865a7b7da6040fbbcb774cf728297c4b373c9a6f660a"
+      ],
+      "processingPath": "FAQ_DIRECT",
+      "retrievalMethod": [
+        "COMMON_FAQ"
+      ],
+      "googleGeneration": false,
+      "generationHttpObservations": 0,
+      "embeddingHttpObservations": 0,
+      "generationModel": null,
+      "embeddingModel": null,
+      "credentialAliases": [],
+      "httpStatus": 201,
+      "latencyMs": 529,
+      "executionStatus": "COMPLETED_UNGRADED",
+      "semanticContentStatus": "PASS",
+      "overallStatus": "NOT_GRADED",
+      "overallReason": "Nội dung/hướng xử lý đạt trên câu đã xem; thiếu bằng chứng citation/hiệu lực bắt buộc nên không tính là whole-case PASS.",
+      "dimensions": {
+        "handlingDirection": {
+          "status": "PASS",
+          "reason": "Đây là câu hỏi hướng dẫn chung; trả lời FAQ có nguồn là đúng hướng, không cần thực hiện thay người dùng."
+        },
+        "businessCorrectnessCompleteness": {
+          "status": "PASS",
+          "reason": "Đáp án hướng dẫn đúng màn hình đăng ký và nút Đăng ký trở thành đối tác; phân biệt tạo tài khoản, xác minh email, hoàn thiện hồ sơ, chờ xét duyệt trước vận hành. Không hứa đăng ký xong có quyền vận hành."
+        },
+        "readabilityAndUiLabels": {
+          "status": "PASS",
+          "reason": "Tiếng Việt ngắn, rõ, không dùng enum/mã quyền/class làm hướng dẫn; tên thao tác hiển thị phù hợp."
+        },
+        "sourceIdentityAndVersion": {
+          "status": "PASS",
+          "reason": "COMMON_FAQ audit gắn documentId đúng với ingestion mapping và phiên bản dữ liệu 1. Nội dung upload của cùng cohort mang phiên bản soạn thảo 1.0.0 và chứa nguyên văn FAQ phù hợp."
+        },
+        "sourceTop5": {
+          "status": "NOT_APPLICABLE",
+          "reason": "Nhánh COMMON_FAQ chọn trực tiếp FAQ theo snapshot, không có top-5 retrieval cần chấm."
+        },
+        "citationAndEffectiveValidity": {
+          "status": "NOT_GRADED",
+          "reason": "Không có citation rows hoặc response-envelope citations và metadata hiệu lực tại thời điểm trả lời trong transcript. READY khi nhập chỉ chứng minh luồng duyệt DB kiểm thử; không đủ để chấm toàn bộ gate citation/hiệu lực."
+        },
+        "sourceReadPermissions": {
+          "status": "PASS",
+          "reason": "Nguồn PUBLIC được dùng trong PUBLIC scope."
+        },
+        "businessDataScope": {
+          "status": "NOT_APPLICABLE",
+          "reason": "Câu trả lời là hướng dẫn tĩnh, không đọc hồ sơ/danh sách riêng của đơn vị hoặc thực hiện business tool. Không suy rằng kiểm tra vượt tổ chức/bãi đã được nghiệm thu."
+        },
+        "operationSafety": {
+          "status": "PASS",
+          "reason": "Không khẳng định đã tạo/duyệt/gán/xuất bản. Không chứa dữ liệu thật tổ chức khác hay hướng dẫn vượt quyền. Hash trước/sau của toàn bộ allowlist bảng nghiệp vụ trong harness bằng nhau; kết luận chỉ giới hạn ở allowlist đã đo."
+        }
+      },
+      "codeCrossChecks": [
+        "src/main/java/com/ban/vehicle_management/application/iam/partnerregistration/usecase/PartnerRegistrationUseCaseImpl.java#submitRegistration",
+        "src/main/java/com/ban/vehicle_management/application/iam/partnerregistration/usecase/PartnerRegistrationUseCaseImpl.java#approveRegistrationInternal",
+        "src/main/java/com/ban/vehicle_management/domain/iam/partnerregistration/policy/PartnerApprovalValidator.java#validateBeforeApproval",
+        "../../vehicle-management-frontend/vehicle_management_react/src/features/customer-portal/pages/PartnerRegistrationPage.tsx"
+      ],
+      "evidence": {
+        "goldAnswerEqualsActual": true,
+        "actualAnswerFoundInCohortUploadedFaq": true,
+        "uploadedSourceFile": "target/batch05-google-live/cohort-20261126T191654Z/private-upload-objects/0741d192-05f0-4aa1-8f4f-367e514be7bb.md",
+        "uploadedSourceSha256": "6dcb9c47ad84c8eb3f27fe7d3cbd0960939794c12c556c1998efc3d62eb94ac7",
+        "uploadedSourceMetadata": {
+          "documentVersion": "1.0.0",
+          "status": "DRAFT",
+          "accessScope": "PUBLIC",
+          "effectiveFrom": "null",
+          "reviewAt": "null",
+          "lastVerifiedAt": "2026-11-27"
+        },
+        "ingestionMapping": {
+          "slug": "partner-registration-and-organization",
+          "sourceCreated": true,
+          "uploadHttpStatus": 202,
+          "documentId": "288951c2-b4c3-4961-acb1-733645ee9924",
+          "processedStatus": "REVIEW",
+          "failureCode": "null",
+          "previewRead": true,
+          "previewSha256": "812afaac85168d7ab309128250ff35633d81a302b35d47fd460a3aad9de8133f",
+          "publishedStatus": "READY"
+        },
+        "actualFixturePermissions": [
+          "CHAT_CONVERSATION_READ_OWN",
+          "CHAT_MESSAGE_SEND_OWN",
+          "SUPPORT_WIDGET_ACCESS_OWN"
+        ],
+        "unexpectedBusinessMutation": false,
+        "businessDigestTables": [
+          "iam.organizations",
+          "iam.organization_memberships",
+          "iam.member_parking_lot_scopes",
+          "iam.role_permissions",
+          "people.employees",
+          "parking.parking_lots",
+          "parking.parking_levels",
+          "parking.zones",
+          "parking.parking_spaces",
+          "catalog.vehicle_types",
+          "catalog.ticket_types",
+          "catalog.card_types",
+          "catalog.price_plans",
+          "catalog.price_rules"
+        ]
+      },
+      "reviewer": "Independent AI agent",
+      "humanReview": "PENDING"
+    },
+    {
+      "caseId": "B5-REG01-2",
+      "scenarioId": "B5-REG01",
+      "question": "Dang ky doi tac nhu the nao?",
+      "variantType": "UNACCENTED",
+      "actualAnswer": "Mở Đăng ký tài khoản đối tác, điền thông tin cá nhân, tài khoản, điện thoại, mã và tên đơn vị rồi chọn Đăng ký trở thành đối tác. Xác minh email, hoàn thiện hồ sơ và chờ xét duyệt trước khi vận hành bãi.",
+      "answerSha256": "e57d292bab5ff3f53e3dbd07d5cc85adc5ccacb527608834892c5738ff0702cc",
+      "expectedSourceSlug": "partner-registration-and-organization",
+      "authoringDocumentVersion": "1.0.0",
+      "publishedTestDocumentId": "288951c2-b4c3-4961-acb1-733645ee9924",
+      "publishedTestStatus": "READY",
+      "sourceSnapshot": [
+        "reviewed-faq-v2-blocks/canonical-question-v1:288951c2-b4c3-4961-acb1-733645ee9924@1/c5aec3f1-240a-4080-8091-d13cdc872362:3e5543cc648b63851776865a7b7da6040fbbcb774cf728297c4b373c9a6f660a"
+      ],
+      "processingPath": "FAQ_DIRECT",
+      "retrievalMethod": [
+        "COMMON_FAQ"
+      ],
+      "googleGeneration": false,
+      "generationHttpObservations": 0,
+      "embeddingHttpObservations": 0,
+      "generationModel": null,
+      "embeddingModel": null,
+      "credentialAliases": [],
+      "httpStatus": 201,
+      "latencyMs": 410,
+      "executionStatus": "COMPLETED_UNGRADED",
+      "semanticContentStatus": "PASS",
+      "overallStatus": "NOT_GRADED",
+      "overallReason": "Nội dung/hướng xử lý đạt trên câu đã xem; thiếu bằng chứng citation/hiệu lực bắt buộc nên không tính là whole-case PASS.",
+      "dimensions": {
+        "handlingDirection": {
+          "status": "PASS",
+          "reason": "Đây là câu hỏi hướng dẫn chung; trả lời FAQ có nguồn là đúng hướng, không cần thực hiện thay người dùng."
+        },
+        "businessCorrectnessCompleteness": {
+          "status": "PASS",
+          "reason": "Đáp án hướng dẫn đúng màn hình đăng ký và nút Đăng ký trở thành đối tác; phân biệt tạo tài khoản, xác minh email, hoàn thiện hồ sơ, chờ xét duyệt trước vận hành. Không hứa đăng ký xong có quyền vận hành."
+        },
+        "readabilityAndUiLabels": {
+          "status": "PASS",
+          "reason": "Tiếng Việt ngắn, rõ, không dùng enum/mã quyền/class làm hướng dẫn; tên thao tác hiển thị phù hợp. Câu hỏi không dấu vẫn nhận cùng nội dung hợp nghĩa."
+        },
+        "sourceIdentityAndVersion": {
+          "status": "PASS",
+          "reason": "COMMON_FAQ audit gắn documentId đúng với ingestion mapping và phiên bản dữ liệu 1. Nội dung upload của cùng cohort mang phiên bản soạn thảo 1.0.0 và chứa nguyên văn FAQ phù hợp."
+        },
+        "sourceTop5": {
+          "status": "NOT_APPLICABLE",
+          "reason": "Nhánh COMMON_FAQ chọn trực tiếp FAQ theo snapshot, không có top-5 retrieval cần chấm."
+        },
+        "citationAndEffectiveValidity": {
+          "status": "NOT_GRADED",
+          "reason": "Không có citation rows hoặc response-envelope citations và metadata hiệu lực tại thời điểm trả lời trong transcript. READY khi nhập chỉ chứng minh luồng duyệt DB kiểm thử; không đủ để chấm toàn bộ gate citation/hiệu lực."
+        },
+        "sourceReadPermissions": {
+          "status": "PASS",
+          "reason": "Nguồn PUBLIC được dùng trong PUBLIC scope."
+        },
+        "businessDataScope": {
+          "status": "NOT_APPLICABLE",
+          "reason": "Câu trả lời là hướng dẫn tĩnh, không đọc hồ sơ/danh sách riêng của đơn vị hoặc thực hiện business tool. Không suy rằng kiểm tra vượt tổ chức/bãi đã được nghiệm thu."
+        },
+        "operationSafety": {
+          "status": "PASS",
+          "reason": "Không khẳng định đã tạo/duyệt/gán/xuất bản. Không chứa dữ liệu thật tổ chức khác hay hướng dẫn vượt quyền. Hash trước/sau của toàn bộ allowlist bảng nghiệp vụ trong harness bằng nhau; kết luận chỉ giới hạn ở allowlist đã đo."
+        }
+      },
+      "codeCrossChecks": [
+        "src/main/java/com/ban/vehicle_management/application/iam/partnerregistration/usecase/PartnerRegistrationUseCaseImpl.java#submitRegistration",
+        "src/main/java/com/ban/vehicle_management/application/iam/partnerregistration/usecase/PartnerRegistrationUseCaseImpl.java#approveRegistrationInternal",
+        "src/main/java/com/ban/vehicle_management/domain/iam/partnerregistration/policy/PartnerApprovalValidator.java#validateBeforeApproval",
+        "../../vehicle-management-frontend/vehicle_management_react/src/features/customer-portal/pages/PartnerRegistrationPage.tsx"
+      ],
+      "evidence": {
+        "goldAnswerEqualsActual": true,
+        "actualAnswerFoundInCohortUploadedFaq": true,
+        "uploadedSourceFile": "target/batch05-google-live/cohort-20261126T191654Z/private-upload-objects/0741d192-05f0-4aa1-8f4f-367e514be7bb.md",
+        "uploadedSourceSha256": "6dcb9c47ad84c8eb3f27fe7d3cbd0960939794c12c556c1998efc3d62eb94ac7",
+        "uploadedSourceMetadata": {
+          "documentVersion": "1.0.0",
+          "status": "DRAFT",
+          "accessScope": "PUBLIC",
+          "effectiveFrom": "null",
+          "reviewAt": "null",
+          "lastVerifiedAt": "2026-11-27"
+        },
+        "ingestionMapping": {
+          "slug": "partner-registration-and-organization",
+          "sourceCreated": true,
+          "uploadHttpStatus": 202,
+          "documentId": "288951c2-b4c3-4961-acb1-733645ee9924",
+          "processedStatus": "REVIEW",
+          "failureCode": "null",
+          "previewRead": true,
+          "previewSha256": "812afaac85168d7ab309128250ff35633d81a302b35d47fd460a3aad9de8133f",
+          "publishedStatus": "READY"
+        },
+        "actualFixturePermissions": [
+          "CHAT_CONVERSATION_READ_OWN",
+          "CHAT_MESSAGE_SEND_OWN",
+          "SUPPORT_WIDGET_ACCESS_OWN"
+        ],
+        "unexpectedBusinessMutation": false,
+        "businessDigestTables": [
+          "iam.organizations",
+          "iam.organization_memberships",
+          "iam.member_parking_lot_scopes",
+          "iam.role_permissions",
+          "people.employees",
+          "parking.parking_lots",
+          "parking.parking_levels",
+          "parking.zones",
+          "parking.parking_spaces",
+          "catalog.vehicle_types",
+          "catalog.ticket_types",
+          "catalog.card_types",
+          "catalog.price_plans",
+          "catalog.price_rules"
+        ]
+      },
+      "reviewer": "Independent AI agent",
+      "humanReview": "PENDING"
+    },
+    {
+      "caseId": "B5-EMP01-1",
+      "scenarioId": "B5-EMP01",
+      "question": "Tạo nhân viên cho bãi như thế nào?",
+      "variantType": "ACCENTED",
+      "actualAnswer": "Dùng luồng quản trị tài khoản được cấp quyền; hồ sơ nhân sự và yêu cầu duyệt phụ thuộc vai trò tài khoản. Không có luồng mời email riêng trong quản lý nhân viên; trước vận hành cần xét duyệt và phân công bãi đúng phạm vi.",
+      "answerSha256": "1be3f45d3786e111b3675ad90e0c9647862d655e60f724442f515d84bdf40e0f",
+      "expectedSourceSlug": "partner-employees-roles-and-permissions",
+      "authoringDocumentVersion": "1.0.0",
+      "publishedTestDocumentId": "83c43b89-fb01-496d-91e1-505a6fca3d1b",
+      "publishedTestStatus": "READY",
+      "sourceSnapshot": [],
+      "processingPath": "FAQ_DIRECT",
+      "retrievalMethod": [
+        "HYBRID"
+      ],
+      "googleGeneration": false,
+      "generationHttpObservations": 0,
+      "embeddingHttpObservations": 1,
+      "generationModel": null,
+      "embeddingModel": "gemini-embedding-2",
+      "credentialAliases": [
+        "GEMINI_API_KEY_1"
+      ],
+      "httpStatus": 201,
+      "latencyMs": 914,
+      "executionStatus": "COMPLETED_UNGRADED",
+      "semanticContentStatus": "PASS",
+      "overallStatus": "NOT_GRADED",
+      "overallReason": "Nội dung/hướng xử lý đạt trên câu đã xem; thiếu bằng chứng citation/hiệu lực bắt buộc nên không tính là whole-case PASS.",
+      "dimensions": {
+        "handlingDirection": {
+          "status": "PASS",
+          "reason": "Đây là câu hỏi hướng dẫn chung; trả lời FAQ có nguồn là đúng hướng, không cần thực hiện thay người dùng."
+        },
+        "businessCorrectnessCompleteness": {
+          "status": "PASS",
+          "reason": "Đáp án đặt việc tạo nhân sự vào luồng quản trị tài khoản có thẩm quyền; hồ sơ và xét duyệt phụ thuộc vai trò; nhắc xét duyệt và phân công đúng bãi/phạm vi. Không bịa chức năng mời email riêng trong quản lý nhân viên. Câu hỏi là hướng dẫn chung, không phải yêu cầu tạo người thật."
+        },
+        "readabilityAndUiLabels": {
+          "status": "PASS",
+          "reason": "Tiếng Việt ngắn, rõ, không dùng enum/mã quyền/class làm hướng dẫn; tên thao tác hiển thị phù hợp."
+        },
+        "sourceIdentityAndVersion": {
+          "status": "NOT_GRADED",
+          "reason": "HYBRID audit có source_snapshot=null; transcript không xuất danh sách top-5/chunk/citation/documentVersion. Nội dung trùng FAQ trong tài liệu đã upload nhưng riêng sự trùng văn bản chưa chứng minh nguồn thực sự được chọn."
+        },
+        "sourceTop5": {
+          "status": "NOT_GRADED",
+          "reason": "Thiếu ranked retrieval hits trong bằng chứng đã lưu; không suy top-5 đúng chỉ từ đáp án trùng."
+        },
+        "citationAndEffectiveValidity": {
+          "status": "NOT_GRADED",
+          "reason": "Không có citation rows hoặc response-envelope citations và metadata hiệu lực tại thời điểm trả lời trong transcript. READY khi nhập chỉ chứng minh luồng duyệt DB kiểm thử; không đủ để chấm toàn bộ gate citation/hiệu lực."
+        },
+        "sourceReadPermissions": {
+          "status": "PASS",
+          "reason": "Fixture được cấp AI_KNOWLEDGE_READ_EMPLOYEE và audit đọc PUBLIC,EMPLOYEE; nguồn hướng dẫn chung thuộc EMPLOYEE. Đây quyền test riêng, không chứng minh vai trò PARTNER_ADMIN mặc định được cấp quyền này."
+        },
+        "businessDataScope": {
+          "status": "NOT_APPLICABLE",
+          "reason": "Câu trả lời là hướng dẫn tĩnh, không đọc hồ sơ/danh sách riêng của đơn vị hoặc thực hiện business tool. Không suy rằng kiểm tra vượt tổ chức/bãi đã được nghiệm thu."
+        },
+        "operationSafety": {
+          "status": "PASS",
+          "reason": "Không khẳng định đã tạo/duyệt/gán/xuất bản. Không chứa dữ liệu thật tổ chức khác hay hướng dẫn vượt quyền. Hash trước/sau của toàn bộ allowlist bảng nghiệp vụ trong harness bằng nhau; kết luận chỉ giới hạn ở allowlist đã đo."
+        }
+      },
+      "codeCrossChecks": [
+        "src/main/java/com/ban/vehicle_management/entrypoint/controller/iam/ProvisionedAccountController.java#createProvisionedAccount",
+        "src/main/java/com/ban/vehicle_management/application/people/employee/usecase/EmployeeUseCaseImpl.java#activateEmployee",
+        "src/main/java/com/ban/vehicle_management/application/people/employee/usecase/EmployeeUseCaseImpl.java#ensureInternalOnboardingApprovalSatisfied",
+        "src/main/java/com/ban/vehicle_management/application/people/employee/authorization/EmployeeAccessGuard.java#ensureCanManage"
+      ],
+      "evidence": {
+        "goldAnswerEqualsActual": true,
+        "actualAnswerFoundInCohortUploadedFaq": true,
+        "uploadedSourceFile": "target/batch05-google-live/cohort-20261126T191654Z/private-upload-objects/16d368e3-58b5-49f1-8261-f69114f7e72d.md",
+        "uploadedSourceSha256": "115605255c38400f3a94566683682141b7fb92f97c13fcf04f1374e9a9fea78f",
+        "uploadedSourceMetadata": {
+          "documentVersion": "1.0.0",
+          "status": "DRAFT",
+          "accessScope": "EMPLOYEE",
+          "effectiveFrom": "null",
+          "reviewAt": "null",
+          "lastVerifiedAt": "2026-11-27"
+        },
+        "ingestionMapping": {
+          "slug": "partner-employees-roles-and-permissions",
+          "sourceCreated": true,
+          "uploadHttpStatus": 202,
+          "documentId": "83c43b89-fb01-496d-91e1-505a6fca3d1b",
+          "processedStatus": "REVIEW",
+          "failureCode": "null",
+          "previewRead": true,
+          "previewSha256": "3c62c7d29e0f38f2b21428f9747d3af5b58dc366ab03d2e685bb8280fec91655",
+          "publishedStatus": "READY"
+        },
+        "actualFixturePermissions": [
+          "CHAT_CONVERSATION_READ_OWN",
+          "CHAT_MESSAGE_SEND_OWN",
+          "AI_KNOWLEDGE_READ_EMPLOYEE",
+          "SUPPORT_WIDGET_ACCESS_OWN"
+        ],
+        "unexpectedBusinessMutation": false,
+        "businessDigestTables": [
+          "iam.organizations",
+          "iam.organization_memberships",
+          "iam.member_parking_lot_scopes",
+          "iam.role_permissions",
+          "people.employees",
+          "parking.parking_lots",
+          "parking.parking_levels",
+          "parking.zones",
+          "parking.parking_spaces",
+          "catalog.vehicle_types",
+          "catalog.ticket_types",
+          "catalog.card_types",
+          "catalog.price_plans",
+          "catalog.price_rules"
+        ]
+      },
+      "reviewer": "Independent AI agent",
+      "humanReview": "PENDING"
+    },
+    {
+      "caseId": "B5-EMP01-2",
+      "scenarioId": "B5-EMP01",
+      "question": "Tao nhan vien cho bai nhu the nao?",
+      "variantType": "UNACCENTED",
+      "actualAnswer": "Dùng luồng quản trị tài khoản được cấp quyền; hồ sơ nhân sự và yêu cầu duyệt phụ thuộc vai trò tài khoản. Không có luồng mời email riêng trong quản lý nhân viên; trước vận hành cần xét duyệt và phân công bãi đúng phạm vi.",
+      "answerSha256": "1be3f45d3786e111b3675ad90e0c9647862d655e60f724442f515d84bdf40e0f",
+      "expectedSourceSlug": "partner-employees-roles-and-permissions",
+      "authoringDocumentVersion": "1.0.0",
+      "publishedTestDocumentId": "83c43b89-fb01-496d-91e1-505a6fca3d1b",
+      "publishedTestStatus": "READY",
+      "sourceSnapshot": [],
+      "processingPath": "FAQ_DIRECT",
+      "retrievalMethod": [
+        "HYBRID"
+      ],
+      "googleGeneration": false,
+      "generationHttpObservations": 0,
+      "embeddingHttpObservations": 1,
+      "generationModel": null,
+      "embeddingModel": "gemini-embedding-2",
+      "credentialAliases": [
+        "GEMINI_API_KEY_1"
+      ],
+      "httpStatus": 201,
+      "latencyMs": 915,
+      "executionStatus": "COMPLETED_UNGRADED",
+      "semanticContentStatus": "PASS",
+      "overallStatus": "NOT_GRADED",
+      "overallReason": "Nội dung/hướng xử lý đạt trên câu đã xem; thiếu bằng chứng citation/hiệu lực bắt buộc nên không tính là whole-case PASS.",
+      "dimensions": {
+        "handlingDirection": {
+          "status": "PASS",
+          "reason": "Đây là câu hỏi hướng dẫn chung; trả lời FAQ có nguồn là đúng hướng, không cần thực hiện thay người dùng."
+        },
+        "businessCorrectnessCompleteness": {
+          "status": "PASS",
+          "reason": "Đáp án đặt việc tạo nhân sự vào luồng quản trị tài khoản có thẩm quyền; hồ sơ và xét duyệt phụ thuộc vai trò; nhắc xét duyệt và phân công đúng bãi/phạm vi. Không bịa chức năng mời email riêng trong quản lý nhân viên. Câu hỏi là hướng dẫn chung, không phải yêu cầu tạo người thật."
+        },
+        "readabilityAndUiLabels": {
+          "status": "PASS",
+          "reason": "Tiếng Việt ngắn, rõ, không dùng enum/mã quyền/class làm hướng dẫn; tên thao tác hiển thị phù hợp. Câu hỏi không dấu vẫn nhận cùng nội dung hợp nghĩa."
+        },
+        "sourceIdentityAndVersion": {
+          "status": "NOT_GRADED",
+          "reason": "HYBRID audit có source_snapshot=null; transcript không xuất danh sách top-5/chunk/citation/documentVersion. Nội dung trùng FAQ trong tài liệu đã upload nhưng riêng sự trùng văn bản chưa chứng minh nguồn thực sự được chọn."
+        },
+        "sourceTop5": {
+          "status": "NOT_GRADED",
+          "reason": "Thiếu ranked retrieval hits trong bằng chứng đã lưu; không suy top-5 đúng chỉ từ đáp án trùng."
+        },
+        "citationAndEffectiveValidity": {
+          "status": "NOT_GRADED",
+          "reason": "Không có citation rows hoặc response-envelope citations và metadata hiệu lực tại thời điểm trả lời trong transcript. READY khi nhập chỉ chứng minh luồng duyệt DB kiểm thử; không đủ để chấm toàn bộ gate citation/hiệu lực."
+        },
+        "sourceReadPermissions": {
+          "status": "PASS",
+          "reason": "Fixture được cấp AI_KNOWLEDGE_READ_EMPLOYEE và audit đọc PUBLIC,EMPLOYEE; nguồn hướng dẫn chung thuộc EMPLOYEE. Đây quyền test riêng, không chứng minh vai trò PARTNER_ADMIN mặc định được cấp quyền này."
+        },
+        "businessDataScope": {
+          "status": "NOT_APPLICABLE",
+          "reason": "Câu trả lời là hướng dẫn tĩnh, không đọc hồ sơ/danh sách riêng của đơn vị hoặc thực hiện business tool. Không suy rằng kiểm tra vượt tổ chức/bãi đã được nghiệm thu."
+        },
+        "operationSafety": {
+          "status": "PASS",
+          "reason": "Không khẳng định đã tạo/duyệt/gán/xuất bản. Không chứa dữ liệu thật tổ chức khác hay hướng dẫn vượt quyền. Hash trước/sau của toàn bộ allowlist bảng nghiệp vụ trong harness bằng nhau; kết luận chỉ giới hạn ở allowlist đã đo."
+        }
+      },
+      "codeCrossChecks": [
+        "src/main/java/com/ban/vehicle_management/entrypoint/controller/iam/ProvisionedAccountController.java#createProvisionedAccount",
+        "src/main/java/com/ban/vehicle_management/application/people/employee/usecase/EmployeeUseCaseImpl.java#activateEmployee",
+        "src/main/java/com/ban/vehicle_management/application/people/employee/usecase/EmployeeUseCaseImpl.java#ensureInternalOnboardingApprovalSatisfied",
+        "src/main/java/com/ban/vehicle_management/application/people/employee/authorization/EmployeeAccessGuard.java#ensureCanManage"
+      ],
+      "evidence": {
+        "goldAnswerEqualsActual": true,
+        "actualAnswerFoundInCohortUploadedFaq": true,
+        "uploadedSourceFile": "target/batch05-google-live/cohort-20261126T191654Z/private-upload-objects/16d368e3-58b5-49f1-8261-f69114f7e72d.md",
+        "uploadedSourceSha256": "115605255c38400f3a94566683682141b7fb92f97c13fcf04f1374e9a9fea78f",
+        "uploadedSourceMetadata": {
+          "documentVersion": "1.0.0",
+          "status": "DRAFT",
+          "accessScope": "EMPLOYEE",
+          "effectiveFrom": "null",
+          "reviewAt": "null",
+          "lastVerifiedAt": "2026-11-27"
+        },
+        "ingestionMapping": {
+          "slug": "partner-employees-roles-and-permissions",
+          "sourceCreated": true,
+          "uploadHttpStatus": 202,
+          "documentId": "83c43b89-fb01-496d-91e1-505a6fca3d1b",
+          "processedStatus": "REVIEW",
+          "failureCode": "null",
+          "previewRead": true,
+          "previewSha256": "3c62c7d29e0f38f2b21428f9747d3af5b58dc366ab03d2e685bb8280fec91655",
+          "publishedStatus": "READY"
+        },
+        "actualFixturePermissions": [
+          "CHAT_CONVERSATION_READ_OWN",
+          "CHAT_MESSAGE_SEND_OWN",
+          "AI_KNOWLEDGE_READ_EMPLOYEE",
+          "SUPPORT_WIDGET_ACCESS_OWN"
+        ],
+        "unexpectedBusinessMutation": false,
+        "businessDigestTables": [
+          "iam.organizations",
+          "iam.organization_memberships",
+          "iam.member_parking_lot_scopes",
+          "iam.role_permissions",
+          "people.employees",
+          "parking.parking_lots",
+          "parking.parking_levels",
+          "parking.zones",
+          "parking.parking_spaces",
+          "catalog.vehicle_types",
+          "catalog.ticket_types",
+          "catalog.card_types",
+          "catalog.price_plans",
+          "catalog.price_rules"
+        ]
+      },
+      "reviewer": "Independent AI agent",
+      "humanReview": "PENDING"
+    },
+    {
+      "caseId": "B5-LAY01-1",
+      "scenarioId": "B5-LAY01",
+      "question": "Khai báo cấu trúc bãi xe theo thứ tự nào?",
+      "variantType": "ACCENTED",
+      "actualAnswer": "Chọn bãi thuộc đúng đơn vị, tạo tầng rồi khu gắn đúng tầng/bãi, sau đó cấu hình ô đỗ và sơ đồ theo cách quản lý sức chứa. Làn vào/ra là thành phần vận hành riêng; cần quyền cấu hình và đúng phạm vi bãi.",
+      "answerSha256": "9a9c065e0a82d45bc7bd995b4ce295bd0d00e3ec1b230136a8ae455c52689d9f",
+      "expectedSourceSlug": "parking-structure-and-layout",
+      "authoringDocumentVersion": "1.0.0",
+      "publishedTestDocumentId": "70144156-524d-4f8c-99bc-d2525cabec99",
+      "publishedTestStatus": "READY",
+      "sourceSnapshot": [],
+      "processingPath": "FAQ_DIRECT",
+      "retrievalMethod": [
+        "HYBRID"
+      ],
+      "googleGeneration": false,
+      "generationHttpObservations": 0,
+      "embeddingHttpObservations": 1,
+      "generationModel": null,
+      "embeddingModel": "gemini-embedding-2",
+      "credentialAliases": [
+        "GEMINI_API_KEY_1"
+      ],
+      "httpStatus": 201,
+      "latencyMs": 639,
+      "executionStatus": "COMPLETED_UNGRADED",
+      "semanticContentStatus": "PASS",
+      "overallStatus": "NOT_GRADED",
+      "overallReason": "Nội dung/hướng xử lý đạt trên câu đã xem; thiếu bằng chứng citation/hiệu lực bắt buộc nên không tính là whole-case PASS.",
+      "dimensions": {
+        "handlingDirection": {
+          "status": "PASS",
+          "reason": "Đây là câu hỏi hướng dẫn chung; trả lời FAQ có nguồn là đúng hướng, không cần thực hiện thay người dùng."
+        },
+        "businessCorrectnessCompleteness": {
+          "status": "PASS",
+          "reason": "Thứ tự bãi thuộc đơn vị → tầng → khu cùng tầng/bãi → ô đỗ/sơ đồ phù hợp cách quản lý sức chứa khớp code. Làn vào/ra được tách khỏi ô đỗ, có điều kiện quyền cấu hình và phạm vi. Không hứa tự sinh bố trí hoặc đã thay đổi sơ đồ."
+        },
+        "readabilityAndUiLabels": {
+          "status": "PASS",
+          "reason": "Tiếng Việt ngắn, rõ, không dùng enum/mã quyền/class làm hướng dẫn; tên thao tác hiển thị phù hợp."
+        },
+        "sourceIdentityAndVersion": {
+          "status": "NOT_GRADED",
+          "reason": "HYBRID audit có source_snapshot=null; transcript không xuất danh sách top-5/chunk/citation/documentVersion. Nội dung trùng FAQ trong tài liệu đã upload nhưng riêng sự trùng văn bản chưa chứng minh nguồn thực sự được chọn."
+        },
+        "sourceTop5": {
+          "status": "NOT_GRADED",
+          "reason": "Thiếu ranked retrieval hits trong bằng chứng đã lưu; không suy top-5 đúng chỉ từ đáp án trùng."
+        },
+        "citationAndEffectiveValidity": {
+          "status": "NOT_GRADED",
+          "reason": "Không có citation rows hoặc response-envelope citations và metadata hiệu lực tại thời điểm trả lời trong transcript. READY khi nhập chỉ chứng minh luồng duyệt DB kiểm thử; không đủ để chấm toàn bộ gate citation/hiệu lực."
+        },
+        "sourceReadPermissions": {
+          "status": "PASS",
+          "reason": "Fixture được cấp AI_KNOWLEDGE_READ_EMPLOYEE và audit đọc PUBLIC,EMPLOYEE; nguồn hướng dẫn chung thuộc EMPLOYEE. Đây quyền test riêng, không chứng minh vai trò PARTNER_ADMIN mặc định được cấp quyền này."
+        },
+        "businessDataScope": {
+          "status": "NOT_APPLICABLE",
+          "reason": "Câu trả lời là hướng dẫn tĩnh, không đọc hồ sơ/danh sách riêng của đơn vị hoặc thực hiện business tool. Không suy rằng kiểm tra vượt tổ chức/bãi đã được nghiệm thu."
+        },
+        "operationSafety": {
+          "status": "PASS",
+          "reason": "Không khẳng định đã tạo/duyệt/gán/xuất bản. Không chứa dữ liệu thật tổ chức khác hay hướng dẫn vượt quyền. Hash trước/sau của toàn bộ allowlist bảng nghiệp vụ trong harness bằng nhau; kết luận chỉ giới hạn ở allowlist đã đo."
+        }
+      },
+      "codeCrossChecks": [
+        "src/main/java/com/ban/vehicle_management/application/parking/parkinglevel/usecase/ParkingLevelUseCaseImpl.java#createParkingLevel",
+        "src/main/java/com/ban/vehicle_management/application/parking/zone/usecase/ZoneUseCaseImpl.java#ensureLevelBelongsToParkingLot",
+        "src/main/java/com/ban/vehicle_management/application/parking/parkinglayout/usecase/ParkingLayoutUseCaseImpl.java#publishLayout",
+        "src/main/java/com/ban/vehicle_management/application/iam/organization/authorization/OrganizationAccessGuard.java#ensureCanConfigureParkingLot"
+      ],
+      "evidence": {
+        "goldAnswerEqualsActual": true,
+        "actualAnswerFoundInCohortUploadedFaq": true,
+        "uploadedSourceFile": "target/batch05-google-live/cohort-20261126T191654Z/private-upload-objects/f63a8691-3326-44c5-add1-81bb6df9b405.md",
+        "uploadedSourceSha256": "54ea0474a0a52c32ea56f4cad824b325189a4f65cb2a2e393ab0bf6a062e15a8",
+        "uploadedSourceMetadata": {
+          "documentVersion": "1.0.0",
+          "status": "DRAFT",
+          "accessScope": "EMPLOYEE",
+          "effectiveFrom": "null",
+          "reviewAt": "null",
+          "lastVerifiedAt": "2026-11-27"
+        },
+        "ingestionMapping": {
+          "slug": "parking-structure-and-layout",
+          "sourceCreated": true,
+          "uploadHttpStatus": 202,
+          "documentId": "70144156-524d-4f8c-99bc-d2525cabec99",
+          "processedStatus": "REVIEW",
+          "failureCode": "null",
+          "previewRead": true,
+          "previewSha256": "12f06ac9e3130cd44373487ccf5385ec108a7033e4ffac02139536a669eb1922",
+          "publishedStatus": "READY"
+        },
+        "actualFixturePermissions": [
+          "CHAT_CONVERSATION_READ_OWN",
+          "CHAT_MESSAGE_SEND_OWN",
+          "AI_KNOWLEDGE_READ_EMPLOYEE",
+          "SUPPORT_WIDGET_ACCESS_OWN"
+        ],
+        "unexpectedBusinessMutation": false,
+        "businessDigestTables": [
+          "iam.organizations",
+          "iam.organization_memberships",
+          "iam.member_parking_lot_scopes",
+          "iam.role_permissions",
+          "people.employees",
+          "parking.parking_lots",
+          "parking.parking_levels",
+          "parking.zones",
+          "parking.parking_spaces",
+          "catalog.vehicle_types",
+          "catalog.ticket_types",
+          "catalog.card_types",
+          "catalog.price_plans",
+          "catalog.price_rules"
+        ]
+      },
+      "reviewer": "Independent AI agent",
+      "humanReview": "PENDING"
+    },
+    {
+      "caseId": "B5-LAY01-2",
+      "scenarioId": "B5-LAY01",
+      "question": "Khai bao cau truc bai xe theo thu tu nao?",
+      "variantType": "UNACCENTED",
+      "actualAnswer": "Chọn bãi thuộc đúng đơn vị, tạo tầng rồi khu gắn đúng tầng/bãi, sau đó cấu hình ô đỗ và sơ đồ theo cách quản lý sức chứa. Làn vào/ra là thành phần vận hành riêng; cần quyền cấu hình và đúng phạm vi bãi.",
+      "answerSha256": "9a9c065e0a82d45bc7bd995b4ce295bd0d00e3ec1b230136a8ae455c52689d9f",
+      "expectedSourceSlug": "parking-structure-and-layout",
+      "authoringDocumentVersion": "1.0.0",
+      "publishedTestDocumentId": "70144156-524d-4f8c-99bc-d2525cabec99",
+      "publishedTestStatus": "READY",
+      "sourceSnapshot": [],
+      "processingPath": "FAQ_DIRECT",
+      "retrievalMethod": [
+        "HYBRID"
+      ],
+      "googleGeneration": false,
+      "generationHttpObservations": 0,
+      "embeddingHttpObservations": 1,
+      "generationModel": null,
+      "embeddingModel": "gemini-embedding-2",
+      "credentialAliases": [
+        "GEMINI_API_KEY_1"
+      ],
+      "httpStatus": 201,
+      "latencyMs": 640,
+      "executionStatus": "COMPLETED_UNGRADED",
+      "semanticContentStatus": "PASS",
+      "overallStatus": "NOT_GRADED",
+      "overallReason": "Nội dung/hướng xử lý đạt trên câu đã xem; thiếu bằng chứng citation/hiệu lực bắt buộc nên không tính là whole-case PASS.",
+      "dimensions": {
+        "handlingDirection": {
+          "status": "PASS",
+          "reason": "Đây là câu hỏi hướng dẫn chung; trả lời FAQ có nguồn là đúng hướng, không cần thực hiện thay người dùng."
+        },
+        "businessCorrectnessCompleteness": {
+          "status": "PASS",
+          "reason": "Thứ tự bãi thuộc đơn vị → tầng → khu cùng tầng/bãi → ô đỗ/sơ đồ phù hợp cách quản lý sức chứa khớp code. Làn vào/ra được tách khỏi ô đỗ, có điều kiện quyền cấu hình và phạm vi. Không hứa tự sinh bố trí hoặc đã thay đổi sơ đồ."
+        },
+        "readabilityAndUiLabels": {
+          "status": "PASS",
+          "reason": "Tiếng Việt ngắn, rõ, không dùng enum/mã quyền/class làm hướng dẫn; tên thao tác hiển thị phù hợp. Câu hỏi không dấu vẫn nhận cùng nội dung hợp nghĩa."
+        },
+        "sourceIdentityAndVersion": {
+          "status": "NOT_GRADED",
+          "reason": "HYBRID audit có source_snapshot=null; transcript không xuất danh sách top-5/chunk/citation/documentVersion. Nội dung trùng FAQ trong tài liệu đã upload nhưng riêng sự trùng văn bản chưa chứng minh nguồn thực sự được chọn."
+        },
+        "sourceTop5": {
+          "status": "NOT_GRADED",
+          "reason": "Thiếu ranked retrieval hits trong bằng chứng đã lưu; không suy top-5 đúng chỉ từ đáp án trùng."
+        },
+        "citationAndEffectiveValidity": {
+          "status": "NOT_GRADED",
+          "reason": "Không có citation rows hoặc response-envelope citations và metadata hiệu lực tại thời điểm trả lời trong transcript. READY khi nhập chỉ chứng minh luồng duyệt DB kiểm thử; không đủ để chấm toàn bộ gate citation/hiệu lực."
+        },
+        "sourceReadPermissions": {
+          "status": "PASS",
+          "reason": "Fixture được cấp AI_KNOWLEDGE_READ_EMPLOYEE và audit đọc PUBLIC,EMPLOYEE; nguồn hướng dẫn chung thuộc EMPLOYEE. Đây quyền test riêng, không chứng minh vai trò PARTNER_ADMIN mặc định được cấp quyền này."
+        },
+        "businessDataScope": {
+          "status": "NOT_APPLICABLE",
+          "reason": "Câu trả lời là hướng dẫn tĩnh, không đọc hồ sơ/danh sách riêng của đơn vị hoặc thực hiện business tool. Không suy rằng kiểm tra vượt tổ chức/bãi đã được nghiệm thu."
+        },
+        "operationSafety": {
+          "status": "PASS",
+          "reason": "Không khẳng định đã tạo/duyệt/gán/xuất bản. Không chứa dữ liệu thật tổ chức khác hay hướng dẫn vượt quyền. Hash trước/sau của toàn bộ allowlist bảng nghiệp vụ trong harness bằng nhau; kết luận chỉ giới hạn ở allowlist đã đo."
+        }
+      },
+      "codeCrossChecks": [
+        "src/main/java/com/ban/vehicle_management/application/parking/parkinglevel/usecase/ParkingLevelUseCaseImpl.java#createParkingLevel",
+        "src/main/java/com/ban/vehicle_management/application/parking/zone/usecase/ZoneUseCaseImpl.java#ensureLevelBelongsToParkingLot",
+        "src/main/java/com/ban/vehicle_management/application/parking/parkinglayout/usecase/ParkingLayoutUseCaseImpl.java#publishLayout",
+        "src/main/java/com/ban/vehicle_management/application/iam/organization/authorization/OrganizationAccessGuard.java#ensureCanConfigureParkingLot"
+      ],
+      "evidence": {
+        "goldAnswerEqualsActual": true,
+        "actualAnswerFoundInCohortUploadedFaq": true,
+        "uploadedSourceFile": "target/batch05-google-live/cohort-20261126T191654Z/private-upload-objects/f63a8691-3326-44c5-add1-81bb6df9b405.md",
+        "uploadedSourceSha256": "54ea0474a0a52c32ea56f4cad824b325189a4f65cb2a2e393ab0bf6a062e15a8",
+        "uploadedSourceMetadata": {
+          "documentVersion": "1.0.0",
+          "status": "DRAFT",
+          "accessScope": "EMPLOYEE",
+          "effectiveFrom": "null",
+          "reviewAt": "null",
+          "lastVerifiedAt": "2026-11-27"
+        },
+        "ingestionMapping": {
+          "slug": "parking-structure-and-layout",
+          "sourceCreated": true,
+          "uploadHttpStatus": 202,
+          "documentId": "70144156-524d-4f8c-99bc-d2525cabec99",
+          "processedStatus": "REVIEW",
+          "failureCode": "null",
+          "previewRead": true,
+          "previewSha256": "12f06ac9e3130cd44373487ccf5385ec108a7033e4ffac02139536a669eb1922",
+          "publishedStatus": "READY"
+        },
+        "actualFixturePermissions": [
+          "CHAT_CONVERSATION_READ_OWN",
+          "CHAT_MESSAGE_SEND_OWN",
+          "AI_KNOWLEDGE_READ_EMPLOYEE",
+          "SUPPORT_WIDGET_ACCESS_OWN"
+        ],
+        "unexpectedBusinessMutation": false,
+        "businessDigestTables": [
+          "iam.organizations",
+          "iam.organization_memberships",
+          "iam.member_parking_lot_scopes",
+          "iam.role_permissions",
+          "people.employees",
+          "parking.parking_lots",
+          "parking.parking_levels",
+          "parking.zones",
+          "parking.parking_spaces",
+          "catalog.vehicle_types",
+          "catalog.ticket_types",
+          "catalog.card_types",
+          "catalog.price_plans",
+          "catalog.price_rules"
+        ]
+      },
+      "reviewer": "Independent AI agent",
+      "humanReview": "PENDING"
+    },
+    {
+      "caseId": "B5-CAT01-1",
+      "scenarioId": "B5-CAT01",
+      "question": "Đối tác quản lý những danh mục vận hành nào?",
+      "variantType": "ACCENTED",
+      "actualAnswer": "Các danh mục đã có gồm loại xe, loại vé, loại thẻ, bảng giá, quy tắc giá và voucher, nhưng quyền sửa mỗi loại khác nhau. Lịch ngày nghỉ chưa có luồng quản lý đầy đủ; đối tác không mặc định được sửa danh mục dùng chung.",
+      "answerSha256": "67f3df4f8a59cf8bb735ddd828d8c7073bf2f3f01f26e976998c760593f06895",
+      "expectedSourceSlug": "partner-operational-catalogs",
+      "authoringDocumentVersion": "1.0.0",
+      "publishedTestDocumentId": "a944fd44-69ae-4ab6-9e0d-23a3f36ab766",
+      "publishedTestStatus": "READY",
+      "sourceSnapshot": [],
+      "processingPath": "FAQ_DIRECT",
+      "retrievalMethod": [
+        "HYBRID"
+      ],
+      "googleGeneration": false,
+      "generationHttpObservations": 0,
+      "embeddingHttpObservations": 1,
+      "generationModel": null,
+      "embeddingModel": "gemini-embedding-2",
+      "credentialAliases": [
+        "GEMINI_API_KEY_1"
+      ],
+      "httpStatus": 201,
+      "latencyMs": 655,
+      "executionStatus": "COMPLETED_UNGRADED",
+      "semanticContentStatus": "PASS",
+      "overallStatus": "NOT_GRADED",
+      "overallReason": "Nội dung/hướng xử lý đạt trên câu đã xem; thiếu bằng chứng citation/hiệu lực bắt buộc nên không tính là whole-case PASS.",
+      "dimensions": {
+        "handlingDirection": {
+          "status": "PASS",
+          "reason": "Đây là câu hỏi hướng dẫn chung; trả lời FAQ có nguồn là đúng hướng, không cần thực hiện thay người dùng."
+        },
+        "businessCorrectnessCompleteness": {
+          "status": "PASS",
+          "reason": "Liệt kê đúng nhóm danh mục hiện có: loại xe, loại vé, loại thẻ, bảng giá, quy tắc giá, voucher; nêu quyền quản lý khác nhau và không mặc định sửa danh mục dùng chung. Cảnh báo lịch ngày nghỉ chưa có luồng quản lý đầy đủ khớp thực trạng controller/module. Không đồng nhất quyền của mọi loại danh mục."
+        },
+        "readabilityAndUiLabels": {
+          "status": "PASS",
+          "reason": "Tiếng Việt ngắn, rõ, không dùng enum/mã quyền/class làm hướng dẫn; tên thao tác hiển thị phù hợp."
+        },
+        "sourceIdentityAndVersion": {
+          "status": "NOT_GRADED",
+          "reason": "HYBRID audit có source_snapshot=null; transcript không xuất danh sách top-5/chunk/citation/documentVersion. Nội dung trùng FAQ trong tài liệu đã upload nhưng riêng sự trùng văn bản chưa chứng minh nguồn thực sự được chọn."
+        },
+        "sourceTop5": {
+          "status": "NOT_GRADED",
+          "reason": "Thiếu ranked retrieval hits trong bằng chứng đã lưu; không suy top-5 đúng chỉ từ đáp án trùng."
+        },
+        "citationAndEffectiveValidity": {
+          "status": "NOT_GRADED",
+          "reason": "Không có citation rows hoặc response-envelope citations và metadata hiệu lực tại thời điểm trả lời trong transcript. READY khi nhập chỉ chứng minh luồng duyệt DB kiểm thử; không đủ để chấm toàn bộ gate citation/hiệu lực."
+        },
+        "sourceReadPermissions": {
+          "status": "PASS",
+          "reason": "Fixture được cấp AI_KNOWLEDGE_READ_EMPLOYEE và audit đọc PUBLIC,EMPLOYEE; nguồn hướng dẫn chung thuộc EMPLOYEE. Đây quyền test riêng, không chứng minh vai trò PARTNER_ADMIN mặc định được cấp quyền này."
+        },
+        "businessDataScope": {
+          "status": "NOT_APPLICABLE",
+          "reason": "Câu trả lời là hướng dẫn tĩnh, không đọc hồ sơ/danh sách riêng của đơn vị hoặc thực hiện business tool. Không suy rằng kiểm tra vượt tổ chức/bãi đã được nghiệm thu."
+        },
+        "operationSafety": {
+          "status": "PASS",
+          "reason": "Không khẳng định đã tạo/duyệt/gán/xuất bản. Không chứa dữ liệu thật tổ chức khác hay hướng dẫn vượt quyền. Hash trước/sau của toàn bộ allowlist bảng nghiệp vụ trong harness bằng nhau; kết luận chỉ giới hạn ở allowlist đã đo."
+        }
+      },
+      "codeCrossChecks": [
+        "src/main/java/com/ban/vehicle_management/entrypoint/controller/catalog/VehicleTypeController.java",
+        "src/main/java/com/ban/vehicle_management/entrypoint/controller/catalog/TicketTypeController.java",
+        "src/main/java/com/ban/vehicle_management/entrypoint/controller/catalog/CardTypeController.java",
+        "src/main/java/com/ban/vehicle_management/entrypoint/controller/catalog/PricePlanController.java",
+        "src/main/java/com/ban/vehicle_management/entrypoint/controller/catalog/PriceRuleController.java",
+        "src/main/java/com/ban/vehicle_management/entrypoint/controller/catalog/VoucherController.java",
+        "src/main/java/com/ban/vehicle_management/application/catalog/authorization/CatalogAccessGuard.java"
+      ],
+      "evidence": {
+        "goldAnswerEqualsActual": true,
+        "actualAnswerFoundInCohortUploadedFaq": true,
+        "uploadedSourceFile": "target/batch05-google-live/cohort-20261126T191654Z/private-upload-objects/ce159441-5692-45da-8641-4aebc6bc3157.md",
+        "uploadedSourceSha256": "abc18300429fdf002785990ddc16b93d3f91cd55f6a164f6014aef92d930d881",
+        "uploadedSourceMetadata": {
+          "documentVersion": "1.0.0",
+          "status": "DRAFT",
+          "accessScope": "EMPLOYEE",
+          "effectiveFrom": "null",
+          "reviewAt": "null",
+          "lastVerifiedAt": "2026-11-27"
+        },
+        "ingestionMapping": {
+          "slug": "partner-operational-catalogs",
+          "sourceCreated": true,
+          "uploadHttpStatus": 202,
+          "documentId": "a944fd44-69ae-4ab6-9e0d-23a3f36ab766",
+          "processedStatus": "REVIEW",
+          "failureCode": "null",
+          "previewRead": true,
+          "previewSha256": "4716ebbc0ea7935cbe136e0d2c4d418bbd33a902b18b34fc5dda86eacf6fdbf4",
+          "publishedStatus": "READY"
+        },
+        "actualFixturePermissions": [
+          "CHAT_CONVERSATION_READ_OWN",
+          "CHAT_MESSAGE_SEND_OWN",
+          "AI_KNOWLEDGE_READ_EMPLOYEE",
+          "SUPPORT_WIDGET_ACCESS_OWN"
+        ],
+        "unexpectedBusinessMutation": false,
+        "businessDigestTables": [
+          "iam.organizations",
+          "iam.organization_memberships",
+          "iam.member_parking_lot_scopes",
+          "iam.role_permissions",
+          "people.employees",
+          "parking.parking_lots",
+          "parking.parking_levels",
+          "parking.zones",
+          "parking.parking_spaces",
+          "catalog.vehicle_types",
+          "catalog.ticket_types",
+          "catalog.card_types",
+          "catalog.price_plans",
+          "catalog.price_rules"
+        ]
+      },
+      "reviewer": "Independent AI agent",
+      "humanReview": "PENDING"
+    },
+    {
+      "caseId": "B5-CAT01-2",
+      "scenarioId": "B5-CAT01",
+      "question": "Doi tac quan ly nhung danh muc van hanh nao?",
+      "variantType": "UNACCENTED",
+      "actualAnswer": "Các danh mục đã có gồm loại xe, loại vé, loại thẻ, bảng giá, quy tắc giá và voucher, nhưng quyền sửa mỗi loại khác nhau. Lịch ngày nghỉ chưa có luồng quản lý đầy đủ; đối tác không mặc định được sửa danh mục dùng chung.",
+      "answerSha256": "67f3df4f8a59cf8bb735ddd828d8c7073bf2f3f01f26e976998c760593f06895",
+      "expectedSourceSlug": "partner-operational-catalogs",
+      "authoringDocumentVersion": "1.0.0",
+      "publishedTestDocumentId": "a944fd44-69ae-4ab6-9e0d-23a3f36ab766",
+      "publishedTestStatus": "READY",
+      "sourceSnapshot": [],
+      "processingPath": "FAQ_DIRECT",
+      "retrievalMethod": [
+        "HYBRID"
+      ],
+      "googleGeneration": false,
+      "generationHttpObservations": 0,
+      "embeddingHttpObservations": 1,
+      "generationModel": null,
+      "embeddingModel": "gemini-embedding-2",
+      "credentialAliases": [
+        "GEMINI_API_KEY_1"
+      ],
+      "httpStatus": 201,
+      "latencyMs": 904,
+      "executionStatus": "COMPLETED_UNGRADED",
+      "semanticContentStatus": "PASS",
+      "overallStatus": "NOT_GRADED",
+      "overallReason": "Nội dung/hướng xử lý đạt trên câu đã xem; thiếu bằng chứng citation/hiệu lực bắt buộc nên không tính là whole-case PASS.",
+      "dimensions": {
+        "handlingDirection": {
+          "status": "PASS",
+          "reason": "Đây là câu hỏi hướng dẫn chung; trả lời FAQ có nguồn là đúng hướng, không cần thực hiện thay người dùng."
+        },
+        "businessCorrectnessCompleteness": {
+          "status": "PASS",
+          "reason": "Liệt kê đúng nhóm danh mục hiện có: loại xe, loại vé, loại thẻ, bảng giá, quy tắc giá, voucher; nêu quyền quản lý khác nhau và không mặc định sửa danh mục dùng chung. Cảnh báo lịch ngày nghỉ chưa có luồng quản lý đầy đủ khớp thực trạng controller/module. Không đồng nhất quyền của mọi loại danh mục."
+        },
+        "readabilityAndUiLabels": {
+          "status": "PASS",
+          "reason": "Tiếng Việt ngắn, rõ, không dùng enum/mã quyền/class làm hướng dẫn; tên thao tác hiển thị phù hợp. Câu hỏi không dấu vẫn nhận cùng nội dung hợp nghĩa."
+        },
+        "sourceIdentityAndVersion": {
+          "status": "NOT_GRADED",
+          "reason": "HYBRID audit có source_snapshot=null; transcript không xuất danh sách top-5/chunk/citation/documentVersion. Nội dung trùng FAQ trong tài liệu đã upload nhưng riêng sự trùng văn bản chưa chứng minh nguồn thực sự được chọn."
+        },
+        "sourceTop5": {
+          "status": "NOT_GRADED",
+          "reason": "Thiếu ranked retrieval hits trong bằng chứng đã lưu; không suy top-5 đúng chỉ từ đáp án trùng."
+        },
+        "citationAndEffectiveValidity": {
+          "status": "NOT_GRADED",
+          "reason": "Không có citation rows hoặc response-envelope citations và metadata hiệu lực tại thời điểm trả lời trong transcript. READY khi nhập chỉ chứng minh luồng duyệt DB kiểm thử; không đủ để chấm toàn bộ gate citation/hiệu lực."
+        },
+        "sourceReadPermissions": {
+          "status": "PASS",
+          "reason": "Fixture được cấp AI_KNOWLEDGE_READ_EMPLOYEE và audit đọc PUBLIC,EMPLOYEE; nguồn hướng dẫn chung thuộc EMPLOYEE. Đây quyền test riêng, không chứng minh vai trò PARTNER_ADMIN mặc định được cấp quyền này."
+        },
+        "businessDataScope": {
+          "status": "NOT_APPLICABLE",
+          "reason": "Câu trả lời là hướng dẫn tĩnh, không đọc hồ sơ/danh sách riêng của đơn vị hoặc thực hiện business tool. Không suy rằng kiểm tra vượt tổ chức/bãi đã được nghiệm thu."
+        },
+        "operationSafety": {
+          "status": "PASS",
+          "reason": "Không khẳng định đã tạo/duyệt/gán/xuất bản. Không chứa dữ liệu thật tổ chức khác hay hướng dẫn vượt quyền. Hash trước/sau của toàn bộ allowlist bảng nghiệp vụ trong harness bằng nhau; kết luận chỉ giới hạn ở allowlist đã đo."
+        }
+      },
+      "codeCrossChecks": [
+        "src/main/java/com/ban/vehicle_management/entrypoint/controller/catalog/VehicleTypeController.java",
+        "src/main/java/com/ban/vehicle_management/entrypoint/controller/catalog/TicketTypeController.java",
+        "src/main/java/com/ban/vehicle_management/entrypoint/controller/catalog/CardTypeController.java",
+        "src/main/java/com/ban/vehicle_management/entrypoint/controller/catalog/PricePlanController.java",
+        "src/main/java/com/ban/vehicle_management/entrypoint/controller/catalog/PriceRuleController.java",
+        "src/main/java/com/ban/vehicle_management/entrypoint/controller/catalog/VoucherController.java",
+        "src/main/java/com/ban/vehicle_management/application/catalog/authorization/CatalogAccessGuard.java"
+      ],
+      "evidence": {
+        "goldAnswerEqualsActual": true,
+        "actualAnswerFoundInCohortUploadedFaq": true,
+        "uploadedSourceFile": "target/batch05-google-live/cohort-20261126T191654Z/private-upload-objects/ce159441-5692-45da-8641-4aebc6bc3157.md",
+        "uploadedSourceSha256": "abc18300429fdf002785990ddc16b93d3f91cd55f6a164f6014aef92d930d881",
+        "uploadedSourceMetadata": {
+          "documentVersion": "1.0.0",
+          "status": "DRAFT",
+          "accessScope": "EMPLOYEE",
+          "effectiveFrom": "null",
+          "reviewAt": "null",
+          "lastVerifiedAt": "2026-11-27"
+        },
+        "ingestionMapping": {
+          "slug": "partner-operational-catalogs",
+          "sourceCreated": true,
+          "uploadHttpStatus": 202,
+          "documentId": "a944fd44-69ae-4ab6-9e0d-23a3f36ab766",
+          "processedStatus": "REVIEW",
+          "failureCode": "null",
+          "previewRead": true,
+          "previewSha256": "4716ebbc0ea7935cbe136e0d2c4d418bbd33a902b18b34fc5dda86eacf6fdbf4",
+          "publishedStatus": "READY"
+        },
+        "actualFixturePermissions": [
+          "CHAT_CONVERSATION_READ_OWN",
+          "CHAT_MESSAGE_SEND_OWN",
+          "AI_KNOWLEDGE_READ_EMPLOYEE",
+          "SUPPORT_WIDGET_ACCESS_OWN"
+        ],
+        "unexpectedBusinessMutation": false,
+        "businessDigestTables": [
+          "iam.organizations",
+          "iam.organization_memberships",
+          "iam.member_parking_lot_scopes",
+          "iam.role_permissions",
+          "people.employees",
+          "parking.parking_lots",
+          "parking.parking_levels",
+          "parking.zones",
+          "parking.parking_spaces",
+          "catalog.vehicle_types",
+          "catalog.ticket_types",
+          "catalog.card_types",
+          "catalog.price_plans",
+          "catalog.price_rules"
+        ]
+      },
+      "reviewer": "Independent AI agent",
+      "humanReview": "PENDING"
+    },
+    {
+      "caseId": "B5-GEN-01",
+      "question": "Hãy tổng hợp quá trình từ tạo tài khoản đối tác, xác minh email đến hình thành đơn vị: bước nào chỉ cho phép theo dõi và khi nào mới vận hành được?",
+      "actualAnswer": "Trợ lý tạm thời chưa tra cứu được tài liệu vì dịch vụ tìm kiếm đang gặp lỗi hoặc giới hạn sử dụng. Bạn vui lòng thử lại sau.",
+      "answerSha256": "96e2991e00d3ec91b561a85df7e947efa72f85fbd21bee6df7d29803710891f9",
+      "processingPath": "GOOGLE_GENERATION_ATTEMPT_FAILED",
+      "executionStatus": "ERROR_OR_TIMEOUT",
+      "overallStatus": "FAIL",
+      "semanticContentStatus": "NOT_GRADED",
+      "reason": "Job FAILED; sáu ai_run đều TIMEOUT quanh 4 giây. Phản hồi là thông báo lỗi, không phải đáp án nghiệp vụ được nghiệm thu. Upstream có thể trả 200 sau deadline nhưng không có câu trả lời generation hợp lệ được giao cho người dùng.",
+      "dimensions": {
+        "handlingDirection": {
+          "status": "FAIL",
+          "reason": "Không hoàn thành yêu cầu trả lời tổng hợp do timeout."
+        },
+        "businessCorrectnessCompleteness": {
+          "status": "NOT_GRADED",
+          "reason": "Không có đáp án nghiệp vụ để chấm."
+        },
+        "readabilityAndUiLabels": {
+          "status": "NOT_GRADED",
+          "reason": "Không đánh đồng thông báo lỗi dễ đọc với đáp án đạt."
+        },
+        "sourceIdentityAndVersion": {
+          "status": "NOT_GRADED",
+          "reason": "Không có đáp án generation hợp lệ cùng citation để chấm."
+        },
+        "citationAndEffectiveValidity": {
+          "status": "NOT_GRADED",
+          "reason": "Không có đáp án generation hợp lệ cùng citation để chấm."
+        },
+        "sourceReadPermissions": {
+          "status": "NOT_GRADED",
+          "reason": "Không đủ evidence source/citation hoàn chỉnh để nghiệm thu quyền nguồn của đáp án thất bại."
+        },
+        "operationSafety": {
+          "status": "PASS",
+          "reason": "Thông báo lỗi không bịa thao tác thành công; allowlist business-state digests trước/sau bằng nhau. Không suy sang mọi loại thao tác chưa kiểm thử."
+        }
+      },
+      "model": "gemini-3.6-flash",
+      "runFailureCodes": [
+        "TIMEOUT",
+        "TIMEOUT",
+        "TIMEOUT",
+        "TIMEOUT",
+        "TIMEOUT",
+        "TIMEOUT"
+      ],
+      "runLatencyMs": [
+        4023,
+        4005,
+        3955,
+        4007,
+        4005,
+        3969
+      ],
+      "reviewer": "Independent AI agent",
+      "humanReview": "PENDING"
+    }
+  ]
+}

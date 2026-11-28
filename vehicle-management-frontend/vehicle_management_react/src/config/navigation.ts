@@ -113,6 +113,7 @@ export const platformAdminNavigation: AdminSidebarEntry[] = [
   { kind: "link", label: "Doanh thu, hóa đơn", to: "/admin/invoices", matches: ["/admin/invoices"], icon: "pricing" },
   { kind: "divider" },
   { kind: "section", label: "Quản trị nền tảng" },
+  { kind: "link", label: "Thông báo toàn sàn", to: "/admin/announcements", matches: ["/admin/announcements"], icon: "settings" },
   { kind: "link", label: "Duyệt ảnh đại diện", to: "/admin/avatar-approvals", matches: ["/admin/avatar-approvals"], icon: "members" },
   { kind: "link", label: "Khách hàng toàn sàn", to: "/admin/customer", matches: ["/admin/customer"], icon: "members" },
   { kind: "link", label: "Voucher toàn sàn", to: "/admin/vouchers", matches: ["/admin/vouchers"], icon: "catalog" },

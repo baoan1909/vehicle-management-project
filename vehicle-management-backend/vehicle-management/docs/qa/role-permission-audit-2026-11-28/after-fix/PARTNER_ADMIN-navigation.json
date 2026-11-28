@@ -1,0 +1,94 @@
+[
+  {
+    "text": "Trang chủ",
+    "href": "/admin/dashboard"
+  },
+  {
+    "text": "Thẻ",
+    "href": "/admin/card"
+  },
+  {
+    "text": "Thẻ bị mất",
+    "href": "/admin/lost"
+  },
+  {
+    "text": "Vào/Ra",
+    "href": "/admin/swipe"
+  },
+  {
+    "text": "Phiên gửi xe",
+    "href": "/admin/swipe/sessions"
+  },
+  {
+    "text": "Bãi xe",
+    "href": "/admin/parking-lots"
+  },
+  {
+    "text": "Thiết kế sơ đồ",
+    "href": "/admin/parking-layouts"
+  },
+  {
+    "text": "Sơ đồ trực tiếp",
+    "href": "/admin/parking-live"
+  },
+  {
+    "text": "Thiết bị",
+    "href": "/admin/devices"
+  },
+  {
+    "text": "Đánh giá bãi xe",
+    "href": "/admin/parking-reviews"
+  },
+  {
+    "text": "Khách hàng",
+    "href": "/admin/customer"
+  },
+  {
+    "text": "Vé",
+    "href": "/admin/ticket"
+  },
+  {
+    "text": "Duyệt & Gán thẻ",
+    "href": "/admin/subscription-approvals"
+  },
+  {
+    "text": "Phương tiện",
+    "href": "/admin/vehicle"
+  },
+  {
+    "text": "Kế hoạch giá",
+    "href": "/admin/price-plans"
+  },
+  {
+    "text": "Quy tắc giá",
+    "href": "/admin/price-rules"
+  },
+  {
+    "text": "Voucher",
+    "href": "/admin/vouchers"
+  },
+  {
+    "text": "Hóa đơn",
+    "href": "/admin/invoices"
+  },
+  {
+    "text": "Ví đối tác",
+    "href": "/admin/partner-wallet"
+  },
+  {
+    "text": "Nhân viên",
+    "href": "/admin/employee"
+  },
+  {
+    "text": "Ca trực",
+    "href": "/admin/shifts"
+  },
+  {
+    "text": "Tài khoản",
+    "href": "/admin/account"
+  },
+  {
+    "text": "Duyệt ảnh đại diện",
+    "href": "/admin/avatar-approvals"
+  }
+]

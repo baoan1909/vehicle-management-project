@@ -62,3 +62,20 @@ export function unassignParkingManagerFromParkingLot(
     { method: "DELETE" },
   );
 }
+
+export type ParkingLotManagementAssignmentResponse = {
+  assignmentId: string;
+  organizationId: string;
+  parkingLotId: string;
+  managerAccountId: string;
+  managementRole: "PRIMARY" | "SUPPORT";
+  status: "PENDING_ACCEPTANCE" | "ACTIVE" | "ENDED" | "CANCELLED";
+  effectiveFrom: string;
+  effectiveTo: string | null;
+};
+
+export function getParkingLotManagementHistory(organizationId: string, parkingLotId: string) {
+  return apiClient<ApiResponse<ParkingLotManagementAssignmentResponse[]>>(
+    `${apiEndpoints.iam.parkingLotAssignments}/organizations/${organizationId}/parking-lots/${parkingLotId}/management-history`,
+  );
+}

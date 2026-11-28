@@ -1,0 +1,11 @@
+{
+  "status" : "STOPPED",
+  "stopReason" : "IllegalStateException: HTTP_400:/api/ai/knowledge/documents/4e1b83cd-8ab9-438c-a2ab-725ffe4e3de7/chunks:{\"success\":false,\"message\":\"Dữ liệu gửi lên không hợp lệ\",\"data\":{\"status\":400,\"path\":\"/vehicle-management/api/ai/knowledge/documents/4e1b83cd-8ab9-438c-a2ab-725ffe4e3de7/chunks\",\"error\":\"Bad Request\"",
+  "lastStageOrCase" : "INGEST:parking-structure-and-layout",
+  "caseIdsCompleted" : [ ],
+  "actualHttpRequests" : 6,
+  "reviewer" : "PENDING_INDEPENDENT_SEMANTIC_REVIEW",
+  "notAttempted" : "All cases absent from caseIdsCompleted; no quota balance inferred",
+  "database" : "Testcontainers fresh vehicle_management_test; no shared DB writes",
+  "recordedAt" : "2026-11-26T18:44:12.275256700Z"
+}

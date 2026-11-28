@@ -1,0 +1,712 @@
+[ {
+  "caseId" : "CATALOG_PREFLIGHT",
+  "sequence" : 1,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models",
+  "startedAt" : "2026-11-26T18:46:35.479319100Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 423
+}, {
+  "caseId" : "INGEST:parking-structure-and-layout",
+  "sequence" : 2,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:36.742779Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 780
+}, {
+  "caseId" : "INGEST:parking-structure-and-layout",
+  "sequence" : 3,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:37.535597300Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 739
+}, {
+  "caseId" : "INGEST:parking-structure-and-layout",
+  "sequence" : 4,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:38.283816600Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 750
+}, {
+  "caseId" : "INGEST:parking-structure-and-layout",
+  "sequence" : 5,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:39.043325Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 674
+}, {
+  "caseId" : "INGEST:parking-structure-and-layout",
+  "sequence" : 6,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:39.726042Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 664
+}, {
+  "caseId" : "INGEST:partner-employees-roles-and-permissions",
+  "sequence" : 7,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:40.781276700Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 742
+}, {
+  "caseId" : "INGEST:partner-employees-roles-and-permissions",
+  "sequence" : 8,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:41.531206200Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 830
+}, {
+  "caseId" : "INGEST:partner-employees-roles-and-permissions",
+  "sequence" : 9,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:42.372366800Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 655
+}, {
+  "caseId" : "INGEST:partner-employees-roles-and-permissions",
+  "sequence" : 10,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:43.035268900Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 691
+}, {
+  "caseId" : "INGEST:partner-employees-roles-and-permissions",
+  "sequence" : 11,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:43.734036800Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 648
+}, {
+  "caseId" : "INGEST:partner-operational-catalogs",
+  "sequence" : 12,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:44.717452600Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 695
+}, {
+  "caseId" : "INGEST:partner-operational-catalogs",
+  "sequence" : 13,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:45.419751500Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 767
+}, {
+  "caseId" : "INGEST:partner-operational-catalogs",
+  "sequence" : 14,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:46.193959700Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 679
+}, {
+  "caseId" : "INGEST:partner-operational-catalogs",
+  "sequence" : 15,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:46.882866400Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 686
+}, {
+  "caseId" : "INGEST:partner-operational-catalogs",
+  "sequence" : 16,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:47.578177900Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 686
+}, {
+  "caseId" : "INGEST:partner-organization-administration",
+  "sequence" : 17,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:48.532662700Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 590
+}, {
+  "caseId" : "INGEST:partner-organization-administration",
+  "sequence" : 18,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:49.196537600Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 724
+}, {
+  "caseId" : "INGEST:partner-organization-administration",
+  "sequence" : 19,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:49.927193900Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 552
+}, {
+  "caseId" : "INGEST:partner-registration-and-organization",
+  "sequence" : 20,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:50.743928200Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 788
+}, {
+  "caseId" : "INGEST:partner-registration-and-organization",
+  "sequence" : 21,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:51.540764300Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 701
+}, {
+  "caseId" : "INGEST:partner-registration-and-organization",
+  "sequence" : 22,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:52.249012700Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 843
+}, {
+  "caseId" : "INGEST:partner-registration-and-organization",
+  "sequence" : 23,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:53.099797200Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 618
+}, {
+  "caseId" : "INGEST:authentication-and-profile",
+  "sequence" : 24,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:54.069688700Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 645
+}, {
+  "caseId" : "INGEST:authentication-and-profile",
+  "sequence" : 25,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:54.720814600Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 721
+}, {
+  "caseId" : "INGEST:authentication-and-profile",
+  "sequence" : 26,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:55.449396Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 643
+}, {
+  "caseId" : "INGEST:cards-and-lost-card",
+  "sequence" : 27,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:56.388603400Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 726
+}, {
+  "caseId" : "INGEST:cards-and-lost-card",
+  "sequence" : 28,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:57.124791900Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 684
+}, {
+  "caseId" : "INGEST:cards-and-lost-card",
+  "sequence" : 29,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:57.816663300Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 718
+}, {
+  "caseId" : "INGEST:cards-and-lost-card",
+  "sequence" : 30,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:58.541256Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 691
+}, {
+  "caseId" : "INGEST:chat-conversations-and-support-boundaries",
+  "sequence" : 31,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:46:59.475941500Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 722
+}, {
+  "caseId" : "INGEST:chat-conversations-and-support-boundaries",
+  "sequence" : 32,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:00.206540100Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 715
+}, {
+  "caseId" : "INGEST:chat-conversations-and-support-boundaries",
+  "sequence" : 33,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:00.927106400Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 674
+}, {
+  "caseId" : "INGEST:chatbot-privacy-and-prohibited-data",
+  "sequence" : 34,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:01.832118500Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 701
+}, {
+  "caseId" : "INGEST:chatbot-privacy-and-prohibited-data",
+  "sequence" : 35,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:02.539582500Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 676
+}, {
+  "caseId" : "INGEST:common-errors-and-troubleshooting",
+  "sequence" : 36,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:03.433125600Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 704
+}, {
+  "caseId" : "INGEST:common-errors-and-troubleshooting",
+  "sequence" : 37,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:04.143285600Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 633
+}, {
+  "caseId" : "INGEST:common-errors-and-troubleshooting",
+  "sequence" : 38,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:04.799576700Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 635
+}, {
+  "caseId" : "INGEST:common-errors-and-troubleshooting",
+  "sequence" : 39,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:05.451892Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 549
+}, {
+  "caseId" : "INGEST:customer-vehicle-management",
+  "sequence" : 40,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:06.260446200Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 722
+}, {
+  "caseId" : "INGEST:customer-vehicle-management",
+  "sequence" : 41,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:06.989439Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 727
+}, {
+  "caseId" : "INGEST:customer-vehicle-management",
+  "sequence" : 42,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:07.726476200Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 558
+}, {
+  "caseId" : "INGEST:invoice-vnpay-payment-refund",
+  "sequence" : 43,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:08.520554600Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 752
+}, {
+  "caseId" : "INGEST:invoice-vnpay-payment-refund",
+  "sequence" : 44,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:09.280220500Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 732
+}, {
+  "caseId" : "INGEST:invoice-vnpay-payment-refund",
+  "sequence" : 45,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:10.021001300Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 757
+}, {
+  "caseId" : "INGEST:invoice-vnpay-payment-refund",
+  "sequence" : 46,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:10.789152500Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 608
+}, {
+  "caseId" : "INGEST:locations-hours-sla-contact",
+  "sequence" : 47,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:11.617081500Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 697
+}, {
+  "caseId" : "INGEST:locations-hours-sla-contact",
+  "sequence" : 48,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:12.323851700Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 625
+}, {
+  "caseId" : "INGEST:locations-hours-sla-contact",
+  "sequence" : 49,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:12.978270800Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 737
+}, {
+  "caseId" : "INGEST:parking-entry-exit",
+  "sequence" : 50,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:13.933139100Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 749
+}, {
+  "caseId" : "INGEST:parking-entry-exit",
+  "sequence" : 51,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:14.689064400Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 707
+}, {
+  "caseId" : "INGEST:parking-entry-exit",
+  "sequence" : 52,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:15.406081900Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 674
+}, {
+  "caseId" : "INGEST:parking-entry-exit",
+  "sequence" : 53,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:16.088162Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 638
+}, {
+  "caseId" : "INGEST:parking-history",
+  "sequence" : 54,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:16.979971900Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 735
+}, {
+  "caseId" : "INGEST:parking-history",
+  "sequence" : 55,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:17.721340700Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 721
+}, {
+  "caseId" : "INGEST:parking-history",
+  "sequence" : 56,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:18.451607300Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 700
+}, {
+  "caseId" : "INGEST:parking-history",
+  "sequence" : 57,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:19.160676800Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 471
+}, {
+  "caseId" : "INGEST:parking-search-and-map",
+  "sequence" : 58,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:19.849148500Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 625
+}, {
+  "caseId" : "INGEST:parking-search-and-map",
+  "sequence" : 59,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:20.513071700Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 703
+}, {
+  "caseId" : "INGEST:parking-search-and-map",
+  "sequence" : 60,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:21.223296700Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 653
+}, {
+  "caseId" : "INGEST:pricing-and-fee-calculation",
+  "sequence" : 61,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:22.091486500Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 677
+}, {
+  "caseId" : "INGEST:pricing-and-fee-calculation",
+  "sequence" : 62,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:22.776559600Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 700
+}, {
+  "caseId" : "INGEST:pricing-and-fee-calculation",
+  "sequence" : 63,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:23.483042400Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 695
+}, {
+  "caseId" : "INGEST:reservations-and-holds",
+  "sequence" : 64,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:24.392223700Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 796
+}, {
+  "caseId" : "INGEST:reservations-and-holds",
+  "sequence" : 65,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:25.195042700Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 697
+}, {
+  "caseId" : "INGEST:reservations-and-holds",
+  "sequence" : 66,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:25.900589300Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 795
+}, {
+  "caseId" : "INGEST:reservations-and-holds",
+  "sequence" : 67,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:26.703297700Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 673
+}, {
+  "caseId" : "INGEST:subscription-lifecycle",
+  "sequence" : 68,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:27.608289400Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 716
+}, {
+  "caseId" : "INGEST:subscription-lifecycle",
+  "sequence" : 69,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:28.331188900Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 706
+}, {
+  "caseId" : "INGEST:subscription-lifecycle",
+  "sequence" : 70,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:29.045377700Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 669
+}, {
+  "caseId" : "INGEST:subscription-lifecycle",
+  "sequence" : 71,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:29.721452400Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 675
+}, {
+  "caseId" : "INGEST:support-ticket-and-escalation",
+  "sequence" : 72,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:30.617579900Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 757
+}, {
+  "caseId" : "INGEST:support-ticket-and-escalation",
+  "sequence" : 73,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:31.381563Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 700
+}, {
+  "caseId" : "INGEST:support-ticket-and-escalation",
+  "sequence" : 74,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:32.087053700Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 712
+}, {
+  "caseId" : "INGEST:support-ticket-and-escalation",
+  "sequence" : 75,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:32.807851800Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 672
+}, {
+  "caseId" : "INGEST:voucher-and-promotions",
+  "sequence" : 76,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:33.694733700Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 641
+}, {
+  "caseId" : "INGEST:voucher-and-promotions",
+  "sequence" : 77,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:34.346123800Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 707
+}, {
+  "caseId" : "INGEST:voucher-and-promotions",
+  "sequence" : 78,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:35.062382900Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 809
+}, {
+  "caseId" : "INGEST:voucher-and-promotions",
+  "sequence" : 79,
+  "credentialVariable" : "GEMINI_API_KEY",
+  "path" : "/v1beta/models/gemini-embedding-2:embedContent",
+  "startedAt" : "2026-11-26T18:47:35.878219300Z",
+  "httpStatus" : 200,
+  "retryAfter" : "",
+  "latencyMs" : 682
+} ]

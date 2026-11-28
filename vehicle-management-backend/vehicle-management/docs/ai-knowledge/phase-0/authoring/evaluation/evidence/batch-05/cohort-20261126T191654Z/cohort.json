@@ -1,0 +1,16 @@
+{
+  "businessPolicySha256" : "157323c77ffbb26c1b4a997054891ec2046108d1c609d4d7da39a28b53ad7f6c",
+  "embeddingPromptVersion" : "rag-qa-v1",
+  "manifestSha256" : "6293d756dc63ee470e19ad174305e24372798879e7dcadd88712815233570491",
+  "testBoundary" : "Real socket HTTP and DB permissions; test JWT verifier and private filesystem storage; one manual worker",
+  "routerSha256" : "f05118dae915e143ef1424fb1fd2773ae30b5a26859b2cd0e51fbf196491e7fc",
+  "embeddingProfile" : {
+    "provider" : "GEMINI",
+    "model_id" : "gemini-embedding-2",
+    "api_version" : "v1beta",
+    "output_dimension" : 768
+  },
+  "semanticAcceptance" : false,
+  "assistantPromptVersion" : "support-assistant-v3",
+  "holdoutSha256" : "33275fe1b0a1527517dbefa255a77d1b5fe974571257223bc61535ea9c272227"
+}

@@ -1,6 +1,8 @@
 package com.ban.vehicle_management.application.iam.organization.usecase;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.never;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -156,39 +158,14 @@ class ParkingLotAssignmentUseCaseImplTest {
     }
 
     @Test
-    void managerMayAssignOnlyAnEmployeeOwnedByTheLotOrganization() {
-        UUID organizationId = UUID.randomUUID();
-        UUID managerId = UUID.randomUUID();
-        UUID employeeId = UUID.randomUUID();
-        UUID employeeAccountId = UUID.randomUUID();
-        UUID lotId = UUID.randomUUID();
-        actorId = managerId;
-        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(managerId);
-        CurrentAccountAccess manager = account(managerId, "PARKING_MANAGER",
+    void managerCannotAssignEmployeesToParkingLots() {
+        CurrentAccountAccess manager = account(UUID.randomUUID(), "PARKING_MANAGER",
                 Set.of("EMPLOYEE_UPDATE_ALL", OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED));
-        Employee employee = new Employee();
-        employee.setEmployeeId(employeeId);
-        employee.setStatus(EmployeeStatus.ACTIVE);
         when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(manager);
-        when(organizationPortOut.allParkingLotsBelongToOrganization(organizationId, Set.of(lotId))).thenReturn(true);
-        when(scopeResolver.resolveManagerManagedLots(managerId)).thenReturn(Set.of(lotId));
-        when(employeePortOut.findById(employeeId)).thenReturn(Optional.of(employee));
-        when(employeePortOut.findAccountIdByEmployeeId(employeeId)).thenReturn(Optional.of(employeeAccountId));
-        when(employeePortOut.hasAccountRole(employeeId, "EMPLOYEE")).thenReturn(true);
-        when(organizationPortOut.findActiveMembershipId(organizationId, employeeAccountId))
-                .thenReturn(Optional.of(UUID.randomUUID()));
-        when(assignmentPortOut.findEmployeeAssignmentsForUpdate(eq(employeeId), eq(lotId), any())).thenReturn(List.of());
-        when(assignmentPortOut.saveEmployeeAssignment(any()))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-
-        EmployeeParkingLotAssignment saved = useCase.assignEmployee(
-                organizationId, lotId, employeeId, EmployeeParkingLotAssignmentType.PRIMARY,
-                Instant.now(), null);
-
-        assertEquals(EmployeeParkingLotAssignmentSource.MANAGER, saved.getAssignmentSource());
-        assertEquals(employeeId, saved.getEmployeeId());
-        verify(invalidationPortIn).invalidateAccount(
-                employeeAccountId, "Phạm vi bãi xe làm việc đã thay đổi.", "parking", "parking_lots", lotId);
+        assertThrows(com.ban.vehicle_management.shared.exception.ScopedAccessDeniedException.class,
+                () -> useCase.assignEmployee(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
+                        EmployeeParkingLotAssignmentType.PRIMARY, Instant.now(), null));
+        verify(assignmentPortOut, never()).saveEmployeeAssignment(any());
     }
 
     @Test

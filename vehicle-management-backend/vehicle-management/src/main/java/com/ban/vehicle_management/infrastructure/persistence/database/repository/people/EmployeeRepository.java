@@ -31,31 +31,38 @@ public interface EmployeeRepository extends JpaRepository<EmployeeEntity, UUID>,
             @Param("now") java.time.Instant now);
 
     @Query(value = """
-        SELECT employee.employee_id
+        SELECT DISTINCT employee.employee_id
         FROM people.employees employee
         JOIN people.user_profiles profile ON profile.user_profile_id = employee.user_profile_id
-        JOIN iam.accounts visible_account ON visible_account.user_profile_id = profile.user_profile_id
+        JOIN iam.accounts account ON account.user_profile_id = profile.user_profile_id
+        JOIN iam.roles role ON role.role_id = account.role_id
+        JOIN parking.parking_lots lot ON lot.parking_lot_id = :parkingLotId
+        JOIN iam.organization_memberships membership
+          ON membership.account_id = account.account_id
+         AND membership.organization_id = lot.organization_id
+         AND membership.status = 'ACTIVE'
         WHERE employee.status <> 'DELETED'
           AND profile.status <> 'DELETED'
-          AND visible_account.status NOT IN ('PENDING_DELETION', 'DELETED')
-          AND (EXISTS (
-            SELECT 1
-            FROM operations.shift_assignments assignment
-            JOIN operations.shifts shift ON shift.shift_id = assignment.shift_id
-            WHERE assignment.employee_id = employee.employee_id
-              AND shift.parking_lot_id = :parkingLotId
-              AND assignment.status <> 'REMOVED'
-              AND shift.status <> 'CANCELLED'
-        ) OR EXISTS (
-            SELECT 1
-            FROM iam.accounts account
-            JOIN iam.organization_memberships membership ON membership.account_id = account.account_id
-            JOIN iam.member_parking_lot_scopes scope
-              ON scope.organization_membership_id = membership.organization_membership_id
-            WHERE account.user_profile_id = employee.user_profile_id
-              AND membership.status = 'ACTIVE'
-              AND scope.parking_lot_id = :parkingLotId
-        ))
+          AND account.status NOT IN ('PENDING_DELETION', 'DELETED')
+          AND (
+            (role.code = 'PARKING_MANAGER' AND EXISTS (
+                SELECT 1 FROM iam.parking_lot_management_assignments assignment
+                WHERE assignment.manager_account_id = account.account_id
+                  AND assignment.organization_id = lot.organization_id
+                  AND assignment.parking_lot_id = lot.parking_lot_id
+                  AND assignment.status = 'ACTIVE'
+                  AND assignment.effective_from <= CURRENT_TIMESTAMP
+                  AND (assignment.effective_to IS NULL OR assignment.effective_to > CURRENT_TIMESTAMP)
+            )) OR (role.code = 'EMPLOYEE' AND EXISTS (
+                SELECT 1 FROM people.employee_parking_lot_assignments assignment
+                WHERE assignment.employee_id = employee.employee_id
+                  AND assignment.organization_id = lot.organization_id
+                  AND assignment.parking_lot_id = lot.parking_lot_id
+                  AND assignment.status IN ('ACTIVE', 'SCHEDULED')
+                  AND assignment.effective_from <= CURRENT_TIMESTAMP
+                  AND (assignment.effective_to IS NULL OR assignment.effective_to > CURRENT_TIMESTAMP)
+            ))
+          )
         """, nativeQuery = true)
     List<UUID> findEmployeeIdsLinkedToParkingLot(@Param("parkingLotId") UUID parkingLotId);
 

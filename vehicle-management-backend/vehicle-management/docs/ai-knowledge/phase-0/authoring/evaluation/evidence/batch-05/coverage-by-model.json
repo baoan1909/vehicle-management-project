@@ -1,0 +1,16 @@
+{
+  "cohort": "cohort-20261126T192655Z",
+  "models": [
+    {
+      "model": "gemini-3.6-flash",
+      "observedCases": [
+        "B5-GEN-01"
+      ],
+      "graded": 0,
+      "semanticScore": null,
+      "gate": "PENDING"
+    }
+  ],
+  "faqWithoutGeneration": 8,
+  "note": "FAQ and failed provider attempts do not demonstrate accepted generation quality."
+}

@@ -1,0 +1,66 @@
+[
+  {
+    "text": "Tổng quan",
+    "href": "/admin/dashboard"
+  },
+  {
+    "text": "Đối tác và bãi xe",
+    "href": "/admin/parking-lots"
+  },
+  {
+    "text": "Doanh thu, hóa đơn",
+    "href": "/admin/invoices"
+  },
+  {
+    "text": "Duyệt ảnh đại diện",
+    "href": "/admin/avatar-approvals"
+  },
+  {
+    "text": "Khách hàng toàn sàn",
+    "href": "/admin/customer"
+  },
+  {
+    "text": "Voucher toàn sàn",
+    "href": "/admin/vouchers"
+  },
+  {
+    "text": "Phí sàn",
+    "href": "/admin/platform-fees"
+  },
+  {
+    "text": "Quản lý ví & giao dịch",
+    "href": "/admin/wallets"
+  },
+  {
+    "text": "Tài khoản",
+    "href": "/admin/account"
+  },
+  {
+    "text": "Lưu trữ xóa tài khoản",
+    "href": "/admin/deletion-audit"
+  },
+  {
+    "text": "Vai trò & phân quyền",
+    "href": "/admin/role"
+  },
+  {
+    "text": "Quản lý hỗ trợ",
+    "href": "/admin/support-tickets"
+  },
+  {
+    "text": "Danh mục hỗ trợ",
+    "href": "/admin/support-categories"
+  },
+  {
+    "text": "Hướng dẫn sử dụng",
+    "href": "/admin/user-guides"
+  },
+  {
+    "text": "Model AI",
+    "href": "/admin/ai-models"
+  },
+  {
+    "text": "Knowledge AI",
+    "href": "/admin/ai-knowledge"
+  }
+]
